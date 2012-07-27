@@ -1,0 +1,6 @@
+eavlConfig.h
+make-dependencies
+make-targets
+make-targets-cuda
+make-targets-nocuda
+make-variables
