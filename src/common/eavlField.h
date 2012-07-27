@@ -66,6 +66,10 @@ class eavlField
         if (assoc == ASSOC_LOGICALDIM && assoc_value < 0)
             THROW(eavlException,"Need a nonnegative dim index for logical dim association");
     }
+    ~eavlField()
+    {
+        delete array;
+    }
     Association  GetAssociation()    {return association;}
     eavlArray   *GetArray()          {return array;}
     int          GetOrder()          {return order;}

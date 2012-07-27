@@ -196,6 +196,26 @@ eavlIsosurfaceFilter::eavlIsosurfaceFilter()
     totaloutpts = NULL;
 }
 
+eavlIsosurfaceFilter::~eavlIsosurfaceFilter()
+{
+    if (hiloArray)
+        delete hiloArray;
+    if (caseArray)
+        delete caseArray;
+    if (numoutArray)
+        delete numoutArray;
+    if (outindexArray)
+        delete outindexArray;
+    if (totalout)
+        delete totalout;
+    if (edgeInclArray)
+        delete edgeInclArray;
+    if (outpointindexArray)
+        delete outpointindexArray;
+    if (totaloutpts)
+        delete totaloutpts;
+}
+
 void
 eavlIsosurfaceFilter::Execute()
 {
@@ -565,6 +585,7 @@ eavlIsosurfaceFilter::Execute()
     // to the input and write out the input data set
     if (false)
     {
+        // note: if we do this, we can't delete them in the destructor
         input->fields.push_back(new eavlField(0, hiloArray, eavlField::ASSOC_POINTS));
         input->fields.push_back(new eavlField(0, caseArray, eavlField::ASSOC_CELL_SET, 0));
         input->fields.push_back(new eavlField(0, numoutArray, eavlField::ASSOC_CELL_SET, 0));
