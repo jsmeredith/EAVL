@@ -1,0 +1,76 @@
+# *****************************************************************************
+# File:  Makefile.in
+#
+# Purpose:
+#   makefile for main source tree
+#
+# Programmer:  Jeremy Meredith
+# Creation:    March  9, 2011
+#
+# Modifications:
+# *****************************************************************************
+@VARIABLES@
+
+ARCHIVE=../lib/libeavl.a
+
+SRC=\
+ common/eavlArray.cpp \
+ common/eavlAtomicProperties.cpp \
+ common/eavlCUDA.cpp \
+ common/eavlCellComponents.cpp \
+ common/eavlCellSetExplicit.cpp \
+ common/eavlDataSet.cpp \
+ common/eavlExecutor.cpp \
+ common/eavlNewIsoTables.cpp \
+ common/eavlOperation.cpp \
+ common/eavlTimer.cpp \
+ exporters/eavlVTKExporter.cpp \
+ filters/eavl3X3AverageMutator.cpp \
+ filters/eavlElevateMutator.cpp \
+ filters/eavlExternalFaceMutator.cpp \
+ filters/eavlIsosurfaceFilter.cpp \
+ filters/eavlSurfaceNormalMutator.cpp \
+ filters/eavlTesselate2DFilter.cpp \
+ filters/eavlThresholdMutator.cpp \
+ importers/eavlBOVImporter.cpp \
+ importers/eavlImporterFactory.cpp \
+ importers/eavlMADNESSImporter.cpp \
+ importers/eavlPDBImporter.cpp \
+ importers/eavlVTKImporter.cpp \
+ math/eavlMatrix4x4.cpp \
+ math/eavlPoint3.cpp \
+ math/eavlVector3.cpp \
+ rendering/eavlColor.cpp
+
+ifneq (@NETCDF@, no)
+ SRC+=importers/eavlNetCDFImporter.cpp
+ SRC+=importers/eavlNetCDFDecomposingImporter.cpp
+endif
+
+ifneq (@SILO@, no)
+ SRC+=importers/eavlSiloImporter.cpp
+ SRC+=importers/eavlChimeraImporter.cpp
+endif
+
+ifneq (@ADIOS@, no)
+ SRC+=importers/ADIOSFileObject.cpp
+ SRC+=importers/eavlADIOSImporter.cpp
+ SRC+=importers/eavlPixieImporter.cpp
+endif
+
+ifneq (@CUDA@, no)
+ CUDASRC=
+endif
+
+CPPFLAGS+=-I../config -Icommon/ -Iimporters/ -Imath/ -Irendering/ -Iexecutor/ -Ifunctors/ -Ioperations/ -Ifilters/
+CPPFLAGS+=$(BOOST_CPPFLAGS) $(NETCDF_CPPFLAGS) $(SILO_CPPFLAGS) $(CUDA_CPPFLAGS) $(ADIOS_CPPFLAGS)
+
+OBJ=$(SRC:.cpp=.o) $(CUDASRC:.cu=.o)
+LIBS=-lm
+
+LDFLAGS+=$(CUDA_LDFLAGS)
+LIBS+=$(CUDA_LIBS)
+
+all: $(PROGRAM) $(LIBRARY) $(ARCHIVE)
+
+@TARGETS@

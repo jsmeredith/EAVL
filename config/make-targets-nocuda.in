@@ -1,0 +1,5 @@
+.cu.o:
+	source='$<' object='$@' libtool=no depfile='./$*.d'  \
+	depmode=$(DEPMODE) $(TOPDIR)/config/depcomp   \
+	$(CXX) -x c++ $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
+

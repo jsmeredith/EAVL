@@ -1,0 +1,4 @@
+.cu.o:
+	source='$<' object='$@' libtool=no depfile='./$*.d'  \
+	depmode=nvcc $(TOPDIR)/config/depcomp   \
+	$(NVCC) $(NVCXXFLAGS) $(CPPFLAGS) -c $< -o $@

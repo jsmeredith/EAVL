@@ -1,0 +1,56 @@
+
+
+-- summary of data set result --
+eavlDataSet:
+   npoints = 64
+   coordinateSystems[1]:
+   eavlCoordinatesCartesian, ndims=3: 
+       axis 0 (type=X):
+          eavlCoordinateAxisField='xcoord',component #0
+       axis 1 (type=Y):
+          eavlCoordinateAxisField='ycoord',component #0
+       axis 2 (type=Z):
+          eavlCoordinateAxisField='zcoord',component #0
+  discreteCoordinates[0]:
+  cellsets[1]:
+    eavlCellSetExplicit:
+        name = UnstructuredGridCells2D
+        dimensionality = 2
+        nCells = 49
+        cellNodeConnectivity =
+        shapetype[49] = 3 3 3 3 3 3 3 3 3 3 ... 3 3 3 3 3 3 3 3 3 3
+        connectivity[245] = 4 0 1 2 3 4 1 4 5 2 ... 4 53 54 62 61 4 54 55 63 62
+        mapCellToIndex[49] = 0 5 10 15 20 25 30 35 40 45 ... 195 200 205 210 215 220 225 230 235 240
+  fields[6]:
+      array name = xcoord
+      order = 1
+      association = POINTS
+      array = float xcoord[64][1] = -9.93559  -7.22557  -7.34505  -9.58893  -4.29127 ... -1.38877  1.45433  4.22697  7.07882  9.98456
+
+      array name = ycoord
+      order = 1
+      association = POINTS
+      array = float ycoord[64][1] = -9.83971  -9.83122  -7.17676  -7.1787  -9.85351 ... 9.95374  9.89968  9.85578  9.99855  9.97839
+
+      array name = zcoord
+      order = 1
+      association = POINTS
+      array = float zcoord[64][1] = 0  0  0  0  0 ... 0  0  0  0  0
+
+      array name = nodal
+      order = 1
+      association = POINTS
+      array = float nodal[64][1] = 3.7098  3.46036  3.80967  4.27934  2.54554 ... 3.56983  3.75622  3.81282  3.57887  3.63372
+
+      array name = zonal
+      order = 0
+      association = CELL_SET
+      assoc_cell_set (index) = 0
+      array = float zonal[49][1] = 2.93286  2.94926  2.6796  2.47013  2.81913 ... 2.23087  3.53692  4.29173  4.09175  3.26901
+
+      array name = surface_normals
+      order = 0
+      association = CELL_SET
+      assoc_cell_set (index) = 0
+      array = float surface_normals[49][3] = 0  -0  1  -0  -0 ... 0  1  0  -0  1
+

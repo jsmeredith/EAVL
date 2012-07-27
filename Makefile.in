@@ -1,0 +1,29 @@
+# *****************************************************************************
+# File:  Makefile.in
+#
+# Purpose:
+#   top-level makefile
+#
+# Programmer:  Jeremy Meredith
+# Creation:    November 30, 2010
+#
+# Modifications:
+# *****************************************************************************
+
+@VARIABLES@
+
+SUBDIRS=src test
+DISTCLEAN_FILES=config.status config.log \
+ config/make-variables config/make-targets \
+ config/make-targets-nocuda config/make-targets-cuda \
+ config/make-dependencies \
+ config/eavlConfig.h autom4te.cache
+
+all: $(SUBDIRS)
+
+test: src
+
+check: $(SUBDIRS)
+	(cd test && $(MAKE) check)
+
+@TARGETS@

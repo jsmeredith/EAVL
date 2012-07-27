@@ -1,0 +1,85 @@
+
+
+-- summary of data set result --
+eavlDataSet:
+   npoints = 327
+   coordinateSystems[1]:
+   eavlCoordinatesCartesian, ndims=3: 
+       axis 0 (type=X):
+          eavlCoordinateAxisField='newx',component #0
+       axis 1 (type=Y):
+          eavlCoordinateAxisField='newy',component #0
+       axis 2 (type=Z):
+          eavlCoordinateAxisField='newz',component #0
+  discreteCoordinates[0]:
+  cellsets[1]:
+    eavlCellSetExplicit:
+        name = iso
+        dimensionality = 2
+        nCells = 665
+        cellNodeConnectivity =
+        shapetype[665] = 2 2 2 2 2 2 2 2 2 2 ... 2 2 2 2 2 2 2 2 2 2
+        connectivity[2660] = 3 2 3 1 3 2 1 0 3 6 ... 104 155 3 104 282 187 3 104 187 155
+        mapCellToIndex[665] = 0 4 8 12 16 20 24 28 32 36 ... 2620 2624 2628 2632 2636 2640 2644 2648 2652 2656
+  fields[11]:
+      array name = revPtEdgeIndex
+      order = 0
+      association = POINTS
+      array = int revPtEdgeIndex[327][1] = 0  1  3  5  13 ... 600  603  605  606  607
+
+      array name = revInputIndex
+      order = 0
+      association = CELL_SET
+      assoc_cell_set (index) = 0
+      array = int revInputIndex[665][1] = 0  0  2  2  3 ... 473  474  475  476  476
+
+      array name = revInputSubindex
+      order = 0
+      association = CELL_SET
+      assoc_cell_set (index) = 0
+      array = int revInputSubindex[665][1] = 0  1  0  1  0 ... 1  0  0  0  1
+
+      array name = outcase
+      order = 0
+      association = CELL_SET
+      assoc_cell_set (index) = 0
+      array = byte outcase[665][1] = 5  5  12  12  2 ... 12  13  13  12  12
+
+      array name = localouttri
+      order = 0
+      association = CELL_SET
+      assoc_cell_set (index) = 0
+      array = int localouttri[665][3] = 3  5  1  3  1 ... 4  1  3  1  2
+
+      array name = outtri
+      order = 0
+      association = CELL_SET
+      assoc_cell_set (index) = 0
+      array = int outtri[665][3] = 3  5  1  3  1 ... 519  339  195  339  281
+
+      array name = outconn
+      order = 0
+      association = CELL_SET
+      assoc_cell_set (index) = 0
+      array = int outconn[665][3] = 2  3  1  2  1 ... 282  187  104  187  155
+
+      array name = alpha
+      order = 1
+      association = POINTS
+      array = float alpha[327][1] = 0.504037  0.461825  0.406899  0.374338  0.416474 ... 0.55815  0.185894  0.152505  0.627097  0.667408
+
+      array name = newx
+      order = 1
+      association = POINTS
+      array = float newx[327][1] = 9.17902  8.8192  8.71614  8.33486  7.30378 ... 6.26716  0.354136  0.423995  -8.04753  -1.66758
+
+      array name = newy
+      order = 1
+      association = POINTS
+      array = float newy[327][1] = 0.898127  5.53857  -1.21935  4.3449  -6.98895 ... -5.09573  1.04286  1.57988  -4.76421  -5.28014
+
+      array name = newz
+      order = 1
+      association = POINTS
+      array = float newz[327][1] = 2.49716  2.88328  0.697123  1.29005  3.75889 ... -2.15526  6.47195  6.85672  6.11423  -4.22777
+

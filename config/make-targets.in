@@ -1,0 +1,77 @@
+# In case someone messes up and inserts this file at the top of their
+# Makefile.in instead of at the bottom, we will make a default target
+# and assume they used the "all" convention as the true default target
+#
+backupdefaulttarget: all
+
+#
+# Suffixes
+#
+.SUFFIXES: .c .C .cpp .cu
+
+.PHONY: $(SUBDIRS) clean distclean depclean
+
+#
+# Compilation targets
+#
+.c.o:
+	source='$<' object='$@' libtool=no depfile='./$*.d'  \
+	depmode=$(DEPMODE) $(TOPDIR)/config/depcomp   \
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+.C.o:
+	source='$<' object='$@' libtool=no depfile='./$*.d'  \
+	depmode=$(DEPMODE) $(TOPDIR)/config/depcomp   \
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
+
+.cpp.o:
+	source='$<' object='$@' libtool=no depfile='./$*.d'  \
+	depmode=$(DEPMODE) $(TOPDIR)/config/depcomp   \
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
+
+@MAKETARGETSCUDA@
+
+#
+# Dependency targets
+#
+DEP=$(OBJ:.o=.d)
+-include $(DEP)
+
+#
+# Main targets
+#
+$(SUBDIRS) or_no_subdirs:
+	(cd $@ && $(MAKE) all)
+
+$(ARCHIVE) or_no_archive: $(OBJ) $(LIBDEP) $(TOPDIR)/config/make-variables
+	$(AR) -rc $@ $(OBJ) 
+
+$(LIBRARY) or_no_library: $(OBJ) $(LIBDEP) $(TOPDIR)/config/make-variables
+	$(CXX) -shared -o $@ $(LDFLAGS) $(OBJ)
+
+$(PROGRAM) or_no_program: $(OBJ) $(LIBDEP) $(LIBRARY) $(ARCHIVE) $(TOPDIR)/config/make-variables
+	$(CXX) -o $@ $(LDFLAGS) $(OBJ) $(LIBS)
+
+#
+# Clean targets
+#
+clean:
+	@if test -n "$(SUBDIRS)"; then \
+	    for dir in $(SUBDIRS); do (cd $$dir && $(MAKE) $@); done \
+	fi
+	$(RM) $(OBJ) $(PROGRAM) $(LIBRARY) $(ARCHIVE) $(TESTS)
+
+distclean:
+	@if test -n "$(SUBDIRS)"; then \
+	    for dir in $(SUBDIRS); do (cd $$dir && $(MAKE) $@); done \
+	fi
+	$(RM) $(OBJ) $(PROGRAM) $(LIBRARY) $(ARCHIVE) $(TESTS)
+	$(RM) $(DEP)
+	$(RM) -r Makefile $(DISTCLEAN_FILES) *~
+
+depclean:
+	@if test -n "$(SUBDIRS)"; then \
+	    for dir in $(SUBDIRS); do (cd $$dir && $(MAKE) $@); done \
+	fi
+	$(RM) $(DEP)
+

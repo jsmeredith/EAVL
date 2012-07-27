@@ -1,0 +1,227 @@
+// Copyright 2010-2012 UT-Battelle, LLC.  See LICENSE.txt for more information.
+#ifndef EAVL_DATA_SET_H
+#define EAVL_DATA_SET_H
+
+#include "eavlCoordinates.h"
+#include "eavlLogicalStructure.h"
+#include "eavlCoordinateValue.h"
+#include "eavlCellSet.h"
+#include "eavlField.h"
+#include "eavlPoint3.h"
+#include "eavlException.h"
+
+// ****************************************************************************
+// Class:  eavlDataSet
+//
+// Purpose:
+///   A single, identifiable chunk of problem data.  This might be the
+///   equivalent of a "domain", for example, where it has a discrete coordinate
+///   value for time, and the points cover a region of X/Y/Z Cartesian space.
+///   \todo: How do we handle things like a linear transform for the coords?
+//
+// Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern
+// Creation:    February 15, 2011
+//
+// ****************************************************************************
+class eavlDataSet
+{
+  public:
+    ///\todo: these are very different from how the continuous coords are
+    ///       now stored; we could e.g. just make this a single
+    ///       eavlCoordinates, but I'm not sure what I think of that.
+    ///       Maybe better: these are now simply single-valued FIELDS, with
+    ///       an association to the whole-mesh? 
+    vector<eavlCoordinateValue>  discreteCoordinates;
+
+    int                            npoints;
+    eavlLogicalStructure          *logicalStructure;
+    vector<eavlCoordinates*>       coordinateSystems;
+
+    vector<eavlCellSet*>         cellsets;
+    vector<eavlField*>  fields;
+
+    eavlDataSet()
+    {
+        npoints = 0;
+        logicalStructure = NULL;
+    }
+
+    virtual double GetPoint(int i, int c, int whichCoordSystem=0)
+    {
+        assert(whichCoordSystem >= 0 && whichCoordSystem <= (int)coordinateSystems.size());
+        /// \todo: this assumes you have at least one coordinate system
+        /// and that you want to use the first one; bad assumptions.
+        /// \todo: I don't like how we pass in the field data.
+        return coordinateSystems[whichCoordSystem]->
+            GetCartesianPoint(i,c,logicalStructure,fields);
+    }
+
+    virtual long long GetMemoryUsage()
+    {
+        long long mem = 0;
+        mem += sizeof(int); //npoints;
+
+        mem += sizeof(vector<eavlCoordinateValue>);
+        for (size_t i=0; i<discreteCoordinates.size(); i++)
+            mem += discreteCoordinates[i].GetMemoryUsage();
+
+        mem += sizeof(eavlLogicalStructure*);
+
+        mem += sizeof(vector<eavlCoordinates*>);
+        mem += coordinateSystems.size() * sizeof(eavlCoordinates*);
+        for (size_t i=0; i<coordinateSystems.size(); i++)
+            mem += coordinateSystems[i]->GetMemoryUsage();
+
+        mem += sizeof(vector<eavlCellSet*>);
+        mem += cellsets.size() * sizeof(eavlCellSet*);
+        for (size_t i=0; i<cellsets.size(); i++)
+        {
+            //cerr << "   cellsets["<<i<<"] memory usage = "<<cellsets[i]->GetMemoryUsage()<<endl;
+            mem += cellsets[i]->GetMemoryUsage();
+        }
+
+        mem += sizeof(vector<eavlField*>);
+        mem += fields.size() * sizeof(eavlField*);
+        for (size_t i=0; i<fields.size(); i++)
+        {
+            //cerr << "   fields["<<i<<"] memory usage = "<<fields[i]->GetMemoryUsage()<<endl;
+            mem += fields[i]->GetMemoryUsage();
+        }
+
+        //cerr << "  total memory usage = "<<mem<<endl;
+        return mem;
+    }
+
+    virtual eavlCellSet *GetCellSet(const string &name)
+    {
+        int index = GetCellSetIndex(name);
+        if (index < 0)
+        {
+            THROW(eavlException,"Couldn't find cell set");
+        }
+        else
+            return cellsets[index];
+    }
+    
+    virtual int GetCellSetIndex(const string &name)
+    {
+        int n = cellsets.size();
+        if (n <= 0)
+            THROW(eavlException,"No cell sets to return");
+
+        ///\todo: decide if we want to support a default cell set name
+        /*
+        // default = empty string
+        if (name == "")
+            return 0;
+        */
+
+        for (int i=0; i<n; i++)
+            if (cellsets[i]->GetName() == name)
+                return i;
+
+        return -1;
+    }
+    
+    virtual int GetFieldIndex(const string &name)
+    {
+        int n = fields.size();
+        if (n <= 0)
+            THROW(eavlException,"No fields to return");
+
+        for (int i=0; i<n; i++)
+            if (fields[i]->GetArray()->GetName() == name)
+                return i;
+
+        return -1;
+    }
+    
+    virtual eavlField *GetField(const string &name)
+    {
+        int index = GetFieldIndex(name);
+        if (index < 0)
+        {
+            THROW(eavlException,"Couldn't find field");
+        }
+        else
+            return fields[index];
+    }
+    
+    virtual eavlField *GetField(unsigned int idx)
+    {
+        assert(idx < fields.size());
+        if (idx < fields.size())
+            return fields[idx];
+        THROW(eavlException,"Couldn't find field");
+    }
+
+
+    virtual void PrintSummary(ostream &out)
+    {
+        out << "eavlDataSet:\n";
+        //out << "   GetMemoryUsage() reports: "<<GetMemoryUsage()<<endl;
+        out << "   npoints = "<<npoints << endl;
+        if (logicalStructure)
+            logicalStructure->PrintSummary(out);
+        out << "   coordinateSystems["<<coordinateSystems.size()<<"]:\n";
+        for (unsigned int i=0; i<coordinateSystems.size(); i++)
+        {
+            coordinateSystems[i]->PrintSummary(out);
+        }
+        out << "  discreteCoordinates["<<discreteCoordinates.size()<<"]:\n";
+        for (unsigned int i=0; i<discreteCoordinates.size(); i++)
+        {
+            out << "    discrete axis #" << i
+                << " = " <<  discreteCoordinates[i].GetValue()
+                << endl;
+        }
+        out << "  cellsets["<<cellsets.size()<<"]:\n";
+        for (unsigned int i=0; i<cellsets.size(); i++)
+        {
+            cellsets[i]->PrintSummary(out);
+        }
+        out << "  fields["<<fields.size()<<"]:\n";
+        eavlField::iterator it;
+        for (it = fields.begin(); it != fields.end(); it++)
+        {
+            (*it)->PrintSummary(out);
+        }
+    }
+};
+
+
+//API
+
+// ****************************************************************************
+// Function:  AddStructuredMesh
+//
+// Purpose:
+///  Add a structured mesh, and optional cellsets to a data set.
+//
+// Programmer:  Dave Pugmire
+// Creation:    July 22, 2011
+//
+// ****************************************************************************
+
+int
+AddRectilinearMesh(eavlDataSet *data,
+                   const vector<vector<double> > &coordinates,
+                   const vector<string> &coordinateNames,
+                   bool addCellSet, string cellSetName="");
+
+int
+AddCurvilinearMesh(eavlDataSet *data,
+                   int dims[3],
+                   const vector<vector<double> > &coordinates,
+                   const vector<string> &coordinateNames,
+                   bool addCellSet, string cellSetName="");
+
+int
+AddCurvilinearMesh_SepCoords(eavlDataSet *data,
+                   int dims[3],
+                   const vector<vector<double> > &coordinates,
+                   const vector<string> &coordinateNames,
+                   bool addCellSet, string cellSetName="");
+
+
+#endif

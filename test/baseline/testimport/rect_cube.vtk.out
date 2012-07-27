@@ -1,0 +1,68 @@
+eavlDataSet:
+   npoints = 216
+   eavlLogicalStructureRegular:
+     logicalDimension = 3
+     logicalDims[3] = 6 6 6 
+   coordinateSystems[1]:
+   eavlCoordinatesCartesian, ndims=3: 
+       logdim 0: div=1,mod=6
+       logdim 1: div=6,mod=6
+       logdim 2: div=36,mod=6
+       axis 0 (type=X):
+          eavlCoordinateAxisField='xcoord',component #0
+       axis 1 (type=Y):
+          eavlCoordinateAxisField='ycoord',component #0
+       axis 2 (type=Z):
+          eavlCoordinateAxisField='zcoord',component #0
+  discreteCoordinates[0]:
+  cellsets[1]:
+    eavlCellSetAllStructured:
+        name = RectilinearGridCells
+        dimensionality = 3
+        nCells = 125
+        zdims[] = 5 5 5
+  fields[8]:
+      array name = xcoord
+      order = 1
+      association = LOGICALDIM
+      assoc_logicaldim = 0
+      array = float xcoord[6][1] = -10  -5.91837  -1.83673  2.2449  6.32653  10  
+
+      array name = ycoord
+      order = 1
+      association = LOGICALDIM
+      assoc_logicaldim = 1
+      array = float ycoord[6][1] = -10  -5.91837  -1.83673  2.2449  6.32653  10  
+
+      array name = zcoord
+      order = 1
+      association = LOGICALDIM
+      assoc_logicaldim = 2
+      array = float zcoord[6][1] = -10  -5.91837  -1.83673  2.2449  6.32653  10  
+
+      array name = avtOriginalBounds
+      order = 0
+      association = WHOLEMESH
+      array = float avtOriginalBounds[6][1] = -10  10  -10  10  -10  10  
+
+      array name = base_index
+      order = 0
+      association = WHOLEMESH
+      array = float base_index[3][1] = 0  0  0  
+
+      array name = group_id
+      order = 0
+      association = WHOLEMESH
+      array = float group_id[1][1] = 0  
+
+      array name = nodal
+      order = 1
+      association = POINTS
+      array = float nodal[216][1] = 3.34106  2.67142  3.40238  3.42803  3.49367 ... 3.38862  3.6154  3.69689  3.72971  3.75157
+
+      array name = zonal
+      order = 0
+      association = CELL_SET
+      assoc_cell_set (index) = 0
+      array = float zonal[125][1] = 2.12651  2.23655  2.30367  2.20607  2.21764 ... 3.18848  3.2106  3.40977  3.4471  3.35531
+
