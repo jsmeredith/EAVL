@@ -16,8 +16,12 @@
 // Purpose:
 ///   Import a Silo file.
 //
-// Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern
+// Programmer:  Dave Pugmire
 // Creation:    July 19, 2011
+//
+// Modifications:
+//   Jeremy Meredith, Mon Jul 30 15:12:07 EDT 2012
+//   Support for multiple meshes in a file.
 //
 // ****************************************************************************
 
@@ -27,6 +31,8 @@ class eavlSiloImporter : public eavlImporter
     eavlSiloImporter(const string &filename);
     ~eavlSiloImporter();
 
+    
+    vector<string>      GetMeshList();
     int                 GetNumChunks(const std::string &mesh);
     vector<string>      GetFieldList(const std::string &mesh);
 
@@ -57,6 +63,7 @@ class eavlSiloImporter : public eavlImporter
     map<string, vector<string> > multiMeshes, multiVars;
     vector<string> quadMeshes, ucdMeshes, ptMeshes;
     vector<string> quadVars, ucdVars, ptVars;
+    map<string, string> meshForVar;
 
     ///\todo: a bit of a hack; maybe we want to change the importers
     ///       to explicitly work this way, though.  for example,

@@ -94,11 +94,11 @@ eavlSiloImporter::~eavlSiloImporter()
 }
 
 int
-eavlSiloImporter::GetNumChunks(const string &mesh)
+eavlSiloImporter::GetNumChunks(const string &meshname)
 {
     ///\todo: use mesh name
-    if (!multiMeshes.empty())
-        return multiMeshes.begin()->second.size();
+    if (multiMeshes.count(meshname) > 0)
+        return multiMeshes[meshname].size();
         
     return 1;
 }
@@ -134,9 +134,8 @@ eavlSiloImporter::ReadQuadVars(DBfile *file, DBtoc *toc, string &dir)
     {
         DBquadvar *v = DBGetQuadvar(file, toc->qvar_names[i]);
         string meshname = formName(v->meshname, dir);
-        if ((multiMeshes.size() > 0 && IsContained(meshname, quadMeshes)) ||
-            (multiMeshes.size() == 0 && meshname == quadMeshes[0]))
-            quadVars.push_back(formName(v->name,dir));
+        quadVars.push_back(formName(v->name,dir));
+        meshForVar[v->name] = v->meshname;
         DBFreeQuadvar(v);
     }
 }
@@ -161,9 +160,8 @@ eavlSiloImporter::ReadUCDVars(DBfile *file, DBtoc *toc, string &dir)
     {
         DBucdvar *v = DBGetUcdvar(file, toc->ucdvar_names[i]);
         string meshname = formName(v->meshname, dir);
-        if ((multiMeshes.size() > 0 && IsContained(meshname, ucdMeshes)) ||
-            (multiMeshes.size() == 0 && meshname == ucdMeshes[0]))
-            ucdVars.push_back(formName(v->name,dir));
+        ucdVars.push_back(formName(v->name,dir));
+        meshForVar[v->name] = v->meshname;
         DBFreeUcdvar(v);
     }
 }
@@ -241,9 +239,8 @@ eavlSiloImporter::ReadPointVars(DBfile *file, DBtoc *toc, string &dir)
     {
         DBmeshvar *v = DBGetPointvar(file, toc->ptvar_names[i]);
         string meshname = formName(v->meshname, dir);
-        if ((multiMeshes.size() > 0 && IsContained(meshname, ptMeshes)) ||
-            (multiMeshes.size() == 0 && meshname == ptMeshes[0]))
-            ptVars.push_back(formName(v->name,dir));
+        ptVars.push_back(formName(v->name,dir));
+        meshForVar[v->name] = v->meshname;
         DBFreeMeshvar(v);
     }
 }
@@ -476,148 +473,87 @@ eavlSiloImporter::GetUCDMesh(string nm)
     return data;
 }
 
-/*
-// For various reasons, we might want to use separated coords instead.
-// This commented-out version of GetUCDMesh does that.
-
-eavlDataSet *
-eavlSiloImporter::GetUCDMesh(string nm)
-{
-    DBucdmesh *m = DBGetUcdmesh(file, nm.c_str());
-    eavlDataSet *data = new eavlDataSet;
-    data->npoints = m->nnodes;
-
-    string coordnames[3] = {"X","Y","Z"};
-    
-    //Read the points.
-    eavlCoordinatesSeparated *coords = new eavlCoordinatesSeparated;
-    for (int i = 0; i < m->ndims; i++)
-    {
-        coords->AddFieldName(coordnames[i]);
-        if (i == 0)
-            coords->AddCoordinateAxisType(eavlCoordinateAxisType(eavlCoordinateAxisType::X, m->labels[i]));
-        else if (i == 1)
-            coords->AddCoordinateAxisType(eavlCoordinateAxisType(eavlCoordinateAxisType::Y, m->labels[i]));
-        else if (i == 2)
-            coords->AddCoordinateAxisType(eavlCoordinateAxisType(eavlCoordinateAxisType::Z, m->labels[i]));
-        else
-            coords->AddCoordinateAxisType(eavlCoordinateAxisType(eavlCoordinateAxisType::OTHER, m->labels[i]));
-
-        eavlArray *axisValues = new eavlDoubleArray(coordnames[i], 1);
-        axisValues->SetNumberOfTuples(m->nnodes);
-
-        for (int j = 0; j < m->nnodes; j++)
-        {
-            if (m->datatype == DB_DOUBLE)
-                axisValues->SetComponentFromDouble(j, i, ((double **)m->coords)[i][j]);
-            else
-                axisValues->SetComponentFromDouble(j, i, ((float **)m->coords)[i][j]);
-        }
-
-        eavlField *field = new eavlField;
-        field->GetArray() = axisValues;
-        field->GetOrder() = 1;
-        field->GetAssociation() = eavlField::ASSOC_POINTS;
-        data->fields.push_back(field);
-
-    }
-    data->coordinateSystems.push_back(coords);
-    
-    
-    //cells.
-    eavlLogicalStructureRegular *log = new eavlLogicalStructureRegular(1);
-    data->logicalStructure = log;
-    log->dims->AddValue(data->npoints);
-    
-    eavlCellSetExplicit *cells = new eavlCellSetExplicit;
-    cells->name = "UnstructuredGridCells";
-    cells->dimensionality = m->zones->ndims;
-    cells->nCells = m->zones->nzones;
-    
-    int n = 0;
-    eavlCellShape st;
-    for (int i = 0; i < m->zones->nshapes; i++)
-    {
-        for (int j = 0; j < m->zones->shapecnt[i]; j++)
-        {
-            int nNodes = -1;
-            if (m->zones->shapetype[i] == DB_ZONETYPE_TRIANGLE)
-            {
-                st = EAVL_TRI;
-                nNodes = 3;
-            }
-            else if (m->zones->shapetype[i] == DB_ZONETYPE_QUAD)
-            {
-                st = EAVL_QUAD;
-                nNodes = 4;
-            }
-            else if (m->zones->shapetype[i] == DB_ZONETYPE_TET)
-            {
-                st = EAVL_TET;
-                nNodes = 4;
-            }
-            else if (m->zones->shapetype[i] == DB_ZONETYPE_PYRAMID)
-            {
-                st = EAVL_PYRAMID;
-                nNodes = 5;
-            }
-            else if (m->zones->shapetype[i] == DB_ZONETYPE_PRISM)
-            {
-                st = EAVL_WEDGE;
-                nNodes = 6;
-            }
-            else if (m->zones->shapetype[i] == DB_ZONETYPE_HEX)
-            {
-                st = EAVL_HEX;
-                nNodes = 8;
-            }
-            else
-                THROW(eavlException,"Unsupported silo zone type!");
-            
-            cells->shapetype.push_back(st);
-            cells->connectivity.push_back(nNodes);
-            for (int k = 0; k < nNodes; k++, n++)
-                cells->connectivity.push_back(m->zones->nodelist[n]);
-        }
-    }
-    cells->CreateCellToIndexMap();
-    data->cellsets.push_back(cells);
-
-    ghosts_for_latest_mesh->SetNumberOfTuples(m->zones->nzones);
-    for (int i=0; i<m->zones->nzones; i++)
-    {
-        bool g = (i < m->zones->min_index || i > m->zones->max_index);
-        ghosts_for_latest_mesh->SetComponentFromDouble(i,0,  g);
-    }
-
-    DBFreeUcdmesh(m);
-    return data;
-}
-*/
-
 eavlDataSet *
 eavlSiloImporter::GetPtMesh(string nm)
 {
-    return NULL;
+    DBpointmesh *m = DBGetPointmesh(file, nm.c_str());
+    eavlDataSet *data = new eavlDataSet;
+    data->npoints = m->nels;
+    
+    //Read the points.
+    eavlCoordinatesCartesian *coords;
+    if (m->ndims == 1)
+    {
+        coords = new eavlCoordinatesCartesian(NULL,
+                                              eavlCoordinatesCartesian::X);
+    }
+    else if (m->ndims == 2)
+    {
+        coords = new eavlCoordinatesCartesian(NULL,
+                                              eavlCoordinatesCartesian::X,
+                                              eavlCoordinatesCartesian::Y);
+    }
+    else if (m->ndims == 3)
+    {
+        coords = new eavlCoordinatesCartesian(NULL,
+                                              eavlCoordinatesCartesian::X,
+                                              eavlCoordinatesCartesian::Y,
+                                              eavlCoordinatesCartesian::Z);
+    }
+    else
+    {
+        THROW(eavlException,"unxpected number of dimensions");
+    }
+
+    for (int i = 0; i < m->ndims; i++)
+    {
+        coords->SetAxis(i, new eavlCoordinateAxisField("coords", i));
+    }
+    data->coordinateSystems.push_back(coords);
+    
+    eavlArray *axisValues = new eavlFloatArray("coords", m->ndims);
+    axisValues->SetNumberOfTuples(m->nels);
+
+    for (int d = 0; d < m->ndims; d++)
+        for (int i = 0; i < m->nels; i++)
+        {
+            if (m->datatype == DB_DOUBLE)
+                axisValues->SetComponentFromDouble(i, d, ((double **)m->coords)[d][i]);
+            else
+                axisValues->SetComponentFromDouble(i, d, ((float **)m->coords)[d][i]);
+        }
+    
+    eavlField *field = new eavlField(1,axisValues,eavlField::ASSOC_POINTS);
+    data->fields.push_back(field);
+
+    DBFreePointmesh(m);
+    return data;
 }
 
 eavlDataSet *
-eavlSiloImporter::GetMesh(const string &mesh, int chunk)
+eavlSiloImporter::GetMesh(const string &meshname, int chunk)
 {
     ///\todo: use mesh name
-    if (!multiMeshes.empty())
-        return GetMultiMesh(multiMeshes.begin()->first, chunk);
-    else if (!quadMeshes.empty())
-        return GetQuadMesh(quadMeshes[0]);
-    else if (!ucdMeshes.empty())
-        return GetUCDMesh(ucdMeshes[0]);
-    else if (!ptMeshes.empty())
-        return GetPtMesh(ptMeshes[0]);
+    if (multiMeshes.count(meshname) > 0)
+        return GetMultiMesh(meshname, chunk);
+
+    for (int i=0; i<quadMeshes.size(); i++)
+        if (quadMeshes[i] == meshname)
+            return GetQuadMesh(meshname);
+
+    for (int i=0; i<ucdMeshes.size(); i++)
+        if (ucdMeshes[i] == meshname)
+            return GetUCDMesh(meshname);
+
+    for (int i=0; i<ptMeshes.size(); i++)
+        if (ptMeshes[i] == meshname)
+            return GetPtMesh(meshname);
+
     return NULL;
 }
 
 eavlField *
-eavlSiloImporter::GetField(const string &name, const string &mesh, int chunk)
+eavlSiloImporter::GetField(const string &name, const string &meshname, int chunk)
 {
     string varPath = name;
     
@@ -680,23 +616,71 @@ eavlSiloImporter::GetField(const string &name, const string &mesh, int chunk)
 }
 
 vector<string>
-eavlSiloImporter::GetFieldList(const string &mesh)
+eavlSiloImporter::GetMeshList()
 {
-    ///\todo: use mesh name
+    vector<string> meshes;
+
+    for (map<string, vector<string> >::iterator it = multiMeshes.begin(); it != multiMeshes.end(); it++)
+        meshes.push_back(it->first);
+
+    for (int i = 0; i < quadMeshes.size(); i++)
+        meshes.push_back(quadMeshes[i]);
+
+    for (int i = 0; i < ucdMeshes.size(); i++)
+        meshes.push_back(ucdMeshes[i]);
+
+    for (int i = 0; i < ptMeshes.size(); i++)
+        meshes.push_back(ptMeshes[i]);
+
+    return meshes;
+}
+
+vector<string>
+eavlSiloImporter::GetFieldList(const string &meshname)
+{
+    bool haveGhost = false;
+
     vector<string> fields;
-    fields.push_back(".ghost");
-    if (!multiMeshes.empty())
-        for (map<string, vector<string> >::iterator it = multiVars.begin(); it != multiVars.end(); it++)
+    for (map<string, vector<string> >::iterator it = multiVars.begin(); it != multiVars.end(); it++)
+    {
+        if (meshForVar[it->second[0]] == meshname)
+        {
             fields.push_back(it->first);
-    else if (!quadVars.empty())
-        for (int i = 0; i < quadVars.size(); i++)
+            ///\todo: we don't know if we need this without checking...
+            haveGhost = true;
+        }
+    }
+
+    for (int i = 0; i < quadVars.size(); i++)
+    {
+        if (meshForVar[quadVars[i]] == meshname)
+        {
             fields.push_back(quadVars[i]);
-    else if (!ucdVars.empty())
-        for (int i = 0; i < ucdVars.size(); i++)
+            haveGhost = true;
+        }
+    }
+
+    for (int i = 0; i < ucdVars.size(); i++)
+    {
+        if (meshForVar[ucdVars[i]] == meshname)
+        {
             fields.push_back(ucdVars[i]);
-    else if (!ptVars.empty())
-        for (int i = 0; i < ptVars.size(); i++)
+            haveGhost = true;
+        }
+    }
+
+    for (int i = 0; i < ptVars.size(); i++)
+    {
+        if (meshForVar[ptVars[i]] == meshname)
+        {
             fields.push_back(ptVars[i]);
+        }
+    }
+
+    if (haveGhost)
+        fields.push_back(".ghost");
+
+
     return fields;
 }
 void
