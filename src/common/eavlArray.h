@@ -237,8 +237,10 @@ class eavlFloatArray : public eavlArray
     }
     virtual ~eavlFloatArray()
     {
+#ifdef HAVE_CUDA
         if (device_values)
             cudaFree(device_values);
+#endif
     }
     virtual const char *GetBasicType() { return "float"; }
     virtual void *GetHostArray()
@@ -401,8 +403,10 @@ class eavlIntArray : public eavlArray
     }
     virtual ~eavlIntArray()
     {
+#ifdef HAVE_CUDA
         if (device_values)
             cudaFree(device_values);
+#endif
     }
     virtual const char *GetBasicType() { return "int"; }
     virtual void *GetHostArray()
@@ -564,8 +568,10 @@ class eavlByteArray : public eavlArray
     }
     virtual ~eavlByteArray()
     {
+#ifdef HAVE_CUDA
         if (device_values)
             cudaFree(device_values);
+#endif
     }
     virtual const char *GetBasicType() { return "byte"; }
     virtual void *GetHostArray()
