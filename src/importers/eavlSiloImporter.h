@@ -22,6 +22,7 @@
 // Modifications:
 //   Jeremy Meredith, Mon Jul 30 15:12:07 EDT 2012
 //   Support for multiple meshes in a file.
+//   Better support for multimeshes.
 //
 // ****************************************************************************
 
@@ -64,6 +65,7 @@ class eavlSiloImporter : public eavlImporter
     vector<string> quadMeshes, ucdMeshes, ptMeshes;
     vector<string> quadVars, ucdVars, ptVars;
     map<string, string> meshForVar;
+    set<string> meshesToHide;
 
     ///\todo: a bit of a hack; maybe we want to change the importers
     ///       to explicitly work this way, though.  for example,

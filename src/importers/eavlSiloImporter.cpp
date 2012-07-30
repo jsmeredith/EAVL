@@ -161,7 +161,7 @@ eavlSiloImporter::ReadUCDVars(DBfile *file, DBtoc *toc, string &dir)
         DBucdvar *v = DBGetUcdvar(file, toc->ucdvar_names[i]);
         string meshname = formName(v->meshname, dir);
         ucdVars.push_back(formName(v->name,dir));
-        meshForVar[v->name] = v->meshname;
+        meshForVar[formName(v->name,dir)] = formName(v->meshname,dir);
         DBFreeUcdvar(v);
     }
 }
@@ -186,7 +186,10 @@ eavlSiloImporter::ReadMultiMeshes(DBfile *file, DBtoc *toc, string &dir)
         {
             vector<string> meshes;
             for (int j=0; j<m->nblocks; j++)
+            {
                 meshes.push_back(m->meshnames[j]);
+                meshesToHide.insert(RemoveSlash(m->meshnames[j]));
+            }
             multiMeshes[meshNm] = meshes;
         }
         DBFreeMultimesh(m);
@@ -252,15 +255,15 @@ eavlSiloImporter::ReadFile(DBfile *file, string dir)
     if (toc == NULL)
         return;
 
+    ReadMultiMeshes(file, toc, dir);
     ReadQuadMeshes(file, toc, dir);
     ReadUCDMeshes(file, toc, dir);
     ReadPointMeshes(file, toc, dir);
-    ReadMultiMeshes(file, toc, dir);
     
+    ReadMultiVars(file, toc, dir);
     ReadQuadVars(file, toc, dir);
     ReadUCDVars(file, toc, dir);
     ReadPointVars(file, toc, dir);
-    ReadMultiVars(file, toc, dir);
 
     vector<string> dirs;
     for (int i = 0; i < toc->ndir; i++)
@@ -558,6 +561,7 @@ eavlSiloImporter::GetField(const string &name, const string &meshname, int chunk
     string varPath = name;
     
     if (!multiMeshes.empty())
+    {
         for (map<string, vector<string> >::iterator it = multiVars.begin(); it != multiVars.end(); it++)
         {
             if (name == it->first)
@@ -567,7 +571,7 @@ eavlSiloImporter::GetField(const string &name, const string &meshname, int chunk
                 
             }
         }
-
+    }
 
     eavlField *field = NULL;
     if (name == ".ghost")
@@ -624,13 +628,22 @@ eavlSiloImporter::GetMeshList()
         meshes.push_back(it->first);
 
     for (int i = 0; i < quadMeshes.size(); i++)
-        meshes.push_back(quadMeshes[i]);
+    {
+        if (meshesToHide.count(quadMeshes[i]) <= 0)
+            meshes.push_back(quadMeshes[i]);
+    }
 
     for (int i = 0; i < ucdMeshes.size(); i++)
-        meshes.push_back(ucdMeshes[i]);
+    {
+        if (meshesToHide.count(ucdMeshes[i]) <= 0)
+            meshes.push_back(ucdMeshes[i]);
+    }
 
     for (int i = 0; i < ptMeshes.size(); i++)
-        meshes.push_back(ptMeshes[i]);
+    {
+        if (meshesToHide.count(ptMeshes[i]) <= 0)
+            meshes.push_back(ptMeshes[i]);
+    }
 
     return meshes;
 }
@@ -643,7 +656,8 @@ eavlSiloImporter::GetFieldList(const string &meshname)
     vector<string> fields;
     for (map<string, vector<string> >::iterator it = multiVars.begin(); it != multiVars.end(); it++)
     {
-        if (meshForVar[it->second[0]] == meshname)
+        if (meshForVar[RemoveSlash(it->second[0])] ==
+            RemoveSlash(multiMeshes[meshname][0]))
         {
             fields.push_back(it->first);
             ///\todo: we don't know if we need this without checking...

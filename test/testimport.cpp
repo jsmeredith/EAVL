@@ -25,6 +25,7 @@ eavlDataSet *ReadMeshFromFile(const string &filename, int meshindex)
         return NULL;
 
     string meshname = allmeshes[meshindex];
+    // always read the first domain for now
     eavlDataSet *out = importer->GetMesh(meshname, 0);
     vector<string> allvars = importer->GetFieldList(meshname);
     for (int i=0; i<allvars.size(); i++)
