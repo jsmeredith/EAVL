@@ -27,10 +27,11 @@ class eavlADIOSImporter : public eavlImporter
     eavlADIOSImporter(const string &filename);
     virtual ~eavlADIOSImporter();
 
-    virtual vector<string>  GetFieldList();
-    virtual int             GetNumChunks() { return 1; }
-    virtual eavlDataSet    *GetMesh(int);
-    virtual eavlField      *GetField(int,string);
+    int                 GetNumChunks(const std::string &mesh) { return 1; }
+    vector<string>      GetFieldList(const std::string &mesh);
+
+    eavlDataSet   *GetMesh(const string &name, int chunk);
+    eavlField     *GetField(const string &name, const string &mesh, int chunk);
 
   protected:
     void               Import();

@@ -277,8 +277,12 @@ eavlMADNESSImporter::eavlMADNESSImporter(const string &fn)
     in.close();
 }
 
+eavlMADNESSImporter::~eavlMADNESSImporter()
+{
+}
+
 vector<string> 
-eavlMADNESSImporter::GetFieldList()
+eavlMADNESSImporter::GetFieldList(const string &mesh)
 {
     vector<string> fields;
     fields.push_back("levels");
@@ -289,13 +293,13 @@ eavlMADNESSImporter::GetFieldList()
 }
 
 int
-eavlMADNESSImporter::GetNumChunks()
+eavlMADNESSImporter::GetNumChunks(const string &mesh)
 {
     return 1;
 }
 
 eavlDataSet*
-eavlMADNESSImporter::GetMesh(int)
+eavlMADNESSImporter::GetMesh(const string &mesh, int)
 {
     eavlCoordinatesQuadTree *coords = new eavlCoordinatesQuadTree();
 
@@ -311,7 +315,7 @@ eavlMADNESSImporter::GetMesh(int)
 }
 
 eavlField *
-eavlMADNESSImporter::GetField(int, string name)
+eavlMADNESSImporter::GetField(const string &name, const string &mesh, int chunk)
 {
     if (name == "levels")
     {

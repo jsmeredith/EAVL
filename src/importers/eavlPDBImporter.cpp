@@ -32,7 +32,7 @@ eavlPDBImporter::~eavlPDBImporter()
 }
 
 vector<string>
-eavlPDBImporter::GetFieldList()
+eavlPDBImporter::GetFieldList(const string &mesh)
 {
     ReadAllMetaData();
 
@@ -51,7 +51,7 @@ eavlPDBImporter::GetFieldList()
 }
 
 eavlDataSet *
-eavlPDBImporter::GetMesh(int)
+eavlPDBImporter::GetMesh(const string &mesh, int)
 {
     int model = 0;
     ReadAtomsForModel(model);
@@ -108,7 +108,7 @@ eavlPDBImporter::GetMesh(int)
 }
 
 eavlField *
-eavlPDBImporter::GetField(int, string varname)
+eavlPDBImporter::GetField(const string &varname, const string &mesh, int chunk)
 {
     int model = 0;
     ReadAtomsForModel(model);

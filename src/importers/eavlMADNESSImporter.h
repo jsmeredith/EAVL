@@ -25,10 +25,10 @@ class eavlMADNESSImporter : public eavlImporter
     eavlMADNESSImporter(const string &filename);
     eavlMADNESSImporter(const char *data, size_t len);
     ~eavlMADNESSImporter();
-    int                 GetNumChunks();
-    vector<string>      GetFieldList();
-    eavlDataSet      *GetMesh(int);
-    eavlField *GetField(int,string);
+    int                 GetNumChunks(const std::string &mesh);
+    vector<string>      GetFieldList(const std::string &mesh);
+    eavlDataSet   *GetMesh(const string &name, int chunk);
+    eavlField     *GetField(const string &name, const string &mesh, int chunk);
 
   protected:
     eavlLogicalStructureQuadTree *log;

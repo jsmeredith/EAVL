@@ -467,7 +467,7 @@ eavlNetCDFDecomposingImporter::~eavlNetCDFDecomposingImporter()
 }
 
 eavlDataSet*
-eavlNetCDFDecomposingImporter::GetMesh(int chunk)
+eavlNetCDFDecomposingImporter::GetMesh(const string &mesh, int chunk)
 {
     // NOTE: the data ordering isn't what we expected; for the moment
     // we've swapped X, Y, and Z to some degree, but this is a good use
@@ -537,7 +537,7 @@ eavlNetCDFDecomposingImporter::GetMesh(int chunk)
 }
 
 vector<string>
-eavlNetCDFDecomposingImporter::GetFieldList()
+eavlNetCDFDecomposingImporter::GetFieldList(const string &mesh)
 {
     vector<string> retval;
     retval.push_back(".ghost");
@@ -552,7 +552,7 @@ eavlNetCDFDecomposingImporter::GetFieldList()
 }
 
 eavlField*
-eavlNetCDFDecomposingImporter::GetField(int chunk, string name)
+eavlNetCDFDecomposingImporter::GetField(const string &name, const string &mesh, int chunk)
 {
     ///\todo: repeat of GetMesh logic
     int domainGlobalStart[3];
@@ -657,7 +657,7 @@ eavlNetCDFDecomposingImporter::GetField(int chunk, string name)
 }
 
 int
-eavlNetCDFDecomposingImporter::GetNumChunks()
+eavlNetCDFDecomposingImporter::GetNumChunks(const string &mesh)
 {
     return numchunks;
 }

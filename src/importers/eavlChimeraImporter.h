@@ -27,10 +27,11 @@ class eavlChimeraImporter : public eavlImporter
     eavlChimeraImporter(const string &filename);
     ~eavlChimeraImporter();
 
-    vector<string>      GetFieldList();
-    int                 GetNumChunks() { return 1; }
-    eavlDataSet      *GetMesh(int);
-    eavlField *GetField(int,string);
+    int                 GetNumChunks(const std::string &mesh) { return 1; }
+    vector<string>      GetFieldList(const std::string &mesh);
+
+    eavlDataSet   *GetMesh(const string &name, int chunk);
+    eavlField     *GetField(const string &name, const string &mesh, int chunk);
 
   private:
     void Import();

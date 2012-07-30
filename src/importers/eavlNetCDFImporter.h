@@ -25,10 +25,12 @@ class eavlNetCDFImporter : public eavlImporter
   public:
     eavlNetCDFImporter(const string &filename);
     ~eavlNetCDFImporter();
-    int                 GetNumChunks() { return 1; }
-    vector<string>      GetFieldList();
-    eavlDataSet      *GetMesh(int);
-    eavlField *GetField(int,string);
+
+    int                 GetNumChunks(const std::string &mesh) { return 1; }
+    vector<string>      GetFieldList(const std::string &mesh);
+
+    eavlDataSet   *GetMesh(const string &name, int chunk);
+    eavlField     *GetField(const string &name, const string &mesh, int chunk);
   protected:
     NcFile *file;
     vector<NcVar*> vars;

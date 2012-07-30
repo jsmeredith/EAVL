@@ -18,26 +18,30 @@
 class eavlImporter
 {
   public:
-    //virtual vector<string> GetMeshList()       = 0;
-    virtual vector<string> GetFieldList()      = 0;
-    virtual int            GetNumChunks()      = 0;
+    eavlImporter() { }
+    virtual ~eavlImporter() { }
+    virtual vector<string> GetMeshList() { return vector<string>(1,"mesh"); }
+    virtual vector<string> GetFieldList(const std::string &mesh) = 0;
+    virtual int            GetNumChunks(const std::string &mesh) = 0;
 
     virtual vector<string> GetDiscreteDimNames() { return vector<string>(); }
     virtual vector<int>    GetDiscreteDimLengths() { return vector<int>(); }
     virtual void           SetDiscreteDim(int d, int i) { }
 
-    virtual eavlDataSet      *GetMesh(int)   = 0;
-    virtual eavlField *GetField(int,string) = 0;
+    virtual eavlDataSet *GetMesh(const string &name,
+                                 int chunk) = 0;
+    virtual eavlField   *GetField(const string &name, const string &mesh,
+                                  int chunk) = 0;
 };
 
 class eavlMissingImporter : public eavlImporter
 {
   public:
-    virtual vector<string> GetFieldList() { throw; }
-    virtual int            GetNumChunks() { throw; }
+    virtual vector<string> GetFieldList(const std::string &mesh) { throw; }
+    virtual int            GetNumChunks(const std::string &mesh) { throw; }
 
-    virtual eavlDataSet      *GetMesh(int) { throw; }
-    virtual eavlField *GetField(int,string) { throw; }
+    virtual eavlDataSet   *GetMesh(int) { throw; }
+    virtual eavlField     *GetField(int,string) { throw; }
 };
 
 #endif

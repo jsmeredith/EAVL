@@ -458,7 +458,7 @@ eavlVTKImporter::Import()
 }
 
 vector<string>
-eavlVTKImporter::GetFieldList()
+eavlVTKImporter::GetFieldList(const string &mesh)
 {
     vector<string> retval;
     for (map<string,eavlField*>::iterator it = vars.begin();
@@ -470,13 +470,13 @@ eavlVTKImporter::GetFieldList()
 }
 
 eavlDataSet *
-eavlVTKImporter::GetMesh(int)
+eavlVTKImporter::GetMesh(const string &mesh, int chunk)
 {
     return data;
 }
 
 eavlField *
-eavlVTKImporter::GetField(int, string name)
+eavlVTKImporter::GetField(const string &name, const string &mesh, int chunk)
 {
     return vars[name];
 }

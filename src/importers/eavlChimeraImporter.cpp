@@ -203,19 +203,19 @@ eavlChimeraImporter::Import()
 }
 
 eavlDataSet *
-eavlChimeraImporter::GetMesh(int)
+eavlChimeraImporter::GetMesh(const string &mesh, int)
 {
     return data;
 }
 
 eavlField *
-eavlChimeraImporter::GetField(int, string name)
+eavlChimeraImporter::GetField(const string &name, const string &mesh, int)
 {
     return data->GetField(name);
 }
 
 vector<string>
-eavlChimeraImporter::GetFieldList()
+eavlChimeraImporter::GetFieldList(const string &mesh)
 {
     vector<string> fields;
     for (int i = 0; i < data->fields.size(); i++)

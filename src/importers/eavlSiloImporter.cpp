@@ -94,8 +94,9 @@ eavlSiloImporter::~eavlSiloImporter()
 }
 
 int
-eavlSiloImporter::GetNumChunks()
+eavlSiloImporter::GetNumChunks(const string &mesh)
 {
+    ///\todo: use mesh name
     if (!multiMeshes.empty())
         return multiMeshes.begin()->second.size();
         
@@ -601,8 +602,9 @@ eavlSiloImporter::GetPtMesh(string nm)
 }
 
 eavlDataSet *
-eavlSiloImporter::GetMesh(int chunk)
+eavlSiloImporter::GetMesh(const string &mesh, int chunk)
 {
+    ///\todo: use mesh name
     if (!multiMeshes.empty())
         return GetMultiMesh(multiMeshes.begin()->first, chunk);
     else if (!quadMeshes.empty())
@@ -615,7 +617,7 @@ eavlSiloImporter::GetMesh(int chunk)
 }
 
 eavlField *
-eavlSiloImporter::GetField(int chunk, string name)
+eavlSiloImporter::GetField(const string &name, const string &mesh, int chunk)
 {
     string varPath = name;
     
@@ -678,8 +680,9 @@ eavlSiloImporter::GetField(int chunk, string name)
 }
 
 vector<string>
-eavlSiloImporter::GetFieldList()
+eavlSiloImporter::GetFieldList(const string &mesh)
 {
+    ///\todo: use mesh name
     vector<string> fields;
     fields.push_back(".ghost");
     if (!multiMeshes.empty())

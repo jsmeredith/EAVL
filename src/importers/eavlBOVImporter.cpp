@@ -36,13 +36,13 @@ eavlBOVImporter::~eavlBOVImporter()
 }
 
 int
-eavlBOVImporter::GetNumChunks()
+eavlBOVImporter::GetNumChunks(const string&)
 {
     return numChunks;
 }
 
 vector<string>
-eavlBOVImporter::GetFieldList()
+eavlBOVImporter::GetFieldList(const string&)
 {
     vector<string> fields;
     
@@ -52,7 +52,7 @@ eavlBOVImporter::GetFieldList()
 
 
 eavlDataSet *
-eavlBOVImporter::GetMesh(int chunk)
+eavlBOVImporter::GetMesh(const string&, int chunk)
 {
     int nx = dataSize[0] / brickSize[0];
     int ny = dataSize[1] / brickSize[1];
@@ -129,7 +129,7 @@ CopyValues(string nm, T *buff, int nTups, int nComps)
 }
 
 eavlField *
-eavlBOVImporter::GetField(int chunk, string var)
+eavlBOVImporter::GetField(const string &var, const string &mesh, int chunk)
 {
     string fileName = DataFileFromChunk(chunk);
     bool gzipped = (fileName.length() > 3 && fileName.substr(fileName.length()-3) == ".gz");

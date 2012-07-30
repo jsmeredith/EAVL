@@ -28,10 +28,12 @@ class eavlNetCDFDecomposingImporter : public eavlImporter
     eavlNetCDFDecomposingImporter(int numdomains,
                                   const string &filename);
     ~eavlNetCDFDecomposingImporter();
-    int                 GetNumChunks();
-    vector<string>      GetFieldList();
-    eavlDataSet      *GetMesh(int);
-    eavlField *GetField(int,string);
+
+    int                 GetNumChunks(const std::string &mesh);
+    vector<string>      GetFieldList(const std::string &mesh);
+
+    eavlDataSet   *GetMesh(const string &name, int chunk);
+    eavlField     *GetField(const string &name, const string &mesh, int chunk);
   protected:
     int numchunks;
     NcFile *file;

@@ -23,10 +23,11 @@ class eavlBOVImporter : public eavlImporter
     eavlBOVImporter(const string &filename);
     ~eavlBOVImporter();
 
-    vector<string>      GetFieldList();
-    int                 GetNumChunks();
-    eavlDataSet      *GetMesh(int);
-    eavlField *GetField(int,string);
+    int                 GetNumChunks(const std::string &mesh);
+    vector<string>      GetFieldList(const std::string &mesh);
+
+    eavlDataSet   *GetMesh(const string &name, int chunk);
+    eavlField     *GetField(const string &name, const string &mesh, int chunk);
 
   private:
     void                ReadTOC(const string &filename);

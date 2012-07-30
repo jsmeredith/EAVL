@@ -26,7 +26,7 @@ eavlADIOSImporter::Import()
 }
 
 eavlDataSet *
-eavlADIOSImporter::GetMesh(int)
+eavlADIOSImporter::GetMesh(const string &mesh, int)
 {
     if (file->variables.empty())
         return NULL;
@@ -72,7 +72,7 @@ eavlADIOSImporter::GetMesh(int)
 }
 
 eavlField *
-eavlADIOSImporter::GetField(int, string name)
+eavlADIOSImporter::GetField(const string &name, const string &mesh, int)
 {
     if (file->variables.empty())
 	return NULL;
@@ -88,7 +88,7 @@ eavlADIOSImporter::GetField(int, string name)
 }
 
 vector<string>
-eavlADIOSImporter::GetFieldList()
+eavlADIOSImporter::GetFieldList(const string &mesh)
 {
     vector<string> fields;
     map<string, ADIOSVar>::iterator it;

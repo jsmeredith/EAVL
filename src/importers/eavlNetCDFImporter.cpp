@@ -86,7 +86,7 @@ eavlNetCDFImporter::~eavlNetCDFImporter()
 }
 
 eavlDataSet*
-eavlNetCDFImporter::GetMesh(int)
+eavlNetCDFImporter::GetMesh(const string &mesh, int)
 {
     // NOTE: the data ordering isn't what we expected; for the moment
     // we've swapped X, Y, and Z to some degree, but this is a good use
@@ -132,7 +132,7 @@ eavlNetCDFImporter::GetMesh(int)
 }
 
 vector<string>
-eavlNetCDFImporter::GetFieldList()
+eavlNetCDFImporter::GetFieldList(const string &mesh)
 {
     vector<string> retval;
     for (unsigned int v=0; v<vars.size(); v++)
@@ -144,7 +144,7 @@ eavlNetCDFImporter::GetFieldList()
 }
 
 eavlField*
-eavlNetCDFImporter::GetField(int, string name)
+eavlNetCDFImporter::GetField(const string &name, const string &mesh, int)
 {
     for (unsigned int v=0; v<vars.size(); v++)
     {

@@ -21,10 +21,11 @@ eavlDataSet *ReadWholeFile(const string &filename)
     if (!importer)
         THROW(eavlException,"Didn't determine proper file reader to use");
 
-    eavlDataSet *out = importer->GetMesh(0);
-    vector<string> allvars = importer->GetFieldList();
+    string mesh = importer->GetMeshList()[0];
+    eavlDataSet *out = importer->GetMesh(mesh, 0);
+    vector<string> allvars = importer->GetFieldList(mesh);
     for (int i=0; i<allvars.size(); i++)
-        out->fields.push_back(importer->GetField(0, allvars[i]));
+        out->fields.push_back(importer->GetField(allvars[i], mesh, 0));
 
     return out;
 }
