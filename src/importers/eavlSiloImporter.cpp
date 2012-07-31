@@ -96,7 +96,6 @@ eavlSiloImporter::~eavlSiloImporter()
 int
 eavlSiloImporter::GetNumChunks(const string &meshname)
 {
-    ///\todo: use mesh name
     if (multiMeshes.count(meshname) > 0)
         return multiMeshes[meshname].size();
         
@@ -182,7 +181,8 @@ eavlSiloImporter::ReadMultiMeshes(DBfile *file, DBtoc *toc, string &dir)
         for (int j = 0; !foundEmpty && j < m->nblocks; j++)
             foundEmpty = (string(m->meshnames[j]) == "EMPTY");
         
-        if (!foundEmpty)
+        ///\todo: looks like we (mostly) support EMPTY correctly now?
+        if (true) //(!foundEmpty)
         {
             vector<string> meshes;
             for (int j=0; j<m->nblocks; j++)
@@ -193,9 +193,6 @@ eavlSiloImporter::ReadMultiMeshes(DBfile *file, DBtoc *toc, string &dir)
             multiMeshes[meshNm] = meshes;
         }
         DBFreeMultimesh(m);
-        
-        //Only one for now.....
-        break;
     }
 }
 
@@ -209,8 +206,9 @@ eavlSiloImporter::ReadMultiVars(DBfile *file, DBtoc *toc, string &dir)
         bool foundEmpty = false;
         for (int j = 0; !foundEmpty && j < v->nvars; j++)
             foundEmpty = (string(v->varnames[j]) == "EMPTY");
-
-        if (!foundEmpty)
+        
+        ///\todo: looks like we (mostly) support EMPTY correctly now?
+        if (true) //(!foundEmpty)
         {
             vector<string> vars;
             for (int j = 0; j < v->nvars; j++)
@@ -291,6 +289,8 @@ eavlDataSet *
 eavlSiloImporter::GetMultiMesh(string nm, int chunk)
 {
     string meshNm = multiMeshes[nm][chunk];
+    if (meshNm == "EMPTY")
+        return NULL;
     DBmultimesh *m = DBGetMultimesh(file, nm.c_str());
     if (m->meshtypes[chunk] == DB_QUADMESH)
         return GetQuadMesh(meshNm);
@@ -572,6 +572,8 @@ eavlSiloImporter::GetField(const string &name, const string &meshname, int chunk
             }
         }
     }
+    if (varPath == "EMPTY")
+        return NULL;
 
     eavlField *field = NULL;
     if (name == ".ghost")
@@ -625,7 +627,9 @@ eavlSiloImporter::GetMeshList()
     vector<string> meshes;
 
     for (map<string, vector<string> >::iterator it = multiMeshes.begin(); it != multiMeshes.end(); it++)
+    {
         meshes.push_back(it->first);
+    }
 
     for (int i = 0; i < quadMeshes.size(); i++)
     {
@@ -656,6 +660,9 @@ eavlSiloImporter::GetFieldList(const string &meshname)
     vector<string> fields;
     for (map<string, vector<string> >::iterator it = multiVars.begin(); it != multiVars.end(); it++)
     {
+        if (multiMeshes.count(meshname) <= 0)
+            continue; // we didn't read a multimesh with this name
+
         if (meshForVar[RemoveSlash(it->second[0])] ==
             RemoveSlash(multiMeshes[meshname][0]))
         {
