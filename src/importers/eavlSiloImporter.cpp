@@ -134,7 +134,7 @@ eavlSiloImporter::ReadQuadVars(DBfile *file, DBtoc *toc, string &dir)
         DBquadvar *v = DBGetQuadvar(file, toc->qvar_names[i]);
         string meshname = formName(v->meshname, dir);
         quadVars.push_back(formName(v->name,dir));
-        meshForVar[v->name] = v->meshname;
+        meshForVar[formName(v->name,dir)] = meshname;
         DBFreeQuadvar(v);
     }
 }
@@ -160,7 +160,7 @@ eavlSiloImporter::ReadUCDVars(DBfile *file, DBtoc *toc, string &dir)
         DBucdvar *v = DBGetUcdvar(file, toc->ucdvar_names[i]);
         string meshname = formName(v->meshname, dir);
         ucdVars.push_back(formName(v->name,dir));
-        meshForVar[formName(v->name,dir)] = formName(v->meshname,dir);
+        meshForVar[formName(v->name,dir)] = meshname;
         DBFreeUcdvar(v);
     }
 }
@@ -241,7 +241,7 @@ eavlSiloImporter::ReadPointVars(DBfile *file, DBtoc *toc, string &dir)
         DBmeshvar *v = DBGetPointvar(file, toc->ptvar_names[i]);
         string meshname = formName(v->meshname, dir);
         ptVars.push_back(formName(v->name,dir));
-        meshForVar[v->name] = v->meshname;
+        meshForVar[formName(v->name,dir)] = meshname;
         DBFreeMeshvar(v);
     }
 }
@@ -305,6 +305,8 @@ eavlDataSet *
 eavlSiloImporter::GetQuadMesh(string nm)
 {
     DBquadmesh *m = DBGetQuadmesh(file, nm.c_str());
+    if (!m)
+        return NULL;
     vector<vector<double> > coords;
     vector<string> coordNames;
         
@@ -365,6 +367,8 @@ eavlDataSet *
 eavlSiloImporter::GetUCDMesh(string nm)
 {
     DBucdmesh *m = DBGetUcdmesh(file, nm.c_str());
+    if (!m)
+        return NULL;
     eavlDataSet *data = new eavlDataSet;
     data->npoints = m->nnodes;
     
@@ -480,6 +484,8 @@ eavlDataSet *
 eavlSiloImporter::GetPtMesh(string nm)
 {
     DBpointmesh *m = DBGetPointmesh(file, nm.c_str());
+    if (!m)
+        return NULL;
     eavlDataSet *data = new eavlDataSet;
     data->npoints = m->nels;
     
@@ -660,6 +666,12 @@ eavlSiloImporter::GetFieldList(const string &meshname)
     vector<string> fields;
     for (map<string, vector<string> >::iterator it = multiVars.begin(); it != multiVars.end(); it++)
     {
+        //cerr << "meshname="<<meshname<<"\n";
+        //cerr << "it->first="<<it->first<<"\n";
+        //cerr << "it->second="<<it->second<<"\n";
+        //cerr << "meshForVar[RemoveSlash(it->second[0])]="<<meshForVar[RemoveSlash(it->second[0])]<<endl;
+        //cerr << "multiMeshes[meshname]="<<multiMeshes[meshname]<<endl;
+
         if (multiMeshes.count(meshname) <= 0)
             continue; // we didn't read a multimesh with this name
 
