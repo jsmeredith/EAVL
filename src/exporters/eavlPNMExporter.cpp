@@ -1,7 +1,6 @@
 // Copyright 2010-2012 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #include "eavlPNMExporter.h"
 #include <iostream>
-#include <cfloat>
 
 void
 eavlPNMExporter::Export(ostream &out, int w, int h, eavlByteArray *array)
@@ -9,7 +8,7 @@ eavlPNMExporter::Export(ostream &out, int w, int h, eavlByteArray *array)
     if(array->GetNumberOfComponents() < 3)
         THROW(eavlException, "Error: PNM files need an R, G, and B component!");
 
-    byte *tuple = new byte[array->GetNumberOfComponents()];
+    byte *tuple; 
 
     out<<"P6"<<endl<<w<<" "<<h<<endl<<255<<endl;
     for(int i = h-1; i >= 0; i--)
@@ -18,8 +17,6 @@ eavlPNMExporter::Export(ostream &out, int w, int h, eavlByteArray *array)
             tuple = array->GetTuple(i*w + j);
             out<<tuple[0]<<tuple[1]<<tuple[2];
         }
-
-    delete tuple;
 }
 
 void
@@ -43,7 +40,7 @@ eavlPNMExporter::ConvertAndExport(ostream &out, int w, int h, eavlFloatArray *ar
                 min = value;
         }
 
-    float *tuple          = new float[ncomponents];
+    float *tuple;
     byte  *convertedTuple = new byte [ncomponents];
 
     out<<"P6"<<endl<<w<<" "<<h<<endl<<255<<endl;
@@ -59,6 +56,5 @@ eavlPNMExporter::ConvertAndExport(ostream &out, int w, int h, eavlFloatArray *ar
                <<convertedTuple[2];
         }
 
-    delete tuple;
-    delete convertedTuple;
+    delete [] convertedTuple;
 }
