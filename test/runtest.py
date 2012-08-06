@@ -19,7 +19,7 @@
 #                              Infrastructure
 # -----------------------------------------------------------------------------
 
-import subprocess, os
+import subprocess, os, sys
 
 def AddResult(category, exitcode, coutfn, cerrfn):
     runcounts.setdefault(category, 0)
@@ -87,6 +87,7 @@ def PrintResults():
         print "\nSee results.txt for more details on failures.\n"
     else:
         print "\nSUCCESS: all",totalrun," tests passed"
+    return totalrun - totalsuccess
 
 # -----------------------------------------------------------------------------
 #                             Test Categories
@@ -181,8 +182,11 @@ if __name__ == "__main__":
     TestNormal("../data/ucd_sphere.vtk")
     TestNormal("../data/ucd_tets.vtk")
 
-    PrintResults()
+    errors = PrintResults()
 
-    logfile.close();
-    difffile.close();
-    rebasefile.close();
+    logfile.close()
+    difffile.close()
+    rebasefile.close()
+
+    sys.exit(errors)
+
