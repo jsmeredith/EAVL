@@ -25,6 +25,7 @@ SRC=\
  common/eavlOperation.cpp \
  common/eavlTimer.cpp \
  exporters/eavlVTKExporter.cpp \
+ exporters/eavlPNMExporter.cpp \
  filters/eavl3X3AverageMutator.cpp \
  filters/eavlElevateMutator.cpp \
  filters/eavlExternalFaceMutator.cpp \

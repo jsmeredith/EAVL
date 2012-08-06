@@ -4142,7 +4142,10 @@ if test "$CUDA" != "no"; then
           else
              CUDA_LDFLAGS="$CUDA_LDFLAGS -Wl,-rpath=$CUDA/lib"
           fi
-   CUDA_LIBS="-lcuda -lcudart"
+         
+    if test -z "$CUDA_LIBS"; then
+        CUDA_LIBS="-lcuda -lcudart"
+    fi
 
    old_cppflags=$CPPFLAGS
    old_ldflags=$LDFLAGS
