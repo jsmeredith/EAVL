@@ -316,9 +316,10 @@ eavlSiloImporter::GetQuadMesh(string nm)
     for (int i = 0; i < m->ndims; i++)
     {
         coordNames.push_back(m->labels[i]);
-        int n = (rectilinear ? m->dims[i] : m->nnodes);
-        if (n > 1)
-            nzones *= (n-1);
+        int dimsize = m->dims[i];
+        if (dimsize > 1)
+            nzones *= (dimsize-1);
+        int n = (rectilinear ? dimsize : m->nnodes);
         coords[i].resize(n);
         if (m->datatype == DB_DOUBLE)
         {
