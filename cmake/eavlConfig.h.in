@@ -1,0 +1,77 @@
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#cmakedefine HAVE_INTTYPES_H @HAVE_INTTYPES_H@
+
+/* Define to 1 if you have the <memory.h> header file. */
+#cmakedefine HAVE_MEMORY_H @HAVE_MEMORY_H@
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#cmakedefine HAVE_STDINT_H @HAVE_STDINT_H@
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#cmakedefine HAVE_STDLIB_H @HAVE_STDLIB_H@
+
+/* Define to 1 if you have the <strings.h> header file. */
+#cmakedefine HAVE_STRINGS_H @HAVE_STRINGS_H@
+
+/* Define to 1 if you have the <string.h> header file. */
+#cmakedefine HAVE_STRING_H @HAVE_STRING_H@
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#cmakedefine HAVE_SYS_STAT_H @HAVE_SYS_STAT_H@
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#cmakedefine HAVE_SYS_TYPES_H @HAVE_SYS_TYPES_H@
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#cmakedefine HAVE_UNISTD_H @HAVE_UNISTD_H@
+
+/* The size of a `int', as computed by sizeof. */
+#cmakedefine SIZEOF_INT @SIZEOF_INT@
+
+/* The size of a `long', as computed by sizeof. */
+#cmakedefine SIZEOF_LONG @SIZEOF_LONG@
+
+/* The size of a `long long', as computed by sizeof. */
+#cmakedefine SIZEOF_LONG_LONG @SIZEOF_LONG_LONG@
+
+/* The size of a `void *', as computed by sizeof. */
+#cmakedefine SIZEOF_VOID_P @SIZEOF_VOID_P@
+
+/* Define to 1 if you have the ANSI C header files. */
+#cmakedefine STDC_HEADERS @STDC_HEADERS@
+
+/* Define to 1 if your processor stores words with the most significant byte
+   first (like Motorola and SPARC, unlike Intel and VAX). */
+#cmakedefine WORDS_BIGENDIAN @WORDS_BIGENDIAN@
+
+/* Define to 1 if you have CUDA */
+#cmakedefine HAVE_CUDA @HAVE_CUDA@
+
+/* Define to 1 if you are building with support for
+   CUDA compute capabilities prior to 2.0 */
+#cmakedefine HAVE_OLD_GPU @HAVE_OLD_GPU@
+
+/* Define to 1 if you have the HDF5 library */
+#cmakedefine HAVE_HDF5 @HAVE_HDF5@
+
+/* Define to 1 if you have the NetCDF library */
+#cmakedefine HAVE_NETCDF @HAVE_NETCDF@
+
+/* Define to 1 if you have the VTK library */
+#cmakedefine HAVE_VTK @HAVE_VTK@
+
+/* Define to 1 if you have the Silo library */
+#cmakedefine HAVE_SILO @HAVE_SILO@
+
+/* Define to 1 if you have the ADIOS library */
+#cmakedefine HAVE_ADIOS @HAVE_ADIOS@
+
+/* Define to 1 if you have the ZLIB library */
+#cmakedefine HAVE_ZLIB @HAVE_ZLIB@
+
+/* Define to 1 if you have the SZIP library */
+#cmakedefine HAVE_SZIP @HAVE_SZIP@
+
+/* Define to 1 if you have the MPI library */
+#cmakedefine HAVE_MPI @HAVE_MPI@
