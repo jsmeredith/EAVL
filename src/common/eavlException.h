@@ -82,12 +82,4 @@ class eavlException
 # define EAVL_CURRENT_FUNCTION "(unknown)"
 #endif
 
-#define THROW(e , args...)                                                  \
-{                                                                           \
-    e exception;                                                            \
-    exception.SetTypeAndMessage(#e , ## args);                              \
-    exception.SetThrowLocation(__FILE__, __LINE__, EAVL_CURRENT_FUNCTION);  \
-    throw(exception);                                                       \
-}
-
 #endif
