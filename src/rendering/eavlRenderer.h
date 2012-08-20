@@ -311,32 +311,37 @@ class eavlRenderer
 // Creation:    July 18, 2012
 //
 // Modifications:
+//   Jeremy Meredith, Mon Aug 20 17:02:05 EDT 2012
+//   Allow fields to have the same name but associate with multiple cell sets.
+//
 // ****************************************************************************
 class eavlPseudocolorRenderer : public eavlRenderer
 {
   protected:
     eavlColorTable colortable;
-    int fieldindex;
+    std::vector<int> fieldindices;
     double vmin, vmax;
+    bool nodal;
   public:
     eavlPseudocolorRenderer(eavlDataSet *ds,
                             const std::string &ctname,
                             const std::string &fieldname)
         : eavlRenderer(ds), colortable(ctname)
     {
-        fieldindex = -1;
-        vmin = vmax = 0;
+        vmin = FLT_MAX;
+        vmax = -FLT_MAX;
+        nodal = false;
         for (size_t i=0; i<ds->fields.size(); ++i)
         {
             eavlField *f = ds->fields[i];
             if (f->GetArray()->GetName() == fieldname)
             {
-                fieldindex = i;
-
+                nodal |= (f->GetAssociation() == eavlField::ASSOC_POINTS);
+                if (nodal && fieldindices.size() > 0)
+                    THROW(eavlException, "Can only have one nodal field with a given name.");
+                fieldindices.push_back(i);
+                
                 // get its limits
-                vmin = FLT_MAX;
-                vmax = -FLT_MAX;
-
                 int nvals = f->GetArray()->GetNumberOfTuples();
                 for (int j=0; j<nvals; j++)
                 {
@@ -347,86 +352,85 @@ class eavlPseudocolorRenderer : public eavlRenderer
                     if (value > vmax)
                         vmax = value;
                 }
-                break;
+                // don't break; we probably want to get the
+                // extents of all fields with this same name
             }
         }
     }
     virtual void RenderPoints()
     {
-        if (fieldindex < 0)
+        if (fieldindices.size() == 0)
             return;
+
+        if (!nodal)
+            THROW(eavlException, "Can't render points for cell-centered field.");
 
         glEnable(GL_DEPTH_TEST);
         glPointSize(2);
 
         eavlRenderPoints<true>(npts, pts,
-                        dataset->fields[fieldindex], vmin,vmax, &colortable);
+                        dataset->fields[fieldindices[0]], vmin,vmax, &colortable);
     }
     virtual void RenderCells1D(eavlCellSet *cs)
     {
-        if (fieldindex < 0)
+        if (fieldindices.size() == 0)
             return;
-
-        eavlField *f = dataset->fields[fieldindex];
-        bool nodal = (f->GetAssociation() == eavlField::ASSOC_POINTS);
-        if (!nodal)
-        {
-            if (f->GetAssociation() != eavlField::ASSOC_CELL_SET)
-                THROW(eavlException, "Only supports cell and node fields.");
-            if (dataset->cellsets[f->GetAssocCellSet()] != cs)
-            {
-                THROW(eavlException,"Mismatch between cell set for "
-                      "field to color by and cell set for geometry.");
-            }
-        }
 
         glEnable(GL_DEPTH_TEST);
         glLineWidth(2);
-        if (nodal)
-            eavlRenderCells1D<true, false>(cs, npts, pts,
-                                           f, vmin, vmax, &colortable);
-        else
-            eavlRenderCells1D<false, true>(cs, npts, pts,
-                                           f, vmin, vmax, &colortable);
+
+        for (int i=0; i<fieldindices.size(); ++i)
+        {
+            eavlField *f = dataset->fields[fieldindices[i]];
+            if (nodal)
+            {
+                eavlRenderCells1D<true, false>(cs, npts, pts,
+                                               f, vmin, vmax, &colortable);
+                return;
+            }
+            else if (dataset->cellsets[f->GetAssocCellSet()] == cs)
+            {
+                eavlRenderCells1D<false, true>(cs, npts, pts,
+                                               f, vmin, vmax, &colortable);
+                return;
+            }
+        }
+
+        THROW(eavlException,"Error finding field to render given cell set.");
     }
     virtual void RenderCells2D(eavlCellSet *cs, eavlField *normals=NULL)
     {
-        if (fieldindex < 0)
+        if (fieldindices.size() == 0)
             return;
 
-        eavlField *f = dataset->fields[fieldindex];
-        bool nodal = (f->GetAssociation() == eavlField::ASSOC_POINTS);
-        if (!nodal)
+
+        glEnable(GL_DEPTH_TEST);
+        for (int i=0; i<fieldindices.size(); ++i)
         {
-            if (f->GetAssociation() != eavlField::ASSOC_CELL_SET)
-                THROW(eavlException, "Only supports cell and node fields.");
-            if (dataset->cellsets[f->GetAssocCellSet()] != cs)
+            eavlField *f = dataset->fields[fieldindices[i]];
+            if (nodal)
             {
-                THROW(eavlException,"Mismatch between cell set for "
-                      "field to color by and cell set for geometry.");
+                if (normals)
+                    eavlRenderCells2D<true, false, true>(cs, npts, pts,
+                                          f, vmin, vmax, &colortable, normals);
+                else
+                    eavlRenderCells2D<true, false, false>(cs, npts, pts,
+                                          f, vmin, vmax, &colortable, NULL);
+                return;
+            }
+            else if (dataset->cellsets[f->GetAssocCellSet()] == cs)
+            {
+                if (normals)
+                    eavlRenderCells2D<false, true, true>(cs, npts, pts,
+                                         f, vmin, vmax, &colortable, normals);
+                else
+                    eavlRenderCells2D<false, true, false>(cs, npts, pts,
+                                         f, vmin, vmax, &colortable, NULL);
+                return;
             }
         }
 
-        glEnable(GL_DEPTH_TEST);
-        glLineWidth(2);
-        if (nodal)
-        {
-            if (normals)
-                eavlRenderCells2D<true, false, true>(cs, npts, pts,
-                                           f, vmin, vmax, &colortable, normals);
-            else
-                eavlRenderCells2D<true, false, false>(cs, npts, pts,
-                                           f, vmin, vmax, &colortable, NULL);
-        }
-        else
-        {
-            if (normals)
-                eavlRenderCells2D<false, true, true>(cs, npts, pts,
-                                               f, vmin, vmax, &colortable, normals);
-            else
-                eavlRenderCells2D<false, true, false>(cs, npts, pts,
-                                               f, vmin, vmax, &colortable, NULL);
-        }
+        THROW(eavlException,"Error finding field to render given cell set.");
     }
 };
 
