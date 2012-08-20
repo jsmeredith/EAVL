@@ -318,12 +318,12 @@ class eavlTopologyGatherMapOp_1_1_1 : public eavlOperation
 {
   protected:
     eavlCellSet     *cells;
+    eavlTopology topology;
     eavlArrayWithLinearIndex inArray0;
     eavlArrayWithLinearIndex inArray1;
     eavlArrayWithLinearIndex outArray0;
     eavlArrayWithLinearIndex indicesArray;
     F                functor;
-    eavlTopology topology;
   public:
     eavlTopologyGatherMapOp_1_1_1(eavlCellSet *inCells,
                          eavlTopology topo,
@@ -376,8 +376,8 @@ class eavlTopologyGatherMapOp_1_1_1 : public eavlOperation
     }
     virtual void GoGPU()
     {
-        int n = outArray0.array->GetNumberOfTuples();
 #if defined __CUDACC__
+        int n = outArray0.array->GetNumberOfTuples();
         eavlCellSetExplicit *elExp = dynamic_cast<eavlCellSetExplicit*>(cells);
         eavlCellSetAllStructured *elStr = dynamic_cast<eavlCellSetAllStructured*>(cells);
         if (elExp)

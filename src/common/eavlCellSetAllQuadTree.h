@@ -39,7 +39,7 @@ class eavlCellSetAllQuadTree : public eavlCellSet
         cell.indices[1] = index*4 + 1;
         cell.indices[2] = index*4 + 2;
         cell.indices[3] = index*4 + 3;
-        eavlLogicalStructureQuadTree::QuadTreeCell *qcell = log->celllist[index];
+        //eavlLogicalStructureQuadTree::QuadTreeCell *qcell = log->celllist[index];
         //cerr << "  width="<<(qcell->xmax-qcell->xmin)<<" level="<<qcell->lvl<<endl;
         return cell;
     }

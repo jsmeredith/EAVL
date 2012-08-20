@@ -19,7 +19,7 @@ eavlPDBImporter::eavlPDBImporter(const string &fn)
 eavlPDBImporter::~eavlPDBImporter()
 {
     bonds.clear();
-    for (int i=0; i<allatoms.size(); i++)
+    for (size_t i=0; i<allatoms.size(); i++)
     {
         allatoms[i].clear();
     }
@@ -96,7 +96,7 @@ eavlPDBImporter::GetMesh(const string &mesh, int)
     // bonds cell set:
     eavlCellSetExplicit *bondcells = new eavlCellSetExplicit("bonds", 1);
     eavlExplicitConnectivity bondconn;
-    for (int i=0; i<bonds.size(); i++)
+    for (size_t i=0; i<bonds.size(); i++)
     {
         int ix[2] = {bonds[i].first,bonds[i].second};
         bondconn.AddElement(EAVL_BEAM, 2, ix);
@@ -987,15 +987,14 @@ eavlPDBImporter::ConnectRecord::ConnectRecord(const char *origline)
     line[31] = '\0';
 
     char record[7];
-    int n;
     b[0] = -1;
     b[1] = -1;
     b[2] = -1;
     b[3] = -1;
-    n = sscanf(line, "%6c%5d%5d%5d%5d%5d",
-               record,
-               &a,
-               &b[0], &b[1], &b[2], &b[3]);
+    sscanf(line, "%6c%5d%5d%5d%5d%5d",
+           record,
+           &a,
+           &b[0], &b[1], &b[2], &b[3]);
 }
 
 // ****************************************************************************

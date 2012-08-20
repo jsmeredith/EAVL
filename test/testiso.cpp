@@ -23,7 +23,7 @@ eavlDataSet *ReadWholeFile(const string &filename)
     string mesh = importer->GetMeshList()[0];
     eavlDataSet *out = importer->GetMesh(mesh, 0);
     vector<string> allvars = importer->GetFieldList(mesh);
-    for (int i=0; i<allvars.size(); i++)
+    for (size_t i=0; i<allvars.size(); i++)
         out->fields.push_back(importer->GetField(allvars[i], mesh, 0));
 
     return out;
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
         //data->PrintSummary(cout);
 
         int cellsetindex = -1;
-        for (int i=0; i<data->cellsets.size(); i++)
+        for (size_t i=0; i<data->cellsets.size(); i++)
         {
             if (data->cellsets[i]->GetDimensionality() == 3)
             {

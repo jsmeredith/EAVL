@@ -31,14 +31,14 @@ class eavlCellSet
     virtual int GetNumFaces() { return 0; }
     virtual int GetNumEdges() { return 0; }
     virtual eavlCell GetCellNodes(int i) = 0;
-    virtual eavlCell GetCellFaces(int i)
+    virtual eavlCell GetCellFaces(int)
     {
         eavlCell c;
         c.type=EAVL_OTHER;
         c.numIndices = 0;
         return c;
     }
-    virtual eavlCell GetCellEdges(int i)
+    virtual eavlCell GetCellEdges(int)
     {
         eavlCell c;
         c.type=EAVL_OTHER;

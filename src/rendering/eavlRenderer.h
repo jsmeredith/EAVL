@@ -31,7 +31,7 @@ static inline float MapValueToNorm(double value,
 template <bool PointColors>
 void eavlRenderPoints(int npts, double *pts,
                       eavlField *f, double vmin, double vmax,
-                      eavlColorTable *ct)
+                      eavlColorTable *)
 {
     glDisable(GL_LIGHTING);
     if (PointColors)
@@ -61,9 +61,9 @@ void eavlRenderPoints(int npts, double *pts,
 // ----------------------------------------------------------------------------
 template <bool PointColors, bool CellColors>
 void eavlRenderCells1D(eavlCellSet *cs,
-                  int npts, double *pts,
+                  int , double *pts,
                   eavlField *f, double vmin, double vmax,
-                  eavlColorTable *ct)
+                  eavlColorTable *)
 {
     glDisable(GL_LIGHTING);
     if (PointColors || CellColors)
@@ -114,9 +114,9 @@ void eavlRenderCells1D(eavlCellSet *cs,
 // ----------------------------------------------------------------------------
 template <bool PointColors, bool CellColors, bool CellNormals>
 void eavlRenderCells2D(eavlCellSet *cs,
-                       int npts, double *pts,
+                       int , double *pts,
                        eavlField *f, double vmin, double vmax,
-                       eavlColorTable *ct,
+                       eavlColorTable *,
                        eavlField *normals)
 {
     if (PointColors || CellColors)
@@ -293,11 +293,11 @@ class eavlRenderer
         delete[] pts;
     }
     virtual void RenderPoints() { }
-    virtual void RenderCells(eavlCellSet *cs) { }
-    virtual void RenderCells0D(eavlCellSet *cs) { }
-    virtual void RenderCells1D(eavlCellSet *cs) { };
-    virtual void RenderCells2D(eavlCellSet *cs, eavlField *normals=NULL) { };
-    virtual void RenderCells3D(eavlCellSet *cs) { };
+    virtual void RenderCells(eavlCellSet *) { }
+    virtual void RenderCells0D(eavlCellSet *) { }
+    virtual void RenderCells1D(eavlCellSet *) { };
+    virtual void RenderCells2D(eavlCellSet *, eavlField *) { };
+    virtual void RenderCells3D(eavlCellSet *) { };
 };
 
 // ****************************************************************************
@@ -326,7 +326,7 @@ class eavlPseudocolorRenderer : public eavlRenderer
     {
         fieldindex = -1;
         vmin = vmax = 0;
-        for (int i=0; i<ds->fields.size(); ++i)
+        for (size_t i=0; i<ds->fields.size(); ++i)
         {
             eavlField *f = ds->fields[i];
             if (f->GetArray()->GetName() == fieldname)

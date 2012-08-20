@@ -349,11 +349,11 @@ class eavlCellSparseMapOp_2_3 : public eavlOperation
     }
     virtual void GoGPU()
     {
-        int n = outArray0.array->GetNumberOfTuples();
 #ifdef HAVE_OLD_GPU
         THROW(eavlException,"This method not supported when old GPU support is enabled.");
 #else
 #if defined __CUDACC__
+        int n = outArray0.array->GetNumberOfTuples();
         eavlCellSetExplicit *elExp = dynamic_cast<eavlCellSetExplicit*>(cells);
         eavlCellSetAllStructured *elStr = dynamic_cast<eavlCellSetAllStructured*>(cells);
         if (elExp)

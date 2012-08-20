@@ -63,7 +63,7 @@ class eavlCoordinatesQuadTree : public eavlCoordinates
             THROW(eavlException,"Expected eavlLogicalStructureQuadTree in GetPoint");
         if (l->celllist.size() == 0)
             THROW(eavlException,"Haven't yet built leaf cell list for logical structure");
-        if ((i/4) >= l->celllist.size())
+        if ((i/4) >= (int)l->celllist.size())
             THROW(eavlException,"Asked for more cells than we have in quad tree");
         //cerr << "Asking for point "<<i<<" cell "<<(i/4)<<":\n";
         eavlLogicalStructureQuadTree::QuadTreeCell *cell = l->celllist[i/4];
@@ -119,7 +119,7 @@ eavlLogicalStructureQuadTree::QuadTreeCell*
 eavlLogicalStructureQuadTree::QuadTreeCell::GetNthCell(int i)
 {
     //cerr << "  i="<<i<<endl;
-    for (int j=0; j<children.size(); j++)
+    for (size_t j=0; j<children.size(); j++)
     {
         int n = children[j].GetNumCells(true);
         //cerr << "    child #"<<j<<" has "<<n<<" cells\n";
@@ -147,7 +147,7 @@ eavlLogicalStructureQuadTree::QuadTreeCell::Print(std::ostream &out,int lvl)
         <<"    extents="<<xmin<<","<<xmax<<","<<ymin<<","<<ymax<<"\n";
     if (children.size() > 0)
     {
-        for (int i=0; i<children.size(); i++)
+        for (size_t i=0; i<children.size(); i++)
             children[i].Print(out,lvl+1);
     }
     else
@@ -192,7 +192,7 @@ int
 eavlLogicalStructureQuadTree::QuadTreeCell::GetNumCells(bool leafOnly)
 {
     int subTree = 0;
-    for (int i=0; i<children.size(); i++)
+    for (size_t i=0; i<children.size(); i++)
         subTree += children[i].GetNumCells(leafOnly);
     if (!leafOnly || children.size() == 0)
         subTree++;
@@ -204,7 +204,7 @@ eavlLogicalStructureQuadTree::QuadTreeCell::GetValue(float X, float Y)
 {
     if (children.size() > 0)
     {
-        for (int i=0; i<children.size(); i++)
+        for (size_t i=0; i<children.size(); i++)
         {
             if (children[i].HasValue(X,Y))
                 return children[i].GetValue(X,Y);

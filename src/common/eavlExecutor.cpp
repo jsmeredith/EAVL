@@ -8,7 +8,7 @@ eavlExecutor *eavlExecutor::instance = NULL;
 void
 eavlExecutor::real_Go()
 {
-    for (int i=0; i<plan.size(); i++)
+    for (unsigned int i=0; i<plan.size(); i++)
     {
         int th = eavlTimer::Start();
 #ifdef HAVE_CUDA

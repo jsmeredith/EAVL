@@ -49,12 +49,12 @@ class eavlDataSet
     {
         if (logicalStructure)
             delete logicalStructure;
-        for (int i=0; i<cellsets.size(); ++i)
+        for (unsigned int i=0; i<cellsets.size(); ++i)
         {
             if (cellsets[i])
                 delete cellsets[i];
         }
-        for (int i=0; i<fields.size(); ++i)
+        for (unsigned int i=0; i<fields.size(); ++i)
         {
             if (fields[i])
                 delete fields[i];

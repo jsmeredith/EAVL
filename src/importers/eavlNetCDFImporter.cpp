@@ -126,7 +126,7 @@ eavlNetCDFImporter::GetMesh(const string &mesh, int)
         coords.push_back(c);
     }
     
-    int meshIdx = AddRectilinearMesh(data, coords, coordNames, true, "RectilinearGridCells");
+    AddRectilinearMesh(data, coords, coordNames, true, "RectilinearGridCells");
 
     return data;
 }

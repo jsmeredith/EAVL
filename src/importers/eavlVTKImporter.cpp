@@ -984,7 +984,7 @@ eavlVTKImporter::Parse_Rectilinear_Grid()
     coordNames.push_back("ycoord");
     coordNames.push_back("zcoord");
 
-    int meshIdx = AddRectilinearMesh(data, coords, coordNames, true, "RectilinearGridCells");
+    AddRectilinearMesh(data, coords, coordNames, true, "RectilinearGridCells");
 
     GetNextLine();
 }

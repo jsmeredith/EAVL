@@ -224,7 +224,6 @@ eavlIsosurfaceFilter::Execute()
     int th_init = eavlTimer::Start();
     eavlInitializeIsoTables();
 
-    int inCellSetIndex = input->GetCellSetIndex(cellsetname);
     eavlCellSet *inCells = input->GetCellSet(cellsetname);
 
     eavlField   *inField = input->GetField(fieldname);
@@ -317,7 +316,6 @@ eavlIsosurfaceFilter::Execute()
     ///\todo: if this int array is changed to a byte array, the prefix sum a little later fails.
     /// I would expect it to throw an error (array types don't match because we're putting
     /// the scan result into an int array), but I'm just getting a segfault?
-    int th_gen_edgeinc = eavlTimer::Start();
     eavlExecutor::AddOperation(new eavlTopologyMapOp_1_0_1<FirstTwoItemsDifferFunctor>
         (inCells,
          EAVL_NODES_OF_EDGES,
@@ -431,7 +429,6 @@ eavlIsosurfaceFilter::Execute()
     ///\todo: this would be better with a gatherop_3, but even better
     /// if we had an easy way to flatten the 3-component array into a
     /// single-component array, since all components are treated identically.
-    int th_gen_outconn = eavlTimer::Start();
     eavlExecutor::AddOperation(new eavlGatherOp_1(outpointindexArray,
                                                   eavlArrayWithLinearIndex(outconn,0),
                                                   eavlArrayWithLinearIndex(outtriArray,0)),

@@ -106,11 +106,11 @@ template <class F>
 class eavl3X3NodeStencilOp_1_1 : public eavlOperation
 {
   protected:
-    F                        functor;
     eavlField               *field;
     eavlRegularStructure     reg;
     eavlArrayWithLinearIndex inArray0;
     eavlArrayWithLinearIndex outArray0;
+    F                        functor;
   public:
     eavl3X3NodeStencilOp_1_1(eavlField *inField,
                          eavlRegularStructure regStructure,

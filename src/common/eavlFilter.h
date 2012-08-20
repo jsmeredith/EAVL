@@ -65,7 +65,7 @@ class eavlMutatorFilter : public eavlFilter
     {
         mutator = m;
     }
-    virtual void SetInput(eavlDataSet *ds)
+    virtual void SetInput(eavlDataSet *)
     {
         THROW(eavlException,"unimplemented");
         // this is where we should make a read-only shallow copy of ds

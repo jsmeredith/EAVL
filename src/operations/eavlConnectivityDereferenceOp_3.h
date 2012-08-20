@@ -23,7 +23,7 @@ void eavlConnectivityDereferenceOp_3_CPU_regular(int n,
         int in_index = idx[index_idx];
 
         int ncomps;
-        int shapeType = reg.GetElementComponents(in_index, ncomps, compIds);
+        reg.GetElementComponents(in_index, ncomps, compIds);
 
         int index_i0 = ((i / i0div) % i0mod) * i0mul + i0add;
         int index_i1 = ((i / i1div) % i1mod) * i1mul + i1add;
@@ -56,7 +56,7 @@ void eavlConnectivityDereferenceOp_3_CPU_explicit(int n,
         int in_index = idx[index_idx];
 
         int ncomps;
-        int shapeType = conn.GetElementComponents(in_index, ncomps, compIds);
+        conn.GetElementComponents(in_index, ncomps, compIds);
 
         int index_i0 = ((i / i0div) % i0mod) * i0mul + i0add;
         int index_i1 = ((i / i1div) % i1mod) * i1mul + i1add;
@@ -171,10 +171,10 @@ class eavlConnectivityDereferenceOp_3 : public eavlOperation
 {
   protected:
     eavlCellSet     *cells;
+    eavlTopology topology;
     eavlArrayWithLinearIndex inArray0, inArray1, inArray2;
     eavlArrayWithLinearIndex outArray0, outArray1, outArray2;
     eavlArrayWithLinearIndex indexArray;
-    eavlTopology topology;
   public:
     eavlConnectivityDereferenceOp_3(eavlCellSet *inCells,
                          eavlTopology topo,
@@ -248,13 +248,11 @@ class eavlConnectivityDereferenceOp_3 : public eavlOperation
 
     virtual void GoGPU()
     {
-        int n = outArray0.array->GetNumberOfTuples();
-        ///\todo: assert all output arrays have same length?
-
 #ifdef HAVE_OLD_GPU
         THROW(eavlException,"This method not supported when old GPU support is enabled.");
 #else
 #if defined __CUDACC__
+        int n = outArray0.array->GetNumberOfTuples();
         eavlIntArray *i0 = dynamic_cast<eavlIntArray*>(inArray0.array);
         eavlIntArray *i1 = dynamic_cast<eavlIntArray*>(inArray1.array);
         eavlIntArray *i2 = dynamic_cast<eavlIntArray*>(inArray2.array);
