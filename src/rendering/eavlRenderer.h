@@ -379,7 +379,7 @@ class eavlPseudocolorRenderer : public eavlRenderer
         glEnable(GL_DEPTH_TEST);
         glLineWidth(2);
 
-        for (int i=0; i<fieldindices.size(); ++i)
+        for (unsigned int i=0; i<fieldindices.size(); ++i)
         {
             eavlField *f = dataset->fields[fieldindices[i]];
             if (nodal)
@@ -405,7 +405,7 @@ class eavlPseudocolorRenderer : public eavlRenderer
 
 
         glEnable(GL_DEPTH_TEST);
-        for (int i=0; i<fieldindices.size(); ++i)
+        for (unsigned int i=0; i<fieldindices.size(); ++i)
         {
             eavlField *f = dataset->fields[fieldindices[i]];
             if (nodal)
