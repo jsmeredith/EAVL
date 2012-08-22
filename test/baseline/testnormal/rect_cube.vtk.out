@@ -77,11 +77,11 @@ eavlDataSet:
       assoc_cell_set (index) = 0
       array = float zonal[125][1] = 2.12651  2.23655  2.30367  2.20607  2.21764 ... 3.18848  3.2106  3.40977  3.4471  3.35531
 
-      array name = extface_of_zonal
+      array name = zonal
       order = 0
       association = CELL_SET
       assoc_cell_set (index) = 1
-      array = float extface_of_zonal[150][1] = 2.12651  2.23655  2.30367  2.20607  2.21764 ... 4.95254  2.72514  3.43305  3.18848  3.35531
+      array = float zonal[150][1] = 2.12651  2.23655  2.30367  2.20607  2.21764 ... 4.95254  2.72514  3.43305  3.18848  3.35531
 
       array name = surface_normals
       order = 0
