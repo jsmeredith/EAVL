@@ -75,6 +75,13 @@ RemoveSlash(string str)
     return str;
 }
 
+static void MapZoneShape(int n, int *mapindices, int *inputnodes, int *outputnodes)
+{
+    for (int i=0; i<n; i++)
+        outputnodes[i] = inputnodes[mapindices[i]];
+}
+
+
 eavlSiloImporter::eavlSiloImporter(const string &filename)
 {
     file = DBOpen(filename.c_str(), DB_UNKNOWN, DB_READ);
@@ -426,11 +433,13 @@ eavlSiloImporter::GetUCDMesh(string nm)
     int nl_index = 0;
     eavlCellShape st;
     eavlExplicitConnectivity conn;
+    int tmp_indices[8];
     for (int i = 0; i < m->zones->nshapes; i++)
     {
         for (int j = 0; j < m->zones->shapecnt[i]; j++)
         {
             int nNodes = -1;
+            int *zone_nodes = &(m->zones->nodelist[nl_index]);
             if (m->zones->shapetype[i] == DB_ZONETYPE_TRIANGLE)
             {
                 st = EAVL_TRI;
@@ -445,16 +454,28 @@ eavlSiloImporter::GetUCDMesh(string nm)
             {
                 st = EAVL_TET;
                 nNodes = 4;
+
+                int tetIndices[] = {1,0,2,3};
+                MapZoneShape(4, tetIndices, zone_nodes, tmp_indices);
+                zone_nodes = tmp_indices;
             }
             else if (m->zones->shapetype[i] == DB_ZONETYPE_PYRAMID)
             {
                 st = EAVL_PYRAMID;
                 nNodes = 5;
+
+                int pyrIndices[] = {0,3,2,1,4};
+                MapZoneShape(5, pyrIndices, zone_nodes, tmp_indices);
+                zone_nodes = tmp_indices;
             }
             else if (m->zones->shapetype[i] == DB_ZONETYPE_PRISM)
             {
                 st = EAVL_WEDGE;
                 nNodes = 6;
+
+                int wedgeIndices[] = {2,1,5,3,0,4};
+                MapZoneShape(6, wedgeIndices, zone_nodes, tmp_indices);
+                zone_nodes = tmp_indices;
             }
             else if (m->zones->shapetype[i] == DB_ZONETYPE_HEX)
             {
@@ -464,7 +485,7 @@ eavlSiloImporter::GetUCDMesh(string nm)
             else
                 THROW(eavlException,"Unsupported silo zone type!");
             
-            conn.AddElement(st, nNodes, &(m->zones->nodelist[nl_index]));
+            conn.AddElement(st, nNodes, zone_nodes);
             nl_index += nNodes;
         }
     }
