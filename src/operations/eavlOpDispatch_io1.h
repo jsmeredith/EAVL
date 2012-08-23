@@ -37,9 +37,9 @@ void eavlDispatch_io1(int n, eavlArray::Location loc,
     eavlByteArray   *o0_b = dynamic_cast<eavlByteArray*>(o0);
     eavlIntArray    *o0_i = dynamic_cast<eavlIntArray*>(o0);
 
-    if ((o0_f && !o0_f) ||
-        (o0_b && !o0_b) ||
-        (o0_i && !o0_i))
+    if ((i0_f && !o0_f) ||
+        (i0_b && !o0_b) ||
+        (i0_i && !o0_i))
         THROW(eavlException,"eavlDispatch_io1 must have same-typed input and output array.");
         
 
