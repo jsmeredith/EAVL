@@ -88,9 +88,7 @@ int main(int argc, char *argv[])
         int th = eavlTimer::Start();
         iso->Execute();
         cerr << "TOTAL RUNTIME: "<<eavlTimer::Stop(th,"whole isosurface")<<endl;
-        iso->GetOutput()->fields.clear();
-        iso->GetOutput()->coordinateSystems.clear();
-        iso->GetOutput()->cellsets.clear();
+        iso->GetOutput()->Clear();
         int th2 = eavlTimer::Start();
         iso->Execute();
         cerr << "SECOND PASS (AFTER INIT): "<<eavlTimer::Stop(th2,"whole isosurface")<<endl;

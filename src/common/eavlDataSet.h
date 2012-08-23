@@ -47,18 +47,33 @@ class eavlDataSet
     }
     ~eavlDataSet()
     {
+        Clear();
+    }
+    void Clear()
+    {
+        discreteCoordinates.clear();
         if (logicalStructure)
             delete logicalStructure;
+        logicalStructure = NULL;
         for (unsigned int i=0; i<cellsets.size(); ++i)
         {
             if (cellsets[i])
                 delete cellsets[i];
         }
+        cellsets.clear();
         for (unsigned int i=0; i<fields.size(); ++i)
         {
             if (fields[i])
                 delete fields[i];
         }
+        fields.clear();
+        for (unsigned int i=0; i<coordinateSystems.size(); ++i)
+        {
+            if (coordinateSystems[i])
+                delete coordinateSystems[i];
+        }
+        coordinateSystems.clear();
+        npoints = 0;
     }
 
     virtual double GetPoint(int i, int c, int whichCoordSystem=0)

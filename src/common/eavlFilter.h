@@ -50,7 +50,12 @@ class eavlFilter
   public:
     eavlFilter() : input(NULL), output(new eavlDataSet) { }
     ~eavlFilter() { }
-    virtual void SetInput(eavlDataSet *ds) { input = ds; }
+    virtual void SetInput(eavlDataSet *ds)
+    {
+        input = ds;
+        ///\todo: this is probably not the best place for this!
+        output->Clear();
+    }
     virtual eavlDataSet *GetOutput(void)    { return output; }
     virtual void Execute() = 0;
 };
