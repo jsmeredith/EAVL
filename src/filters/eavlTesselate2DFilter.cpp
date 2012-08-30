@@ -13,7 +13,7 @@ static float Legendre(int i, float x)
       case 1:    return scale * x;
       case 2:    return scale * (3. * x*x -1) / 2.;
     }
-    return -9999999999;
+    return -999999999;
 }
 
 static float EvalLegendre(float scale, float xx, float yy, eavlArray *arr, int index)

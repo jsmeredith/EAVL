@@ -185,7 +185,7 @@ float Legendre(int i, float x)
       case 1:    return scale * x;
       case 2:    return scale * (3. * x*x -1) / 2.;
     }
-    return -9999999999;
+    return -99999999;
 }
 
 int
