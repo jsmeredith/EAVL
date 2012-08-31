@@ -38,10 +38,6 @@ class ADIOSFileObject
     void Close();
     bool IsOpen() const {return fp != NULL;}
     std::string Filename() const {return fileName;}
-    int NumTimeSteps();
-    void GetCycles(std::vector<int> &cycles);
-    void GetCycles(std::string &varNm, std::vector<int> &cycles);
-    void GetTimes(std::string &varNm, std::vector<double> &times);
 
     //Attributes
     bool GetIntAttr(const std::string &nm, int &val);
@@ -66,10 +62,6 @@ class ADIOSFileObject
     std::string fileName;
 
     ADIOS_FILE *fp;
-    ADIOS_GROUP **gps;
-
-    void OpenGroup(int grpIdx);
-    void CloseGroup(int grpIdx);
 };
 
 
@@ -88,13 +80,13 @@ class ADIOSVar
 {
   public:
     ADIOSVar();
-    ADIOSVar(const std::string &nm, int grpIdx, ADIOS_VARINFO *avi);
+    ADIOSVar(const std::string &nm, ADIOS_VARINFO *avi);
     ~ADIOSVar() {}
 
     void GetReadArrays(int ts, uint64_t *s, uint64_t *c, int *ntuples);
     
     ADIOS_DATATYPES type;
-    int dim, groupIdx, varid, timedim;
+    int dim, varid;
     uint64_t start[3], count[3], global[3];
     std::string name;
     double extents[2];
@@ -226,8 +218,8 @@ class ADIOSAttr : public ADIOSScalar
 inline std::ostream& operator<<(std::ostream& out, const ADIOSVar &v)
 {
     out<<"ADIOSVar: "<<v.name<<endl;
-    out<<"  dim= "<<v.dim<<" timedim= "<<v.timedim<<endl;
-    out<<"  type= "<<v.type<<" gIdx, vId= "<<v.groupIdx<<" "<<v.varid<<endl;
+    out<<"  dim= "<<v.dim<<endl;
+    out<<"  type= "<<v.type<<" vId= "<<v.varid<<endl;
     out<<"  global= ["<<v.global[0]<<" "<<v.global[1]<<" "<<v.global[2]<<"]"<<endl;
     out<<"  start= ["<<v.start[0]<<" "<<v.start[1]<<" "<<v.start[2]<<"]"<<endl;
     out<<"  count= ["<<v.count[0]<<" "<<v.count[1]<<" "<<v.count[2]<<"]"<<endl;

@@ -30,7 +30,6 @@ eavlADIOSImporter::GetMesh(const string &mesh, int)
 {
     if (file->variables.empty())
         return NULL;
-    
     map<string, ADIOSVar>::iterator it = file->variables.begin();
     
     ADIOSVar v = it->second;
@@ -41,7 +40,6 @@ eavlADIOSImporter::GetMesh(const string &mesh, int)
     
     if (v.dim > 3 || v.dim < 1)
         return NULL;
-    
 
     coords.resize(v.dim);
     if (v.dim >= 1)
@@ -65,9 +63,8 @@ eavlADIOSImporter::GetMesh(const string &mesh, int)
         for (int i = 0; i < v.count[2]; i++)
             coords[2][i] = i;
     }
-
-    int meshIdx = AddRectilinearMesh(data, coords, coordNames, true, "RectilinearGridCells");
     
+    int meshIdx = AddRectilinearMesh(data, coords, coordNames, true, "RectilinearGridCells");
     return data;
 }
 

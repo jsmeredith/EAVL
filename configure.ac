@@ -943,9 +943,9 @@ if test "$ADIOS" != "yes" -a "$ADIOS" != "no"; then
    rpathize(ADIOS_LDFLAGS, $ADIOS/lib)
 
    if test "$MPI" != "no"; then
-     ADIOS_LIBS="-ladios -ladiosread -lmpi"
+     ADIOS_LIBS="-ladios -ladiosread -lmxml -lmpi"
    else
-     ADIOS_LIBS="-ladios_nompi -ladiosread_nompi"
+     ADIOS_LIBS="-ladios_nompi -lmxml -ladiosread_nompi"
    fi
 fi
 
@@ -954,14 +954,13 @@ if test "$ADIOS" != "no"; then
    old_cppflags=$CPPFLAGS
    old_ldflags=$LDFLAGS
    old_libs=$LIBS
-   CPPFLAGS="$CPPFLAGS $ADIOS_CPPFLAGS";
+   CPPFLAGS="$CPPFLAGS $ADIOS_CPPFLAGS -D_NOMPI";
    LDFLAGS="$LDFLAGS $ADIOS_LDFLAGS";
    LIBS="$LIBS $ADIOS_LIBS"
 
    AC_MSG_CHECKING(if ADIOS works)
-   AC_TRY_LINK([#define _NOMPI
-                #include <adios_read.h>],
-               [ADIOS_FILE *f = adios_fopen("/path/to/file.bp", 0); ],
+   AC_TRY_LINK([#include <adios_read.h>],
+               [ADIOS_FILE *f = adios_read_open_stream("/path/to/file.bp", ADIOS_READ_METHOD_BP, 0, ADIOS_LOCKMODE_ALL, 0); ],
                AC_MSG_RESULT(yes),
                AC_MSG_RESULT(no);ADIOS="no";AC_MSG_WARN(could not get ADIOS to compile/link; disabling ADIOS))
 

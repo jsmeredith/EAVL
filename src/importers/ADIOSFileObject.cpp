@@ -3,6 +3,16 @@
 #include "ADIOSFileObject.h"
 #include "eavlArray.h"
 #include "eavlException.h"
+#include "adios.h"
+#include "adios_error.h"
+
+typedef struct
+{
+    ADIOS_VARINFO * v;
+    uint64_t        start[10];
+    uint64_t        count[10];
+    uint64_t        writesize; // size of subset this process writes, 0: do not write
+} VarInfo;
 
 static bool
 SupportedVariable(ADIOS_VARINFO *avi);
@@ -27,7 +37,6 @@ ADIOSFileObject::ADIOSFileObject(const char *fname)
 {
     fileName = fname;
     fp = NULL;
-    gps = NULL;
 }
 
 // ****************************************************************************
@@ -45,7 +54,6 @@ ADIOSFileObject::ADIOSFileObject(const std::string &fname)
 {
     fileName = fname;
     fp = NULL;
-    gps = NULL;
 }
 
 
@@ -65,6 +73,7 @@ ADIOSFileObject::~ADIOSFileObject()
     Close();
 }
 
+#if 0
 // ****************************************************************************
 //  Method: ADIOSFileObject::NumTimeSteps
 //
@@ -189,7 +198,7 @@ ADIOSFileObject::GetTimes(std::string &varNm, std::vector<double> &times)
     }
     free(readData);
 }
-
+#endif
 
 // ****************************************************************************
 //  Method: ADIOSFileObject::Open
@@ -212,109 +221,63 @@ ADIOSFileObject::Open()
 {
     if (IsOpen())
         return true;
+    
+    int err;
+    ADIOS_READ_METHOD read_method = ADIOS_READ_METHOD_BP;
+    int timeoutSec = 0;
 
 #ifdef PARALLEL
-    fp = adios_fopen(fileName.c_str(), (MPI_Comm)VISIT_MPI_COMM);
+    err = adios_read_init_method(read_method, (MPI_Comm)VISIT_MPI_COMM, "");
+    fp = adios_read_open_stream(fileName.c_str(), read_method, (MPI_Comm)VISIT_MPI_COMM, 
+				ADIOS_LOCKMODE_ALL, timeoutSec);
 #else
-    fp = adios_fopen(fileName.c_str(), 0);
+    err = adios_read_init_method(read_method, 0, "");
+    /*
+    fp = adios_read_open_stream(fileName.c_str(), read_method, 0,
+				ADIOS_LOCKMODE_ALL, timeoutSec);
+    */
+    fp = adios_read_open_file(fileName.c_str(), read_method, 0);
 #endif
     
     char errmsg[1024];
-    if (fp == NULL)
+    if (0)//(!err || fp == NULL)
     {
         sprintf(errmsg, "Error opening bp file %s:\n%s", fileName.c_str(), adios_errmsg());
-	THROW(eavlException,errmsg);
+	THROW(eavlException, errmsg);
     }
-
+    if (adios_errno == err_file_not_found || adios_errno == err_end_of_stream)
+	THROW(eavlException, "ADIOS open failed.");
     
-    ADIOS_VARINFO *avi;
-    gps = (ADIOS_GROUP **) malloc(fp->groups_count * sizeof(ADIOS_GROUP *));
-    if (gps == NULL)
-	THROW(eavlException,"The file could not be opened. Not enough memory");
-    
-    /*
-    cout << "ADIOS BP file: " << fileName << endl;
-    cout << "# of groups: " << fp->groups_count << endl;
-    cout << "# of variables: " << fp->vars_count << endl;
-    cout << "# of attributes:" << fp->attrs_count << endl;
-    cout << "time steps: " << fp->ntimesteps << " from " << fp->tidx_start << endl;
-    */
+    char **groupNames;
+    int64_t gh;
+    VarInfo *varinfo;
+    ADIOS_VARINFO *v;
 
-    //Read in variables/scalars.
-    variables.clear();
-    scalars.clear();
-    for (int gr=0; gr<fp->groups_count; gr++)
+    while (adios_errno != err_end_of_stream)
     {
-        //cout <<  "  group " << fp->group_namelist[gr] << ":" << endl;
-        gps[gr] = adios_gopen_byid(fp, gr);
-        if (gps[gr] == NULL)
-        {
-            sprintf(errmsg, "Error opening group %s in bp file %s:\n%s", fp->group_namelist[gr], fileName.c_str(), adios_errmsg());
-	    THROW(eavlException,errmsg);
-        }
-        
-        for (int vr=0; vr<gps[gr]->vars_count; vr++)
-        {
-            avi = adios_inq_var_byid(gps[gr], vr);
-            if (avi == NULL)
-            {
-                sprintf(errmsg, "Error opening inquiring variable %s in group %s of bp file %s:\n%s", 
-                        gps[gr]->var_namelist[vr], fp->group_namelist[gr], fileName.c_str(), adios_errmsg());
-		THROW(eavlException,errmsg);
-            }
+	adios_get_grouplist(fp, &groupNames);
+	adios_declare_group(&gh, groupNames[0], "", adios_flag_yes);
+	
+	varinfo = (VarInfo *) malloc (sizeof(VarInfo) * fp->nvars);
 
-            if (SupportedVariable(avi))
-            {
-                //Scalar
-                if (avi->ndim == 0)
-                {
-                    ADIOSScalar s(gps[gr]->var_namelist[vr], avi);
-                    scalars[s.Name()] = s;
-                    //cout<<"  added scalar "<<s<<endl;
-                }
-                //Variable
-                else
-                {
-                    // add variable to map, map id = variable path without the '/' in the beginning
-                    ADIOSVar v(gps[gr]->var_namelist[vr], gr, avi);
-                    variables[v.name] = v;
-                    //cout<<"  added variable "<< v.name<<endl;
-                }
-            }
-            else
-	    {
-		/*
-                cout<<"Skipping variable: "<<gps[gr]->var_namelist[vr]<<" dim= "<<avi->ndim
-                      <<" timedim= "<<avi->timedim
-                      <<" type= "<<adios_type_to_string(avi->type)<<endl;
-		*/
-	    }
-            
-            adios_free_varinfo(avi);
-        }
-        //Read in attributes.
-        for (int a = 0; a < gps[gr]->attrs_count; a++)
-        {
-            int sz;
-            void *data = NULL;
-            ADIOS_DATATYPES attrType;
+	for (int i=0; i<fp->nvars; i++) 
+	{
+	    //cout <<"Get info on variable "<<i<<" "<<fp->var_namelist[i]<<endl;
+	    varinfo[i].v = adios_inq_var_byid(fp, i);
+	    if (varinfo[i].v == NULL)
+		THROW(eavlException, "ADIOS Importer: variable inquiry failed.");
 
-            if (adios_get_attr_byid(gps[gr], a, &attrType, &sz, &data) != 0)
-            {
-                //cout<<"Failed to get attr: "<<gps[gr]->attr_namelist[a]<<endl;
-                continue;
-            }
-            
-            ADIOSAttr attr(gps[gr]->attr_namelist[a], attrType, data);
-            attributes[attr.Name()] = attr;
-            free(data);
-        }
+	    if (!SupportedVariable(varinfo[i].v))
+		continue;
+	    
+	    // add variable to map, map id = variable path without the '/' in the beginning
+	    ADIOSVar v(fp->var_namelist[i], varinfo[i].v);
+	    variables[v.name] = v;
 
-        adios_gclose(gps[gr]);
-        gps[gr] = NULL;
+	    // print variable type and dimensions
+        }
+	break;
     }
-
-    return true;
 }
 
 // ****************************************************************************
@@ -336,76 +299,11 @@ ADIOSFileObject::Open()
 void
 ADIOSFileObject::Close()
 {
-    if (fp && gps)
-    {
-        for (int gr=0; gr<fp->groups_count; gr++)
-            if (gps[gr] != NULL)
-                adios_gclose(gps[gr]);
-    }
-    
-    if (gps)
-        free(gps);
     if (fp)
-        adios_fclose(fp);
-    
+	adios_read_close(fp);
     fp = NULL;
-    gps = NULL;
 }
 
-
-// ****************************************************************************
-//  Method: ADIOSFileObject::OpenGroup
-//
-//  Purpose:
-//      Open a group.
-//
-//  Programmer: Dave Pugmire
-//  Creation:   Tue Mar  9 12:40:15 EST 2010
-//
-// ****************************************************************************
-
-void
-ADIOSFileObject::OpenGroup(int grpIdx)
-{
-    if (!gps)
-        return;
-    if (gps[grpIdx] == NULL)
-        gps[grpIdx] = adios_gopen_byid(fp, grpIdx);
-
-    if (gps[grpIdx] == NULL)
-    {
-        std::string errmsg = "Error opening group "+std::string(fp->group_namelist[grpIdx])+" in " + fileName;
-	THROW(eavlException,errmsg);
-    }
-}
-
-// ****************************************************************************
-//  Method: ADIOSFileObject::CloseGroup
-//
-//  Purpose:
-//      Close a group.
-//
-//  Programmer: Dave Pugmire
-//  Creation:   Tue Mar  9 12:40:15 EST 2010
-//
-// ****************************************************************************
-
-void
-ADIOSFileObject::CloseGroup(int grpIdx)
-{
-    if (!gps)
-        return;
-    if (gps[grpIdx] != NULL)
-    {
-        int val = adios_gclose(gps[grpIdx]);
-        gps[grpIdx] = NULL;
-        if (val != 0)
-        {
-            std::string errmsg = "Error closing group "+std::string(fp->group_namelist[grpIdx])+" in " + fileName;
-	    THROW(eavlException,errmsg);
-        }
-    }
-}
 
 // ****************************************************************************
 //  Method: ADIOSFileObject::GetIntScalar
@@ -564,20 +462,17 @@ ADIOSFileObject::ReadVariable(const std::string &nm,
     if (convertData)
         readData = malloc(ntuples*tupleSz);
 
-    //cout<<"ARR: adios_read_var:"<<endl<<v<<endl;
-    OpenGroup(v.groupIdx);
-
-    uint64_t retval = adios_read_var_byid(gps[v.groupIdx], v.varid, start, count, readData);
-    CloseGroup(v.groupIdx);
+    ADIOS_SELECTION *sel = adios_selection_boundingbox(v.dim, start, count);
+    adios_schedule_read_byid(fp, sel, v.varid, 0, 1, readData);
+    adios_perform_reads(fp, 1);
 
     if (convertData)
     {
-        if (retval > 0)
-            ConvertTo(data, ntuples, v.type, readData);
+	ConvertTo(data, ntuples, v.type, readData);
         free(readData);
     }
 
-    return (retval > 0);
+    return true;
 }
 
 // ****************************************************************************
@@ -595,8 +490,9 @@ static bool
 SupportedVariable(ADIOS_VARINFO *avi)
 {
     if (/*(avi->ndim == 1 && avi->timedim >= 0) ||  // scalar with time*/
-        (avi->ndim > 3 && avi->timedim == -1) ||  // >3D array with no time
-        (avi->ndim > 4 && avi->timedim >= 0)  ||  // >3D array with time
+	(avi->ndim == 0) ||
+	(avi->ndim == 1) ||
+        (avi->ndim > 3) ||  // >3D array
         avi->type == adios_long_double ||
         avi->type == adios_complex || 
         avi->type == adios_double_complex)
@@ -624,7 +520,7 @@ ADIOSVar::ADIOSVar()
     count[0] = count[1] = count[2] = 0;
     global[0] = global[1] = global[2] = 0;
     dim = 0;
-    type=adios_unknown; groupIdx=-1, varid=-1, timedim=-1;
+    type=adios_unknown; varid=-1;
     extents[0] = extents[1] = 0.0;
 }
 
@@ -639,12 +535,13 @@ ADIOSVar::ADIOSVar()
 //
 // ****************************************************************************
 
-ADIOSVar::ADIOSVar(const std::string &nm, int grpIdx, ADIOS_VARINFO *avi)
+ADIOSVar::ADIOSVar(const std::string &nm, ADIOS_VARINFO *avi)
 {
     name = nm;
     type = avi->type;
     double valMin = 0.0, valMax = 0.0;
 
+    /*
     if (avi->gmin && avi->gmax)
     {
         if (type == adios_integer)
@@ -663,21 +560,12 @@ ADIOSVar::ADIOSVar(const std::string &nm, int grpIdx, ADIOS_VARINFO *avi)
             valMax = (double)(*((double*)avi->gmax));
         }
     }
+    */
 
     extents[0] = valMin;
     extents[1] = valMax;
-    timedim = avi->timedim;
-    groupIdx = grpIdx;
     varid = avi->varid;
-    if (avi->timedim == -1)
-        dim = avi->ndim;
-    else
-    {
-        if (avi->ndim == 1)
-            dim = avi->ndim;
-        else
-            dim = avi->ndim - 1;
-    }
+    dim = avi->ndim;
 
     for (int i = 0; i < 3; i++)
     {
@@ -685,10 +573,7 @@ ADIOSVar::ADIOSVar(const std::string &nm, int grpIdx, ADIOS_VARINFO *avi)
         count[i] = 0;
     }
     
-    int idx = (timedim == -1 ? 0 : 1);
-    if (dim == 1 && timedim == 0)
-        idx = 0;
-    
+    int idx = 0;
     //ADIOS is ZYX.
     if (dim == 3)
     {
@@ -730,13 +615,6 @@ ADIOSVar::GetReadArrays(int ts, uint64_t *s, uint64_t *c, int *ntuples)
     c[0] = c[1] = c[2] = c[3] = 0;
 
     int idx = 0;
-    if (timedim >= 0)
-    {
-        s[idx] = ts;
-        c[idx] = 1;
-        idx++;
-    }
-
     if (dim == 1)
     {
         s[idx] = start[0];
