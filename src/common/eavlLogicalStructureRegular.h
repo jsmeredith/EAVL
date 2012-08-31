@@ -45,7 +45,7 @@ class eavlLogicalStructureRegular : public eavlLogicalStructure
         out << "   eavlLogicalStructureRegular:"<<endl;
         out << "     logicalDimension = "<<logicalDimension<<endl;
         out << "     logicalDims["<<reg.dimension<<"] = ";
-        for (unsigned int i=0; i<reg.dimension; i++)
+        for (int i=0; i<reg.dimension; i++)
         {
             out << reg.nodeDims[i] << " ";
         }

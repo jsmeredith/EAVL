@@ -490,7 +490,6 @@ eavlNetCDFDecomposingImporter::GetMesh(const string &mesh, int chunk)
     int nlx_nodes = domainGlobalCount[0] + 1;  // zonal -> nodal
     int nly_nodes = domainGlobalCount[1] + 1;  // zonal -> nodal
     int nlz_nodes = domainGlobalCount[2] + 1;  // zonal -> nodal
-    int n = nlx_nodes*nly_nodes*nlz_nodes;
 
     eavlDataSet *data = new eavlDataSet;
 
@@ -530,8 +529,8 @@ eavlNetCDFDecomposingImporter::GetMesh(const string &mesh, int chunk)
         coords.push_back(c);
     }
     
-    int meshIdx = AddRectilinearMesh(data, coords, coordNames, true,
-                                     "RectilinearGridCells");
+    AddRectilinearMesh(data, coords, coordNames, true,
+                       "RectilinearGridCells");
 
     return data;
 }

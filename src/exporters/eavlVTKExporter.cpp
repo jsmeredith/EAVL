@@ -59,12 +59,9 @@ eavlVTKExporter::ExportCells(ostream &out)
 void
 eavlVTKExporter::ExportFields(ostream &out)
 {
-
-    int cnt = 0;
-
     // do point data
     bool wrote_point_header = false;
-    for (int f = 0; f < data->fields.size(); f++)
+    for (unsigned int f = 0; f < data->fields.size(); f++)
     {
         int ntuples = data->fields[f]->GetArray()->GetNumberOfTuples();
         int ncomp = data->fields[f]->GetArray()->GetNumberOfComponents();
@@ -79,7 +76,6 @@ eavlVTKExporter::ExportFields(ostream &out)
             wrote_point_header = true;
             out<<"SCALARS "<<data->fields[f]->GetArray()->GetName()<<" float "<< ncomp<<endl;
             out<<"LOOKUP_TABLE default"<<endl;
-            double v;
             for (int i = 0; i < ntuples; i++)
             {
                 for (int j = 0; j < ncomp; j++)
@@ -90,7 +86,7 @@ eavlVTKExporter::ExportFields(ostream &out)
 
     // do cell data
     bool wrote_cell_header = false;
-    for (int f = 0; f < data->fields.size(); f++)
+    for (unsigned int f = 0; f < data->fields.size(); f++)
     {
         int ntuples = data->fields[f]->GetArray()->GetNumberOfTuples();
         int ncomp = data->fields[f]->GetArray()->GetNumberOfComponents();
@@ -106,7 +102,6 @@ eavlVTKExporter::ExportFields(ostream &out)
             wrote_cell_header = true;
             out<<"SCALARS "<<data->fields[f]->GetArray()->GetName()<<" float "<< ncomp<<endl;
             out<<"LOOKUP_TABLE default"<<endl;
-            double v;
             for (int i = 0; i < ntuples; i++)
             {
                 for (int j = 0; j < ncomp; j++)

@@ -184,6 +184,7 @@ ParseCoeffRow(ifstream &in, float *coeffs)
         coeffs[i] = atof(buff.c_str());
         buff = "";
     }
+    return true;
 }
 
 static bool

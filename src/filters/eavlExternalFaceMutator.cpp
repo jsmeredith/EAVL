@@ -102,8 +102,10 @@ eavlExternalFaceMutator::Execute()
             eavlArray *inArray = inField->GetArray();
             int n = n_ext;
             int nc = inArray->GetNumberOfComponents();
+            // I guess it's most appropriate to re-use the input 
+            // field name directly?
             eavlFloatArray *outArray =
-                new eavlFloatArray(string("extface_of_") + 
+                new eavlFloatArray(/*string("extface_of_") + */
                                    inArray->GetName(), nc);
             outArray->SetNumberOfTuples(n);
             int outindex = 0;

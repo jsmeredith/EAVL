@@ -317,7 +317,6 @@ eavlIsosurfaceFilter::Execute()
     ///\todo: if this int array is changed to a byte array, the prefix sum a little later fails.
     /// I would expect it to throw an error (array types don't match because we're putting
     /// the scan result into an int array), but I'm just getting a segfault?
-    int th_gen_edgeinc = eavlTimer::Start();
     eavlExecutor::AddOperation(new eavlTopologyMapOp_1_0_1<FirstTwoItemsDifferFunctor>
         (inCells,
          EAVL_NODES_OF_EDGES,
@@ -431,7 +430,6 @@ eavlIsosurfaceFilter::Execute()
     ///\todo: this would be better with a gatherop_3, but even better
     /// if we had an easy way to flatten the 3-component array into a
     /// single-component array, since all components are treated identically.
-    int th_gen_outconn = eavlTimer::Start();
     eavlExecutor::AddOperation(new eavlGatherOp_1(outpointindexArray,
                                                   eavlArrayWithLinearIndex(outconn,0),
                                                   eavlArrayWithLinearIndex(outtriArray,0)),
@@ -451,14 +449,14 @@ eavlIsosurfaceFilter::Execute()
     //
     eavlCoordinates *cs = input->coordinateSystems[0];
     if (cs->GetDimension() != 3)
-        THROW(eavlException,"eavlNodeToCellOp assumes 3D coordinates");
+        THROW(eavlException,"eavlIsosurfaceFilter assumes 3D coordinates");
 
     eavlCoordinateAxisField *axis0 = dynamic_cast<eavlCoordinateAxisField*>(cs->GetAxis(0));
     eavlCoordinateAxisField *axis1 = dynamic_cast<eavlCoordinateAxisField*>(cs->GetAxis(1));
     eavlCoordinateAxisField *axis2 = dynamic_cast<eavlCoordinateAxisField*>(cs->GetAxis(2));
 
     if (!axis0 || !axis1 || !axis2)
-        THROW(eavlException,"eavlNodeToCellOp expects only field-based coordinate axes");
+        THROW(eavlException,"eavlIsosurfaceFilter expects only field-based coordinate axes");
 
     eavlField *field0 = input->GetField(axis0->GetFieldName());
     eavlField *field1 = input->GetField(axis1->GetFieldName());
@@ -468,7 +466,7 @@ eavlIsosurfaceFilter::Execute()
     eavlArray *arr2 = field2->GetArray();
     if (!arr0 || !arr1 || !arr2)
     {
-        THROW(eavlException,"eavlNodeToCellOp assumes single-precision float arrays");
+        THROW(eavlException,"eavlIsosurfaceFilter couldn't get coordinate arrays");
     }
 
     eavlArrayWithLinearIndex ali0(arr0, axis0->GetComponent());
@@ -532,8 +530,55 @@ eavlIsosurfaceFilter::Execute()
              LinterpFunctor()),
         "generate z coords");
 
-    ///\todo: we need to interpolate the point vars as well
-    /// and gather the cell vars
+    /// interpolate the point vars and gather the cell vars
+    for (unsigned int i=0; i<input->fields.size(); i++)
+    {
+        eavlField *f = input->fields[i];
+        eavlArray *a = f->GetArray();
+        if (f == field0 ||
+            f == field1 ||
+            f == field2)
+        {
+            // we already did the coord fields
+            continue;
+        }
+        if (f->GetArray()->GetNumberOfComponents() != 1)
+        {
+            ///\todo: currently only handle point and cell fields
+            continue;
+        }
+
+        if (f->GetAssociation() == eavlField::ASSOC_POINTS)
+        {
+            eavlArray *outArr = a->Create(a->GetName(), 1, noutpts);
+            eavlExecutor::AddOperation(
+              new eavlTopologyGatherMapOp_1_1_1<LinterpFunctor>
+                (inCells,
+                 EAVL_NODES_OF_EDGES,
+                 a,
+                 alpha,
+                 outArr,
+                 revPtEdgeIndex,
+                 LinterpFunctor()),
+              "interpolate nodal field");
+            output->fields.push_back(new eavlField(1, outArr, eavlField::ASSOC_POINTS));
+        }
+        else if (f->GetAssociation() == eavlField::ASSOC_CELL_SET &&
+                 f->GetAssocCellSet() == inCellSetIndex)
+        {
+            eavlArray *outArr = a->Create(a->GetName(), 1, noutgeom);
+            eavlExecutor::AddOperation(new eavlGatherOp_1(a,
+                                                          outArr,
+                                                          revInputIndex),
+                                       "gather cell field");
+            output->fields.push_back(
+                new eavlField(1, outArr, eavlField::ASSOC_CELL_SET, 0));
+        }
+        else
+        {
+            // skip field: either wrong cell set or not nodal/zonal assoc
+        }
+    }
 
     //
     // finalize output mesh
@@ -592,14 +637,29 @@ eavlIsosurfaceFilter::Execute()
         input->fields.push_back(new eavlField(0, outindexArray, eavlField::ASSOC_CELL_SET, 0));
     }
 
-    output->fields.push_back(new eavlField(0, revPtEdgeIndex, eavlField::ASSOC_POINTS));
-    output->fields.push_back(new eavlField(0, revInputIndex, eavlField::ASSOC_CELL_SET, 0));
-    output->fields.push_back(new eavlField(0, revInputSubindex, eavlField::ASSOC_CELL_SET, 0));
-    output->fields.push_back(new eavlField(0, outcaseArray, eavlField::ASSOC_CELL_SET, 0));
-    output->fields.push_back(new eavlField(0, localouttriArray, eavlField::ASSOC_CELL_SET, 0));
-    output->fields.push_back(new eavlField(0, outtriArray, eavlField::ASSOC_CELL_SET, 0));    
-    output->fields.push_back(new eavlField(0, outconn, eavlField::ASSOC_CELL_SET, 0));
-    output->fields.push_back(new eavlField(1, alpha, eavlField::ASSOC_POINTS));
+    if (false)
+    {
+        output->fields.push_back(new eavlField(0, revPtEdgeIndex, eavlField::ASSOC_POINTS));
+        output->fields.push_back(new eavlField(0, revInputIndex, eavlField::ASSOC_CELL_SET, 0));
+        output->fields.push_back(new eavlField(0, revInputSubindex, eavlField::ASSOC_CELL_SET, 0));
+        output->fields.push_back(new eavlField(0, outcaseArray, eavlField::ASSOC_CELL_SET, 0));
+        output->fields.push_back(new eavlField(0, localouttriArray, eavlField::ASSOC_CELL_SET, 0));
+        output->fields.push_back(new eavlField(0, outtriArray, eavlField::ASSOC_CELL_SET, 0));    
+        output->fields.push_back(new eavlField(0, outconn, eavlField::ASSOC_CELL_SET, 0));
+        output->fields.push_back(new eavlField(1, alpha, eavlField::ASSOC_POINTS));
+    }
+    else
+    {
+        delete revPtEdgeIndex;
+        delete revInputIndex;
+        delete revInputSubindex;
+        delete outcaseArray;
+        delete localouttriArray;
+        delete outtriArray;
+        delete outconn;
+        delete alpha;
+    }
+
     output->fields.push_back(new eavlField(1, newx, eavlField::ASSOC_POINTS));
     output->fields.push_back(new eavlField(1, newy, eavlField::ASSOC_POINTS));
     output->fields.push_back(new eavlField(1, newz, eavlField::ASSOC_POINTS));

@@ -264,10 +264,10 @@ class eavlTopologyMapOp_1_0_1 : public eavlOperation
 {
   protected:
     eavlCellSet     *cells;
+    eavlTopology topology;
     eavlArrayWithLinearIndex inArray0;
     eavlArrayWithLinearIndex outArray0;
     F                functor;
-    eavlTopology topology;
   public:
     eavlTopologyMapOp_1_0_1(eavlCellSet *inCells,
                          eavlTopology topo,

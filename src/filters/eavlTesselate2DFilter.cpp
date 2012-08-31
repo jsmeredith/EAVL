@@ -13,7 +13,7 @@ static float Legendre(int i, float x)
       case 1:    return scale * x;
       case 2:    return scale * (3. * x*x -1) / 2.;
     }
-    return -9999999999;
+    return -999999999;
 }
 
 static float EvalLegendre(float scale, float xx, float yy, eavlArray *arr, int index)
@@ -42,7 +42,6 @@ eavlTesselate2DFilter::eavlTesselate2DFilter()
 void
 eavlTesselate2DFilter::Execute()
 {
-    int inCellSetIndex = input->GetCellSetIndex(cellsetname);
     eavlCellSet *inCells = input->GetCellSet(cellsetname);
 
     //
@@ -72,6 +71,7 @@ eavlTesselate2DFilter::Execute()
           case EAVL_QUAD:    total_nedge += 4; break;
           case EAVL_PIXEL:   total_nedge += 4; break;
           case EAVL_POLYGON: total_nedge += cell.numIndices; break;
+          default: break;
         }
     }
 
@@ -84,7 +84,7 @@ eavlTesselate2DFilter::Execute()
     // tesselate high-order cell arrays and fields to single-component nodal scalars
     //
     vector<pair<eavlArray*,eavlArray*> > legendre3x3_arrays;
-    for (int i=0; i<input->fields.size(); i++)
+    for (size_t i=0; i<input->fields.size(); i++)
     {
         if (input->fields[i]->GetAssociation() == eavlField::ASSOC_CELL_SET &&
             input->fields[i]->GetOrder() == 2 &&
@@ -104,7 +104,7 @@ eavlTesselate2DFilter::Execute()
     // create nodal arrays and fields
     //
     vector<pair<eavlArray*,eavlArray*> > nodal_arrays;
-    for (int i=0; i<input->fields.size(); i++)
+    for (size_t i=0; i<input->fields.size(); i++)
     {
         if (input->fields[i]->GetAssociation() == eavlField::ASSOC_POINTS &&
             input->fields[i]->GetOrder() == 1)
@@ -133,7 +133,7 @@ eavlTesselate2DFilter::Execute()
         coords->SetComponentFromDouble(i, 1, y);
         coords->SetComponentFromDouble(i, 2, z);
     }
-    for (int j=0; j<nodal_arrays.size(); j++)
+    for (size_t j=0; j<nodal_arrays.size(); j++)
     {
         int nc = nodal_arrays[j].first->GetNumberOfComponents();
         for (int c=0; c<nc; c++)
@@ -221,7 +221,7 @@ eavlTesselate2DFilter::Execute()
         coords->SetComponentFromDouble(new_point_index, 2, z);
 
         // do the nodal arrays
-        for (int k=0; k<nodal_arrays.size(); k++)
+        for (size_t k=0; k<nodal_arrays.size(); k++)
         {
             int nc = nodal_arrays[k].first->GetNumberOfComponents();
             for (int c=0; c<nc; c++)
@@ -240,7 +240,7 @@ eavlTesselate2DFilter::Execute()
         // note: the xx,yy values range from -1 to +1
         //       it must be a quadrilateral cell
         //       and the centroid is at 0,0
-        for (int k=0; k<legendre3x3_arrays.size(); k++)
+        for (size_t k=0; k<legendre3x3_arrays.size(); k++)
         {
             if (nedges != 4)
                 THROW(eavlException,"We've got 3x3 legendre arrays for non-quadrilateral cells?!");
@@ -271,7 +271,7 @@ eavlTesselate2DFilter::Execute()
         }
 
         // nodal arrays
-        for (int k=0; k<nodal_arrays.size(); k++)
+        for (size_t k=0; k<nodal_arrays.size(); k++)
         {
             new_point_index = centroid_point_index + 1;// note: reset 'new_point_index'
             int nc = nodal_arrays[k].first->GetNumberOfComponents();
@@ -290,7 +290,7 @@ eavlTesselate2DFilter::Execute()
         }
 
         // tesselate legendre3x3 arrays at the edges
-        for (int k=0; k<legendre3x3_arrays.size(); k++)
+        for (size_t k=0; k<legendre3x3_arrays.size(); k++)
         {
             new_point_index = centroid_point_index + 1;// note: reset 'new_point_index'
             eavlArray *inarr = legendre3x3_arrays[k].first;
@@ -310,7 +310,7 @@ eavlTesselate2DFilter::Execute()
         // tesselate legendre3x3 arrays at the nodes, too
         // note: inefficient in the general case since we may have
         // shared nodes, but it's not too bad
-        for (int k=0; k<legendre3x3_arrays.size(); k++)
+        for (size_t k=0; k<legendre3x3_arrays.size(); k++)
         {
             eavlArray *inarr = legendre3x3_arrays[k].first;
             eavlArray *outarr = legendre3x3_arrays[k].second;

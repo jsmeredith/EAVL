@@ -26,7 +26,7 @@ class eavlImporter
 
     virtual vector<string> GetDiscreteDimNames() { return vector<string>(); }
     virtual vector<int>    GetDiscreteDimLengths() { return vector<int>(); }
-    virtual void           SetDiscreteDim(int d, int i) { }
+    virtual void           SetDiscreteDim(int, int) { }
 
     virtual eavlDataSet *GetMesh(const string &name,
                                  int chunk) = 0;
@@ -37,8 +37,8 @@ class eavlImporter
 class eavlMissingImporter : public eavlImporter
 {
   public:
-    virtual vector<string> GetFieldList(const std::string &mesh) { throw; }
-    virtual int            GetNumChunks(const std::string &mesh) { throw; }
+    virtual vector<string> GetFieldList(const std::string &) { throw; }
+    virtual int            GetNumChunks(const std::string &) { throw; }
 
     virtual eavlDataSet   *GetMesh(int) { throw; }
     virtual eavlField     *GetField(int,string) { throw; }

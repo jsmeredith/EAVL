@@ -4,7 +4,7 @@
 #include "eavlCellSetAllStructured.h"
 #include "eavlException.h"
 
-
+/*
 static bool
 IsContained(string str, vector<string> &v)
 {
@@ -22,6 +22,7 @@ RemoveSlash(string str)
         str = str.substr(1, str.size());
     return str;
 }
+*/
 
 eavlChimeraImporter::eavlChimeraImporter(const string &filename)
 {
@@ -44,7 +45,7 @@ eavlChimeraImporter::~eavlChimeraImporter()
 static void
 AddUnique(const string &str, vector<string> &v)
 {
-    for (int i = 0; i < v.size(); i++)
+    for (size_t i = 0; i < v.size(); i++)
         if (str == v[i])
             return;
     v.push_back(str);
@@ -56,7 +57,7 @@ PrintStrVec(const vector<string> &v)
     cout<<"[";
     if (v.size() > 0)
     {
-        for (int i = 0; i < v.size()-1; i++)
+        for (size_t i = 0; i < v.size()-1; i++)
             cout<<v[i]<<", ";
         cout<<v[v.size()-1];
     }
@@ -116,7 +117,7 @@ eavlChimeraImporter::Import()
     //Create the high D mesh.
     coords.resize(meshDims.size());
     coordNames.resize(meshDims.size());
-    for (int i = 0; i < meshDims.size(); i++)
+    for (size_t i = 0; i < meshDims.size(); i++)
     {
         coordNames[i] = meshDims[i].first;
         coords[i].resize(meshDims[i].second);
@@ -144,13 +145,13 @@ eavlChimeraImporter::Import()
     DBFreeQuadmesh(m);
 
     //Add the higher D coordinates. (***note  i not set to 0).
-    for (; i < meshDims.size(); i++)
+    for (; i < (int)meshDims.size(); i++)
     {
         for (int j = 0; j < meshDims[i].second; j++)
             coords[i][j] = (double)j;
     }
 
-    int meshIdx = AddRectilinearMesh(data, coords, coordNames, true, "chimera_Cells");
+    AddRectilinearMesh(data, coords, coordNames, true, "chimera_Cells");
 
 
     //Add the variables.
@@ -158,10 +159,10 @@ eavlChimeraImporter::Import()
     toc = DBGetToc(file);
 
     int numCells = 1;
-    for (int i = 0; i < meshDims.size(); i++)
+    for (size_t i = 0; i < meshDims.size(); i++)
         numCells *= meshDims[i].second;
     
-    for (int i = 0; i < vars.size(); i++)
+    for (size_t i = 0; i < vars.size(); i++)
     {
         eavlFloatArray *arr = new eavlFloatArray(vars[i], 1);
         arr->SetNumberOfTuples(numCells);
@@ -170,9 +171,9 @@ eavlChimeraImporter::Import()
         char varFileName[64];
         
         int idx = 0;
-        for (int e = 0; e < energyGrp.size(); e++)
+        for (size_t e = 0; e < energyGrp.size(); e++)
         {
-            for (int f = 0; f < neutFlav.size(); f++)
+            for (size_t f = 0; f < neutFlav.size(); f++)
             {
                 sprintf(varFileName, varPat, vars[i].c_str(), neutFlav[f].c_str(), energyGrp[e].c_str());
                 DBquadvar *v = DBGetQuadvar(file, varFileName);
@@ -218,7 +219,7 @@ vector<string>
 eavlChimeraImporter::GetFieldList(const string &mesh)
 {
     vector<string> fields;
-    for (int i = 0; i < data->fields.size(); i++)
+    for (size_t i = 0; i < data->fields.size(); i++)
         fields.push_back(data->fields[i]->GetArray()->GetName());
 
     return fields;

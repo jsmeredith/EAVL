@@ -336,4 +336,5 @@ eavlBOVImporter::SizeOfDataType()
         return sizeof(int);
     if (dataT == SHORT)
         return sizeof(short);
+    return 0;
 }

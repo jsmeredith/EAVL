@@ -1,4 +1,4 @@
-// Copyright 2010-2012 UT-Battelle, LLC.  See LICENSE.txt for more information.
+// 2010-2012 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #ifndef EAVL_TOPOLOGY_GATHER_MAP_OP_1_0_1_H
 #define EAVL_TOPOLOGY_GATHER_MAP_OP_1_0_1_H
 
@@ -302,11 +302,11 @@ class eavlTopologyGatherMapOp_1_0_1 : public eavlOperation
 {
   protected:
     eavlCellSet     *cells;
+    eavlTopology topology;
     eavlArrayWithLinearIndex inArray0;
     eavlArrayWithLinearIndex outArray0;
     eavlArrayWithLinearIndex indicesArray;
     F                functor;
-    eavlTopology topology;
   public:
     eavlTopologyGatherMapOp_1_0_1(eavlCellSet *inCells,
                          eavlTopology topo,
@@ -355,8 +355,8 @@ class eavlTopologyGatherMapOp_1_0_1 : public eavlOperation
     }
     virtual void GoGPU()
     {
-        int n = outArray0.array->GetNumberOfTuples();
 #if defined __CUDACC__
+        int n = outArray0.array->GetNumberOfTuples();
         eavlCellSetExplicit *elExp = dynamic_cast<eavlCellSetExplicit*>(cells);
         eavlCellSetAllStructured *elStr = dynamic_cast<eavlCellSetAllStructured*>(cells);
         if (elExp)

@@ -21,14 +21,14 @@ eavlDataSet *ReadMeshFromFile(const string &filename, int meshindex)
         THROW(eavlException,"Didn't determine proper file reader to use");
 
     vector<string> allmeshes = importer->GetMeshList();
-    if (meshindex >= allmeshes.size())
+    if (meshindex >= (int)allmeshes.size())
         return NULL;
 
     string meshname = allmeshes[meshindex];
     // always read the first domain for now
     eavlDataSet *out = importer->GetMesh(meshname, 0);
     vector<string> allvars = importer->GetFieldList(meshname);
-    for (int i=0; i<allvars.size(); i++)
+    for (size_t i=0; i<allvars.size(); i++)
         out->fields.push_back(importer->GetField(allvars[i], meshname, 0));
 
     return out;

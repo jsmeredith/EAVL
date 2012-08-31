@@ -44,9 +44,9 @@ void eavlDispatch_io1_int(int n, eavlArray::Location loc,
     if (!idx_i)
         THROW(eavlException,"Expected integer array for indices in eavlDispatch_1_1_int.");
 
-    if ((o0_f && !o0_f) ||
-        (o0_b && !o0_b) ||
-        (o0_i && !o0_i))
+    if ((i0_f && !o0_f) ||
+        (i0_b && !o0_b) ||
+        (i0_i && !o0_i))
         THROW(eavlException,"eavlDispatch_io1_int must have same-typed input and output array.");
         
 

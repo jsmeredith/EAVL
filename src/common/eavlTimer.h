@@ -7,6 +7,7 @@
 #include <iostream>
 
 #if defined(_WIN32)
+#include <time.h>
 #include <sys/timeb.h>
 #else
 #include <sys/time.h>

@@ -48,6 +48,7 @@ class eavlArray
     {
         return name;
     }
+    virtual eavlArray *Create(const string &n, int nc = 1, int nt = 0) = 0;
     virtual const char *GetBasicType() = 0;
     virtual void   SetNumberOfTuples(int) = 0;
     virtual int    GetNumberOfTuples() const = 0;
@@ -242,6 +243,10 @@ class eavlFloatArray : public eavlArray
             cudaFree(device_values);
 #endif
     }
+    virtual eavlArray *Create(const string &n, int nc = 1, int nt = 0)
+    {
+        return new eavlFloatArray(n, nc, nt);
+    }
     virtual const char *GetBasicType() { return "float"; }
     virtual void *GetHostArray()
     {
@@ -408,6 +413,10 @@ class eavlIntArray : public eavlArray
             cudaFree(device_values);
 #endif
     }
+    virtual eavlArray *Create(const string &n, int nc = 1, int nt = 0)
+    {
+        return new eavlIntArray(n, nc, nt);
+    }
     virtual const char *GetBasicType() { return "int"; }
     virtual void *GetHostArray()
     {
@@ -572,6 +581,10 @@ class eavlByteArray : public eavlArray
         if (device_values)
             cudaFree(device_values);
 #endif
+    }
+    virtual eavlArray *Create(const string &n, int nc = 1, int nt = 0)
+    {
+        return new eavlByteArray(n, nc, nt);
     }
     virtual const char *GetBasicType() { return "byte"; }
     virtual void *GetHostArray()

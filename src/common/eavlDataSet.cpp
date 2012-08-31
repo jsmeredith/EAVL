@@ -33,7 +33,7 @@ AddRectilinearMesh(eavlDataSet *data,
     int ctr = 0;
     eavlCoordinatesCartesian::CartesianAxisType axes[3];
     data->npoints = 1;
-    for (int d = 0; d < coordinates.size(); d++)
+    for (unsigned int d = 0; d < coordinates.size(); d++)
     {
         int n = coordinates[d].size();
         if (n > 1)
@@ -75,7 +75,7 @@ AddRectilinearMesh(eavlDataSet *data,
 
     int ldim = 0;
     
-    for (int d = 0; d < coordinates.size(); d++)
+    for (unsigned int d = 0; d < coordinates.size(); d++)
     {
         eavlFloatArray *c = new eavlFloatArray(coordinateNames[d], 1);
         
@@ -158,7 +158,7 @@ AddCurvilinearMesh(eavlDataSet *data,
     data->npoints = 1;
     eavlCoordinatesCartesian::CartesianAxisType axes[3];
     int ctr = 0;
-    for (int d = 0; d < coordinates.size(); d++)
+    for (unsigned int d = 0; d < coordinates.size(); d++)
     {
         data->npoints *= dims[d];
         axes[ctr++] = (d==0 ? eavlCoordinatesCartesian::X :
@@ -201,7 +201,7 @@ AddCurvilinearMesh(eavlDataSet *data,
 
     for (int d = 0; d < dimension; d++)
     {
-        for (int i=0; i<coordinates[d].size(); i++)
+        for (unsigned int i=0; i<coordinates[d].size(); i++)
             c->SetComponentFromDouble(i,d, coordinates[d][i]);
     }        
      
@@ -303,7 +303,7 @@ AddCurvilinearMesh_SepCoords(eavlDataSet *data,
         eavlFloatArray *c = new eavlFloatArray(coordinateNames[d], 1);
         c->SetNumberOfTuples(coordinates[d].size());
 
-        for (int i=0; i<coordinates[d].size(); i++)
+        for (unsigned int i=0; i<coordinates[d].size(); i++)
             c->SetComponentFromDouble(i,0, coordinates[d][i]);
      
         eavlField *cField = new eavlField(1, c, eavlField::ASSOC_POINTS);

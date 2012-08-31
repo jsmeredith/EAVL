@@ -117,7 +117,7 @@ class eavlCoordinateAxisRegular : public eavlCoordinateAxis
     virtual double GetValue(int pointIndex,
                             vector<int> &indexDivs,
                             vector<int> &indexMods,
-                            vector<eavlField*>&fd)
+                            vector<eavlField*>&)
     {
         int div = indexDivs[logicaldim];
         int mod = indexMods[logicaldim];
@@ -174,7 +174,7 @@ class eavlCoordinates
     virtual double GetRawPoint(int i, int c,
                                vector<eavlField*>&fd)
     {
-        if (c >= axes.size())
+        if (c >= (int)axes.size())
             THROW(eavlException,"asked for a component we didn't have in our coordinates");
         return axes[c]->GetValue(i,
                                  indexDivs,
@@ -254,7 +254,7 @@ class eavlCoordinatesCartesian : public eavlCoordinates
         axisMap[int(third)]  = 2;
     }
     virtual double GetCartesianPoint(int i, int c,
-                                     eavlLogicalStructure *log,
+                                     eavlLogicalStructure *,
                                      vector<eavlField*>&fd)
     {
         int axisIndex = axisMap[c];

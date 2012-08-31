@@ -55,6 +55,7 @@ ReadValues(int dataType, string nm, void **vals, int nvals, int nels)
 }
 #endif
 
+/*
 static bool
 IsContained(string str, vector<string> &v)
 {
@@ -64,6 +65,7 @@ IsContained(string str, vector<string> &v)
     
     return false;
 }
+*/
 
 static string
 RemoveSlash(string str)
@@ -72,6 +74,13 @@ RemoveSlash(string str)
         str = str.substr(1, str.size());
     return str;
 }
+
+static void MapZoneShape(int n, int *mapindices, int *inputnodes, int *outputnodes)
+{
+    for (int i=0; i<n; i++)
+        outputnodes[i] = inputnodes[mapindices[i]];
+}
+
 
 eavlSiloImporter::eavlSiloImporter(const string &filename)
 {
@@ -267,7 +276,7 @@ eavlSiloImporter::ReadFile(DBfile *file, string dir)
     for (int i = 0; i < toc->ndir; i++)
         dirs.push_back(toc->dir_names[i]);
     
-    for (int i = 0; i < dirs.size(); i++)
+    for (size_t i = 0; i < dirs.size(); i++)
     {
         DBSetDir(file, dirs[i].c_str());
         char currDir[128];
@@ -316,9 +325,10 @@ eavlSiloImporter::GetQuadMesh(string nm)
     for (int i = 0; i < m->ndims; i++)
     {
         coordNames.push_back(m->labels[i]);
-        int n = (rectilinear ? m->dims[i] : m->nnodes);
-        if (n > 1)
-            nzones *= (n-1);
+        int dimsize = m->dims[i];
+        if (dimsize > 1)
+            nzones *= (dimsize-1);
+        int n = (rectilinear ? dimsize : m->nnodes);
         coords[i].resize(n);
         if (m->datatype == DB_DOUBLE)
         {
@@ -334,18 +344,17 @@ eavlSiloImporter::GetQuadMesh(string nm)
     }
 
     eavlDataSet *data = new eavlDataSet;
-    int meshIdx;
     if (rectilinear)
     {
-        meshIdx = AddRectilinearMesh(data, coords,
-                                     coordNames, true,
-                                     m->name+string("_Cells"));
+        AddRectilinearMesh(data, coords,
+                           coordNames, true,
+                           m->name+string("_Cells"));
     }
     else
     {
-        meshIdx = AddCurvilinearMesh(data, m->dims, coords,
-                                     coordNames, true,
-                                     m->name+string("_Cells"));
+        AddCurvilinearMesh(data, m->dims, coords,
+                           coordNames, true,
+                           m->name+string("_Cells"));
         /*
         // For various reasons, we might want to use separated coords instead.
         meshIdx = AddCurvilinearMesh_SepCoords(data, m->dims, coords,
@@ -424,11 +433,13 @@ eavlSiloImporter::GetUCDMesh(string nm)
     int nl_index = 0;
     eavlCellShape st;
     eavlExplicitConnectivity conn;
+    int tmp_indices[8];
     for (int i = 0; i < m->zones->nshapes; i++)
     {
         for (int j = 0; j < m->zones->shapecnt[i]; j++)
         {
             int nNodes = -1;
+            int *zone_nodes = &(m->zones->nodelist[nl_index]);
             if (m->zones->shapetype[i] == DB_ZONETYPE_TRIANGLE)
             {
                 st = EAVL_TRI;
@@ -443,16 +454,28 @@ eavlSiloImporter::GetUCDMesh(string nm)
             {
                 st = EAVL_TET;
                 nNodes = 4;
+
+                int tetIndices[] = {1,0,2,3};
+                MapZoneShape(4, tetIndices, zone_nodes, tmp_indices);
+                zone_nodes = tmp_indices;
             }
             else if (m->zones->shapetype[i] == DB_ZONETYPE_PYRAMID)
             {
                 st = EAVL_PYRAMID;
                 nNodes = 5;
+
+                int pyrIndices[] = {0,3,2,1,4};
+                MapZoneShape(5, pyrIndices, zone_nodes, tmp_indices);
+                zone_nodes = tmp_indices;
             }
             else if (m->zones->shapetype[i] == DB_ZONETYPE_PRISM)
             {
                 st = EAVL_WEDGE;
                 nNodes = 6;
+
+                int wedgeIndices[] = {2,1,5,3,0,4};
+                MapZoneShape(6, wedgeIndices, zone_nodes, tmp_indices);
+                zone_nodes = tmp_indices;
             }
             else if (m->zones->shapetype[i] == DB_ZONETYPE_HEX)
             {
@@ -462,7 +485,7 @@ eavlSiloImporter::GetUCDMesh(string nm)
             else
                 THROW(eavlException,"Unsupported silo zone type!");
             
-            conn.AddElement(st, nNodes, &(m->zones->nodelist[nl_index]));
+            conn.AddElement(st, nNodes, zone_nodes);
             nl_index += nNodes;
         }
     }
@@ -546,15 +569,15 @@ eavlSiloImporter::GetMesh(const string &meshname, int chunk)
     if (multiMeshes.count(meshname) > 0)
         return GetMultiMesh(meshname, chunk);
 
-    for (int i=0; i<quadMeshes.size(); i++)
+    for (size_t i=0; i<quadMeshes.size(); i++)
         if (quadMeshes[i] == meshname)
             return GetQuadMesh(meshname);
 
-    for (int i=0; i<ucdMeshes.size(); i++)
+    for (size_t i=0; i<ucdMeshes.size(); i++)
         if (ucdMeshes[i] == meshname)
             return GetUCDMesh(meshname);
 
-    for (int i=0; i<ptMeshes.size(); i++)
+    for (size_t i=0; i<ptMeshes.size(); i++)
         if (ptMeshes[i] == meshname)
             return GetPtMesh(meshname);
 
@@ -637,19 +660,19 @@ eavlSiloImporter::GetMeshList()
         meshes.push_back(it->first);
     }
 
-    for (int i = 0; i < quadMeshes.size(); i++)
+    for (size_t i = 0; i < quadMeshes.size(); i++)
     {
         if (meshesToHide.count(quadMeshes[i]) <= 0)
             meshes.push_back(quadMeshes[i]);
     }
 
-    for (int i = 0; i < ucdMeshes.size(); i++)
+    for (size_t i = 0; i < ucdMeshes.size(); i++)
     {
         if (meshesToHide.count(ucdMeshes[i]) <= 0)
             meshes.push_back(ucdMeshes[i]);
     }
 
-    for (int i = 0; i < ptMeshes.size(); i++)
+    for (size_t i = 0; i < ptMeshes.size(); i++)
     {
         if (meshesToHide.count(ptMeshes[i]) <= 0)
             meshes.push_back(ptMeshes[i]);
@@ -684,7 +707,7 @@ eavlSiloImporter::GetFieldList(const string &meshname)
         }
     }
 
-    for (int i = 0; i < quadVars.size(); i++)
+    for (size_t i = 0; i < quadVars.size(); i++)
     {
         if (meshForVar[quadVars[i]] == meshname)
         {
@@ -693,7 +716,7 @@ eavlSiloImporter::GetFieldList(const string &meshname)
         }
     }
 
-    for (int i = 0; i < ucdVars.size(); i++)
+    for (size_t i = 0; i < ucdVars.size(); i++)
     {
         if (meshForVar[ucdVars[i]] == meshname)
         {
@@ -702,7 +725,7 @@ eavlSiloImporter::GetFieldList(const string &meshname)
         }
     }
 
-    for (int i = 0; i < ptVars.size(); i++)
+    for (size_t i = 0; i < ptVars.size(); i++)
     {
         if (meshForVar[ptVars[i]] == meshname)
         {
@@ -725,7 +748,7 @@ eavlSiloImporter::Print()
         for (map<string, vector<string> >::iterator it = multiMeshes.begin(); it != multiMeshes.end(); it++)
         {
             cout<<"  "<<it->first<<" [";
-            for (int i = 0; i < it->second.size(); i++)
+            for (size_t i = 0; i < it->second.size(); i++)
                 cout<<it->second[i]<<" ";
             cout<<"]"<<endl;
         }
@@ -734,13 +757,13 @@ eavlSiloImporter::Print()
     if (!quadMeshes.empty())
     {
         cout<<"QuadMeshes -----"<<endl;
-        for (int i = 0; i < quadMeshes.size(); i++)
+        for (size_t i = 0; i < quadMeshes.size(); i++)
             cout<<" "<<quadMeshes[i]<<endl;
     }
     if (!ucdMeshes.empty())
     {
         cout<<"UCDMeshes -----"<<endl;
-        for (int i = 0; i < ucdMeshes.size(); i++)
+        for (size_t i = 0; i < ucdMeshes.size(); i++)
             cout<<" "<<ucdMeshes[i]<<endl;
     }
 
@@ -750,7 +773,7 @@ eavlSiloImporter::Print()
         for (map<string, vector<string> >::iterator it = multiVars.begin(); it != multiVars.end(); it++)
         {
             cout<<"  "<<it->first<<" [";
-            for (int i = 0; i < it->second.size(); i++)
+            for (size_t i = 0; i < it->second.size(); i++)
                 cout<<it->second[i]<<" ";
             cout<<"]"<<endl;
         }
@@ -759,13 +782,13 @@ eavlSiloImporter::Print()
     if (!quadVars.empty())
     {
         cout<<"QuadVars -----"<<endl;
-        for (int i = 0; i < quadVars.size(); i++)
+        for (size_t i = 0; i < quadVars.size(); i++)
             cout<<" "<<quadVars[i]<<endl;
     }
     if (!ucdVars.empty())
     {
         cout<<"UCDVars -----"<<endl;
-        for (int i = 0; i < ucdVars.size(); i++)
+        for (size_t i = 0; i < ucdVars.size(); i++)
             cout<<" "<<ucdVars[i]<<endl;
     }
 }
