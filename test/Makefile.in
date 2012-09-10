@@ -11,7 +11,7 @@
 # *****************************************************************************
 @VARIABLES@
 
-TESTS = testimport testiso testnormal
+TESTS = testimport testiso testnormal testmath
 OBJ = $(TESTS:=.o)
 LIBDEP=$(TOPDIR)/lib/libeavl.a
 
@@ -35,6 +35,9 @@ testiso: $(LIBDEP) testiso.o
 	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
 
 testnormal: $(LIBDEP) testnormal.o
+	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
+
+testmath: $(LIBDEP) testmath.o
 	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
 
 #LIBS=-lm -L$(TOPDIR)/lib -leavl

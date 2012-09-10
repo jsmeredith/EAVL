@@ -1,6 +1,6 @@
 // Copyright 2010-2012 UT-Battelle, LLC.  See LICENSE.txt for more information.
-#ifndef EAVL_2D_3D_ELEVATE_H
-#define EAVL_2D_3D_ELEVATE_H
+#ifndef EAVL_ELEVATE_MUTATOR_H
+#define EAVL_ELEVATE_MUTATOR_H
 
 #include "STL.h"
 #include "eavlDataSet.h"

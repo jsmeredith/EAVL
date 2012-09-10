@@ -13,60 +13,56 @@
 
 ARCHIVE=../lib/libeavl.a
 
-SRC=\
- common/eavlArray.cpp \
- common/eavlAtomicProperties.cpp \
- common/eavlCUDA.cpp \
- common/eavlCellComponents.cpp \
- common/eavlCellSetExplicit.cpp \
- common/eavlDataSet.cpp \
- common/eavlExecutor.cpp \
- common/eavlNewIsoTables.cpp \
- common/eavlOperation.cpp \
- common/eavlTimer.cpp \
- exporters/eavlVTKExporter.cpp \
- exporters/eavlPNMExporter.cpp \
- filters/eavl3X3AverageMutator.cpp \
- filters/eavlElevateMutator.cpp \
- filters/eavlExternalFaceMutator.cpp \
- filters/eavlIsosurfaceFilter.cpp \
- filters/eavlSurfaceNormalMutator.cpp \
- filters/eavlTesselate2DFilter.cpp \
- filters/eavlThresholdMutator.cpp \
- importers/eavlBOVImporter.cpp \
- importers/eavlImporterFactory.cpp \
- importers/eavlMADNESSImporter.cpp \
- importers/eavlPDBImporter.cpp \
- importers/eavlVTKImporter.cpp \
- math/eavlMatrix4x4.cpp \
- math/eavlPoint3.cpp \
- math/eavlVector3.cpp \
- rendering/eavlColor.cpp
+OBJ=\
+ common/eavlArray.o \
+ common/eavlAtomicProperties.o \
+ common/eavlCUDA.o \
+ common/eavlCellComponents.o \
+ common/eavlCellSetExplicit.o \
+ common/eavlDataSet.o \
+ common/eavlExecutor.o \
+ common/eavlNewIsoTables.o \
+ common/eavlOperation.o \
+ common/eavlTimer.o \
+ exporters/eavlVTKExporter.o \
+ exporters/eavlPNMExporter.o \
+ filters/eavl3X3AverageMutator.o \
+ filters/eavlBinaryMathMutator.o \
+ filters/eavlElevateMutator.o \
+ filters/eavlExternalFaceMutator.o \
+ filters/eavlIsosurfaceFilter.o \
+ filters/eavlSurfaceNormalMutator.o \
+ filters/eavlTesselate2DFilter.o \
+ filters/eavlThresholdMutator.o \
+ importers/eavlBOVImporter.o \
+ importers/eavlImporterFactory.o \
+ importers/eavlMADNESSImporter.o \
+ importers/eavlPDBImporter.o \
+ importers/eavlVTKImporter.o \
+ math/eavlMatrix4x4.o \
+ math/eavlPoint3.o \
+ math/eavlVector3.o \
+ rendering/eavlColor.o
 
 ifneq (@NETCDF@, no)
- SRC+=importers/eavlNetCDFImporter.cpp
- SRC+=importers/eavlNetCDFDecomposingImporter.cpp
+ OBJ+=importers/eavlNetCDFImporter.o
+ OBJ+=importers/eavlNetCDFDecomposingImporter.o
 endif
 
 ifneq (@SILO@, no)
- SRC+=importers/eavlSiloImporter.cpp
- SRC+=importers/eavlChimeraImporter.cpp
+ OBJ+=importers/eavlSiloImporter.o
+ OBJ+=importers/eavlChimeraImporter.o
 endif
 
 ifneq (@ADIOS@, no)
- SRC+=importers/ADIOSFileObject.cpp
- SRC+=importers/eavlADIOSImporter.cpp
- SRC+=importers/eavlPixieImporter.cpp
-endif
-
-ifneq (@CUDA@, no)
- CUDASRC=
+ OBJ+=importers/ADIOSFileObject.o
+ OBJ+=importers/eavlADIOSImporter.o
+ OBJ+=importers/eavlPixieImporter.o
 endif
 
 CPPFLAGS+=-I../config -Icommon/ -Iimporters/ -Imath/ -Irendering/ -Iexecutor/ -Ifunctors/ -Ioperations/ -Ifilters/
 CPPFLAGS+=$(BOOST_CPPFLAGS) $(NETCDF_CPPFLAGS) $(SILO_CPPFLAGS) $(CUDA_CPPFLAGS) $(ADIOS_CPPFLAGS)
 
-OBJ=$(SRC:.cpp=.o) $(CUDASRC:.cu=.o)
 LIBS=-lm
 
 LDFLAGS+=$(CUDA_LDFLAGS)

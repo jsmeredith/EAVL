@@ -107,9 +107,23 @@ struct eavlAddFunctor
 
 
 template<class T>
+struct eavlSubFunctor
+{
+    EAVL_FUNCTOR T operator()(T a, T b) { return a - b; }
+    T identity() { return 0; }
+};
+
+template<class T>
 struct eavlMulFunctor
 {
     EAVL_FUNCTOR T operator()(T a, T b) { return a * b; }
+    T identity() { return 1; }
+};
+
+template<class T>
+struct eavlDivFunctor
+{
+    EAVL_FUNCTOR T operator()(T a, T b) { return a / b; }
     T identity() { return 1; }
 };
 
