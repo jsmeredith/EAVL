@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 
         if (argc == 5)
         {
-            cerr << "\n\n-- done with surface normal, writing to file --\n";	
+            cerr << "\n\n-- done with operations, writing to file --\n";	
             WriteToVTKFile(data, argv[4]);
         }
         else

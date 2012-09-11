@@ -69,13 +69,7 @@ eavlBinaryMathMutator::Execute()
     }
     eavlExecutor::Go();
 
-    // copy association, order from first field
-    ///\todo: bug: the last parameter needs to be LogicalDim, not CellSet,
-    /// if the association was a logical dimension
-    eavlField *f = new eavlField(field1->GetOrder(),
-                                 result,
-                                 field1->GetAssociation(),
-                                 field1->GetAssocCellSet());
-
-    dataset->fields.push_back(f);
+    // copy association, order, etc. from first field
+    eavlField *newfield = new eavlField(field1, result);
+    dataset->fields.push_back(newfield);
 }
