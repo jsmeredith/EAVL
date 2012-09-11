@@ -71,5 +71,5 @@ eavlBinaryMathMutator::Execute()
 
     // copy association, order, etc. from first field
     eavlField *newfield = new eavlField(field1, result);
-    dataset->fields.push_back(newfield);
+    dataset->AddField(newfield);
 }

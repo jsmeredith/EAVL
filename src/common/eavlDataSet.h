@@ -76,7 +76,7 @@ class eavlDataSet
         npoints = 0;
     }
 
-    virtual double GetPoint(int i, int c, int whichCoordSystem=0)
+    double GetPoint(int i, int c, int whichCoordSystem=0)
     {
         assert(whichCoordSystem >= 0 && whichCoordSystem <= (int)coordinateSystems.size());
         /// \todo: this assumes you have at least one coordinate system
@@ -86,7 +86,7 @@ class eavlDataSet
             GetCartesianPoint(i,c,logicalStructure,fields);
     }
 
-    virtual long long GetMemoryUsage()
+    long long GetMemoryUsage()
     {
         long long mem = 0;
         mem += sizeof(int); //npoints;
@@ -122,7 +122,7 @@ class eavlDataSet
         return mem;
     }
 
-    virtual eavlCellSet *GetCellSet(const string &name)
+    eavlCellSet *GetCellSet(const string &name)
     {
         int index = GetCellSetIndex(name);
         if (index < 0)
@@ -133,7 +133,7 @@ class eavlDataSet
             return cellsets[index];
     }
     
-    virtual int GetCellSetIndex(const string &name)
+    int GetCellSetIndex(const string &name)
     {
         int n = cellsets.size();
         if (n <= 0)
@@ -153,7 +153,7 @@ class eavlDataSet
         return -1;
     }
     
-    virtual int GetFieldIndex(const string &name)
+    int GetFieldIndex(const string &name)
     {
         int n = fields.size();
         if (n <= 0)
@@ -166,7 +166,7 @@ class eavlDataSet
         return -1;
     }
     
-    virtual eavlField *GetField(const string &name)
+    eavlField *GetField(const string &name)
     {
         int index = GetFieldIndex(name);
         if (index < 0)
@@ -177,7 +177,7 @@ class eavlDataSet
             return fields[index];
     }
     
-    virtual eavlField *GetField(unsigned int idx)
+    eavlField *GetField(unsigned int idx)
     {
         assert(idx < fields.size());
         if (idx < fields.size())
@@ -185,8 +185,12 @@ class eavlDataSet
         THROW(eavlException,"Couldn't find field");
     }
 
+    void AddField(eavlField *f)
+    {
+        fields.push_back(f);
+    }
 
-    virtual void PrintSummary(ostream &out)
+    void PrintSummary(ostream &out)
     {
         out << "eavlDataSet:\n";
         //out << "   GetMemoryUsage() reports: "<<GetMemoryUsage()<<endl;
