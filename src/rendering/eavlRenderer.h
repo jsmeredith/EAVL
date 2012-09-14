@@ -331,7 +331,7 @@ class eavlPseudocolorRenderer : public eavlRenderer
         vmin = FLT_MAX;
         vmax = -FLT_MAX;
         nodal = false;
-        for (size_t i=0; i<ds->GetNumFields(); ++i)
+        for (int i=0; i<ds->GetNumFields(); ++i)
         {
             eavlField *f = ds->GetField(i);
             if (f->GetArray()->GetName() == fieldname)
