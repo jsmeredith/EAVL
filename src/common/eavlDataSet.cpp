@@ -109,14 +109,6 @@ AddRectilinearMesh(eavlDataSet *data,
 
     if (addCellSet)
     {
-        int nCells = 1;
-        for (int i = 0; i < dimension; i++)
-        {
-            int n_i = coordinates[i].size()-1;
-            if (n_i > 1)
-                nCells *= n_i;
-        }
-        
         eavlCellSetAllStructured *cellset =
             new eavlCellSetAllStructured(cellSetName, reg);
         data->AddCellSet(cellset);
@@ -216,14 +208,6 @@ AddCurvilinearMesh(eavlDataSet *data,
 
     if (addCellSet)
     {
-        int nCells = 1;
-        for (int i = 0; i < dimension; i++)
-        {
-            int n_i = dims[i]-1;
-            if (n_i > 1)
-                nCells *= n_i;
-        }
-        
         eavlCellSetAllStructured *cellset =
             new eavlCellSetAllStructured(cellSetName, reg);
         data->AddCellSet(cellset);
@@ -320,14 +304,6 @@ AddCurvilinearMesh_SepCoords(eavlDataSet *data,
 
     if (addCellSet)
     {
-        int nCells = 1;
-        for (int i = 0; i < dimension; i++)
-        {
-            int n_i = dims[i]-1;
-            if (n_i > 1)
-                nCells *= n_i;
-        }
-        
         eavlCellSetAllStructured *cellset =
             new eavlCellSetAllStructured(cellSetName, reg);
         data->AddCellSet(cellset);
