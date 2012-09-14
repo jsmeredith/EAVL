@@ -22,7 +22,7 @@ AddRectilinearMesh(eavlDataSet *data,
                    bool addCellSet,
                    string cellSetName)
 {
-    if (data->coordinateSystems.size() != 0)
+    if (data->GetNumCoordinateSystems() != 0)
         THROW(eavlException,"Error: multiple meshes not supported!");
     if (coordinates.size() != coordinateNames.size() || coordinates.size() == 0)
         THROW(eavlException,"Error: coordinates and coordinatesNames must be the same size, and > 0");
@@ -32,13 +32,13 @@ AddRectilinearMesh(eavlDataSet *data,
     int dims[3];
     int ctr = 0;
     eavlCoordinatesCartesian::CartesianAxisType axes[3];
-    data->npoints = 1;
+    int npoints = 1;
     for (unsigned int d = 0; d < coordinates.size(); d++)
     {
         int n = coordinates[d].size();
         if (n > 1)
         {
-            data->npoints *= n;
+            npoints *= n;
             dims[dimension] = n;
             dimension++;
         }
@@ -46,7 +46,7 @@ AddRectilinearMesh(eavlDataSet *data,
                        (d==1 ? eavlCoordinatesCartesian::Y : 
                         eavlCoordinatesCartesian::Z));
     }
-
+    data->SetNumPoints(npoints);
 
     eavlRegularStructure reg;
     if (dimension == 1)
@@ -95,7 +95,7 @@ AddRectilinearMesh(eavlDataSet *data,
         else
             cField = new eavlField(1, c, eavlField::ASSOC_WHOLEMESH);
         
-        data->fields.push_back(cField);
+        data->AddField(cField);
 
         coords->SetAxis(d, new eavlCoordinateAxisField(coordinateNames[d]));
 
@@ -103,9 +103,9 @@ AddRectilinearMesh(eavlDataSet *data,
 
     
 
-    data->coordinateSystems.push_back(coords);
-    meshIndex = data->coordinateSystems.size()-1;
-    data->logicalStructure = log;
+    data->AddCoordinateSystem(coords);
+    meshIndex = data->GetNumCoordinateSystems()-1;
+    data->SetLogicalStructure(log);
 
     if (addCellSet)
     {
@@ -119,7 +119,7 @@ AddRectilinearMesh(eavlDataSet *data,
         
         eavlCellSetAllStructured *cellset =
             new eavlCellSetAllStructured(cellSetName, reg);
-        data->cellsets.push_back(cellset);
+        data->AddCellSet(cellset);
     }
 
     return meshIndex;
@@ -147,7 +147,7 @@ AddCurvilinearMesh(eavlDataSet *data,
                    string cellSetName)
 {
     ///\todo: this doesn't properly strip dims[?]==1
-    if (data->coordinateSystems.size() != 0)
+    if (data->GetNumCoordinateSystems() != 0)
         THROW(eavlException,"Error: multiple meshes not supported!");
     if (coordinates.size() != coordinateNames.size() || coordinates.size() == 0)
         THROW(eavlException,"Error: coordinates and coordinatesNames must be the same size, and > 0");
@@ -155,16 +155,17 @@ AddCurvilinearMesh(eavlDataSet *data,
     int meshIndex = -1;
     int dimension = coordinateNames.size();
 
-    data->npoints = 1;
+    int npoints = 1;
     eavlCoordinatesCartesian::CartesianAxisType axes[3];
     int ctr = 0;
     for (unsigned int d = 0; d < coordinates.size(); d++)
     {
-        data->npoints *= dims[d];
+        npoints *= dims[d];
         axes[ctr++] = (d==0 ? eavlCoordinatesCartesian::X :
                        (d==1 ? eavlCoordinatesCartesian::Y : 
                         eavlCoordinatesCartesian::Z));
     }
+    data->SetNumPoints(npoints);
 
     eavlRegularStructure reg;
     if (dimension == 1)
@@ -197,7 +198,7 @@ AddCurvilinearMesh(eavlDataSet *data,
     }
         
     eavlFloatArray *c = new eavlFloatArray("coords", dimension);
-    c->SetNumberOfTuples(data->npoints);
+    c->SetNumberOfTuples(npoints);
 
     for (int d = 0; d < dimension; d++)
     {
@@ -206,12 +207,12 @@ AddCurvilinearMesh(eavlDataSet *data,
     }        
      
     eavlField *cField = new eavlField(1, c, eavlField::ASSOC_POINTS);
-    data->fields.push_back(cField);
+    data->AddField(cField);
 
 
-    data->coordinateSystems.push_back(coords);
-    meshIndex = data->coordinateSystems.size()-1;
-    data->logicalStructure = log;
+    data->AddCoordinateSystem(coords);
+    meshIndex = data->GetNumCoordinateSystems()-1;
+    data->SetLogicalStructure(log);
 
     if (addCellSet)
     {
@@ -225,7 +226,7 @@ AddCurvilinearMesh(eavlDataSet *data,
         
         eavlCellSetAllStructured *cellset =
             new eavlCellSetAllStructured(cellSetName, reg);
-        data->cellsets.push_back(cellset);
+        data->AddCellSet(cellset);
     }
 
     return meshIndex;
@@ -253,7 +254,7 @@ AddCurvilinearMesh_SepCoords(eavlDataSet *data,
                    string cellSetName)
 {
     ///\todo: this doesn't properly strip dims[?]==1
-    if (data->coordinateSystems.size() != 0)
+    if (data->GetNumCoordinateSystems() != 0)
         THROW(eavlException,"Error: multiple meshes not supported!");
     if (coordinates.size() != coordinateNames.size() || coordinates.size() == 0)
         THROW(eavlException,"Error: coordinates and coordinatesNames must be the same size, and > 0");
@@ -261,16 +262,17 @@ AddCurvilinearMesh_SepCoords(eavlDataSet *data,
     int meshIndex = -1;
     int dimension = coordinateNames.size();
 
-    data->npoints = 1;
+    int npoints = 1;
     eavlCoordinatesCartesian::CartesianAxisType axes[3];
     int ctr = 0;
     for (int d = 0; d < dimension; d++)
     {
-        data->npoints *= dims[d];
+        npoints *= dims[d];
         axes[ctr++] = (d==0 ? eavlCoordinatesCartesian::X :
                        (d==1 ? eavlCoordinatesCartesian::Y : 
                         eavlCoordinatesCartesian::Z));
     }
+    data->SetNumPoints(npoints);
 
     eavlRegularStructure reg;
     if (dimension == 1)
@@ -307,14 +309,14 @@ AddCurvilinearMesh_SepCoords(eavlDataSet *data,
             c->SetComponentFromDouble(i,0, coordinates[d][i]);
      
         eavlField *cField = new eavlField(1, c, eavlField::ASSOC_POINTS);
-        data->fields.push_back(cField);
+        data->AddField(cField);
 
         coords->SetAxis(d, new eavlCoordinateAxisField(coordinateNames[d]));
     }
 
-    data->coordinateSystems.push_back(coords);
-    meshIndex = data->coordinateSystems.size()-1;
-    data->logicalStructure = log;
+    data->AddCoordinateSystem(coords);
+    meshIndex = data->GetNumCoordinateSystems()-1;
+    data->SetLogicalStructure(log);
 
     if (addCellSet)
     {
@@ -328,7 +330,7 @@ AddCurvilinearMesh_SepCoords(eavlDataSet *data,
         
         eavlCellSetAllStructured *cellset =
             new eavlCellSetAllStructured(cellSetName, reg);
-        data->cellsets.push_back(cellset);
+        data->AddCellSet(cellset);
     }
 
     return meshIndex;

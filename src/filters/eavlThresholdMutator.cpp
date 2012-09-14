@@ -40,12 +40,12 @@ eavlThresholdMutator::Execute()
         }            
     }
 
-    int new_cell_index = dataset->cellsets.size();
-    dataset->cellsets.push_back(subset);
+    int new_cell_index = dataset->GetNumCellSets();
+    dataset->AddCellSet(subset);
 
-    for (size_t i=0; i<dataset->fields.size(); i++)
+    for (size_t i=0; i<dataset->GetNumFields(); i++)
     {
-        eavlField *f = dataset->fields[i];
+        eavlField *f = dataset->GetField(i);
         if (f->GetAssociation() == eavlField::ASSOC_CELL_SET &&
             f->GetAssocCellSet() == inCellSetIndex)
         {
@@ -63,7 +63,7 @@ eavlThresholdMutator::Execute()
             eavlField *newfield = new eavlField(f->GetOrder(), a,
                                                 eavlField::ASSOC_CELL_SET,
                                                 new_cell_index);
-            dataset->fields.push_back(newfield);
+            dataset->AddField(newfield);
         }
     }
 }

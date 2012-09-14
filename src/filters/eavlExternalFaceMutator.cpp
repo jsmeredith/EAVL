@@ -89,13 +89,13 @@ eavlExternalFaceMutator::Execute()
         }
     }
     outCells->SetCellNodeConnectivity(conn);
-    dataset->cellsets.push_back(outCells);
+    dataset->AddCellSet(outCells);
 
     // copy any cell fields
-    int nOldFields = dataset->fields.size();
+    int nOldFields = dataset->GetNumFields();
     for (int i=0; i < nOldFields; ++i)
     {
-        eavlField *inField = dataset->fields[i];
+        eavlField *inField = dataset->GetField(i);
         if (inField->GetAssociation() == eavlField::ASSOC_CELL_SET &&
             inField->GetAssocCellSet() == inCellSetIndex)
         {
@@ -123,8 +123,8 @@ eavlExternalFaceMutator::Execute()
             }
             eavlField *outField = new eavlField(0, outArray,
                                                 eavlField::ASSOC_CELL_SET,
-                                                dataset->cellsets.size()-1);            
-            dataset->fields.push_back(outField);
+                                                dataset->GetNumCellSets()-1);            
+            dataset->AddField(outField);
         }
     }
 }

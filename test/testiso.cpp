@@ -24,7 +24,7 @@ eavlDataSet *ReadWholeFile(const string &filename)
     eavlDataSet *out = importer->GetMesh(mesh, 0);
     vector<string> allvars = importer->GetFieldList(mesh);
     for (size_t i=0; i<allvars.size(); i++)
-        out->fields.push_back(importer->GetField(allvars[i], mesh, 0));
+        out->AddField(importer->GetField(allvars[i], mesh, 0));
 
     return out;
 }
@@ -62,13 +62,13 @@ int main(int argc, char *argv[])
         //data->PrintSummary(cout);
 
         int cellsetindex = -1;
-        for (size_t i=0; i<data->cellsets.size(); i++)
+        for (size_t i=0; i<data->GetNumCellSets(); i++)
         {
-            if (data->cellsets[i]->GetDimensionality() == 3)
+            if (data->GetCellSet(i)->GetDimensionality() == 3)
             {
                 cellsetindex = i;
                 cerr << "Found 3D topo dim cell set name '"
-                     << data->cellsets[i]->GetName()
+                     << data->GetCellSet(i)->GetName()
                      << "' index " << cellsetindex << endl;
                 break;
             }
@@ -76,13 +76,13 @@ int main(int argc, char *argv[])
         if (cellsetindex < 0)
             THROW(eavlException,"Couldn't find a 3D cell set.  Aborting.");
 
-        if (data->coordinateSystems[0]->GetDimension() != 3)
+        if (data->GetCoordinateSystem(0)->GetDimension() != 3)
             THROW(eavlException,"Not 3D coords.  Want 3D coords for now.\n");
 
         cerr << "\n\n-- isosurfacing --\n";
         eavlIsosurfaceFilter *iso = new eavlIsosurfaceFilter;
         iso->SetInput(data);
-        iso->SetCellSet(data->cellsets[cellsetindex]->GetName());
+        iso->SetCellSet(data->GetCellSet(cellsetindex)->GetName());
         iso->SetField(fieldname);
         iso->SetIsoValue(value);
         int th = eavlTimer::Start();

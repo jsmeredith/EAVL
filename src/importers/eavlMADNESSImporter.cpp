@@ -305,12 +305,12 @@ eavlMADNESSImporter::GetMesh(const string &mesh, int)
     eavlCoordinatesQuadTree *coords = new eavlCoordinatesQuadTree();
 
     eavlDataSet *data = new eavlDataSet;
-    data->npoints = log->root.GetNumCells(true) * 4;
-    data->logicalStructure = log;
-    data->coordinateSystems.push_back(coords);
+    data->SetNumPoints(log->root.GetNumCells(true) * 4);
+    data->SetLogicalStructure(log);
+    data->AddCoordinateSystem(coords);
 
     eavlCellSetAllQuadTree *el = new eavlCellSetAllQuadTree("AllQuadTreeCells",log);
-    data->cellsets.push_back(el);
+    data->AddCellSet(el);
 
     return data;
 }

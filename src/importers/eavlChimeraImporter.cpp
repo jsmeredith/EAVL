@@ -197,7 +197,7 @@ eavlChimeraImporter::Import()
             field = new eavlField(1, arr, eavlField::ASSOC_POINTS);
         else
             field = new eavlField(0, arr, eavlField::ASSOC_CELL_SET, 0);
-        data->fields.push_back(field);
+        data->AddField(field);
 
         DBFreeQuadvar(v0);
     }
@@ -219,8 +219,8 @@ vector<string>
 eavlChimeraImporter::GetFieldList(const string &mesh)
 {
     vector<string> fields;
-    for (size_t i = 0; i < data->fields.size(); i++)
-        fields.push_back(data->fields[i]->GetArray()->GetName());
+    for (size_t i = 0; i < data->GetNumFields(); i++)
+        fields.push_back(data->GetField(i)->GetArray()->GetName());
 
     return fields;
 }

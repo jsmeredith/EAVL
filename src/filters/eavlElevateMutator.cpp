@@ -32,14 +32,14 @@ eavlElevateMutator::Execute()
     /// we REALLY want is a eavlCoordinatesCartesian::Expand() that
     /// finds the one we're missing for us!
     eavlCoordinatesCartesian *old_coords =
-        dynamic_cast<eavlCoordinatesCartesian*>(dataset->coordinateSystems[0]);
+        dynamic_cast<eavlCoordinatesCartesian*>(dataset->GetCoordinateSystem(0));
     if (!old_coords)
         THROW(eavlException,"for the moment, assuming we've got cartesian axes in elevate....");
 
     eavlCoordinatesCartesian *coords;
     if (old_coords->GetDimension() == 1)
     {
-        coords = new eavlCoordinatesCartesian(dataset->logicalStructure,
+        coords = new eavlCoordinatesCartesian(dataset->GetLogicalStructure(),
                                               eavlCoordinatesCartesian::X,
                                               eavlCoordinatesCartesian::Y);
         coords->SetAxis(0, old_coords->GetAxis(0));
@@ -47,7 +47,7 @@ eavlElevateMutator::Execute()
     }
     else if (old_coords->GetDimension() == 2)
     {
-        coords = new eavlCoordinatesCartesian(dataset->logicalStructure,
+        coords = new eavlCoordinatesCartesian(dataset->GetLogicalStructure(),
                                               eavlCoordinatesCartesian::X,
                                               eavlCoordinatesCartesian::Y,
                                               eavlCoordinatesCartesian::Z);
@@ -59,6 +59,6 @@ eavlElevateMutator::Execute()
     {
         THROW(eavlException,"Unexpected number of dimensions");
     }
-    dataset->coordinateSystems[0] = coords;
+    dataset->SetCoordinateSystem(0, coords);
 }
 

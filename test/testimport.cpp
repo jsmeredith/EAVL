@@ -29,7 +29,7 @@ eavlDataSet *ReadMeshFromFile(const string &filename, int meshindex)
     eavlDataSet *out = importer->GetMesh(meshname, 0);
     vector<string> allvars = importer->GetFieldList(meshname);
     for (size_t i=0; i<allvars.size(); i++)
-        out->fields.push_back(importer->GetField(allvars[i], meshname, 0));
+        out->AddField(importer->GetField(allvars[i], meshname, 0));
 
     return out;
 }

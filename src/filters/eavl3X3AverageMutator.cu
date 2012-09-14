@@ -36,12 +36,12 @@ eavl3X3AverageMutator::Execute()
     //eavlField *inField = dataset->GetField(fieldname);
 
     // input arrays are from the coordinates
-    eavlCoordinates *cs = dataset->coordinateSystems[0];
+    eavlCoordinates *cs = dataset->GetCoordinateSystem(0);
     if (cs->GetDimension() != 2)
         THROW(eavlException,"2D coordinate system required.");
 
     eavlRegularStructure reg;
-    eavlLogicalStructureRegular *logReg = dynamic_cast<eavlLogicalStructureRegular*>(dataset->logicalStructure);
+    eavlLogicalStructureRegular *logReg = dynamic_cast<eavlLogicalStructureRegular*>(dataset->GetLogicalStructure());
     if (logReg && logReg->GetDimension() == 2)
         reg = logReg->GetRegularStructure();
     else
@@ -61,5 +61,5 @@ eavl3X3AverageMutator::Execute()
 
     eavlField *averagefield = new eavlField(0, out,
                                             eavlField::ASSOC_POINTS);
-    dataset->fields.push_back(averagefield);
+    dataset->AddField(averagefield);
 };

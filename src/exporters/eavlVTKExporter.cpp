@@ -26,23 +26,23 @@ eavlVTKExporter::ExportUnstructured(ostream &out)
 void
 eavlVTKExporter::ExportCells(ostream &out)
 {
-    if (data->cellsets.size() == 0)
+    if (data->GetNumCellSets() == 0)
         return;
 
-    int nCells = data->cellsets[cellSetIndex]->GetNumCells();
+    int nCells = data->GetCellSet(cellSetIndex)->GetNumCells();
 
     int sz = 0;
     for (int i = 0; i < nCells; i++)
     {
-        sz += data->cellsets[cellSetIndex]->GetCellNodes(i).numIndices;
+        sz += data->GetCellSet(cellSetIndex)->GetCellNodes(i).numIndices;
         sz += 1;
     }
 
     out<<"CELLS "<<nCells<<" "<<sz<<endl;
     for (int i = 0; i < nCells; i++)
     {
-        int nVerts = data->cellsets[cellSetIndex]->GetCellNodes(i).numIndices;
-        eavlCell cell = data->cellsets[cellSetIndex]->GetCellNodes(i);
+        int nVerts = data->GetCellSet(cellSetIndex)->GetCellNodes(i).numIndices;
+        eavlCell cell = data->GetCellSet(cellSetIndex)->GetCellNodes(i);
         out<<nVerts<<" ";
         for (int j = 0; j < nVerts; j++)
             out<<cell.indices[j]<<" ";
@@ -51,7 +51,7 @@ eavlVTKExporter::ExportCells(ostream &out)
     out<<"CELL_TYPES "<<nCells<<endl;
     for (int i = 0; i < nCells; i++)
     {
-        eavlCell cell = data->cellsets[cellSetIndex]->GetCellNodes(i);
+        eavlCell cell = data->GetCellSet(cellSetIndex)->GetCellNodes(i);
         out<<CellTypeToVTK(cell.type)<<endl;
     }
 }
@@ -61,51 +61,51 @@ eavlVTKExporter::ExportFields(ostream &out)
 {
     // do point data
     bool wrote_point_header = false;
-    for (unsigned int f = 0; f < data->fields.size(); f++)
+    for (unsigned int f = 0; f < data->GetNumFields(); f++)
     {
-        int ntuples = data->fields[f]->GetArray()->GetNumberOfTuples();
-        int ncomp = data->fields[f]->GetArray()->GetNumberOfComponents();
+        int ntuples = data->GetField(f)->GetArray()->GetNumberOfTuples();
+        int ncomp = data->GetField(f)->GetArray()->GetNumberOfComponents();
         
         if (ncomp > 4)
             continue;
 
-        if (data->fields[f]->GetAssociation() == eavlField::ASSOC_POINTS)
+        if (data->GetField(f)->GetAssociation() == eavlField::ASSOC_POINTS)
         {
             if (!wrote_point_header)
                 out<<"POINT_DATA "<<ntuples<<endl;
             wrote_point_header = true;
-            out<<"SCALARS "<<data->fields[f]->GetArray()->GetName()<<" float "<< ncomp<<endl;
+            out<<"SCALARS "<<data->GetField(f)->GetArray()->GetName()<<" float "<< ncomp<<endl;
             out<<"LOOKUP_TABLE default"<<endl;
             for (int i = 0; i < ntuples; i++)
             {
                 for (int j = 0; j < ncomp; j++)
-                    out<<data->fields[f]->GetArray()->GetComponentAsDouble(i,j)<<endl;
+                    out<<data->GetField(f)->GetArray()->GetComponentAsDouble(i,j)<<endl;
             }
         }
     }
 
     // do cell data
     bool wrote_cell_header = false;
-    for (unsigned int f = 0; f < data->fields.size(); f++)
+    for (unsigned int f = 0; f < data->GetNumFields(); f++)
     {
-        int ntuples = data->fields[f]->GetArray()->GetNumberOfTuples();
-        int ncomp = data->fields[f]->GetArray()->GetNumberOfComponents();
+        int ntuples = data->GetField(f)->GetArray()->GetNumberOfTuples();
+        int ncomp = data->GetField(f)->GetArray()->GetNumberOfComponents();
         
         if (ncomp > 4)
             continue;
 
-        if (data->fields[f]->GetAssociation() == eavlField::ASSOC_CELL_SET &&
-            data->fields[f]->GetAssocCellSet() == cellSetIndex)
+        if (data->GetField(f)->GetAssociation() == eavlField::ASSOC_CELL_SET &&
+            data->GetField(f)->GetAssocCellSet() == cellSetIndex)
         {
             if (!wrote_cell_header)
                 out<<"CELL_DATA "<<ntuples<<endl;
             wrote_cell_header = true;
-            out<<"SCALARS "<<data->fields[f]->GetArray()->GetName()<<" float "<< ncomp<<endl;
+            out<<"SCALARS "<<data->GetField(f)->GetArray()->GetName()<<" float "<< ncomp<<endl;
             out<<"LOOKUP_TABLE default"<<endl;
             for (int i = 0; i < ntuples; i++)
             {
                 for (int j = 0; j < ncomp; j++)
-                    out<<data->fields[f]->GetArray()->GetComponentAsDouble(i,j)<<endl;
+                    out<<data->GetField(f)->GetArray()->GetComponentAsDouble(i,j)<<endl;
             }
         }
     }
@@ -115,10 +115,10 @@ eavlVTKExporter::ExportFields(ostream &out)
 void
 eavlVTKExporter::ExportPoints(ostream &out)
 {
-    out<<"POINTS "<<data->npoints<<" float"<<endl;
+    out<<"POINTS "<<data->GetNumPoints()<<" float"<<endl;
 
-    int dim = data->coordinateSystems[0]->GetDimension();
-    int npts = data->npoints;
+    int dim = data->GetCoordinateSystem(0)->GetDimension();
+    int npts = data->GetNumPoints();
     for (int i = 0; i < npts; i++)
     {
         out<<(float)data->GetPoint(i, 0)<<" ";

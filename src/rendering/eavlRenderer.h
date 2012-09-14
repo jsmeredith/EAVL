@@ -269,8 +269,8 @@ class eavlRenderer
         : dataset(ds)
     {
         // extract the points
-        npts = dataset->npoints;
-        int dim = dataset->coordinateSystems[0]->GetDimension();
+        npts = dataset->GetNumPoints();
+        int dim = dataset->GetCoordinateSystem(0)->GetDimension();
     
         //CHIMERA HACK
         if (dim > 3)
@@ -331,9 +331,9 @@ class eavlPseudocolorRenderer : public eavlRenderer
         vmin = FLT_MAX;
         vmax = -FLT_MAX;
         nodal = false;
-        for (size_t i=0; i<ds->fields.size(); ++i)
+        for (size_t i=0; i<ds->GetNumFields(); ++i)
         {
-            eavlField *f = ds->fields[i];
+            eavlField *f = ds->GetField(i);
             if (f->GetArray()->GetName() == fieldname)
             {
                 nodal |= (f->GetAssociation() == eavlField::ASSOC_POINTS);
@@ -369,7 +369,7 @@ class eavlPseudocolorRenderer : public eavlRenderer
         glPointSize(2);
 
         eavlRenderPoints<true>(npts, pts,
-                        dataset->fields[fieldindices[0]], vmin,vmax, &colortable);
+                        dataset->GetField(fieldindices[0]), vmin,vmax, &colortable);
     }
     virtual void RenderCells1D(eavlCellSet *cs)
     {
@@ -381,14 +381,14 @@ class eavlPseudocolorRenderer : public eavlRenderer
 
         for (unsigned int i=0; i<fieldindices.size(); ++i)
         {
-            eavlField *f = dataset->fields[fieldindices[i]];
+            eavlField *f = dataset->GetField(fieldindices[i]);
             if (nodal)
             {
                 eavlRenderCells1D<true, false>(cs, npts, pts,
                                                f, vmin, vmax, &colortable);
                 return;
             }
-            else if (dataset->cellsets[f->GetAssocCellSet()] == cs)
+            else if (dataset->GetCellSet(f->GetAssocCellSet()) == cs)
             {
                 eavlRenderCells1D<false, true>(cs, npts, pts,
                                                f, vmin, vmax, &colortable);
@@ -407,7 +407,7 @@ class eavlPseudocolorRenderer : public eavlRenderer
         glEnable(GL_DEPTH_TEST);
         for (unsigned int i=0; i<fieldindices.size(); ++i)
         {
-            eavlField *f = dataset->fields[fieldindices[i]];
+            eavlField *f = dataset->GetField(fieldindices[i]);
             if (nodal)
             {
                 if (normals)
@@ -418,7 +418,7 @@ class eavlPseudocolorRenderer : public eavlRenderer
                                           f, vmin, vmax, &colortable, NULL);
                 return;
             }
-            else if (dataset->cellsets[f->GetAssocCellSet()] == cs)
+            else if (dataset->GetCellSet(f->GetAssocCellSet()) == cs)
             {
                 if (normals)
                     eavlRenderCells2D<false, true, true>(cs, npts, pts,

@@ -50,10 +50,10 @@ eavlTesselate2DFilter::Execute()
     eavlFloatArray *coords = new eavlFloatArray("coords",3);
     
     eavlField *coordField = new eavlField(1, coords, eavlField::ASSOC_POINTS);
-    output->fields.push_back(coordField);
+    output->AddField(coordField);
 
     eavlCellSetExplicit *outCellSet = new eavlCellSetExplicit("tesselated",2);
-    output->cellsets.push_back(outCellSet);
+    output->AddCellSet(outCellSet);
 
     //
     // calculate number of edges
@@ -78,25 +78,25 @@ eavlTesselate2DFilter::Execute()
     //
     // calculate total number of points
     //
-    output->npoints = input->npoints + in_ncells + total_nedge;
+    output->SetNumPoints(input->GetNumPoints() + in_ncells + total_nedge);
 
     //
     // tesselate high-order cell arrays and fields to single-component nodal scalars
     //
     vector<pair<eavlArray*,eavlArray*> > legendre3x3_arrays;
-    for (size_t i=0; i<input->fields.size(); i++)
+    for (size_t i=0; i<input->GetNumFields(); i++)
     {
-        if (input->fields[i]->GetAssociation() == eavlField::ASSOC_CELL_SET &&
-            input->fields[i]->GetOrder() == 2 &&
-            input->fields[i]->GetArray()->GetNumberOfComponents() == 9)
+        if (input->GetField(i)->GetAssociation() == eavlField::ASSOC_CELL_SET &&
+            input->GetField(i)->GetOrder() == 2 &&
+            input->GetField(i)->GetArray()->GetNumberOfComponents() == 9)
         {
-            eavlFloatArray *arr = new eavlFloatArray(input->fields[i]->GetArray()->GetName(),
+            eavlFloatArray *arr = new eavlFloatArray(input->GetField(i)->GetArray()->GetName(),
                                                        1); // single-component, now
-            arr->SetNumberOfTuples(output->npoints);
-            legendre3x3_arrays.push_back(pair<eavlArray*,eavlArray*>(input->fields[i]->GetArray(), arr));
+            arr->SetNumberOfTuples(output->GetNumPoints());
+            legendre3x3_arrays.push_back(pair<eavlArray*,eavlArray*>(input->GetField(i)->GetArray(), arr));
 
             eavlField *f = new eavlField(1, arr, eavlField::ASSOC_POINTS);
-            output->fields.push_back(f);
+            output->AddField(f);
         }
     }
 
@@ -104,27 +104,27 @@ eavlTesselate2DFilter::Execute()
     // create nodal arrays and fields
     //
     vector<pair<eavlArray*,eavlArray*> > nodal_arrays;
-    for (size_t i=0; i<input->fields.size(); i++)
+    for (size_t i=0; i<input->GetNumFields(); i++)
     {
-        if (input->fields[i]->GetAssociation() == eavlField::ASSOC_POINTS &&
-            input->fields[i]->GetOrder() == 1)
+        if (input->GetField(i)->GetAssociation() == eavlField::ASSOC_POINTS &&
+            input->GetField(i)->GetOrder() == 1)
         {
-            eavlFloatArray *arr = new eavlFloatArray(input->fields[i]->GetArray()->GetName(),
-                                                       input->fields[i]->GetArray()->GetNumberOfComponents());
-            arr->SetNumberOfTuples(output->npoints);
-            nodal_arrays.push_back(pair<eavlArray*,eavlArray*>(input->fields[i]->GetArray(), arr));
+            eavlFloatArray *arr = new eavlFloatArray(input->GetField(i)->GetArray()->GetName(),
+                                                       input->GetField(i)->GetArray()->GetNumberOfComponents());
+            arr->SetNumberOfTuples(output->GetNumPoints());
+            nodal_arrays.push_back(pair<eavlArray*,eavlArray*>(input->GetField(i)->GetArray(), arr));
 
-            eavlField *f = new eavlField(input->fields[i]->GetOrder(), arr,
+            eavlField *f = new eavlField(input->GetField(i)->GetOrder(), arr,
                                          eavlField::ASSOC_POINTS);
-            output->fields.push_back(f);
+            output->AddField(f);
         }
     }
 
     //
     // copy old points and point values
     //
-    coords->SetNumberOfTuples(output->npoints);
-    for (int i=0; i<input->npoints; i++)
+    coords->SetNumberOfTuples(output->GetNumPoints());
+    for (int i=0; i<input->GetNumPoints(); i++)
     {
         double x = input->GetPoint(i, 0);
         double y = input->GetPoint(i, 1);
@@ -137,7 +137,7 @@ eavlTesselate2DFilter::Execute()
     {
         int nc = nodal_arrays[j].first->GetNumberOfComponents();
         for (int c=0; c<nc; c++)
-            for (int p=0; p<input->npoints; p++)
+            for (int p=0; p<input->GetNumPoints(); p++)
                 nodal_arrays[j].second->SetComponentFromDouble(p, c,
                             nodal_arrays[j].first->GetComponentAsDouble(p,c));
     }
@@ -147,7 +147,7 @@ eavlTesselate2DFilter::Execute()
     // create new cells and new points
     //
     eavlExplicitConnectivity conn;
-    int new_point_index = input->npoints;
+    int new_point_index = input->GetNumPoints();
     for (int e=0; e<in_ncells; e++)
     {
         eavlCell cell = inCells->GetCellNodes(e);
@@ -347,5 +347,5 @@ eavlTesselate2DFilter::Execute()
     coordsys->SetAxis(0, new eavlCoordinateAxisField("coords", 0));
     coordsys->SetAxis(1, new eavlCoordinateAxisField("coords", 1));
     coordsys->SetAxis(2, new eavlCoordinateAxisField("coords", 2));
-    output->coordinateSystems.push_back(coordsys);
+    output->AddCoordinateSystem(coordsys);
 }

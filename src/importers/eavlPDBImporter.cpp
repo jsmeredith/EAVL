@@ -59,7 +59,7 @@ eavlPDBImporter::GetMesh(const string &mesh, int)
     int natoms = atoms.size();
 
     eavlDataSet *data = new eavlDataSet;
-    data->npoints = natoms;
+    data->SetNumPoints(natoms);
 
     // points
     eavlCoordinatesCartesian *coords = new eavlCoordinatesCartesian(NULL,
@@ -67,7 +67,7 @@ eavlPDBImporter::GetMesh(const string &mesh, int)
                                               eavlCoordinatesCartesian::Y,
                                               eavlCoordinatesCartesian::Z);
 
-    data->coordinateSystems.push_back(coords);
+    data->AddCoordinateSystem(coords);
     coords->SetAxis(0,new eavlCoordinateAxisField("xcoord",0));
     coords->SetAxis(1,new eavlCoordinateAxisField("ycoord",0));
     coords->SetAxis(2,new eavlCoordinateAxisField("zcoord",0));
@@ -87,7 +87,7 @@ eavlPDBImporter::GetMesh(const string &mesh, int)
     for (int d=0; d<3; d++)
     {
         eavlField *field = new eavlField(1, axisValues[d], eavlField::ASSOC_POINTS);
-        data->fields.push_back(field);
+        data->AddField(field);
     }
 
     // atom cell set:
@@ -102,7 +102,7 @@ eavlPDBImporter::GetMesh(const string &mesh, int)
         bondconn.AddElement(EAVL_BEAM, 2, ix);
     }
     bondcells->SetCellNodeConnectivity(bondconn);
-    data->cellsets.push_back(bondcells);
+    data->AddCellSet(bondcells);
 
     return data;
 }

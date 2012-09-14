@@ -53,7 +53,7 @@ eavlSurfaceNormalMutator::Execute()
     eavlCellSet *inCells = dataset->GetCellSet(cellsetname);
 
     // input arrays are from the coordinates
-    eavlCoordinates *cs = dataset->coordinateSystems[0];
+    eavlCoordinates *cs = dataset->GetCoordinateSystem(0);
     if (cs->GetDimension() != 3)
         THROW(eavlException,"eavlNodeToCellOp assumes 3D coordinates");
 
@@ -85,7 +85,7 @@ eavlSurfaceNormalMutator::Execute()
     if (field2->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
         i2.mul = 0;
     
-    eavlLogicalStructureRegular *logReg = dynamic_cast<eavlLogicalStructureRegular*>(dataset->logicalStructure);
+    eavlLogicalStructureRegular *logReg = dynamic_cast<eavlLogicalStructureRegular*>(dataset->GetLogicalStructure());
     if (logReg)
     {
         eavlRegularStructure &reg = logReg->GetRegularStructure();
@@ -114,5 +114,5 @@ eavlSurfaceNormalMutator::Execute()
     eavlField *cellnormalfield = new eavlField(0, out,
                                                eavlField::ASSOC_CELL_SET,
                                                inCellSetIndex);
-    dataset->fields.push_back(cellnormalfield);
+    dataset->AddField(cellnormalfield);
 };

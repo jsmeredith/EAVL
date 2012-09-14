@@ -656,13 +656,13 @@ eavlVTKImporter::ParseScalars(eavlVTKImporter::Location loc)
     eavlFloatArray *a = new eavlFloatArray(an,ac);
 
     int ntotalcells = 0;
-    for (unsigned int i=0; i<data->cellsets.size(); i++)
-        ntotalcells += data->cellsets[i]->GetNumCells();
+    for (unsigned int i=0; i<data->GetNumCellSets(); i++)
+        ntotalcells += data->GetCellSet(i)->GetNumCells();
 
     if (loc == LOC_CELLS)
         a->SetNumberOfTuples(ntotalcells);
     else if (loc == LOC_POINTS)
-        a->SetNumberOfTuples(data->npoints);
+        a->SetNumberOfTuples(data->GetNumPoints());
     else
         THROW(eavlException,"internal error in ParseScalars; loc must be points or cells");
 
@@ -696,13 +696,13 @@ eavlVTKImporter::ParseVectors(eavlVTKImporter::Location loc)
     eavlFloatArray *a = new eavlFloatArray(an,ac);
 
     int ntotalcells = 0;
-    for (unsigned int i=0; i<data->cellsets.size(); i++)
-        ntotalcells += data->cellsets[i]->GetNumCells();
+    for (unsigned int i=0; i<data->GetNumCellSets(); i++)
+        ntotalcells += data->GetCellSet(i)->GetNumCells();
 
     if (loc == LOC_CELLS)
         a->SetNumberOfTuples(ntotalcells);
     else if (loc == LOC_POINTS)
-        a->SetNumberOfTuples(data->npoints);
+        a->SetNumberOfTuples(data->GetNumPoints());
     else
         THROW(eavlException,"internal error in ParseVectors; loc must be points or cells");
 
@@ -736,13 +736,13 @@ eavlVTKImporter::ParseNormals(eavlVTKImporter::Location loc)
     eavlFloatArray *a = new eavlFloatArray(an,ac);
 
     int ntotalcells = 0;
-    for (unsigned int i=0; i<data->cellsets.size(); i++)
-        ntotalcells += data->cellsets[i]->GetNumCells();
+    for (unsigned int i=0; i<data->GetNumCellSets(); i++)
+        ntotalcells += data->GetCellSet(i)->GetNumCells();
 
     if (loc == LOC_CELLS)
         a->SetNumberOfTuples(ntotalcells);
     else if (loc == LOC_POINTS)
-        a->SetNumberOfTuples(data->npoints);
+        a->SetNumberOfTuples(data->GetNumPoints());
     else
         THROW(eavlException,"internal error in ParseNormals; loc must be points or cells");
 
@@ -808,11 +808,13 @@ eavlVTKImporter::ParsePoints(eavlLogicalStructureRegular *log)
     sin >> s;
     if (s != "POINTS")
         THROW(eavlException,string("Expected POINTS, got ")+s);
-    sin >> data->npoints;
+    int npoints;
+    sin >> npoints;
     sin >> s;
+    data->SetNumPoints(npoints);
     DataType dt = DataTypeFromString(s);
     vector<double> vals;
-    ReadIntoVector(data->npoints*3, dt, vals);
+    ReadIntoVector(npoints*3, dt, vals);
 
 #if 0
     eavlCoordinatesCartesian *coords = new eavlCoordinatesCartesian(log,
@@ -820,7 +822,7 @@ eavlVTKImporter::ParsePoints(eavlLogicalStructureRegular *log)
                                               eavlCoordinatesCartesian::Y,
                                               eavlCoordinatesCartesian::Z);
 
-    data->coordinateSystems.push_back(coords);
+    data->AddCoordinateSystem(coords);
     coords->SetAxis(0,new eavlCoordinateAxisField("coords",0));
     coords->SetAxis(1,new eavlCoordinateAxisField("coords",1));
     coords->SetAxis(2,new eavlCoordinateAxisField("coords",2));
@@ -832,8 +834,8 @@ eavlVTKImporter::ParsePoints(eavlLogicalStructureRegular *log)
     */
 
     eavlArray *axisValues = new eavlFloatArray("coords",3);
-    axisValues->SetNumberOfTuples(data->npoints);
-    for (int i=0; i<data->npoints; i++)
+    axisValues->SetNumberOfTuples(data->GetNumPoints());
+    for (int i=0; i<data->GetNumPoints(); i++)
     {
         axisValues->SetComponentFromDouble(i, 0, vals[i*3+0]);
         axisValues->SetComponentFromDouble(i, 1, vals[i*3+1]);
@@ -841,14 +843,14 @@ eavlVTKImporter::ParsePoints(eavlLogicalStructureRegular *log)
     }
 
     eavlField *field = new eavlField(1, axisValues, eavlField::ASSOC_POINTS);
-    data->fields.push_back(field);
+    data->AddField(field);
 #else
     eavlCoordinatesCartesian *coords = new eavlCoordinatesCartesian(log,
                                               eavlCoordinatesCartesian::X,
                                               eavlCoordinatesCartesian::Y,
                                               eavlCoordinatesCartesian::Z);
 
-    data->coordinateSystems.push_back(coords);
+    data->AddCoordinateSystem(coords);
     coords->SetAxis(0,new eavlCoordinateAxisField("xcoord",0));
     coords->SetAxis(1,new eavlCoordinateAxisField("ycoord",0));
     coords->SetAxis(2,new eavlCoordinateAxisField("zcoord",0));
@@ -861,12 +863,12 @@ eavlVTKImporter::ParsePoints(eavlLogicalStructureRegular *log)
     for (int d=0; d<3; d++)
     {
         
-        axisValues[d]->SetNumberOfTuples(data->npoints);
-        for (int i=0; i<data->npoints; i++)
+        axisValues[d]->SetNumberOfTuples(data->GetNumPoints());
+        for (int i=0; i<data->GetNumPoints(); i++)
             axisValues[d]->SetComponentFromDouble(i, 0, vals[i*3+d]);
 
         eavlField *field = new eavlField(1, axisValues[d], eavlField::ASSOC_POINTS);
-        data->fields.push_back(field);
+        data->AddField(field);
     }
 #endif
 }
@@ -906,7 +908,7 @@ eavlVTKImporter::Parse_Structured_Grid()
     eavlRegularStructure reg; 
     reg.SetNodeDimension(dim, dims);
     eavlLogicalStructureRegular *log = new eavlLogicalStructureRegular(dim,reg);
-    data->logicalStructure = log;
+    data->SetLogicalStructure(log);
 
     GetNextLine();
     ParsePoints(log);
@@ -920,7 +922,7 @@ eavlVTKImporter::Parse_Structured_Grid()
 
     eavlCellSetAllStructured *cells =
         new eavlCellSetAllStructured("StructuredGridCells", reg);
-    data->cellsets.push_back(cells);
+    data->AddCellSet(cells);
 
     GetNextLine();
 }
@@ -1065,7 +1067,7 @@ eavlVTKImporter::Parse_Polydata()
         if (newconn[e].GetNumElements() > 0)
         {
             cells[e]->SetCellNodeConnectivity(newconn[e]);
-            data->cellsets.push_back(cells[e]);
+            data->AddCellSet(cells[e]);
         }
         else
         {
@@ -1153,7 +1155,7 @@ eavlVTKImporter::Parse_Unstructured_Grid()
         if (newconn[e].GetNumElements() > 0)
         {
             cells[e]->SetCellNodeConnectivity(newconn[e]);
-            data->cellsets.push_back(cells[e]);
+            data->AddCellSet(cells[e]);
         }
         else
         {
@@ -1186,7 +1188,7 @@ eavlVTKImporter::ParseAttributes()
             loc = LOC_POINTS;
             int n;
             sin >> n;
-            if (n != data->npoints)
+            if (n != data->GetNumPoints())
                 THROW(eavlException,"Mismatch between original num pts and POINT_DATA value");
         }
         else if (loc == LOC_DATASET)

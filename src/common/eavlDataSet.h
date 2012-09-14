@@ -18,6 +18,11 @@
 ///   equivalent of a "domain", for example, where it has a discrete coordinate
 ///   value for time, and the points cover a region of X/Y/Z Cartesian space.
 ///   \todo: How do we handle things like a linear transform for the coords?
+///   \todo: discrete coords are very different from how the continuous
+///       coords are now stored; we could e.g. just make this a single
+///       eavlCoordinates, but I'm not sure what I think of that.
+///       Maybe better: these are now simply single-valued FIELDS,
+///       with an association to the whole-mesh? 
 //
 // Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern
 // Creation:    February 15, 2011
@@ -25,21 +30,15 @@
 // ****************************************************************************
 class eavlDataSet
 {
-  public:
-    ///\todo: these are very different from how the continuous coords are
-    ///       now stored; we could e.g. just make this a single
-    ///       eavlCoordinates, but I'm not sure what I think of that.
-    ///       Maybe better: these are now simply single-valued FIELDS, with
-    ///       an association to the whole-mesh? 
+  protected:
+    int                          npoints;
     vector<eavlCoordinateValue>  discreteCoordinates;
-
-    int                            npoints;
-    eavlLogicalStructure          *logicalStructure;
-    vector<eavlCoordinates*>       coordinateSystems;
-
+    vector<eavlField*>           fields;
     vector<eavlCellSet*>         cellsets;
-    vector<eavlField*>  fields;
+    vector<eavlCoordinates*>     coordinateSystems;
+    eavlLogicalStructure        *logicalStructure;
 
+  public:
     eavlDataSet()
     {
         npoints = 0;
@@ -74,6 +73,16 @@ class eavlDataSet
         }
         coordinateSystems.clear();
         npoints = 0;
+    }
+    
+    int GetNumPoints()
+    {
+        return npoints;
+    }
+
+    void SetNumPoints(int n)
+    {
+        npoints = n;
     }
 
     double GetPoint(int i, int c, int whichCoordSystem=0)
@@ -122,6 +131,41 @@ class eavlDataSet
         return mem;
     }
 
+    eavlLogicalStructure *GetLogicalStructure()
+    {
+        return logicalStructure;
+    }
+
+    void SetLogicalStructure(eavlLogicalStructure *log)
+    {
+        logicalStructure = log;
+    }
+
+    int GetNumCoordinateSystems()
+    {
+        return coordinateSystems.size();
+    }
+
+    eavlCoordinates* GetCoordinateSystem(int index)
+    {
+        return coordinateSystems[index];
+    }
+
+    void AddCoordinateSystem(eavlCoordinates *cs)
+    {
+        coordinateSystems.push_back(cs);
+    }
+
+    void SetCoordinateSystem(int index, eavlCoordinates *cs)
+    {
+        coordinateSystems[index] = cs;
+    }
+
+    virtual int GetNumCellSets()
+    {
+        return cellsets.size();
+    }
+
     eavlCellSet *GetCellSet(const string &name)
     {
         int index = GetCellSetIndex(name);
@@ -131,6 +175,11 @@ class eavlDataSet
         }
         else
             return cellsets[index];
+    }
+    
+    eavlCellSet *GetCellSet(int index)
+    {
+        return cellsets[index];
     }
     
     int GetCellSetIndex(const string &name)
@@ -153,6 +202,16 @@ class eavlDataSet
         return -1;
     }
     
+    void AddCellSet(eavlCellSet *c)
+    {
+        cellsets.push_back(c);
+    }
+
+    virtual int GetNumFields()
+    {
+        return fields.size();
+    }
+
     int GetFieldIndex(const string &name)
     {
         int n = fields.size();

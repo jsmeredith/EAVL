@@ -231,7 +231,7 @@ eavlIsosurfaceFilter::Execute()
     if (inField->GetAssociation() != eavlField::ASSOC_POINTS)
         THROW(eavlException,"Isosurface expected point-centered field");
 
-    int npts = input->npoints;
+    int npts = input->GetNumPoints();
     int ncells = inCells->GetNumCells();
 
     //
@@ -259,7 +259,7 @@ eavlIsosurfaceFilter::Execute()
     // set up output mesh
     //
     eavlCellSetExplicit *outCellSet = new eavlCellSetExplicit("iso",2);
-    output->cellsets.push_back(outCellSet);
+    output->AddCellSet(outCellSet);
     eavlTimer::Stop(th_init, "initialization");
 
     //
@@ -447,7 +447,7 @@ eavlIsosurfaceFilter::Execute()
     //
     // get the original coordinate arrays
     //
-    eavlCoordinates *cs = input->coordinateSystems[0];
+    eavlCoordinates *cs = input->GetCoordinateSystem(0);
     if (cs->GetDimension() != 3)
         THROW(eavlException,"eavlIsosurfaceFilter assumes 3D coordinates");
 
@@ -473,7 +473,7 @@ eavlIsosurfaceFilter::Execute()
     eavlArrayWithLinearIndex ali1(arr1, axis1->GetComponent());
     eavlArrayWithLinearIndex ali2(arr2, axis2->GetComponent());
     
-    eavlLogicalStructureRegular *logReg = dynamic_cast<eavlLogicalStructureRegular*>(input->logicalStructure);
+    eavlLogicalStructureRegular *logReg = dynamic_cast<eavlLogicalStructureRegular*>(input->GetLogicalStructure());
     if (logReg)
     {
         eavlRegularStructure &reg = logReg->GetRegularStructure();
@@ -531,9 +531,9 @@ eavlIsosurfaceFilter::Execute()
         "generate z coords");
 
     /// interpolate the point vars and gather the cell vars
-    for (unsigned int i=0; i<input->fields.size(); i++)
+    for (unsigned int i=0; i<input->GetNumFields(); i++)
     {
-        eavlField *f = input->fields[i];
+        eavlField *f = input->GetField(i);
         eavlArray *a = f->GetArray();
         if (f == field0 ||
             f == field1 ||
@@ -561,7 +561,7 @@ eavlIsosurfaceFilter::Execute()
                  revPtEdgeIndex,
                  LinterpFunctor()),
               "interpolate nodal field");
-            output->fields.push_back(new eavlField(1, outArr, eavlField::ASSOC_POINTS));
+            output->AddField(new eavlField(1, outArr, eavlField::ASSOC_POINTS));
         }
         else if (f->GetAssociation() == eavlField::ASSOC_CELL_SET &&
                  f->GetAssocCellSet() == inCellSetIndex)
@@ -571,7 +571,7 @@ eavlIsosurfaceFilter::Execute()
                                                           outArr,
                                                           revInputIndex),
                                        "gather cell field");
-            output->fields.push_back(
+            output->AddField(
                 new eavlField(1, outArr, eavlField::ASSOC_CELL_SET, 0));
         }
         else
@@ -583,7 +583,7 @@ eavlIsosurfaceFilter::Execute()
     //
     // finalize output mesh
     //
-    output->npoints = noutpts;
+    output->SetNumPoints(noutpts);
 
     eavlCoordinatesCartesian *coordsys =
         new eavlCoordinatesCartesian(NULL,
@@ -594,7 +594,7 @@ eavlIsosurfaceFilter::Execute()
     coordsys->SetAxis(0, new eavlCoordinateAxisField("newx", 0));
     coordsys->SetAxis(1, new eavlCoordinateAxisField("newy", 0));
     coordsys->SetAxis(2, new eavlCoordinateAxisField("newz", 0));
-    output->coordinateSystems.push_back(coordsys);
+    output->AddCoordinateSystem(coordsys);
 
     //
     // Finish it!
@@ -631,22 +631,22 @@ eavlIsosurfaceFilter::Execute()
     if (false)
     {
         // note: if we do this, we can't delete them in the destructor
-        input->fields.push_back(new eavlField(0, hiloArray, eavlField::ASSOC_POINTS));
-        input->fields.push_back(new eavlField(0, caseArray, eavlField::ASSOC_CELL_SET, 0));
-        input->fields.push_back(new eavlField(0, numoutArray, eavlField::ASSOC_CELL_SET, 0));
-        input->fields.push_back(new eavlField(0, outindexArray, eavlField::ASSOC_CELL_SET, 0));
+        input->AddField(new eavlField(0, hiloArray, eavlField::ASSOC_POINTS));
+        input->AddField(new eavlField(0, caseArray, eavlField::ASSOC_CELL_SET, 0));
+        input->AddField(new eavlField(0, numoutArray, eavlField::ASSOC_CELL_SET, 0));
+        input->AddField(new eavlField(0, outindexArray, eavlField::ASSOC_CELL_SET, 0));
     }
 
     if (false)
     {
-        output->fields.push_back(new eavlField(0, revPtEdgeIndex, eavlField::ASSOC_POINTS));
-        output->fields.push_back(new eavlField(0, revInputIndex, eavlField::ASSOC_CELL_SET, 0));
-        output->fields.push_back(new eavlField(0, revInputSubindex, eavlField::ASSOC_CELL_SET, 0));
-        output->fields.push_back(new eavlField(0, outcaseArray, eavlField::ASSOC_CELL_SET, 0));
-        output->fields.push_back(new eavlField(0, localouttriArray, eavlField::ASSOC_CELL_SET, 0));
-        output->fields.push_back(new eavlField(0, outtriArray, eavlField::ASSOC_CELL_SET, 0));    
-        output->fields.push_back(new eavlField(0, outconn, eavlField::ASSOC_CELL_SET, 0));
-        output->fields.push_back(new eavlField(1, alpha, eavlField::ASSOC_POINTS));
+        output->AddField(new eavlField(0, revPtEdgeIndex, eavlField::ASSOC_POINTS));
+        output->AddField(new eavlField(0, revInputIndex, eavlField::ASSOC_CELL_SET, 0));
+        output->AddField(new eavlField(0, revInputSubindex, eavlField::ASSOC_CELL_SET, 0));
+        output->AddField(new eavlField(0, outcaseArray, eavlField::ASSOC_CELL_SET, 0));
+        output->AddField(new eavlField(0, localouttriArray, eavlField::ASSOC_CELL_SET, 0));
+        output->AddField(new eavlField(0, outtriArray, eavlField::ASSOC_CELL_SET, 0));    
+        output->AddField(new eavlField(0, outconn, eavlField::ASSOC_CELL_SET, 0));
+        output->AddField(new eavlField(1, alpha, eavlField::ASSOC_POINTS));
     }
     else
     {
@@ -660,8 +660,8 @@ eavlIsosurfaceFilter::Execute()
         delete alpha;
     }
 
-    output->fields.push_back(new eavlField(1, newx, eavlField::ASSOC_POINTS));
-    output->fields.push_back(new eavlField(1, newy, eavlField::ASSOC_POINTS));
-    output->fields.push_back(new eavlField(1, newz, eavlField::ASSOC_POINTS));
+    output->AddField(new eavlField(1, newx, eavlField::ASSOC_POINTS));
+    output->AddField(new eavlField(1, newy, eavlField::ASSOC_POINTS));
+    output->AddField(new eavlField(1, newz, eavlField::ASSOC_POINTS));
     eavlTimer::Resume();
 }

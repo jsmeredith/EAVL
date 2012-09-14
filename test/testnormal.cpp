@@ -25,7 +25,7 @@ eavlDataSet *ReadWholeFile(const string &filename)
     eavlDataSet *out = importer->GetMesh(mesh, 0);
     vector<string> allvars = importer->GetFieldList(mesh);
     for (size_t i=0; i<allvars.size(); i++)
-        out->fields.push_back(importer->GetField(allvars[i], mesh, 0));
+        out->AddField(importer->GetField(allvars[i], mesh, 0));
 
     return out;
 }
@@ -55,13 +55,13 @@ int main(int argc, char *argv[])
         eavlDataSet *data = ReadWholeFile(argv[1]);
 
         int cellsetindex = -1;
-        for (size_t i=0; i<data->cellsets.size(); i++)
+        for (size_t i=0; i<data->GetNumCellSets(); i++)
         {
-            if (data->cellsets[i]->GetDimensionality() == 2)
+            if (data->GetCellSet(i)->GetDimensionality() == 2)
             {
                 cellsetindex = i;
                 cerr << "Found 2D topo dim cell set name '"
-                     << data->cellsets[i]->GetName()
+                     << data->GetCellSet(i)->GetName()
                      << "' index " << cellsetindex << endl;
                 break;
             }
@@ -70,9 +70,9 @@ int main(int argc, char *argv[])
         {
             cerr << "Couldn't find a 2D cell set.  Trying to add external faces to a 3D set.\n";
             int cellsetindex3d = -1;
-            for (size_t i=0; i<data->cellsets.size(); i++)
+            for (size_t i=0; i<data->GetNumCellSets(); i++)
             {
-                if (data->cellsets[i]->GetDimensionality() == 3)
+                if (data->GetCellSet(i)->GetDimensionality() == 3)
                 {
                     cellsetindex3d = i;
                     cerr << "Found 3D topo dim cell set index "<<cellsetindex3d<<endl;
@@ -84,18 +84,18 @@ int main(int argc, char *argv[])
 
             eavlExternalFaceMutator *extface = new eavlExternalFaceMutator;
             extface->SetDataSet(data);
-            extface->SetCellSet(data->cellsets[cellsetindex3d]->GetName());
+            extface->SetCellSet(data->GetCellSet(cellsetindex3d)->GetName());
             extface->Execute();
             delete extface;
-            cellsetindex = data->cellsets.size() - 1;
+            cellsetindex = data->GetNumCellSets() - 1;
         }
 
-        if (data->coordinateSystems[0]->GetDimension() != 3)
+        if (data->GetCoordinateSystem(0)->GetDimension() != 3)
             THROW(eavlException,"Not 3D coords.  Want 3D coords for now.\n");
 
         eavlSurfaceNormalMutator *surfnorm = new eavlSurfaceNormalMutator;
         surfnorm->SetDataSet(data);
-        surfnorm->SetCellSet(data->cellsets[cellsetindex]->GetName());
+        surfnorm->SetCellSet(data->GetCellSet(cellsetindex)->GetName());
         surfnorm->Execute();
 
         if (argc == 3)

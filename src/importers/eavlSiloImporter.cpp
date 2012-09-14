@@ -379,7 +379,7 @@ eavlSiloImporter::GetUCDMesh(string nm)
     if (!m)
         return NULL;
     eavlDataSet *data = new eavlDataSet;
-    data->npoints = m->nnodes;
+    data->SetNumPoints(m->nnodes);
     
     //Read the points.
     eavlCoordinatesCartesian *coords;
@@ -410,7 +410,7 @@ eavlSiloImporter::GetUCDMesh(string nm)
     {
         coords->SetAxis(i, new eavlCoordinateAxisField("coords", i));
     }
-    data->coordinateSystems.push_back(coords);
+    data->AddCoordinateSystem(coords);
     
     eavlArray *axisValues = new eavlFloatArray("coords", m->ndims);
     axisValues->SetNumberOfTuples(m->nnodes);
@@ -425,7 +425,7 @@ eavlSiloImporter::GetUCDMesh(string nm)
         }
     
     eavlField *field = new eavlField(1,axisValues,eavlField::ASSOC_POINTS);
-    data->fields.push_back(field);
+    data->AddField(field);
 
     eavlCellSetExplicit *cells = new eavlCellSetExplicit("UnstructuredGridCells",
                                                          m->zones->ndims);
@@ -490,7 +490,7 @@ eavlSiloImporter::GetUCDMesh(string nm)
         }
     }
     cells->SetCellNodeConnectivity(conn);
-    data->cellsets.push_back(cells);
+    data->AddCellSet(cells);
 
     ghosts_for_latest_mesh->SetNumberOfTuples(m->zones->nzones);
     for (int i=0; i<m->zones->nzones; i++)
@@ -510,7 +510,7 @@ eavlSiloImporter::GetPtMesh(string nm)
     if (!m)
         return NULL;
     eavlDataSet *data = new eavlDataSet;
-    data->npoints = m->nels;
+    data->SetNumPoints(m->nels);
     
     //Read the points.
     eavlCoordinatesCartesian *coords;
@@ -541,7 +541,7 @@ eavlSiloImporter::GetPtMesh(string nm)
     {
         coords->SetAxis(i, new eavlCoordinateAxisField("coords", i));
     }
-    data->coordinateSystems.push_back(coords);
+    data->AddCoordinateSystem(coords);
     
     eavlArray *axisValues = new eavlFloatArray("coords", m->ndims);
     axisValues->SetNumberOfTuples(m->nels);
@@ -556,7 +556,7 @@ eavlSiloImporter::GetPtMesh(string nm)
         }
     
     eavlField *field = new eavlField(1,axisValues,eavlField::ASSOC_POINTS);
-    data->fields.push_back(field);
+    data->AddField(field);
 
     DBFreePointmesh(m);
     return data;
