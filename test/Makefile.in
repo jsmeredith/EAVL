@@ -43,8 +43,8 @@ testmath: $(LIBDEP) testmath.o
 testdatamodel: $(LIBDEP) testdatamodel.o
 	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
 
-#LIBS=-lm -L$(TOPDIR)/lib -leavl
-LIBS=-lm -lrt -L$(TOPDIR)/lib -leavl
+LIBS=-lm -L$(TOPDIR)/lib -leavl
+#LIBS=-lm -lrt -L$(TOPDIR)/lib -leavl
 
 CPPFLAGS+= -I$(TOPDIR)/config -I$(TOPDIR)/src/math/ -I$(TOPDIR)/src/common/ -I$(TOPDIR)/src/functors/ -I$(TOPDIR)/src/filters/ -I$(TOPDIR)/src/importers -I$(TOPDIR)/src/exporters -I$(TOPDIR)/src/executor -I$(TOPDIR)/src/operations
 CPPFLAGS+=$(VTK_CPPFLAGS) $(SILO_CPPFLAGS) $(ADIOS_CPPFLAGS) $(NETCDF_CPPFLAGS) $(CUDA_CPPFLAGS)
