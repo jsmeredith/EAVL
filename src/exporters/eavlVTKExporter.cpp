@@ -122,8 +122,8 @@ eavlVTKExporter::ExportPoints(ostream &out)
     for (int i = 0; i < npts; i++)
     {
         out<<(float)data->GetPoint(i, 0)<<" ";
-        out<<(dim >=2 ? (float)data->GetPoint(i, 1) : 0.0)<<" ";
-        out<<(dim >=3 ? (float)data->GetPoint(i, 2) : 0.0)<<endl;
+        out<<(float)data->GetPoint(i, 1)<<" ";
+        out<<(float)data->GetPoint(i, 2)<<endl;
     }
 }
 
