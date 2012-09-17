@@ -41,7 +41,7 @@ def AddResult(category, exitcode, coutfn, cerrfn):
         diff = subprocess.call(["diff", "-q", basefile, currfile], stdout=devnull, stderr=devnull)
         if exitcode == 0:
             if diff:
-                logfile.write("%s: Different result; regression introduced.\n" % coutfn)
+                logfile.write("%s: Different result; regression possibly introduced.\n" % coutfn)
                 difffile.write("echo; echo \"------------ %s ------------\"\n" % coutfn)
                 difffile.write("diff %s %s\n" % (basefile, currfile))
                 rebasefile.write("cp %s %s\n" % (currfile, basefile))
@@ -85,7 +85,8 @@ def PrintResults():
             print "ERROR: Test %-14s: " % ("'%s'"%k),success,"/",run," tests passed"
     if totalsuccess < totalrun:
         print "\nTesting failure:",totalsuccess,"/",totalrun," tests passed overall"
-        print "\nSee results.txt for more details on failures.\n"
+        print "\nSee results.txt for more information on failures."
+        print "\nRun diffs.sh to see detailed differences baseline results.\n"
     else:
         print "\nSUCCESS: all",totalrun," tests passed"
     return totalrun - totalsuccess
