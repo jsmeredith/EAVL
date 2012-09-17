@@ -50,4 +50,4 @@ SOURCES += \
  src/math/eavlVector3.cpp \
  src/rendering/eavlColor.cpp
 
-HEADERS += $$files(src/common/*.h) $$files(src/exporters/*.h) $$files(src/filters/*.h) $$files(src/importers/*.h) $$files(src/math/*.h) $$files(src/rendering/*.h)
+HEADERS += $$files(src/common/*.h) $$files(src/exporters/*.h) $$files(src/filters/*.h) $$files(src/importers/*.h) $$files(src/math/*.h) $$files(src/operations/*.h) $$files(src/rendering/*.h)
