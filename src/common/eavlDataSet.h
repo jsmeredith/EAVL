@@ -74,6 +74,17 @@ class eavlDataSet
         coordinateSystems.clear();
         npoints = 0;
     }
+    eavlDataSet *CreateShallowCopy()
+    {
+        eavlDataSet *data = new eavlDataSet;
+        data->npoints             = npoints;
+        data->discreteCoordinates = discreteCoordinates;
+        data->fields              = fields;
+        data->cellsets            = cellsets;
+        data->coordinateSystems   = coordinateSystems;
+        data->logicalStructure    = logicalStructure;
+        return data;
+    }
     
     int GetNumPoints()
     {
