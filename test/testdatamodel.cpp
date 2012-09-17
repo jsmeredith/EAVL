@@ -246,7 +246,7 @@ eavlDataSet *GenerateExplicit3DPyramidGrid(int ni, int nj)
         }
     }
 
-    // add the coordinate axis arrays as linear fields on logical dims
+    // add the coordinate axis arrays as linear fields on points
     data->AddField(new eavlField(1, x, eavlField::ASSOC_POINTS));
     data->AddField(new eavlField(1, y, eavlField::ASSOC_POINTS));
     data->AddField(new eavlField(1, z, eavlField::ASSOC_POINTS));
@@ -356,6 +356,84 @@ eavlDataSet *GenerateExplicitOnLogical(int ni, int nj)
 }
 
 //
+// Create a molecule requiring two cell sets
+//
+eavlDataSet *GenerateMoleculeTwoCellSets()
+{
+    eavlDataSet *data = new eavlDataSet();
+
+    // set the number of points
+    int npts = 3;
+    data->SetNumPoints(npts);
+
+    // no logical structure
+    eavlLogicalStructure *log = NULL;
+
+    // create the 3D coordinate axes as 3-component array
+    eavlFloatArray *coordarray = new eavlFloatArray("coords", 3, npts);
+    float h0xyz[] = {-1, 0,  -.3};
+    float o1xyz[] = {-.2, 1, -.1};
+    float h2xyz[] = {+1, 0.3, .3};
+    coordarray->SetTuple(0, h0xyz);
+    coordarray->SetTuple(1, o1xyz);
+    coordarray->SetTuple(2, h2xyz);
+
+    // add the coordinate axis array as a linear fields on points
+    data->AddField(new eavlField(1, coordarray, eavlField::ASSOC_POINTS));
+
+    // set the coordinates
+    eavlCoordinates *coords = new eavlCoordinatesCartesian(log,
+                                            eavlCoordinatesCartesian::X,
+                                            eavlCoordinatesCartesian::Y,
+                                            eavlCoordinatesCartesian::Z);
+    coords->SetAxis(0, new eavlCoordinateAxisField("coords", 0));
+    coords->SetAxis(1, new eavlCoordinateAxisField("coords", 1));
+    coords->SetAxis(2, new eavlCoordinateAxisField("coords", 2));
+    data->AddCoordinateSystem(coords);
+
+    // create a topologically 0D cell set for the atoms
+    eavlExplicitConnectivity aconn;
+    eavlIntArray *speciesarray = new eavlIntArray("species", 1);
+    int index;
+    int species;
+    // add hydrogen, then oxygen, then hydrogen
+    index=0; species=1;
+    aconn.AddElement(EAVL_POINT, 1, &index);
+    speciesarray->AddValue(species);
+    index=1; species=8;
+    aconn.AddElement(EAVL_POINT, 1, &index);
+    speciesarray->AddValue(species);
+    index=2; species=1;
+    aconn.AddElement(EAVL_POINT, 1, &index);
+    speciesarray->AddValue(species);
+
+    eavlCellSetExplicit *atoms = new eavlCellSetExplicit("atoms", 0);
+    atoms->SetCellNodeConnectivity(aconn);
+    data->AddCellSet(atoms);
+    data->AddField(new eavlField(0, speciesarray, eavlField::ASSOC_CELL_SET, 0));
+
+    // create a topologically 1D cell set for the bonds
+    eavlExplicitConnectivity bconn;
+    eavlFloatArray *strengtharray = new eavlFloatArray("strength", 1);
+    int endpts[2];
+    float strength;
+    endpts[0] = 0; endpts[1] = 1;  strength = 1.0;
+    bconn.AddElement(EAVL_BEAM, 2, endpts);
+    strengtharray->AddValue(strength);
+    endpts[0] = 1; endpts[1] = 2;  strength = 1.0;
+    bconn.AddElement(EAVL_BEAM, 2, endpts);
+    strengtharray->AddValue(strength);
+
+
+    eavlCellSetExplicit *bonds = new eavlCellSetExplicit("bonds", 1);
+    bonds->SetCellNodeConnectivity(bconn);
+    data->AddCellSet(bonds);
+    data->AddField(new eavlField(0, strengtharray, eavlField::ASSOC_CELL_SET, 1));
+
+    return data;
+}
+
+//
 // Print a summary of the new data set and write to a file
 //
 void test(const char *fn, eavlDataSet *ds)
@@ -376,12 +454,22 @@ void test(const char *fn, eavlDataSet *ds)
 //
 int main(int argc, char *argv[])
 {
-    test("rectxy.vtk",       GenerateRectXY(10, 12));
-    test("rectxz.vtk",       GenerateRectXZ(10, 12));
-    test("curv2d3d.vtk",     GenerateCurv2Din3D(10, 12));
-    test("rectxyelev.vtk",   GenerateRectXY_ElevToZ(10, 12));
-    test("unstruc3d.vtk",    GenerateExplicit3DPyramidGrid(10, 12));
-    test("explicitrect.vtk", GenerateExplicitOnLogical(10, 12));
+    try
+    {
+        test("rectxy.vtk",       GenerateRectXY(10, 12));
+        test("rectxz.vtk",       GenerateRectXZ(10, 12));
+        test("curv2d3d.vtk",     GenerateCurv2Din3D(10, 12));
+        test("rectxyelev.vtk",   GenerateRectXY_ElevToZ(10, 12));
+        test("unstruc3d.vtk",    GenerateExplicit3DPyramidGrid(10, 12));
+        test("explicitrect.vtk", GenerateExplicitOnLogical(10, 12));
+        test("molecule.vtk",     GenerateMoleculeTwoCellSets());
+    }
+    catch (const eavlException &e)
+    {
+        cerr << e.GetErrorText() << endl;
+        cerr << "\nUsage: "<<argv[0]<<" <infile>\n";
+        return 1;
+    }
 
     return 0;
 }
