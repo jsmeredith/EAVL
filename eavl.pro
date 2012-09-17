@@ -16,9 +16,10 @@ QMAKE_CXXFLAGS += -x c++
 
 INCLUDEPATH += src/common src/executor src/exporters src/functors src/filters src/importers src/math src/operations src/rendering
 
-win32 {
-  INCLUDEPATH += config-windows
-}
+# we don't have the benefit of running configure
+# point to this pre-generated eavlConfig.h with
+# that assumes no dependencies / 3rd party libs
+INCLUDEPATH += config-simple
 
 SOURCES += \
  src/common/eavlArray.cpp \

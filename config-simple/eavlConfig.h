@@ -1,5 +1,4 @@
 /* config/eavlConfig.h.  Generated from eavlConfig.h.in by configure.  */
-/* config/config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
@@ -50,6 +49,13 @@
 /* Define to 1 if you have CUDA */
 /* #undef HAVE_CUDA */
 
+/* Define to 1 if you are building with support for
+   CUDA compute capabilities prior to 2.0 */
+/* #undef HAVE_OLD_GPU */
+
+/* Define to 1 if you have the HDF5 library */
+/* #undef HAVE_HDF5 */
+
 /* Define to 1 if you have the NetCDF library */
 /* #undef HAVE_NETCDF */
 
@@ -59,5 +65,14 @@
 /* Define to 1 if you have the Silo library */
 /* #undef HAVE_SILO */
 
-/* Define to "__host__ __device__" for CUDA, "inline" otherwise. */
-#define DATAPARALLEL inline
+/* Define to 1 if you have the ADIOS library */
+/* #undef HAVE_ADIOS */
+
+/* Define to 1 if you have the ZLIB library */
+/* #undef HAVE_ZLIB */
+
+/* Define to 1 if you have the SZIP library */
+/* #undef HAVE_SZIP */
+
+/* Define to 1 if you have the MPI library */
+/* #undef HAVE_MPI */
