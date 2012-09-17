@@ -32,12 +32,12 @@ eavlDataSet *ReadWholeFile(const string &filename)
 void WriteToVTKFile(eavlDataSet *data, const string &filename,
         int cellSetIndex = 0)
 {
-    ofstream *p = new ofstream(filename.c_str());
-    ostream *s = p;
+    ofstream out(filename.c_str());
+
     eavlVTKExporter exporter(data, cellSetIndex);
-    exporter.Export(*s);
-    p->close();
-    delete p;
+    exporter.Export(out);
+    out.close();
+
 }
 
 int main(int argc, char *argv[])
