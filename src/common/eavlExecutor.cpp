@@ -60,7 +60,12 @@ eavlExecutor::real_Go()
 #endif
         eavlTimer::Stop(th, opnames[i]);
     }
+
+    for (unsigned int i=0; i<plan.size(); i++)
+        delete plan[i];
+
     plan.clear();
+    opnames.clear();
 }
 
 

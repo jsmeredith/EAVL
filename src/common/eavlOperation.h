@@ -169,6 +169,7 @@ class eavlOperation
 {
     friend class eavlExecutor;
   public:
+    virtual ~eavlOperation() { }
   protected:
     virtual void GoCPU() = 0;
     virtual void GoGPU() = 0;
