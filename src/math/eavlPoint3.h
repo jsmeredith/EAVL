@@ -5,6 +5,7 @@
 #include "STL.h"
 #include <math.h>
 #include "eavlVector3.h"
+#include "eavlUtility.h"
 
 // ****************************************************************************
 // Class:  eavlPoint3
@@ -19,42 +20,39 @@
 class eavlPoint3
 {
   public:
-    float v[3];
-    float &x, &y, &z; ///<\todo: this may be dumb....
+    float x, y, z;
   public:
-    virtual const char *GetType() {return "eavlPoint3";}
-
-    eavlPoint3();
-    eavlPoint3(const float*);
-    eavlPoint3(const eavlPoint3&);
-    eavlPoint3(float,float,float);
+    EAVL_HOSTDEVICE eavlPoint3();
+    EAVL_HOSTDEVICE eavlPoint3(const float*);
+    EAVL_HOSTDEVICE eavlPoint3(const eavlPoint3&);
+    EAVL_HOSTDEVICE eavlPoint3(float,float,float);
 
     // assignment operator
-    void        operator=(const eavlPoint3&);
+    EAVL_HOSTDEVICE void        operator=(const eavlPoint3&);
 
     // point subtraction results in vector
-    eavlVector3 operator-(const eavlPoint3&) const;
+    EAVL_HOSTDEVICE eavlVector3 operator-(const eavlPoint3&) const;
 
     // addition/subtraction of a vector results in a point
-    eavlPoint3  operator-(const eavlVector3&) const;
-    eavlPoint3  operator+(const eavlVector3&) const;
-    void        operator-=(const eavlVector3&) const;
-    void        operator+=(const eavlVector3&) const;
+    EAVL_HOSTDEVICE eavlPoint3  operator-(const eavlVector3&) const;
+    EAVL_HOSTDEVICE eavlPoint3  operator+(const eavlVector3&) const;
+    EAVL_HOSTDEVICE void        operator-=(const eavlVector3&);
+    EAVL_HOSTDEVICE void        operator+=(const eavlVector3&);
 
     // dot product with vector
-    float       operator*(const eavlVector3&) const;
+    EAVL_HOSTDEVICE float       operator*(const eavlVector3&) const;
 
     // unary negation
-    eavlPoint3  operator-() const;
+    EAVL_HOSTDEVICE eavlPoint3  operator-() const;
 
     // scalar multiplication/division
-    eavlPoint3  operator*(const float&) const;
-    void        operator*=(const float&);
-    eavlPoint3  operator/(const float&) const;
-    void        operator/=(const float&);
+    EAVL_HOSTDEVICE eavlPoint3  operator*(const float&) const;
+    EAVL_HOSTDEVICE void        operator*=(const float&);
+    EAVL_HOSTDEVICE eavlPoint3  operator/(const float&) const;
+    EAVL_HOSTDEVICE void        operator/=(const float&);
 
-    const float &operator[](int i) const {return (&x)[i];}
-    float &operator[](int i) {return (&x)[i];}
+    EAVL_HOSTDEVICE const float &operator[](int i) const {return (&x)[i];}
+    EAVL_HOSTDEVICE float &operator[](int i) {return (&x)[i];}
 
   private:
     // friends
@@ -64,13 +62,13 @@ class eavlPoint3
 
 
 inline 
-eavlPoint3::eavlPoint3() : x(v[0]), y(v[1]), z(v[2])
+eavlPoint3::eavlPoint3()
 {
     x=y=z=0;
 }
 
 inline 
-eavlPoint3::eavlPoint3(const float *f) : x(v[0]), y(v[1]), z(v[2])
+eavlPoint3::eavlPoint3(const float *f)
 {
     x=f[0];
     y=f[1];
@@ -78,7 +76,7 @@ eavlPoint3::eavlPoint3(const float *f) : x(v[0]), y(v[1]), z(v[2])
 }
 
 inline 
-eavlPoint3::eavlPoint3(float x_,float y_,float z_) : x(v[0]), y(v[1]), z(v[2])
+eavlPoint3::eavlPoint3(float x_,float y_,float z_)
 {
     x=x_;
     y=y_;
@@ -86,7 +84,7 @@ eavlPoint3::eavlPoint3(float x_,float y_,float z_) : x(v[0]), y(v[1]), z(v[2])
 }
 
 inline 
-eavlPoint3::eavlPoint3(const eavlPoint3 &r) : x(v[0]), y(v[1]), z(v[2])
+eavlPoint3::eavlPoint3(const eavlPoint3 &r)
 {
     x=r.x;
     y=r.y;
@@ -122,7 +120,7 @@ eavlPoint3::operator+(const eavlVector3 &r) const
 }
 
 inline void
-eavlPoint3::operator-=(const eavlVector3 &r) const
+eavlPoint3::operator-=(const eavlVector3 &r)
 {
     x -= r.x;
     y -= r.y;
@@ -130,7 +128,7 @@ eavlPoint3::operator-=(const eavlVector3 &r) const
 }
 
 inline void
-eavlPoint3::operator+=(const eavlVector3 &r) const
+eavlPoint3::operator+=(const eavlVector3 &r)
 {
     x += r.x;
     y += r.y;

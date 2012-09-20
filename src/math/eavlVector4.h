@@ -5,6 +5,7 @@
 #include "STL.h"
 #include <math.h>
 #include "eavlVector3.h"
+#include "eavlUtility.h"
 
 // ****************************************************************************
 // Class:  eavlVector4
@@ -40,9 +41,9 @@ inline eavlVector4::eavlVector4()
 
 inline eavlVector4::eavlVector4(const eavlVector3 &r)
 {
-    v[0] = r.v[0];
-    v[1] = r.v[1];
-    v[2] = r.v[2];
+    v[0] = r.x;
+    v[1] = r.y;
+    v[2] = r.z;
     v[3] = 0;
 }
 
