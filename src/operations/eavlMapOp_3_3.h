@@ -1,6 +1,6 @@
 // Copyright 2010-2012 UT-Battelle, LLC.  See LICENSE.txt for more information.
-#ifndef EAVL_TOPOLOGY_MAP_OP_3_0_3_H
-#define EAVL_TOPOLOGY_MAP_OP_3_0_3_H
+#ifndef EAVL_MAP_OP_3_3_H
+#define EAVL_MAP_OP_3_3_H
 
 #include "eavlCellSet.h"
 #include "eavlCellSetExplicit.h"
@@ -18,7 +18,7 @@
 template <class F, class I01, class I2, class O01, class O2>
 struct cpu_Map_3_3
 {
-    static void call(int nitems,
+    static void call(int nitems, int &dummy,
                      I01 *i0, int i0div, int i0mod, int i0mul, int i0add,
                      I01 *i1, int i1div, int i1mod, int i1mul, int i1add,
                      I2  *i2, int i2div, int i2mod, int i2mul, int i2add,
@@ -31,10 +31,9 @@ struct cpu_Map_3_3
         {
             float out0, out1, out2;
 
-            functor(shapeType, npts,
-                    i0[((node / i0div) % i0mod) * i0mul + i0add],
-                    i1[((node / i1div) % i1mod) * i1mul + i1add],
-                    i2[((node / i2div) % i2mod) * i2mul + i2add],
+            functor(i0[((index / i0div) % i0mod) * i0mul + i0add],
+                    i1[((index / i1div) % i1mod) * i1mul + i1add],
+                    i2[((index / i2div) % i2mod) * i2mul + i2add],
                     out0, out1, out2);
 
             o0[index * o0mul + o0add] = out0;
@@ -48,7 +47,7 @@ struct cpu_Map_3_3
 
 template <class F, class I01, class I2, class O01, class O2>
 __global__ void
-mapKernel_3_3(int nitems,
+mapKernel_3_3(int nitems, int &dummy,
                             I01 *i0, int i0div, int i0mod, int i0mul, int i0add,
                             I01 *i1, int i1div, int i1mod, int i1mul, int i1add,
                             I2  *i2, int i2div, int i2mod, int i2mul, int i2add,
@@ -63,10 +62,9 @@ mapKernel_3_3(int nitems,
     {
         float out0, out1, out2;
 
-        functor(shapeType, npts,
-                i0[((node / i0div) % i0mod) * i0mul + i0add],
-                i1[((node / i1div) % i1mod) * i1mul + i1add],
-                i2[((node / i2div) % i2mod) * i2mul + i2add],
+        functor(i0[((index / i0div) % i0mod) * i0mul + i0add],
+                i1[((index / i1div) % i1mod) * i1mul + i1add],
+                i2[((index / i2div) % i2mod) * i2mul + i2add],
                 out0, out1, out2);
 
         o0[index * o0mul + o0add] = out0;
@@ -177,8 +175,9 @@ class eavlMapOp_3_3 : public eavlOperation
     }
     virtual void GoCPU()
     {
+        int dummy;
             eavlDispatch_3_3<cpu_Map_3_3>(outArray0.array->GetNumberOfTuples(),
-                                                            eavlArray::HOST,
+                                                            eavlArray::HOST, dummy,
                                                             inArray0.array, inArray0.div, inArray0.mod, inArray0.mul, inArray0.add,
                                                             inArray1.array, inArray1.div, inArray1.mod, inArray1.mul, inArray1.add,
                                                             inArray2.array, inArray2.div, inArray2.mod, inArray2.mul, inArray2.add,
@@ -190,7 +189,9 @@ class eavlMapOp_3_3 : public eavlOperation
     virtual void GoGPU()
     {
 #if defined __CUDACC__
+        int dummy;
             callMapKernel_3_3(outArray0.array->GetNumberOfTuples(),
+                              eavlArray::DEVICE, dummy,
                                    inArray0.array, inArray0.div, inArray0.mod, inArray0.mul, inArray0.add,
                                    inArray1.array, inArray1.div, inArray1.mod, inArray1.mul, inArray1.add,
                                    inArray2.array, inArray2.div, inArray2.mod, inArray2.mul, inArray2.add,
