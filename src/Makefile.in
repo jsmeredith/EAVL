@@ -34,6 +34,7 @@ OBJ=\
  filters/eavlSurfaceNormalMutator.o \
  filters/eavlTesselate2DFilter.o \
  filters/eavlThresholdMutator.o \
+ filters/eavlTransformMutator.o \
  importers/eavlBOVImporter.o \
  importers/eavlImporterFactory.o \
  importers/eavlMADNESSImporter.o \

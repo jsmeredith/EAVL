@@ -58,6 +58,9 @@ class eavlMatrix4x4
     void   CreatePerspectiveProjection(float,float, float, float);
     void   CreateOrthographicProjection(float, float,float, float);
     void   CreateView(const eavlPoint3&, const eavlPoint3&, const eavlVector3&);
+    void   CreateRotateX(double radians);
+    void   CreateRotateY(double radians);
+    void   CreateRotateZ(double radians);
 
     float* GetOpenGLMatrix4x4();
 

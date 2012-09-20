@@ -516,3 +516,69 @@ eavlMatrix4x4::Invert()
     *this = y;
     return;
 }
+
+void
+eavlMatrix4x4::CreateRotateX(double angleRadians)
+{
+    float *r = &m[0][0];
+    r[0]  = 1.;
+    r[1]  = 0.;
+    r[2]  = 0.;
+    r[3]  = 0.;
+    r[4]  = 0.;
+    r[5]  = cos(angleRadians);
+    r[6]  = - sin(angleRadians);
+    r[7]  = 0.;
+    r[8]  = 0.;
+    r[9]  = sin(angleRadians);
+    r[10] = cos(angleRadians);
+    r[11] = 0.;
+    r[12] = 0.;
+    r[13] = 0.;
+    r[14] = 0.;
+    r[15] = 1.;
+}
+
+void
+eavlMatrix4x4::CreateRotateY(double angleRadians)
+{
+    float *r = &m[0][0];
+    r[0]  = cos(angleRadians);
+    r[1]  = 0.;
+    r[2]  = sin(angleRadians);
+    r[3]  = 0.;
+    r[4]  = 0.;
+    r[5]  = 1.;
+    r[6]  = 0.;
+    r[7]  = 0.;
+    r[8]  = - sin(angleRadians);
+    r[9]  = 0.;
+    r[10] = cos(angleRadians);
+    r[11] = 0.;
+    r[12] = 0.;
+    r[13] = 0.;
+    r[14] = 0.;
+    r[15] = 1.;
+}
+
+void
+eavlMatrix4x4::CreateRotateZ(double angleRadians)
+{
+    float *r = &m[0][0];
+    r[0]  = cos(angleRadians);
+    r[1]  = - sin(angleRadians);
+    r[2]  = 0.;
+    r[3]  = 0.;
+    r[4]  = sin(angleRadians);
+    r[5]  = cos(angleRadians);
+    r[6]  = 0.;
+    r[7]  = 0.;
+    r[8]  = 0.;
+    r[9]  = 0.;
+    r[10]  = 1.;
+    r[11] = 0.;
+    r[12] = 0.;
+    r[13] = 0.;
+    r[14] = 0.;
+    r[15] = 1.;
+}

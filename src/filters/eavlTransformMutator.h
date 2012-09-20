@@ -24,6 +24,7 @@ class eavlTransformMutator : public eavlMutator
     eavlMatrix4x4 transform; // we could build this from rotations, scales, translates but use a matrix for now.
     bool          transformCoordinates;
     int           coordinateSystemIndex;
+
   public:
     eavlTransformMutator();
     void SetTransform(const eavlMatrix4x4 &m);
