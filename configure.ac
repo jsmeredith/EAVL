@@ -137,8 +137,8 @@ else
 fi
 AC_MSG_RESULT($DEPMODE)
 AC_SUBST(DEPMODE)
-   
- 
+
+
 ## ---------------------------------------------------------------------------
 ## MPI check.
 ## ---------------------------------------------------------------------------
@@ -154,7 +154,7 @@ MPI Options:
         if test -z "$MPI"; then MPI="no"; fi)
 
 detect_mpi_flags="no"
-if test "$MPI" = "yes"; then 
+if test "$MPI" = "yes"; then
    if test -n "$MPI_CPPFLAGS" -o -n "$MPI_LDFLAGS" -o -n "$MPI_LIBS"; then
       MPI="manually configured"
    else
@@ -386,7 +386,7 @@ CUDA Options:
   --without-cuda          disable CUDA],
         CUDA="$withval",
         if test -z "$CUDA"; then CUDA="yes"; fi)
-if test "$CUDA" = "yes"; then 
+if test "$CUDA" = "yes"; then
    # gotta search
    AC_PATH_PROG([NVCC], [nvcc], [],
                 [PATH="$PATH:/usr/local/cuda/bin:/opt/cuda/bin:/usr/local/cuda40/cuda/bin:/usr/local/cuda41/cuda/bin:/usr/local/cuda42/cuda/bin"])
@@ -423,8 +423,9 @@ if test "$CUDA" != "no"; then
    CUDA_CPPFLAGS="-I""$CUDA""/include"
    CUDA_LDFLAGS="-L""$CUDA""/lib"
    rpathize(CUDA_LDFLAGS, $CUDA/lib)
-   CUDA_LIBS="-lcuda -lcudart"
-
+   if test -z "$CUDA_LIBS"; then
+      CUDA_LIBS="-lcuda -lcudart"
+   fi
    old_cppflags=$CPPFLAGS
    old_ldflags=$LDFLAGS
    old_libs=$LIBS
@@ -470,7 +471,7 @@ GPU Support:
         OLDGPU="$enableval",
         if test -z "$OLDGPU"; then OLDGPU="no"; fi)
 
-   NVCXXFLAGS="-Xcompiler \"$""(CXXFLAGS)\""
+   NVCXXFLAGS="$NVCXXFLAGS -Xcompiler \"$""(CXXFLAGS)\""
 
    # see if we can use compute model 2.0
    AC_MSG_CHECKING(if compute model 2.0 is supported)
