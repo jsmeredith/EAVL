@@ -74,19 +74,19 @@ class eavlMatrix4x4
 #include "eavlPoint3.h"
 #include <math.h>
 
-eavlMatrix4x4::eavlMatrix4x4()
+EAVL_HOSTDEVICE eavlMatrix4x4::eavlMatrix4x4()
 {
     CreateIdentity();
 }
 
-eavlMatrix4x4::eavlMatrix4x4(const eavlMatrix4x4 &R)
+EAVL_HOSTDEVICE eavlMatrix4x4::eavlMatrix4x4(const eavlMatrix4x4 &R)
 {
     for (int r=0; r<4; r++)
         for (int c=0; c<4; c++)
             m[r][c] = R.m[r][c];
 }
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::operator=(const eavlMatrix4x4 &R)
 {
     for (int r=0; r<4; r++)
@@ -95,7 +95,7 @@ eavlMatrix4x4::operator=(const eavlMatrix4x4 &R)
 }
 
 
-eavlMatrix4x4
+EAVL_HOSTDEVICE eavlMatrix4x4
 eavlMatrix4x4::operator*(const eavlMatrix4x4 &R) const
 {
     eavlMatrix4x4 C;
@@ -108,7 +108,7 @@ eavlMatrix4x4::operator*(const eavlMatrix4x4 &R) const
     return C;
 }
 
-eavlPoint3
+EAVL_HOSTDEVICE eavlPoint3
 eavlMatrix4x4::operator*(const eavlPoint3 &r) const
 {
     float x,y,z,w;
@@ -138,27 +138,27 @@ eavlMatrix4x4::operator*(const eavlPoint3 &r) const
     return eavlPoint3(x,y,z);
 }
 
-eavlVector3
+EAVL_HOSTDEVICE eavlVector3
 eavlMatrix4x4::operator*(const eavlVector4 &r) const
 {
     float x,y,z,w;
 
-    x = m[0][0] * r.x() +
-        m[0][1] * r.y() +
-        m[0][2] * r.z() +
-        m[0][3] * r.w();
-    y = m[1][0] * r.x() +
-        m[1][1] * r.y() +
-        m[1][2] * r.z() +
-        m[1][3] * r.w();
-    z = m[2][0] * r.x() +
-        m[2][1] * r.y() +
-        m[2][2] * r.z() +
-        m[2][3] * r.w();
-    w = m[3][0] * r.x() +
-        m[3][1] * r.y() +
-        m[3][2] * r.z() +
-        m[3][3] * r.w();
+    x = m[0][0] * r.x +
+        m[0][1] * r.y +
+        m[0][2] * r.z +
+        m[0][3] * r.w;
+    y = m[1][0] * r.x +
+        m[1][1] * r.y +
+        m[1][2] * r.z +
+        m[1][3] * r.w;
+    z = m[2][0] * r.x +
+        m[2][1] * r.y +
+        m[2][2] * r.z +
+        m[2][3] * r.w;
+    w = m[3][0] * r.x +
+        m[3][1] * r.y +
+        m[3][2] * r.z +
+        m[3][3] * r.w;
 
     float iw = 1. / w;
     x *= iw;
@@ -168,7 +168,7 @@ eavlMatrix4x4::operator*(const eavlVector4 &r) const
     return eavlVector3(x,y,z);
 }
 
-eavlVector3
+EAVL_HOSTDEVICE eavlVector3
 eavlMatrix4x4::operator*(const eavlVector3 &r) const
 {
     float x,y,z;
@@ -186,7 +186,7 @@ eavlMatrix4x4::operator*(const eavlVector3 &r) const
     return eavlVector3(x,y,z);
 }
 
-float *
+EAVL_HOSTDEVICE float *
 eavlMatrix4x4::GetOpenGLMatrix4x4()
 {
     // inexplicably, opengl expects column-major format for its matrices
@@ -209,7 +209,7 @@ eavlMatrix4x4::GetOpenGLMatrix4x4()
     return openglm;
 }
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::CreateIdentity()
 {
     for (int r=0; r<4; r++)
@@ -217,7 +217,7 @@ eavlMatrix4x4::CreateIdentity()
             m[r][c] = (r==c) ? 1 : 0;
 }
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::CreateZero()
 {
     for (int r=0; r<4; r++)
@@ -225,7 +225,7 @@ eavlMatrix4x4::CreateZero()
             m[r][c] = 0;
 }
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::CreateTranslate(float x,float y,float z)
 {
     CreateIdentity();
@@ -234,7 +234,7 @@ eavlMatrix4x4::CreateTranslate(float x,float y,float z)
     m[2][3] = z;
 }
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::CreateTranslate(const eavlVector3 &v)
 {
     CreateIdentity();
@@ -243,7 +243,7 @@ eavlMatrix4x4::CreateTranslate(const eavlVector3 &v)
     m[2][3] = v.z;
 }
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::CreateTranslate(const eavlPoint3 &p)
 {
     CreateIdentity();
@@ -252,7 +252,7 @@ eavlMatrix4x4::CreateTranslate(const eavlPoint3 &p)
     m[2][3] = p.z;
 }
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::CreateScale(float s)
 {
     CreateIdentity();
@@ -261,7 +261,7 @@ eavlMatrix4x4::CreateScale(float s)
     m[2][2] = s;
 }
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::CreateScale(float x,float y,float z)
 {
     CreateIdentity();
@@ -270,7 +270,7 @@ eavlMatrix4x4::CreateScale(float x,float y,float z)
     m[2][2] = z;
 }
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::CreateView(const eavlPoint3 &from,
                       const eavlPoint3 &at,
                       const eavlVector3 &world_up)
@@ -298,7 +298,7 @@ eavlMatrix4x4::CreateView(const eavlPoint3 &from,
     m[2][3] = -(view_dir*from);
 }
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::CreateRBT(const eavlPoint3 &from,
                   const eavlPoint3 &at,
                   const eavlVector3 &world_up)
@@ -333,7 +333,7 @@ eavlMatrix4x4::CreateRBT(const eavlPoint3 &from,
     m[2][3] = from.z;
 }
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::CreatePerspectiveProjection(float near_plane,
                                     float far_plane,
                                     float fov,
@@ -354,7 +354,7 @@ eavlMatrix4x4::CreatePerspectiveProjection(float near_plane,
     m[3][2] = s;
 }
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::CreateOrthographicProjection(float size,
                                      float near_plane,
                                      float far_plane,
@@ -372,7 +372,7 @@ eavlMatrix4x4::CreateOrthographicProjection(float size,
 }
 
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::CreateTrackball(float p1x,float p1y,  float p2x, float p2y)
 {
 #define RADIUS       0.8        /* z value at x = y = 0.0  */
@@ -441,7 +441,7 @@ eavlMatrix4x4::CreateTrackball(float p1x,float p1y,  float p2x, float p2y)
 }
 
 
-void eavlMatrix4x4::Transpose()
+EAVL_HOSTDEVICE void eavlMatrix4x4::Transpose()
 {
     float t;
     for (int r=0; r<4; r++)
@@ -456,7 +456,7 @@ void eavlMatrix4x4::Transpose()
 
 
 static void
-lubksb(eavlMatrix4x4 *a, int *indx, float *b)
+EAVL_HOSTDEVICE lubksb(eavlMatrix4x4 *a, int *indx, float *b)
 {
     int		i, j, ii=-1, ip;
     float	sum;
@@ -484,7 +484,7 @@ lubksb(eavlMatrix4x4 *a, int *indx, float *b)
 }
 
 static int
-ludcmp(eavlMatrix4x4 *a, int *indx, float *d)
+EAVL_HOSTDEVICE ludcmp(eavlMatrix4x4 *a, int *indx, float *d)
 {
     float	vv[4];               // implicit scale for each row
     float	big, dum, sum, tmp;
@@ -548,7 +548,7 @@ ludcmp(eavlMatrix4x4 *a, int *indx, float *d)
     return 0;
 }
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::Invert()
 {
     eavlMatrix4x4 n, y;
@@ -575,7 +575,7 @@ eavlMatrix4x4::Invert()
     return;
 }
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::CreateRotateX(double angleRadians)
 {
     float *r = &m[0][0];
@@ -597,7 +597,7 @@ eavlMatrix4x4::CreateRotateX(double angleRadians)
     r[15] = 1.;
 }
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::CreateRotateY(double angleRadians)
 {
     float *r = &m[0][0];
@@ -619,7 +619,7 @@ eavlMatrix4x4::CreateRotateY(double angleRadians)
     r[15] = 1.;
 }
 
-void
+EAVL_HOSTDEVICE void
 eavlMatrix4x4::CreateRotateZ(double angleRadians)
 {
     float *r = &m[0][0];

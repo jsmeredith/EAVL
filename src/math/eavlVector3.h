@@ -64,13 +64,13 @@ class eavlVector3
     friend ostream& operator<<(ostream&,const eavlVector3&);
 };
 
-inline 
+EAVL_HOSTDEVICE 
 eavlVector3::eavlVector3()
 {
     x=y=z=0;
 }
 
-inline 
+EAVL_HOSTDEVICE 
 eavlVector3::eavlVector3(const float *f)
 {
     x=f[0];
@@ -78,7 +78,7 @@ eavlVector3::eavlVector3(const float *f)
     z=f[2];
 }
 
-inline 
+EAVL_HOSTDEVICE 
 eavlVector3::eavlVector3(float x_,float y_,float z_)
 {
     x=x_;
@@ -86,7 +86,7 @@ eavlVector3::eavlVector3(float x_,float y_,float z_)
     z=z_;
 }
 
-inline 
+EAVL_HOSTDEVICE 
 eavlVector3::eavlVector3(const eavlVector3 &r)
 {
     x=r.x;
@@ -94,7 +94,7 @@ eavlVector3::eavlVector3(const eavlVector3 &r)
     z=r.z;
 }
 
-inline void
+EAVL_HOSTDEVICE void
 eavlVector3::operator=(const eavlVector3 &r)
 {
     x=r.x;
@@ -104,13 +104,13 @@ eavlVector3::operator=(const eavlVector3 &r)
 
 // vector addition/subtraction
 
-inline eavlVector3
+EAVL_HOSTDEVICE eavlVector3
 eavlVector3::operator+(const eavlVector3 &r) const
 {
     return eavlVector3(x+r.x, y+r.y, z+r.z);
 }
 
-inline void
+EAVL_HOSTDEVICE void
 eavlVector3::operator+=(const eavlVector3 &r)
 {
     x += r.x;
@@ -118,13 +118,13 @@ eavlVector3::operator+=(const eavlVector3 &r)
     z += r.z;
 }
 
-inline eavlVector3
+EAVL_HOSTDEVICE eavlVector3
 eavlVector3::operator-(const eavlVector3 &r) const
 {
     return eavlVector3(x-r.x, y-r.y, z-r.z);
 }
 
-inline void
+EAVL_HOSTDEVICE void
 eavlVector3::operator-=(const eavlVector3 &r)
 {
     x -= r.x;
@@ -135,7 +135,7 @@ eavlVector3::operator-=(const eavlVector3 &r)
 
 // unary negation
 
-inline eavlVector3
+EAVL_HOSTDEVICE eavlVector3
 eavlVector3::operator-() const
 {
     return eavlVector3(-x, -y, -z);
@@ -144,13 +144,13 @@ eavlVector3::operator-() const
 
 // scalar multiplication/division
 
-inline eavlVector3
+EAVL_HOSTDEVICE eavlVector3
 eavlVector3::operator*(const float &s) const
 {
     return eavlVector3(x*s, y*s, z*s);
 }
 
-inline void
+EAVL_HOSTDEVICE void
 eavlVector3::operator*=(const float &s)
 {
     x *= s;
@@ -158,13 +158,13 @@ eavlVector3::operator*=(const float &s)
     z *= s;
 }
 
-inline eavlVector3
+EAVL_HOSTDEVICE eavlVector3
 eavlVector3::operator/(const float &s) const
 {
     return eavlVector3(x/s, y/s, z/s);
 }
 
-inline void
+EAVL_HOSTDEVICE void
 eavlVector3::operator/=(const float &s)
 {
     x /= s;
@@ -175,7 +175,7 @@ eavlVector3::operator/=(const float &s)
 
 
 // cross product
-inline eavlVector3
+EAVL_HOSTDEVICE eavlVector3
 eavlVector3::operator%(const eavlVector3 &r) const
 {
     eavlVector3 v;
@@ -187,14 +187,14 @@ eavlVector3::operator%(const eavlVector3 &r) const
 
 
 // dot product
-inline float
+EAVL_HOSTDEVICE float
 eavlVector3::operator*(const eavlVector3 &r) const
 {
     return x*r.x + y*r.y + z*r.z;
 }
 
 // 2-norm
-inline float
+EAVL_HOSTDEVICE float
 eavlVector3::norm() const
 {
     float n = (x*x + y*y + z*z);
@@ -204,7 +204,7 @@ eavlVector3::norm() const
 }
 
 // normalize
-inline void
+EAVL_HOSTDEVICE void
 eavlVector3::normalize()
 {
     float n = (x*x + y*y + z*z);
@@ -217,7 +217,7 @@ eavlVector3::normalize()
     }
 }
 
-inline eavlVector3
+EAVL_HOSTDEVICE eavlVector3
 eavlVector3::normalized() const
 {
     float n = (x*x + y*y + z*z);

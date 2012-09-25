@@ -161,7 +161,7 @@ class eavlFlatArray
             reserve(newlength);
         length = newlength;
     }
-    EAVL_HOSTONLY inline void push_back(const T &newval)
+    EAVL_HOSTONLY void push_back(const T &newval)
     {
 #ifdef HAVE_CUDA
         NeedOnHost();
@@ -179,7 +179,7 @@ class eavlFlatArray
     /// \todo: separate NeedOnDevice to a read-only and read-write versions to
     ///        minimize bus traffic; lets us use that IDENTICAL_BOTH state.
 #ifdef HAVE_CUDA
-    EAVL_HOSTONLY inline void NeedOnDevice()
+    EAVL_HOSTONLY void NeedOnDevice()
     {
         ///\todo: probably check length and realloc if it differs from last?
         if (copied)
@@ -198,7 +198,7 @@ class eavlFlatArray
         }
         state = LAST_MODIFIED_DEV;
     }
-    EAVL_HOSTONLY inline void NeedOnHost()
+    EAVL_HOSTONLY void NeedOnHost()
     {
         if (copied)
             THROW(eavlException,"eavlFlatArray was copied by value");
@@ -223,7 +223,7 @@ class eavlFlatArray
     /// we have to ifdef out one of the two.  Check if newer CUDA versions
     /// fix this.
 #ifdef __CUDA_ARCH__
-    EAVL_DEVICEONLY const inline T &operator[](int index) const
+    EAVL_DEVICEONLY const T &operator[](int index) const
     {
         //printf("const-accessor on device, copied=%d index=%d\n",int(copied),index);
         return device[index];
@@ -240,7 +240,7 @@ class eavlFlatArray
 #endif
 
 #ifdef __CUDA_ARCH__
-    EAVL_DEVICEONLY inline T &operator[](int index)
+    EAVL_DEVICEONLY T &operator[](int index)
     {
         //printf("non-const-accessor on device, copied=%d index=%d\n",int(copied),index);
         return device[index];

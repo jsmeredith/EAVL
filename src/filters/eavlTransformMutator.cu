@@ -62,7 +62,7 @@ struct TransformFunctor1
     {
         eavlVector3 pt(x,0.,0.);
         eavlVector3 result = transform * pt;
-        ox = result.v[0];
+        ox = result.x;
     }
 };
 
@@ -78,8 +78,8 @@ struct TransformFunctor2
     {
         eavlVector3 pt(x,y,0.);
         eavlVector3 result = transform * pt;
-        ox = result.v[0];
-        oy = result.v[1];
+        ox = result.x;
+        oy = result.y;
         oz = 0.;
     }
 };
@@ -96,9 +96,9 @@ struct TransformFunctor3
     {
         eavlVector3 pt(x,y,z);
         eavlVector3 result = transform * pt;
-        ox = result.v[0];
-        oy = result.v[1];
-        oz = result.v[2];
+        ox = result.x;
+        oy = result.y;
+        oz = result.z;
     }
 };
 

@@ -47,7 +47,7 @@ struct cpu_Map_3_3
 
 template <class F, class I01, class I2, class O01, class O2>
 __global__ void
-mapKernel_3_3(int nitems, int &dummy,
+mapKernel_3_3(int nitems,
                             I01 *i0, int i0div, int i0mod, int i0mul, int i0add,
                             I01 *i1, int i1div, int i1mod, int i1mul, int i1add,
                             I2  *i2, int i2div, int i2mod, int i2mul, int i2add,
@@ -76,7 +76,7 @@ mapKernel_3_3(int nitems, int &dummy,
 template <class F, class I01, class I2, class O01, class O2>
 struct gpuMapOp_3_3
 {
-    static void call(int nitems,
+    static void call(int nitems, int &dummy,
                      I01 *i0, int i0div, int i0mod, int i0mul, int i0add,
                      I01 *i1, int i1div, int i1mod, int i1mul, int i1add,
                      I2  *i2, int i2div, int i2mod, int i2mul, int i2add,
@@ -123,15 +123,17 @@ void callMapKernel_3_3(int nitems,
     o2->GetCUDAArray();
 
     // run the kernel
-    eavlDispatch_3_3<gpuMapOp_3_3>(nitems,
-                                                  eavlArray::DEVICE,
-                                                  i0, i0div, i0mod, i0mul, i0add,
-                                                  i1, i1div, i1mod, i1mul, i1add,
-                                                  i2, i2div, i2mod, i2mul, i2add,
-                                                  o0, o0mul, o0add,
-                                                  o1, o1mul, o1add,
-                                                  o2, o2mul, o2add,
-                                                  functor);
+    int dummy;
+    eavlDispatch_3_3<gpuMapOp_3_3>(nitems, 
+                                   eavlArray::DEVICE,
+                                   dummy,
+                                   i0, i0div, i0mod, i0mul, i0add,
+                                   i1, i1div, i1mod, i1mul, i1add,
+                                   i2, i2div, i2mod, i2mul, i2add,
+                                   o0, o0mul, o0add,
+                                   o1, o1mul, o1add,
+                                   o2, o2mul, o2add,
+                                   functor);
 }
 
 
@@ -189,9 +191,7 @@ class eavlMapOp_3_3 : public eavlOperation
     virtual void GoGPU()
     {
 #if defined __CUDACC__
-        int dummy;
             callMapKernel_3_3(outArray0.array->GetNumberOfTuples(),
-                              eavlArray::DEVICE, dummy,
                                    inArray0.array, inArray0.div, inArray0.mod, inArray0.mul, inArray0.add,
                                    inArray1.array, inArray1.div, inArray1.mod, inArray1.mul, inArray1.add,
                                    inArray2.array, inArray2.div, inArray2.mod, inArray2.mul, inArray2.add,

@@ -6,10 +6,10 @@
 
 #ifdef HAVE_CUDA
 
-#define EAVL_FUNCTOR    __host__ __device__
-#define EAVL_HOSTDEVICE __host__ __device__
+#define EAVL_FUNCTOR    __host__ __device__ inline
+#define EAVL_HOSTDEVICE __host__ __device__ inline
 #define EAVL_HOSTONLY   __host__
-#define EAVL_DEVICEONLY __device__
+#define EAVL_DEVICEONLY __device__ inline
 #else
 #define EAVL_FUNCTOR    inline
 #define EAVL_HOSTDEVICE inline

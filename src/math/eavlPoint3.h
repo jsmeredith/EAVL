@@ -61,13 +61,13 @@ class eavlPoint3
 
 
 
-inline 
+EAVL_HOSTDEVICE 
 eavlPoint3::eavlPoint3()
 {
     x=y=z=0;
 }
 
-inline 
+EAVL_HOSTDEVICE 
 eavlPoint3::eavlPoint3(const float *f)
 {
     x=f[0];
@@ -75,7 +75,7 @@ eavlPoint3::eavlPoint3(const float *f)
     z=f[2];
 }
 
-inline 
+EAVL_HOSTDEVICE 
 eavlPoint3::eavlPoint3(float x_,float y_,float z_)
 {
     x=x_;
@@ -83,7 +83,7 @@ eavlPoint3::eavlPoint3(float x_,float y_,float z_)
     z=z_;
 }
 
-inline 
+EAVL_HOSTDEVICE 
 eavlPoint3::eavlPoint3(const eavlPoint3 &r)
 {
     x=r.x;
@@ -91,7 +91,7 @@ eavlPoint3::eavlPoint3(const eavlPoint3 &r)
     z=r.z;
 }
 
-inline void
+EAVL_HOSTDEVICE void
 eavlPoint3::operator=(const eavlPoint3 &r)
 {
     x=r.x;
@@ -100,26 +100,26 @@ eavlPoint3::operator=(const eavlPoint3 &r)
 }
 
 // point subtraction results in vector
-inline eavlVector3
+EAVL_HOSTDEVICE eavlVector3
 eavlPoint3::operator-(const eavlPoint3 &r) const
 {
     return eavlVector3(x-r.x, y-r.y, z-r.z);
 }
 
 // addition/subtraction of a vector results in a point
-inline eavlPoint3
+EAVL_HOSTDEVICE eavlPoint3
 eavlPoint3::operator-(const eavlVector3 &r) const
 {
     return eavlPoint3(x-r.x, y-r.y, z-r.z);
 }
 
-inline eavlPoint3
+EAVL_HOSTDEVICE eavlPoint3
 eavlPoint3::operator+(const eavlVector3 &r) const
 {
     return eavlPoint3(x+r.x, y+r.y, z+r.z);
 }
 
-inline void
+EAVL_HOSTDEVICE void
 eavlPoint3::operator-=(const eavlVector3 &r)
 {
     x -= r.x;
@@ -127,7 +127,7 @@ eavlPoint3::operator-=(const eavlVector3 &r)
     z -= r.z;
 }
 
-inline void
+EAVL_HOSTDEVICE void
 eavlPoint3::operator+=(const eavlVector3 &r)
 {
     x += r.x;
@@ -136,13 +136,13 @@ eavlPoint3::operator+=(const eavlVector3 &r)
 }
 
 // dot product
-inline float
+EAVL_HOSTDEVICE float
 eavlPoint3::operator*(const eavlVector3 &r) const
 {
     return x*r.x + y*r.y + z*r.z;
 }
 
-inline float
+EAVL_HOSTDEVICE float
 operator*(const eavlVector3 &l, const eavlPoint3 &r)
 {
     return l.x*r.x + l.y*r.y + l.z*r.z;
@@ -151,7 +151,7 @@ operator*(const eavlVector3 &l, const eavlPoint3 &r)
 
 // unary negation
 
-inline eavlPoint3
+EAVL_HOSTDEVICE eavlPoint3
 eavlPoint3::operator-() const
 {
     return eavlPoint3(-x, -y, -z);
@@ -160,13 +160,13 @@ eavlPoint3::operator-() const
 
 // scalar multiplication/division
 
-inline eavlPoint3
+EAVL_HOSTDEVICE eavlPoint3
 eavlPoint3::operator*(const float &s) const
 {
     return eavlPoint3(x*s, y*s, z*s);
 }
 
-inline void
+EAVL_HOSTDEVICE void
 eavlPoint3::operator*=(const float &s)
 {
     x *= s;
@@ -174,13 +174,13 @@ eavlPoint3::operator*=(const float &s)
     z *= s;
 }
 
-inline eavlPoint3
+EAVL_HOSTDEVICE eavlPoint3
 eavlPoint3::operator/(const float &s) const
 {
     return eavlPoint3(x/s, y/s, z/s);
 }
 
-inline void
+EAVL_HOSTDEVICE void
 eavlPoint3::operator/=(const float &s)
 {
     x /= s;

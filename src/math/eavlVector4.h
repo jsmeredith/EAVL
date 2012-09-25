@@ -20,31 +20,23 @@
 class eavlVector4
 {
   public:
-    float v[4];
+    float x, y, z, w;
   public:
     eavlVector4();
     eavlVector4(const eavlVector3&);
-
-    float *vals() { return v; }
-
-    const float &x() const { return v[0]; }
-    const float &y() const { return v[1]; }
-    const float &z() const { return v[2]; }
-    const float &w() const { return v[3]; }
-
 };
 
-inline eavlVector4::eavlVector4()
+EAVL_HOSTDEVICE eavlVector4::eavlVector4()
 {
-    v[0] = v[1] = v[2] = v[3] = 0;
+    x = y = z = w = 0;
 }
 
-inline eavlVector4::eavlVector4(const eavlVector3 &r)
+EAVL_HOSTDEVICE eavlVector4::eavlVector4(const eavlVector3 &r)
 {
-    v[0] = r.x;
-    v[1] = r.y;
-    v[2] = r.z;
-    v[3] = 0;
+    x = r.x;
+    y = r.y;
+    z = r.z;
+    w = 0;
 }
 
 #endif
