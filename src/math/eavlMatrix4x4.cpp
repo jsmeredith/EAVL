@@ -9,3 +9,4 @@ ostream &operator<<(ostream& out, const eavlMatrix4x4 &r)
     out << r.m[3][0] << "," << r.m[3][1] << "," << r.m[3][2] << "," << r.m[3][3] << "\n";
     return out;
 }
+

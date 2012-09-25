@@ -277,4 +277,62 @@ class eavlCoordinatesCartesian : public eavlCoordinates
     }
 };
 
+#include <eavlMatrix4x4.h>
+#include <eavlVector3.h>
+
+class eavlCoordinatesCartesianWithTransform : public eavlCoordinatesCartesian
+{
+  protected:
+    eavlMatrix4x4 transform;
+  public:
+    eavlCoordinatesCartesianWithTransform(eavlLogicalStructure *log,
+                             CartesianAxisType first)
+        : eavlCoordinatesCartesian(log, first), transform()
+    {
+    }
+
+    eavlCoordinatesCartesianWithTransform(eavlLogicalStructure *log,
+                             CartesianAxisType first,
+                             CartesianAxisType second)
+        : eavlCoordinatesCartesian(log, first, second), transform()
+    {
+    }
+
+    eavlCoordinatesCartesianWithTransform(eavlLogicalStructure *log,
+                             CartesianAxisType first,
+                             CartesianAxisType second,
+                             CartesianAxisType third)
+        : eavlCoordinatesCartesian(log, first, second, third), transform()
+    {
+    }
+
+    void SetTransform(const eavlMatrix4x4 &m) { transform = m; }
+    const eavlMatrix4x4 GetTransform() const { return transform; }
+
+    // Well, my approach here is really lame. I'm going to end up transforming
+    // each point 2-3 times because the points are requested later in a 
+    // per-component fashion. I suppose that's because individual axes could
+    // come from different eavl fields. I could cache the last point "i" but
+    // that would make it non-threadsafe, though that may not matter.
+    virtual double GetCartesianPoint(int i, int c,
+                                     eavlLogicalStructure *,
+                                     vector<eavlField*>&fd)
+    {
+        int axisIndex[3] = {-1,-1,-1};
+        eavlVector3 coord(0., 0., 0.);
+        for(int c2 = 0; c2 < GetDimension(); ++ c2)
+        {
+            axisIndex[c2] = axisMap[c2];
+            if (axisIndex[c2] >= 0)
+            {
+        //cerr << "GetCartesianPoint, i="<<i<<" c="<<c<<" axisIndex="<<axisIndex<<endl;
+                coord[c2] = GetRawPoint(i, axisIndex[c2], fd);
+            }
+        }
+
+        eavlVector3 newcoord(transform * coord);
+        return newcoord[c];
+    }
+};
+
 #endif
