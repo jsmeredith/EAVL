@@ -1,0 +1,57 @@
+
+
+-- summary of data set result --
+eavlDataSet:
+   npoints = 64
+   eavlLogicalStructureRegular:
+     logicalDimension = 2
+     logicalDims[2] = 8 8 
+   coordinateSystems[1]:
+   eavlCoordinatesCartesian, ndims=3: 
+       logdim 0: div=1,mod=8
+       logdim 1: div=8,mod=8
+       axis 0 (type=X):
+          eavlCoordinateAxisField='transformed_coords',component #0
+       axis 1 (type=Y):
+          eavlCoordinateAxisField='transformed_coords',component #1
+       axis 2 (type=Z):
+          eavlCoordinateAxisField='transformed_coords',component #2
+  discreteCoordinates[0]:
+  cellsets[1]:
+    eavlCellSetAllStructured:
+        name = StructuredGridCells
+        dimensionality = 2
+        nCells = 49
+        zdims[] = 7 7
+  fields[6]:
+      array name = xcoord
+      order = 1
+      association = POINTS
+      array = float xcoord[64][1] = -9.80676  -7.39099  -4.30237  -1.45371  1.63229 ... -1.30917  1.50586  4.10949  6.95076  9.95368
+
+      array name = ycoord
+      order = 1
+      association = POINTS
+      array = float ycoord[64][1] = -9.51914  -9.49367  -9.56052  -10.3937  -9.83456 ... 9.86123  9.69905  9.56734  9.99565  9.93516
+
+      array name = zcoord
+      order = 1
+      association = POINTS
+      array = float zcoord[64][1] = 1.29618  1.29559  0.858225  0.782454  1.21178 ... 1.29269  1.27423  1.28189  1.17357  1.28816
+
+      array name = nodal
+      order = 1
+      association = POINTS
+      array = float nodal[64][1] = 3.7098  3.46036  2.54554  2.16111  3.1213 ... 3.56983  3.75622  3.81282  3.57887  3.63372
+
+      array name = zonal
+      order = 0
+      association = CELL_SET
+      assoc_cell_set (index) = 0
+      array = float zonal[49][1] = 2.93286  2.94926  2.6796  2.47013  2.81913 ... 2.23087  3.53692  4.29173  4.09175  3.26901
+
+      array name = transformed_coords
+      order = 1
+      association = POINTS
+      array = float transformed_coords[64][3] = -6.72134  -13.9053  1.51668  -4.94151  -13.7207 ... 13.9304  1.7173  7.83599  14.0123  0.887055
+

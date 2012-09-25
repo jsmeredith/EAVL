@@ -33,6 +33,7 @@ def AddResult(category, exitcode, coutfn, cerrfn):
     if not os.path.exists(basefile):
         # missing baseline result; shouldn't happen
         logfile.write("%s: Missing baseline result\n" % coutfn)
+        rebasefile.write("cp %s %s\n" % (currfile, basefile))
     elif not os.path.exists(currfile):
         # missing current result; shouldn't happen
         logfile.write("%s: Missing current result\n" % coutfn)
@@ -120,6 +121,15 @@ def TestNormal(fn):
     # an optional final argument specifies an output file for hand-verification
     #["./testnormal", fn, fn+"-norm.vtk"])
 
+#
+# Transform tests
+#
+def TestTransform(fn):
+    RunTest("testxform", fn,
+            ["./testxform", fn])
+    # an optional final argument specifies an output file for hand-verification
+    #["./testxform", fn, fn+"-xform.vtk"])
+
 
 # -----------------------------------------------------------------------------
 #                               Run Tests
@@ -183,6 +193,33 @@ if __name__ == "__main__":
     TestNormal("../data/ucd_cube.vtk")
     TestNormal("../data/ucd_sphere.vtk")
     TestNormal("../data/ucd_tets.vtk")
+
+    logfile.write("\n===== %s =====\n" % "testxform")
+    print "Running transform tests"
+    TestTransform("../data/curv_cube.vtk")
+    TestTransform("../data/curv_x.vtk")
+    TestTransform("../data/curv_xy.vtk")
+    TestTransform("../data/curv_xz.vtk")
+    TestTransform("../data/curv_y.vtk")
+    TestTransform("../data/curv_yz.vtk")
+    TestTransform("../data/curv_z.vtk")
+    TestTransform("../data/poly_1d_in_3d.vtk")
+    TestTransform("../data/poly_2d_in_3d.vtk")
+    TestTransform("../data/poly_sphere.vtk")
+    TestTransform("../data/poly_verts_and_lines.vtk")
+    TestTransform("../data/poly_verts.vtk")
+    TestTransform("../data/rect_cube.vtk")
+    TestTransform("../data/rect_x.vtk")
+    TestTransform("../data/rect_xy.vtk")
+    TestTransform("../data/rect_xz.vtk")
+    TestTransform("../data/rect_y.vtk")
+    TestTransform("../data/rect_yz.vtk")
+    TestTransform("../data/rect_z.vtk")
+    TestTransform("../data/ucd_1d_in_3d.vtk")
+    TestTransform("../data/ucd_2d_xy.vtk")
+    TestTransform("../data/ucd_cube.vtk")
+    TestTransform("../data/ucd_sphere.vtk")
+    TestTransform("../data/ucd_tets.vtk")
 
     errors = PrintResults()
 

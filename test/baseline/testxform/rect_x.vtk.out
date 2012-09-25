@@ -1,0 +1,57 @@
+
+
+-- summary of data set result --
+eavlDataSet:
+   npoints = 4
+   eavlLogicalStructureRegular:
+     logicalDimension = 1
+     logicalDims[1] = 4 
+   coordinateSystems[1]:
+   eavlCoordinatesCartesian, ndims=3: 
+       logdim 0: div=1,mod=4
+       axis 0 (type=X):
+          eavlCoordinateAxisField='transformed_coords',component #0
+       axis 1 (type=Y):
+          eavlCoordinateAxisField='transformed_coords',component #1
+       axis 2 (type=Z):
+          eavlCoordinateAxisField='transformed_coords',component #2
+  discreteCoordinates[0]:
+  cellsets[1]:
+    eavlCellSetAllStructured:
+        name = RectilinearGridCells
+        dimensionality = 1
+        nCells = 3
+        zdims[] = 3
+  fields[6]:
+      array name = xcoord
+      order = 1
+      association = LOGICALDIM
+      assoc_logicaldim = 0
+      array = float xcoord[4][1] = 0  1  4  6  
+
+      array name = ycoord
+      order = 1
+      association = WHOLEMESH
+      array = float ycoord[1][1] = 3  
+
+      array name = zcoord
+      order = 1
+      association = WHOLEMESH
+      array = float zcoord[1][1] = 2  
+
+      array name = nodal
+      order = 1
+      association = POINTS
+      array = float nodal[4][1] = 0  1  1.1  2  
+
+      array name = zonal
+      order = 0
+      association = CELL_SET
+      assoc_cell_set (index) = 0
+      array = float zonal[3][1] = 0  1  2  
+
+      array name = transformed_coords
+      order = 1
+      association = POINTS
+      array = float transformed_coords[4][3] = 0.778837  3.75031  2.63981  1.51569  3.8122 ... 3.99788  1.41851  5.19993  4.12166  0.807865
+

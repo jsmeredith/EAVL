@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
     catch (const eavlException &e)
     {
         cerr << e.GetErrorText() << endl;
-        cerr << "\nUsage: "<<argv[0]<<" <value> <fieldname> <infile.vtk> [<outfile.vtk>]\n";
+        cerr << "\nUsage: "<<argv[0]<<" <infile.vtk> [<outfile.vtk>]\n";
         return 1;
     }
 

@@ -1,0 +1,49 @@
+
+
+-- summary of data set result --
+eavlDataSet:
+   npoints = 100
+   coordinateSystems[1]:
+   eavlCoordinatesCartesian, ndims=3: 
+       axis 0 (type=X):
+          eavlCoordinateAxisField='transformed_coords',component #0
+       axis 1 (type=Y):
+          eavlCoordinateAxisField='transformed_coords',component #1
+       axis 2 (type=Z):
+          eavlCoordinateAxisField='transformed_coords',component #2
+  discreteCoordinates[0]:
+  cellsets[1]:
+    eavlCellSetExplicit:
+        name = UnstructuredGridCells3D
+        dimensionality = 3
+        nCells = 477
+        cellNodeConnectivity =
+        shapetype[477] = 5 5 5 5 5 5 5 5 5 5 ... 5 5 5 5 5 5 5 5 5 5
+        connectivity[2385] = 4 65 57 27 90 4 17 77 36 90 ... 4 25 94 87 99 4 94 73 87 99
+        mapCellToIndex[477] = 0 5 10 15 20 25 30 35 40 45 ... 2335 2340 2345 2350 2355 2360 2365 2370 2375 2380
+  fields[5]:
+      array name = xcoord
+      order = 1
+      association = POINTS
+      array = float xcoord[100][1] = -2.0707  -3.62614  -6.81263  7.99709  2.08288 ... -2.25057  0.670141  1.32994  1.27768  -4.93386
+
+      array name = ycoord
+      order = 1
+      association = POINTS
+      array = float ycoord[100][1] = 6.80971  7.72857  -2.32568  -6.72908  1.65398 ... -6.36119  3.29472  -8.05072  7.73879  -3.85871
+
+      array name = zcoord
+      order = 1
+      association = POINTS
+      array = float zcoord[100][1] = -2.93328  -9.68834  3.82009  -6.81857  -4.60058 ... -5.50537  -5.96338  -4.45953  -8.5962  7.9328
+
+      array name = nodal
+      order = 1
+      association = POINTS
+      array = float nodal[100][1] = 3.23292  3.92045  1.29429  3.66532  2.95239 ... 4.68691  3.34412  1.08656  1.3101  1.67037
+
+      array name = transformed_coords
+      order = 1
+      association = POINTS
+      array = float transformed_coords[100][3] = -2.66807  9.75215  -0.121607  -6.44473  12.1527 ... 12.2704  -5.99746  -0.546331  -7.05147  7.59413
+
