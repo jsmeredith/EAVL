@@ -20,24 +20,17 @@ class FaceNormalFunctor
                                  float &ox, float &oy, float &oz)
     {
         // should we treat EAVL_PIXEL differently here?
-        float p1x = x[1] - x[0];
-        float p1y = y[1] - y[0];
-        float p1z = z[1] - z[0];
+        eavlPoint3 p0(x[0], y[0], z[0]);
+        eavlPoint3 p1(x[1], y[1], z[1]);
+        eavlPoint3 p2(x[2], y[2], z[2]);
+        eavlVector3 v01 = p1 - p0;
+        eavlVector3 v12 = p2 - p1;
+        eavlVector3 norm = v01 % v12;
+        norm.normalize();
 	    
-        float p2x = x[2] - x[1];
-        float p2y = y[2] - y[1];
-        float p2z = z[2] - z[1];
-	    
-        ox = p1y*p2z - p1z*p2y;
-        oy = p1z*p2x - p1x*p2z;
-        oz = p1x*p2y - p1y*p2x;
-        float len = sqrt(ox*ox+oy*oy+oz*oz);
-        if (len>0)
-        {
-            ox /= len;
-            oy /= len;
-            oz /= len;
-        }
+        ox = norm.x;
+        oy = norm.y;
+        oz = norm.z;
     }
 };
 
