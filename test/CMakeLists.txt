@@ -14,6 +14,31 @@ include_directories(
 )
 
 #-----------------------------------------------------------------------------
+# macro for testing to compare output against text file
+#-----------------------------------------------------------------------------
+MACRO(ADD_EAVL_TEXT_TEST name command arguments baseline)
+  if (EAVL_TEST_RUN_COMMAND) 
+    set(TEST_COMMAND "${EAVL_TEST_RUN_COMMAND}")
+    set(TEST_ARGUMENTS "${EAVL_TEST_RUN_ARGS} ${command} ${arguments}")
+  else(EAVL_TEST_RUN_COMMAND)
+    set(TEST_COMMAND "${command}")
+    set(TEST_ARGUMENTS "${arguments}")
+  endif(EAVL_TEST_RUN_COMMAND)
+
+  add_test( 
+      NAME 
+        ${name}
+      COMMAND
+        ${CMAKE_COMMAND} 
+        -D TEST_PROGRAM=${TEST_COMMAND} 
+        -D TEST_ARGS=${TEST_ARGUMENTS}
+        -D TEST_OUTPUT=tmpfile.txt 
+        -D TEST_REFERENCE=${baseline}
+        -P ${EAVL_SOURCE_DIR}/cmake/runTest.cmake 
+  )
+ENDMACRO(ADD_EAVL_TEXT_TEST)
+
+#-----------------------------------------------------------------------------
 # test import
 #-----------------------------------------------------------------------------
 add_executable(
@@ -50,12 +75,11 @@ set(datafiles
 )
 
 foreach(datafile ${datafiles})
-  add_test(
-    NAME testimport_${datafile}
-    COMMAND
-      ${EAVL_TEST_RUN_COMMAND} ${EAVL_TEST_RUN_ARGS}
-      $<TARGET_FILE:testimport>
-      "${EAVL_SOURCE_DIR}/data/${datafile}"
+  ADD_EAVL_TEXT_TEST(
+    testimport_${datafile}
+    "$<TARGET_FILE:testimport>"
+    "${EAVL_SOURCE_DIR}/data/${datafile}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testimport/${datafile}.out"
   )
 endforeach(datafile)
 
@@ -77,12 +101,11 @@ set(datafiles
 )
 
 foreach(datafile ${datafiles})
-  add_test(
-    NAME testiso_${datafile}
-    COMMAND
-      ${EAVL_TEST_RUN_COMMAND} ${EAVL_TEST_RUN_ARGS}
-      $<TARGET_FILE:testiso>
-      3.5 nodal "${EAVL_SOURCE_DIR}/data/${datafile}"
+  ADD_EAVL_TEXT_TEST(
+    testiso_${datafile}
+    "$<TARGET_FILE:testiso>"
+    "3.5 nodal ${EAVL_SOURCE_DIR}/data/${datafile}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testiso/${datafile}.out"
   )
 endforeach(datafile)
 
@@ -113,11 +136,10 @@ set(datafiles
 )
 
 foreach(datafile ${datafiles})
-  add_test(
-    NAME testnormal_${datafile}
-    COMMAND
-      ${EAVL_TEST_RUN_COMMAND} ${EAVL_TEST_RUN_ARGS}
-      $<TARGET_FILE:testnormal>
-      "${EAVL_SOURCE_DIR}/data/${datafile}"
+  ADD_EAVL_TEXT_TEST(
+    testnormal_${datafile}
+    "$<TARGET_FILE:testnormal>"
+    "${EAVL_SOURCE_DIR}/data/${datafile}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testnormal/${datafile}.out"
   )
 endforeach(datafile)
