@@ -143,3 +143,57 @@ foreach(datafile ${datafiles})
     "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testnormal/${datafile}.out"
   )
 endforeach(datafile)
+
+#-----------------------------------------------------------------------------
+# test math
+#-----------------------------------------------------------------------------
+add_executable(
+  testmath
+  testmath.cpp
+)
+target_link_libraries(testmath eavl_exporters eavl_importers eavl_filters eavl_common)
+
+#-----------------------------------------------------------------------------
+# test xform
+#-----------------------------------------------------------------------------
+add_executable(
+  testxform
+  testxform.cpp
+)
+target_link_libraries(testxform eavl_exporters eavl_importers eavl_filters eavl_common)
+
+set(datafiles
+  curv_cube.vtk
+  curv_x.vtk
+  curv_xy.vtk
+  curv_xz.vtk
+  curv_y.vtk
+  curv_yz.vtk
+  curv_z.vtk
+  poly_1d_in_3d.vtk
+  poly_2d_in_3d.vtk
+  poly_sphere.vtk
+  poly_verts_and_lines.vtk
+  poly_verts.vtk
+  rect_cube.vtk
+  rect_x.vtk
+  rect_xy.vtk
+  rect_xz.vtk
+  rect_y.vtk
+  rect_yz.vtk
+  rect_z.vtk
+  ucd_1d_in_3d.vtk
+  ucd_2d_xy.vtk
+  ucd_cube.vtk
+  ucd_sphere.vtk
+  ucd_tets.vtk
+)
+
+foreach(datafile ${datafiles})
+  ADD_EAVL_TEXT_TEST(
+    testxform_${datafile}
+    "$<TARGET_FILE:testxform>"
+    "${EAVL_SOURCE_DIR}/data/${datafile}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testxform/${datafile}.out"
+  )
+endforeach(datafile)

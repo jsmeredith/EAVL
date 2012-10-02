@@ -10,6 +10,8 @@ IF (HAVE_CUDA)
     eavl3X3AverageMutator.cu
     eavlIsosurfaceFilter.cu
     eavlSurfaceNormalMutator.cu
+    eavlTransformMutator.cu
+    eavlBinaryMathMutator.cu
   )
   cuda_add_library(eavl_filters
     ${EAVL_FILTERS_SRCS}
