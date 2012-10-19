@@ -126,13 +126,13 @@ struct eavlExplicitConnectivity
     }
     EAVL_HOSTONLY void PrintSummary(ostream &out)
     {
-        out << "          shapetype["<<shapetype.size()<<"] = ";
+        out << "        shapetype["<<shapetype.size()<<"] = ";
         PrintVectorSummary(out, shapetype);
         out << endl;
-        out << "          connectivity["<<connectivity.size()<<"] = ";
+        out << "        connectivity["<<connectivity.size()<<"] = ";
         PrintVectorSummary(out, connectivity);
         out << endl;
-        out << "          mapCellToIndex["<<mapCellToIndex.size()<<"] = ";
+        out << "        mapCellToIndex["<<mapCellToIndex.size()<<"] = ";
         PrintVectorSummary(out, mapCellToIndex);
         out << endl;        
     }
