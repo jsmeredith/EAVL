@@ -1,6 +1,8 @@
 // Copyright 2010-2012 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #include "eavlCellSetExplicit.h"
 
+using std::multimap;
+
 class eavlEdge
 {
  public:
@@ -335,4 +337,48 @@ void eavlCellSetExplicit::BuildFaceConnectivity()
     //cellFaceConnectivity.PrintSummary(cout);
     //cout << "--- FACE NODE CONNECTIVITY =\n";
     //faceNodeConnectivity.PrintSummary(cout);
+}
+
+void eavlCellSetExplicit::BuildNodeCellConnectivity()
+{
+    nodeCellConnectivity.shapetype.clear();
+    nodeCellConnectivity.connectivity.clear();
+
+    multimap<int,int> cells_of_nodes;
+
+    int maxNodeID = 0;
+    int numCells = GetNumCells();
+    for (int cell = 0, cindex = 0; cell < numCells; ++cell)
+    {
+        int npts = cellNodeConnectivity.connectivity[cindex++];
+        for (int pt=0; pt<npts; ++pt)
+        {
+            int index = cellNodeConnectivity.connectivity[cindex++];
+            if (index > maxNodeID)
+                maxNodeID = index;
+            cells_of_nodes.insert(pair<int,int>(index,cell));
+        }
+    }
+
+    int last_node = -1;
+    int cur_node_ctr = 0;
+    int cur_node_connstart = 0;
+    for (multimap<int,int>::iterator iter = cells_of_nodes.begin();
+         iter != cells_of_nodes.end(); iter++)
+    {
+        int node = iter->first;
+        int cell = iter->second;
+        if (node != last_node)
+        {
+            nodeCellConnectivity.shapetype.push_back(EAVL_POINT);
+            cur_node_ctr = 0;
+            cur_node_connstart = nodeCellConnectivity.connectivity.size();
+            nodeCellConnectivity.connectivity.push_back(0);
+            last_node = node;
+        }
+        nodeCellConnectivity.connectivity.push_back(cell);
+        ++nodeCellConnectivity.connectivity[cur_node_connstart];
+    }
+
+    nodeCellConnectivity.CreateReverseIndex();
 }

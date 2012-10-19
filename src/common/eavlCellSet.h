@@ -16,6 +16,9 @@
 // Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern
 // Creation:    February 15, 2011
 //
+//   Jeremy Meredith, Fri Oct 19 16:54:36 EDT 2012
+//   Added reverse connectivity (i.e. get cells attached to a node).
+//
 // ****************************************************************************
 
 class eavlCellSet
@@ -39,6 +42,13 @@ class eavlCellSet
         return c;
     }
     virtual eavlCell GetCellEdges(int)
+    {
+        eavlCell c;
+        c.type=EAVL_OTHER;
+        c.numIndices = 0;
+        return c;
+    }
+    virtual eavlCell GetNodeCells(int)
     {
         eavlCell c;
         c.type=EAVL_OTHER;

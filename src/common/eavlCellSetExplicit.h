@@ -18,6 +18,10 @@
 // Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern
 // Creation:    February 15, 2011
 //
+// Modifications:
+//   Jeremy Meredith, Fri Oct 19 16:54:36 EDT 2012
+//   Added reverse connectivity (i.e. get cells attached to a node).
+//
 // ****************************************************************************
 
 class eavlCellSetExplicit : public eavlCellSet
@@ -26,6 +30,8 @@ class eavlCellSetExplicit : public eavlCellSet
     ///\todo: shapetype is duplicated for each connectivity type
     /// (cellNode, cellEdge, etc.); can we unify them?
     eavlExplicitConnectivity cellNodeConnectivity;
+
+    eavlExplicitConnectivity nodeCellConnectivity;
 
     eavlExplicitConnectivity cellEdgeConnectivity;
     eavlExplicitConnectivity edgeNodeConnectivity;
@@ -38,6 +44,7 @@ class eavlCellSetExplicit : public eavlCellSet
 
     void BuildEdgeConnectivity();
     void BuildFaceConnectivity();
+    void BuildNodeCellConnectivity();
   public:
     eavlCellSetExplicit(const string &n, int d)
         : eavlCellSet(n,d),
@@ -74,6 +81,10 @@ class eavlCellSetExplicit : public eavlCellSet
           case EAVL_NODES_OF_CELLS:
             return cellNodeConnectivity;
 
+          case EAVL_CELLS_OF_NODES:
+            BuildNodeCellConnectivity();
+            return nodeCellConnectivity;
+
           case EAVL_NODES_OF_EDGES:
             BuildEdgeConnectivity();
             return edgeNodeConnectivity;
@@ -100,6 +111,17 @@ class eavlCellSetExplicit : public eavlCellSet
         cell.numIndices = cellNodeConnectivity.connectivity[index];
         for (int n=0; n<cell.numIndices; n++)
             cell.indices[n] = cellNodeConnectivity.connectivity[index + 1 + n];
+        return cell;
+    }
+    virtual eavlCell GetNodeCells(int i)
+    {
+        BuildNodeCellConnectivity();
+        eavlCell cell;
+        int index = nodeCellConnectivity.mapCellToIndex[i];
+        cell.type = (eavlCellShape)nodeCellConnectivity.shapetype[i];
+        cell.numIndices = nodeCellConnectivity.connectivity[index];
+        for (int n=0; n<cell.numIndices; n++)
+            cell.indices[n] = nodeCellConnectivity.connectivity[index + 1 + n];
         return cell;
     }
     virtual eavlCell GetCellEdges(int i)

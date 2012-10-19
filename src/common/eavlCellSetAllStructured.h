@@ -13,6 +13,10 @@
 // Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern
 // Creation:    February 15, 2011
 //
+// Modifications:
+//   Jeremy Meredith, Fri Oct 19 16:54:36 EDT 2012
+//   Added reverse connectivity (i.e. get cells attached to a node).
+//
 // ****************************************************************************
 
 class eavlCellSetAllStructured : public eavlCellSet
@@ -65,6 +69,14 @@ class eavlCellSetAllStructured : public eavlCellSet
     {
         eavlCell c;
         c.type = (eavlCellShape)regularStructure.GetCellNodes(index,
+                                                              c.numIndices,
+                                                              c.indices);
+        return c;
+    }
+    virtual eavlCell GetNodeCells(int index)
+    {
+        eavlCell c;
+        c.type = (eavlCellShape)regularStructure.GetNodeCells(index,
                                                               c.numIndices,
                                                               c.indices);
         return c;

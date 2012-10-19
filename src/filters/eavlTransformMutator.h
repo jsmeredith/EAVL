@@ -14,7 +14,7 @@
 // Purpose:
 ///  Add a field as the third spatial dimension of a spatially 2D grid.
 //
-// Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern ( this file by Brad Whitlock)
+// Programmer:  Brad Whitlock
 // Creation:    September 19, 2012
 //
 // ****************************************************************************

@@ -16,6 +16,9 @@
 // Creation:    July 25, 2012
 //
 // Modifications:
+//   Jeremy Meredith, Fri Oct 19 16:54:36 EDT 2012
+//   Added reverse connectivity (i.e. get cells attached to a node).
+//
 // ****************************************************************************
 struct eavlRegularStructure
 {
@@ -278,6 +281,57 @@ struct eavlRegularStructure
             return EAVL_VOXEL;            
         }
         npts = 0;
+        return EAVL_OTHER;
+    }
+
+    EAVL_HOSTDEVICE int GetNodeCells(int index, int &ncells, int *cells)
+    {
+        ncells = 0;
+        if (dimension == 1)
+        {
+            if (index > 0)
+                cells[ncells++] = index - 1;
+            if (index < nodeDims[0] - 1)
+                cells[ncells++] = index;
+            return EAVL_POINT;
+        }
+        else if (dimension == 2)
+        {
+            int i,j;
+            CalculateLogicalNodeIndices2D(index, i,j);
+            if (i > 0 && j > 0)
+                cells[ncells++] = CalculateCellIndex2D(i-1, j-1);
+            if (i < nodeDims[0]-1 && j > 0)
+                cells[ncells++] = CalculateCellIndex2D(i  , j-1);
+            if (i > 0 && j < nodeDims[1]-1)
+                cells[ncells++] = CalculateCellIndex2D(i-1, j  );
+            if (i < nodeDims[0]-1 && j < nodeDims[1]-1)
+                cells[ncells++] = CalculateCellIndex2D(i  , j  );
+            return EAVL_POINT;
+        }
+        else if (dimension == 3)
+        {
+            int i,j,k;
+            CalculateLogicalNodeIndices3D(index, i,j,k);
+            if (i > 0 && j > 0 && k > 0)
+                cells[ncells++] = CalculateCellIndex3D(i-1, j-1, k-1);
+            if (i < nodeDims[0]-1 && j > 0 && k > 0)
+                cells[ncells++] = CalculateCellIndex3D(i  , j-1, k-1);
+            if (i > 0 && j < nodeDims[1]-1 && k > 0)
+                cells[ncells++] = CalculateCellIndex3D(i-1, j  , k-1);
+            if (i < nodeDims[0]-1 && j < nodeDims[1]-1 && k > 0)
+                cells[ncells++] = CalculateCellIndex3D(i  , j  , k-1);
+
+            if (i > 0 && j > 0 && k < nodeDims[2]-1)
+                cells[ncells++] = CalculateCellIndex3D(i-1, j-1, k);
+            if (i < nodeDims[0]-1 && j > 0 && k < nodeDims[2]-1)
+                cells[ncells++] = CalculateCellIndex3D(i  , j-1, k);
+            if (i > 0 && j < nodeDims[1]-1 && k < nodeDims[2]-1)
+                cells[ncells++] = CalculateCellIndex3D(i-1, j  , k);
+            if (i < nodeDims[0]-1 && j < nodeDims[1]-1 && k < nodeDims[2]-1)
+                cells[ncells++] = CalculateCellIndex3D(i  , j  , k);
+            return EAVL_POINT;
+        }
         return EAVL_OTHER;
     }
 
