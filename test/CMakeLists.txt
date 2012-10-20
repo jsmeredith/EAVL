@@ -82,6 +82,22 @@ MACRO(ADD_TEXT_TEST)
 ENDMACRO(ADD_TEXT_TEST)
 
 #-----------------------------------------------------------------------------
+# test data model
+#-----------------------------------------------------------------------------
+add_executable(
+  testdatamodel
+  testdatamodel.cpp
+)
+target_link_libraries(testdatamodel eavl_exporters eavl_filters eavl_common)
+
+add_test(
+  NAME
+    testdatamodel
+  COMMAND
+    "$<TARGET_FILE:testdatamodel>"
+)
+
+#-----------------------------------------------------------------------------
 # test import
 #-----------------------------------------------------------------------------
 add_executable(

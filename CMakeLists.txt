@@ -5,7 +5,7 @@ project(EAVL)
 # Run all the CMake configuration tests for our build environment
 #-----------------------------------------------------------------------------
 INCLUDE (cmake/ConfigureChecks.cmake)
-SET(CMAKE_MODULE_PATH ${EAVL_SOURCE_DIR}/CMake)
+SET(CMAKE_MODULE_PATH ${EAVL_SOURCE_DIR}/cmake)
 
 #-----------------------------------------------------------------------------
 # Find Boost
