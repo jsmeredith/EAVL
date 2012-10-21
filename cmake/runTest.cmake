@@ -3,7 +3,7 @@ include (CMakeParseArguments)
 CMAKE_PARSE_ARGUMENTS(
   TEST 
   ""
-  "COMMAND;BASELINE;OUTPUT"
+  "COMMAND;BASELINE;OUTPUT;DIFF_EXECUTABLE"
   "ARGSLIST" 
   ${SCRIPTARGS}
 ) 
@@ -26,6 +26,7 @@ message( "TEST_COMMAND ${TEST_COMMAND}")
 message( "TEST_ARGSLIST ${TEST_ARGSLIST}")
 message( "TEST_OUTPUT ${TEST_OUTPUT}")
 message( "TEST_BASELINE ${TEST_BASELINE}")
+message( "DIFF_EXECUTABLE is ${TEST_DIFF_EXECUTABLE}")
 
 # run the test program, capture the stdout/stderr and the result var
 execute_process(
@@ -46,15 +47,25 @@ execute_process(
   RESULT_VARIABLE TEST_RESULT
   )
 
-# again, if return value is !=0 scream and shout
+# if return value is !=0 display something to show problems
 if( TEST_RESULT )
   file(READ ${TEST_OUTPUT} ERR_TXT)
   message("#########################")
-  message("OUTPUT IS \n ${ERR_TXT}")
+  message("OUTPUT IS ${ERR_TXT}")
   message("#########################")
-  message( FATAL_ERROR "Failed: The output of ${TEST_PROGRAM} did not match ${TEST_BASELINE}")
+
+  # compare the output with the reference if possible
+  if (TEST_DIFF_EXECUTABLE) 
+	  execute_process(
+	    COMMAND ${TEST_DIFF_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/${TEST_OUTPUT}" "${TEST_BASELINE}"
+      OUTPUT_VARIABLE DIFF_RESULT
+	    )
+    message("#########################")
+    message(FATAL_ERROR "Failed: DIFF IS \n${DIFF_RESULT}")
+  else (TEST_DIFF_EXECUTABLE) 
+    message( FATAL_ERROR "Failed: The output of ${TEST_PROGRAM} did not match ${TEST_BASELINE}")
+  endif (TEST_DIFF_EXECUTABLE) 
 endif( TEST_RESULT )
 
 # everything went fine...
 message( "Passed: The output of ${TEST_PROGRAM} matches ${TEST_BASELINE}" )
-

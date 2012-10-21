@@ -5,6 +5,11 @@ SET(EAVL_TEST_RUN_COMMAND CACHE STRING "Supply a command such as 'aprun' to exec
 SET(EAVL_TEST_RUN_ARGS CACHE STRING "Supply args to the run command")
 
 #-----------------------------------------------------------------------------
+# Find diff, we'll use diff to display errors in text comparison
+#-----------------------------------------------------------------------------
+find_package(Diff)
+
+#-----------------------------------------------------------------------------
 # includes
 #-----------------------------------------------------------------------------
 include_directories(
@@ -14,17 +19,17 @@ include_directories(
 )
 
 #-----------------------------------------------------------------------------
-# macro for testing to compare output against text file
+# define macro for testing to compare stdout against baseline text file
 #-----------------------------------------------------------------------------
 include (CMakeParseArguments)
 
 MACRO(ADD_TEXT_TEST)
   CMAKE_PARSE_ARGUMENTS(
     TEST 
-	""
-	"NAME;COMMAND;BASELINE"
-	"ARGSLIST" 
-	${ARGN}
+    ""
+    "NAME;COMMAND;BASELINE"
+    "ARGSLIST" 
+    ${ARGN}
   ) 
 #  message("TEST_DEFAULT_ARGS is ${TEST_DEFAULT_ARGS} from ${ARGN}")
 #  message("TEST_NAME is ${TEST_NAME}")
@@ -32,12 +37,34 @@ MACRO(ADD_TEXT_TEST)
 #  message("TEST_ARGSLIST is ${TEST_ARGSLIST}")
 #  message("TEST_BASELINE is ${TEST_BASELINE}")
 
+  # if tests have to be run using aprun or srun or some command other
+  # than the test executable itself, then we set the command and pass
+  # the test as an argument
+
   if (EAVL_TEST_RUN_COMMAND) 
     set(TEST_ARGUMENTS "${EAVL_TEST_RUN_ARGS}" "${TEST_COMMAND}" "${TEST_ARGSLIST}" "${TEST_BASELINE}")
     set(TEST_COMMAND "${EAVL_TEST_RUN_COMMAND}")
   endif(EAVL_TEST_RUN_COMMAND)
 
-  set(arg_string COMMAND ${TEST_COMMAND} ARGSLIST ${TEST_ARGSLIST} OUTPUT tmpfile.txt BASELINE ${TEST_BASELINE})
+  # We call a script which executes the text, captures the output
+  # and compares it to the baseline.
+  #
+  # When we call the script, all our arguments get serialized and quoted by cmake,
+  # this breaks the args we pass into the test itself (especially when spaces are present).
+  # So we first generate one big string containing all our args, plus test command
+  # and all the other info needed by the script - turn it all into one big list (separator ;)
+  # containing keywords we can use in PARSE_ARGUMENTS. We pass the whole lot
+  # to cmake execute script using -D to hold the big string. 
+  # The script uses the parse arguments macro to regenerate the original set of args/commands etc
+  # we can extend it by adding keywords at will, and modifying runTest.cmake to find them.
+
+  set(arg_string 
+    COMMAND         ${TEST_COMMAND} 
+    ARGSLIST        ${TEST_ARGSLIST} 
+    OUTPUT          tmpfile.txt 
+    BASELINE        ${TEST_BASELINE}
+    DIFF_EXECUTABLE ${DIFF_EXECUTABLE}
+  )
 
   # escape all spaces before passing to args
   string(REPLACE " " "\\ " TEST_ARGSLIST2 "${arg_string}" )
@@ -93,12 +120,12 @@ set(datafiles
 foreach(datafile ${datafiles})
   ADD_TEXT_TEST(
     NAME
-	  "testimport_${datafile}"
+      "testimport_${datafile}"
     COMMAND
       "$<TARGET_FILE:testimport>"
     ARGSLIST
       "${EAVL_SOURCE_DIR}/data/${datafile}"
-	BASELINE
+    BASELINE
       "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testimport/${datafile}.out"
   )
 endforeach(datafile)
@@ -123,12 +150,12 @@ set(datafiles
 foreach(datafile ${datafiles})
   ADD_TEXT_TEST(
     NAME 
-	  testiso_${datafile}
+      testiso_${datafile}
     COMMAND
       "$<TARGET_FILE:testiso>"
     ARGSLIST
       3.5 nodal "${EAVL_SOURCE_DIR}/data/${datafile}"
-	BASELINE
+    BASELINE
       "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testiso/${datafile}.out"
   )
 endforeach(datafile)
@@ -162,12 +189,12 @@ set(datafiles
 foreach(datafile ${datafiles})
   ADD_TEXT_TEST(
     NAME
-	  testnormal_${datafile}
+      testnormal_${datafile}
     COMMAND
       "$<TARGET_FILE:testnormal>"
     ARGSLIST
       "${EAVL_SOURCE_DIR}/data/${datafile}"
-	BASELINE
+    BASELINE
       "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testnormal/${datafile}.out"
   )
 endforeach(datafile)
@@ -220,12 +247,12 @@ set(datafiles
 foreach(datafile ${datafiles})
   ADD_TEXT_TEST(
     NAME
-	  testxform_${datafile}
+      testxform_${datafile}
     COMMAND
       "$<TARGET_FILE:testxform>"
     ARGSLIST
       "${EAVL_SOURCE_DIR}/data/${datafile}"
-	BASELINE
+    BASELINE
       "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testxform/${datafile}.out"
   )
 endforeach(datafile)
