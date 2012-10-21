@@ -16,27 +16,43 @@ include_directories(
 #-----------------------------------------------------------------------------
 # macro for testing to compare output against text file
 #-----------------------------------------------------------------------------
-MACRO(ADD_EAVL_TEXT_TEST name command arguments baseline)
+include (CMakeParseArguments)
+
+MACRO(ADD_TEXT_TEST)
+  CMAKE_PARSE_ARGUMENTS(
+    TEST 
+	""
+	"NAME;COMMAND;BASELINE"
+	"ARGSLIST" 
+	${ARGN}
+  ) 
+#  message("TEST_DEFAULT_ARGS is ${TEST_DEFAULT_ARGS} from ${ARGN}")
+#  message("TEST_NAME is ${TEST_NAME}")
+#  message("TEST_COMMAND is ${TEST_COMMAND}")
+#  message("TEST_ARGSLIST is ${TEST_ARGSLIST}")
+#  message("TEST_BASELINE is ${TEST_BASELINE}")
+
   if (EAVL_TEST_RUN_COMMAND) 
+    set(TEST_ARGUMENTS "${EAVL_TEST_RUN_ARGS}" "${TEST_COMMAND}" "${TEST_ARGSLIST}" "${TEST_BASELINE}")
     set(TEST_COMMAND "${EAVL_TEST_RUN_COMMAND}")
-    set(TEST_ARGUMENTS "${EAVL_TEST_RUN_ARGS} ${command} ${arguments}")
-  else(EAVL_TEST_RUN_COMMAND)
-    set(TEST_COMMAND "${command}")
-    set(TEST_ARGUMENTS "${arguments}")
   endif(EAVL_TEST_RUN_COMMAND)
 
+  set(arg_string COMMAND ${TEST_COMMAND} ARGSLIST ${TEST_ARGSLIST} OUTPUT tmpfile.txt BASELINE ${TEST_BASELINE})
+
+  # escape all spaces before passing to args
+  string(REPLACE " " "\\ " TEST_ARGSLIST2 "${arg_string}" )
+  # escape all ; before passing to args
+  string(REPLACE ";" "\\;" TEST_ARGSLIST3 "${TEST_ARGSLIST2}" )
+
   add_test( 
-      NAME 
-        ${name}
-      COMMAND
-        ${CMAKE_COMMAND} 
-        -D TEST_PROGRAM=${TEST_COMMAND} 
-        -D TEST_ARGS=${TEST_ARGUMENTS}
-        -D TEST_OUTPUT=tmpfile.txt 
-        -D TEST_REFERENCE=${baseline}
-        -P ${EAVL_SOURCE_DIR}/cmake/runTest.cmake 
+    NAME 
+      ${TEST_NAME}
+    COMMAND
+      ${CMAKE_COMMAND} 
+      -D SCRIPTARGS=${TEST_ARGSLIST3}
+      -P ${EAVL_SOURCE_DIR}/cmake/runTest.cmake 
   )
-ENDMACRO(ADD_EAVL_TEXT_TEST)
+ENDMACRO(ADD_TEXT_TEST)
 
 #-----------------------------------------------------------------------------
 # test import
@@ -75,11 +91,15 @@ set(datafiles
 )
 
 foreach(datafile ${datafiles})
-  ADD_EAVL_TEXT_TEST(
-    testimport_${datafile}
-    "$<TARGET_FILE:testimport>"
-    "${EAVL_SOURCE_DIR}/data/${datafile}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testimport/${datafile}.out"
+  ADD_TEXT_TEST(
+    NAME
+	  "testimport_${datafile}"
+    COMMAND
+      "$<TARGET_FILE:testimport>"
+    ARGSLIST
+      "${EAVL_SOURCE_DIR}/data/${datafile}"
+	BASELINE
+      "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testimport/${datafile}.out"
   )
 endforeach(datafile)
 
@@ -101,11 +121,15 @@ set(datafiles
 )
 
 foreach(datafile ${datafiles})
-  ADD_EAVL_TEXT_TEST(
-    testiso_${datafile}
-    "$<TARGET_FILE:testiso>"
-    "3.5 nodal ${EAVL_SOURCE_DIR}/data/${datafile}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testiso/${datafile}.out"
+  ADD_TEXT_TEST(
+    NAME 
+	  testiso_${datafile}
+    COMMAND
+      "$<TARGET_FILE:testiso>"
+    ARGSLIST
+      3.5 nodal "${EAVL_SOURCE_DIR}/data/${datafile}"
+	BASELINE
+      "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testiso/${datafile}.out"
   )
 endforeach(datafile)
 
@@ -136,11 +160,15 @@ set(datafiles
 )
 
 foreach(datafile ${datafiles})
-  ADD_EAVL_TEXT_TEST(
-    testnormal_${datafile}
-    "$<TARGET_FILE:testnormal>"
-    "${EAVL_SOURCE_DIR}/data/${datafile}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testnormal/${datafile}.out"
+  ADD_TEXT_TEST(
+    NAME
+	  testnormal_${datafile}
+    COMMAND
+      "$<TARGET_FILE:testnormal>"
+    ARGSLIST
+      "${EAVL_SOURCE_DIR}/data/${datafile}"
+	BASELINE
+      "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testnormal/${datafile}.out"
   )
 endforeach(datafile)
 
@@ -190,10 +218,14 @@ set(datafiles
 )
 
 foreach(datafile ${datafiles})
-  ADD_EAVL_TEXT_TEST(
-    testxform_${datafile}
-    "$<TARGET_FILE:testxform>"
-    "${EAVL_SOURCE_DIR}/data/${datafile}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testxform/${datafile}.out"
+  ADD_TEXT_TEST(
+    NAME
+	  testxform_${datafile}
+    COMMAND
+      "$<TARGET_FILE:testxform>"
+    ARGSLIST
+      "${EAVL_SOURCE_DIR}/data/${datafile}"
+	BASELINE
+      "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testxform/${datafile}.out"
   )
 endforeach(datafile)
