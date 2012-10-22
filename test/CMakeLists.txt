@@ -1,16 +1,21 @@
 #-----------------------------------------------------------------------------
-# Tests on systems with batch systems might need a extra launch command
+# Include convenient argument parsing macro
 #-----------------------------------------------------------------------------
-SET(EAVL_TEST_RUN_COMMAND CACHE STRING "Supply a command such as 'aprun' to execute tests")
-SET(EAVL_TEST_RUN_ARGS CACHE STRING "Supply args to the run command")
+include (CMakeParseArguments)
 
 #-----------------------------------------------------------------------------
-# Find diff, we'll use diff to display errors in text comparison
+# Find diff, used to display errors in text comparison of test results
 #-----------------------------------------------------------------------------
 find_package(Diff)
 
 #-----------------------------------------------------------------------------
-# includes
+# Tests on systems with batch systems might need a extra launch command
+#-----------------------------------------------------------------------------
+SET(EAVL_TEST_RUN_COMMAND CACHE STRING "Supply a command such as 'aprun' to execute tests")
+SET(EAVL_TEST_RUN_ARGS CACHE STRING "Supply args to the run command such as -n 1")
+
+#-----------------------------------------------------------------------------
+# includes needed to build tests
 #-----------------------------------------------------------------------------
 include_directories(
   ${EAVL_SOURCE_DIR}/src/importers
@@ -18,10 +23,38 @@ include_directories(
   ${EAVL_SOURCE_DIR}/src/filters
 )
 
+
+#-----------------------------------------------------------------------------
+# simple macro to add a test - sets correct execution command etc
+#-----------------------------------------------------------------------------
+MACRO(ADD_SIMPLE_TEST)
+  CMAKE_PARSE_ARGUMENTS(
+    TEST 
+    ""
+    "NAME;COMMAND"
+    "ARGSLIST" 
+    ${ARGN}
+  ) 
+
+  # if tests have to be run using (for example) aprun instead of the the test executable itself, 
+  # then pass the test command as an argument to the other command.
+  
+  if (EAVL_TEST_RUN_COMMAND) 
+    set(TEST_ARGSLIST "${EAVL_TEST_RUN_ARGS}" "${TEST_COMMAND}" "${TEST_ARGSLIST}")
+    set(TEST_COMMAND "${EAVL_TEST_RUN_COMMAND}")
+  endif(EAVL_TEST_RUN_COMMAND)
+
+  add_test( 
+    NAME 
+      ${TEST_NAME}
+    COMMAND
+      ${TEST_COMMAND} ${TEST_ARGSLIST} 
+  )
+ENDMACRO(ADD_SIMPLE_TEST)
+
 #-----------------------------------------------------------------------------
 # define macro for testing to compare stdout against baseline text file
 #-----------------------------------------------------------------------------
-include (CMakeParseArguments)
 
 MACRO(ADD_TEXT_TEST)
   CMAKE_PARSE_ARGUMENTS(
@@ -42,7 +75,9 @@ MACRO(ADD_TEXT_TEST)
   # the test as an argument
 
   if (EAVL_TEST_RUN_COMMAND) 
-    set(TEST_ARGUMENTS "${EAVL_TEST_RUN_ARGS}" "${TEST_COMMAND}" "${TEST_ARGSLIST}" "${TEST_BASELINE}")
+    SET(EAVL_TEST_REMOVE_LAST_N_LINES "0" CACHE STRING "Remove last lines from test output (when extra output causes text comparison failure")
+    string(REPLACE " " ";" EAVL_TEST_RUN_ARGS2 ${EAVL_TEST_RUN_ARGS})
+    set(TEST_ARGSLIST "${EAVL_TEST_RUN_ARGS2}" "${TEST_COMMAND}" "${TEST_ARGSLIST}")
     set(TEST_COMMAND "${EAVL_TEST_RUN_COMMAND}")
   endif(EAVL_TEST_RUN_COMMAND)
 
@@ -64,6 +99,7 @@ MACRO(ADD_TEXT_TEST)
     OUTPUT          tmpfile.txt 
     BASELINE        ${TEST_BASELINE}
     DIFF_EXECUTABLE ${DIFF_EXECUTABLE}
+    TRIM_LINES      ${EAVL_TEST_REMOVE_LAST_N_LINES}
   )
 
   # escape all spaces before passing to args
@@ -90,7 +126,7 @@ add_executable(
 )
 target_link_libraries(testdatamodel eavl_exporters eavl_filters eavl_common)
 
-add_test(
+ADD_SIMPLE_TEST(
   NAME
     testdatamodel
   COMMAND
