@@ -28,6 +28,7 @@ OBJ=\
  exporters/eavlPNMExporter.o \
  filters/eavl3X3AverageMutator.o \
  filters/eavlBinaryMathMutator.o \
+ filters/eavlCellToNodeRecenterMutator.o \
  filters/eavlElevateMutator.o \
  filters/eavlExternalFaceMutator.o \
  filters/eavlIsosurfaceFilter.o \

@@ -64,6 +64,8 @@ class eavlCellSetExplicit : public eavlCellSet
         out << "        nCells = "<<GetNumCells()<<endl;
         out << "        cellNodeConnectivity =\n";
         cellNodeConnectivity.PrintSummary(out);
+        //out << "        nodeCellConnectivity =\n";
+        //nodeCellConnectivity.PrintSummary(out);
     }
     void SetCellNodeConnectivity(const eavlExplicitConnectivity &conn)
     {
