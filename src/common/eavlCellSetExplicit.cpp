@@ -367,15 +367,15 @@ void eavlCellSetExplicit::BuildNodeCellConnectivity()
          iter != cells_of_nodes.end(); iter++)
     {
         int node = iter->first;
-        int cell = iter->second;
-        if (node != last_node)
+        while (last_node < node)
         {
+            ++last_node;
             nodeCellConnectivity.shapetype.push_back(EAVL_POINT);
             cur_node_ctr = 0;
             cur_node_connstart = nodeCellConnectivity.connectivity.size();
             nodeCellConnectivity.connectivity.push_back(0);
-            last_node = node;
         }
+        int cell = iter->second;
         nodeCellConnectivity.connectivity.push_back(cell);
         ++nodeCellConnectivity.connectivity[cur_node_connstart];
     }

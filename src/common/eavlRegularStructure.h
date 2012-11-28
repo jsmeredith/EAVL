@@ -599,6 +599,7 @@ struct eavlRegularConnectivity
           case EAVL_NODES_OF_CELLS: return structure.GetCellNodes(index, npts, pts);
           case EAVL_NODES_OF_EDGES: return structure.GetEdgeNodes(index, npts, pts);
           case EAVL_NODES_OF_FACES: return structure.GetFaceNodes(index, npts, pts);
+          case EAVL_CELLS_OF_NODES: return structure.GetNodeCells(index, npts, pts);
           case EAVL_EDGES_OF_CELLS: return structure.GetCellEdges(index, npts, pts);
           case EAVL_FACES_OF_CELLS: return structure.GetCellFaces(index, npts, pts);
         }
