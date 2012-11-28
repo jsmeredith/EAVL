@@ -112,7 +112,7 @@ void eavlRenderCells1D(eavlCellSet *cs,
 
 
 // ----------------------------------------------------------------------------
-template <bool PointColors, bool CellColors, bool CellNormals>
+template <bool PointColors, bool CellColors, bool PointNormals, bool CellNormals>
 void eavlRenderCells2D(eavlCellSet *cs,
                        int , double *pts,
                        eavlField *f, double vmin, double vmax,
@@ -128,7 +128,7 @@ void eavlRenderCells2D(eavlCellSet *cs,
     {
         glDisable(GL_TEXTURE_1D);
     }
-    if (CellNormals)
+    if (PointNormals || CellNormals)
     {
         glEnable(GL_LIGHTING);
     }
@@ -164,22 +164,52 @@ void eavlRenderCells2D(eavlCellSet *cs,
                 double v0 = f->GetArray()->GetComponentAsDouble(i0,0);
                 double v1 = f->GetArray()->GetComponentAsDouble(i1,0);
                 double v2 = f->GetArray()->GetComponentAsDouble(i2,0);
+
+                if (PointNormals)
+                    glNormal3d(normals->GetArray()->GetComponentAsDouble(i0,0),
+                               normals->GetArray()->GetComponentAsDouble(i0,1),
+                               normals->GetArray()->GetComponentAsDouble(i0,2));
                 glTexCoord1f(MapValueToNorm(v0,vmin,vmax));
                 glVertex3dv(&(pts[i0*3]));
+
+                if (PointNormals)
+                    glNormal3d(normals->GetArray()->GetComponentAsDouble(i1,0),
+                               normals->GetArray()->GetComponentAsDouble(i1,1),
+                               normals->GetArray()->GetComponentAsDouble(i1,2));
                 glTexCoord1f(MapValueToNorm(v1,vmin,vmax));
                 glVertex3dv(&(pts[i1*3]));
+
+                if (PointNormals)
+                    glNormal3d(normals->GetArray()->GetComponentAsDouble(i2,0),
+                               normals->GetArray()->GetComponentAsDouble(i2,1),
+                               normals->GetArray()->GetComponentAsDouble(i2,2));
                 glTexCoord1f(MapValueToNorm(v2,vmin,vmax));
                 glVertex3dv(&(pts[i2*3]));
             }
-            else
+            else // no point colors
             {
                 if (CellColors)
                 {
                     double value = f->GetArray()->GetComponentAsDouble(j,0);
                     glTexCoord1f(MapValueToNorm(value, vmin, vmax));
                 }
+
+                if (PointNormals)
+                    glNormal3d(normals->GetArray()->GetComponentAsDouble(i0,0),
+                               normals->GetArray()->GetComponentAsDouble(i0,1),
+                               normals->GetArray()->GetComponentAsDouble(i0,2));
                 glVertex3dv(&(pts[i0*3]));
+
+                if (PointNormals)
+                    glNormal3d(normals->GetArray()->GetComponentAsDouble(i1,0),
+                               normals->GetArray()->GetComponentAsDouble(i1,1),
+                               normals->GetArray()->GetComponentAsDouble(i1,2));
                 glVertex3dv(&(pts[i1*3]));
+
+                if (PointNormals)
+                    glNormal3d(normals->GetArray()->GetComponentAsDouble(i2,0),
+                               normals->GetArray()->GetComponentAsDouble(i2,1),
+                               normals->GetArray()->GetComponentAsDouble(i2,2));
                 glVertex3dv(&(pts[i2*3]));
             }
         }
@@ -219,25 +249,64 @@ void eavlRenderCells2D(eavlCellSet *cs,
                 double v1 = f->GetArray()->GetComponentAsDouble(i1,0);
                 double v2 = f->GetArray()->GetComponentAsDouble(i2,0);
                 double v3 = f->GetArray()->GetComponentAsDouble(i3,0);
+
+                if (PointNormals)
+                    glNormal3d(normals->GetArray()->GetComponentAsDouble(i0,0),
+                               normals->GetArray()->GetComponentAsDouble(i0,1),
+                               normals->GetArray()->GetComponentAsDouble(i0,2));
                 glTexCoord1f(MapValueToNorm(v0,vmin,vmax));
                 glVertex3dv(&(pts[i0*3]));
+
+                if (PointNormals)
+                    glNormal3d(normals->GetArray()->GetComponentAsDouble(i1,0),
+                               normals->GetArray()->GetComponentAsDouble(i1,1),
+                               normals->GetArray()->GetComponentAsDouble(i1,2));
                 glTexCoord1f(MapValueToNorm(v1,vmin,vmax));
                 glVertex3dv(&(pts[i1*3]));
+
+                if (PointNormals)
+                    glNormal3d(normals->GetArray()->GetComponentAsDouble(i2,0),
+                               normals->GetArray()->GetComponentAsDouble(i2,1),
+                               normals->GetArray()->GetComponentAsDouble(i2,2));
                 glTexCoord1f(MapValueToNorm(v2,vmin,vmax));
                 glVertex3dv(&(pts[i2*3]));
+
+                if (PointNormals)
+                    glNormal3d(normals->GetArray()->GetComponentAsDouble(i3,0),
+                               normals->GetArray()->GetComponentAsDouble(i3,1),
+                               normals->GetArray()->GetComponentAsDouble(i3,2));
                 glTexCoord1f(MapValueToNorm(v3,vmin,vmax));
                 glVertex3dv(&(pts[i3*3]));
             }
-            else
+            else // no point colors
             {
                 if (CellColors)
                 {
                     double value = f->GetArray()->GetComponentAsDouble(j,0);
                     glTexCoord1f(MapValueToNorm(value, vmin, vmax));
                 }
+                if (PointNormals)
+                    glNormal3d(normals->GetArray()->GetComponentAsDouble(i0,0),
+                               normals->GetArray()->GetComponentAsDouble(i0,1),
+                               normals->GetArray()->GetComponentAsDouble(i0,2));
                 glVertex3dv(&(pts[i0*3]));
+
+                if (PointNormals)
+                    glNormal3d(normals->GetArray()->GetComponentAsDouble(i1,0),
+                               normals->GetArray()->GetComponentAsDouble(i1,1),
+                               normals->GetArray()->GetComponentAsDouble(i1,2));
                 glVertex3dv(&(pts[i1*3]));
+
+                if (PointNormals)
+                    glNormal3d(normals->GetArray()->GetComponentAsDouble(i2,0),
+                               normals->GetArray()->GetComponentAsDouble(i2,1),
+                               normals->GetArray()->GetComponentAsDouble(i2,2));
                 glVertex3dv(&(pts[i2*3]));
+
+                if (PointNormals)
+                    glNormal3d(normals->GetArray()->GetComponentAsDouble(i3,0),
+                               normals->GetArray()->GetComponentAsDouble(i3,1),
+                               normals->GetArray()->GetComponentAsDouble(i3,2));
                 glVertex3dv(&(pts[i3*3]));
             }
         }
@@ -410,21 +479,27 @@ class eavlPseudocolorRenderer : public eavlRenderer
             eavlField *f = dataset->GetField(fieldindices[i]);
             if (nodal)
             {
-                if (normals)
-                    eavlRenderCells2D<true, false, true>(cs, npts, pts,
+                if (normals && normals->GetAssociation()==eavlField::ASSOC_POINTS)
+                    eavlRenderCells2D<true, false, true, false>(cs, npts, pts,
+                                          f, vmin, vmax, &colortable, normals);
+                else if (normals)
+                    eavlRenderCells2D<true, false, false, true>(cs, npts, pts,
                                           f, vmin, vmax, &colortable, normals);
                 else
-                    eavlRenderCells2D<true, false, false>(cs, npts, pts,
+                    eavlRenderCells2D<true, false, false, false>(cs, npts, pts,
                                           f, vmin, vmax, &colortable, NULL);
                 return;
             }
             else if (dataset->GetCellSet(f->GetAssocCellSet()) == cs)
             {
-                if (normals)
-                    eavlRenderCells2D<false, true, true>(cs, npts, pts,
+                if (normals && normals->GetAssociation()==eavlField::ASSOC_POINTS)
+                    eavlRenderCells2D<false, true, true, false>(cs, npts, pts,
+                                         f, vmin, vmax, &colortable, normals);
+                else if (normals)
+                    eavlRenderCells2D<false, true, false, true>(cs, npts, pts,
                                          f, vmin, vmax, &colortable, normals);
                 else
-                    eavlRenderCells2D<false, true, false>(cs, npts, pts,
+                    eavlRenderCells2D<false, true, false, false>(cs, npts, pts,
                                          f, vmin, vmax, &colortable, NULL);
                 return;
             }
@@ -476,10 +551,12 @@ class eavlSingleColorRenderer : public eavlRenderer
     {
         glDisable(GL_LIGHTING);
         glEnable(GL_DEPTH_TEST);
-        if (normals)
-            eavlRenderCells2D<false, false, true>(cs, npts, pts, NULL,0,0,NULL, normals);
+        if (normals && normals->GetAssociation()==eavlField::ASSOC_POINTS)
+            eavlRenderCells2D<false, false, true, false>(cs, npts, pts, NULL,0,0,NULL, normals);
+        else if (normals)
+            eavlRenderCells2D<false, false, false, true>(cs, npts, pts, NULL,0,0,NULL, normals);
         else
-            eavlRenderCells2D<false, false, false>(cs, npts, pts, NULL,0,0,NULL, NULL);
+            eavlRenderCells2D<false, false, false, false>(cs, npts, pts, NULL,0,0,NULL, NULL);
     }
 };
 
