@@ -458,17 +458,6 @@ eavlVTKImporter::Import()
 }
 
 vector<string>
-eavlVTKImporter::GetMeshList()
-{
-    vector<string> retval;
-    for (int i=0; i<data->GetNumCellSets(); i++)
-    {
-        retval.push_back(data->GetCellSet(i)->GetName());
-    }
-    return retval;
-}
-
-vector<string>
 eavlVTKImporter::GetFieldList(const string &mesh)
 {
     vector<string> retval;
@@ -479,6 +468,18 @@ eavlVTKImporter::GetFieldList(const string &mesh)
     }
     return retval;
 }
+
+vector<string>
+eavlVTKImporter::GetCellSetList(const std::string &mesh)
+{
+    vector<string> retval;
+    for (int i=0; i<data->GetNumCellSets(); i++)
+    {
+        retval.push_back(data->GetCellSet(i)->GetName());
+    }
+    return retval;
+}
+
 
 eavlDataSet *
 eavlVTKImporter::GetMesh(const string &mesh, int chunk)

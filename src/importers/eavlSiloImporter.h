@@ -36,6 +36,7 @@ class eavlSiloImporter : public eavlImporter
     vector<string>      GetMeshList();
     int                 GetNumChunks(const std::string &mesh);
     vector<string>      GetFieldList(const std::string &mesh);
+    vector<string>      GetCellSetList(const std::string &mesh);
 
     eavlDataSet   *GetMesh(const string &name, int chunk);
     eavlField     *GetField(const string &name, const string &mesh, int chunk);

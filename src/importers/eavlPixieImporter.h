@@ -14,6 +14,7 @@
 //
 // Purpose:
 ///   Import a Pixie Silo file.
+///   \todo: this appears to be a bit out of date
 //
 // Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern
 // Creation:    July 19, 2011
@@ -26,8 +27,8 @@ class eavlPixieImporter : public eavlADIOSImporter
     eavlPixieImporter(const string &filename);
     virtual ~eavlPixieImporter();
 
-    virtual vector<string> GetFieldList();
-    virtual eavlDataSet*   GetMesh(int);
+    vector<string> GetFieldList();
+    eavlDataSet*   GetMesh(int);
 
   protected:
 };

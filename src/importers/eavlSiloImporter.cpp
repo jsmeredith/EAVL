@@ -427,7 +427,7 @@ eavlSiloImporter::GetUCDMesh(string nm)
     eavlField *field = new eavlField(1,axisValues,eavlField::ASSOC_POINTS);
     data->AddField(field);
 
-    eavlCellSetExplicit *cells = new eavlCellSetExplicit("UnstructuredGridCells",
+    eavlCellSetExplicit *cells = new eavlCellSetExplicit(nm + "_Cells",
                                                          m->zones->ndims);
     
     int nl_index = 0;
@@ -791,4 +791,10 @@ eavlSiloImporter::Print()
         for (size_t i = 0; i < ucdVars.size(); i++)
             cout<<" "<<ucdVars[i]<<endl;
     }
+}
+
+vector<string>
+eavlSiloImporter::GetCellSetList(const std::string &mesh)
+{
+    return vector<string>(1, mesh + "_Cells");
 }

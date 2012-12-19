@@ -22,6 +22,7 @@ class eavlImporter
     virtual ~eavlImporter() { }
     virtual vector<string> GetMeshList() { return vector<string>(1,"mesh"); }
     virtual vector<string> GetFieldList(const std::string &mesh) = 0;
+    virtual vector<string> GetCellSetList(const std::string &mesh) = 0;
     virtual int            GetNumChunks(const std::string &mesh) = 0;
 
     virtual vector<string> GetDiscreteDimNames() { return vector<string>(); }

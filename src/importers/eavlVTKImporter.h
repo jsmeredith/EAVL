@@ -24,9 +24,9 @@ class eavlVTKImporter : public eavlImporter
     eavlVTKImporter(const string &filename);
     eavlVTKImporter(const char *data, size_t len);
     ~eavlVTKImporter();
-    vector<string>      GetMeshList();
     int                 GetNumChunks(const std::string &mesh) { return 1; }
     vector<string>      GetFieldList(const std::string &mesh);
+    vector<string>      GetCellSetList(const std::string &mesh);
 
     eavlDataSet   *GetMesh(const string &name, int chunk);
     eavlField     *GetField(const string &name, const string &mesh, int chunk);

@@ -27,6 +27,7 @@ class eavlMADNESSImporter : public eavlImporter
     ~eavlMADNESSImporter();
     int                 GetNumChunks(const std::string &mesh);
     vector<string>      GetFieldList(const std::string &mesh);
+    vector<string>      GetCellSetList(const std::string &mesh) { return vector<string>(1,"AllQuadTreeCells"); }
     eavlDataSet   *GetMesh(const string &name, int chunk);
     eavlField     *GetField(const string &name, const string &mesh, int chunk);
 
