@@ -2,6 +2,7 @@
 #ifndef EAVL_WINDOW_H
 #define EAVL_WINDOW_H
 
+#include "eavl.h"
 #include "eavlCamera.h"
 #include "eavlRenderer.h"
 #include "eavlColorTable.h"
@@ -10,12 +11,21 @@ struct eavlPlot
 {
     eavlDataSet  *data;
     string        colortable;
-    double        vmin, vmax;
     int           cellset_index;
     int           variable_fieldindex;
     //int           variable_cellindex;
     eavlRenderer *pcRenderer;
     eavlRenderer *meshRenderer;
+
+    eavlPlot()
+        : data(NULL),
+          colortable("default"),
+          cellset_index(-1),
+          variable_fieldindex(-1),
+          pcRenderer(NULL),
+          meshRenderer(NULL)
+    {
+    }
 };
 
 
@@ -49,17 +59,17 @@ class eavlWindow
 // Class:  eavlWindow
 //
 // Purpose:
-///   A 3D output window with OpenGL rendering.
+///   A 3D output window with OpenGL/MesaGL rendering.
 //
 // Programmer:  Jeremy Meredith
 // Creation:    December 27, 2012
 //
 // Modifications:
 // ****************************************************************************
-class eavl3DOpenGLWindow : public eavlWindow
+class eavl3DGLWindow : public eavlWindow
 {
   public:
-    eavl3DOpenGLWindow() : eavlWindow()
+    eavl3DGLWindow() : eavlWindow()
     {
         colortexId = 0;
     }
@@ -122,7 +132,7 @@ class eavl3DOpenGLWindow : public eavlWindow
         ds_size = sqrt( (dmax[0]-dmin[0])*(dmax[0]-dmin[0]) +
                         (dmax[1]-dmin[1])*(dmax[1]-dmin[1]) +
                         (dmax[2]-dmin[2])*(dmax[2]-dmin[2]) );
-                    
+
         eavlPoint3 center = eavlPoint3((dmax[0]+dmin[0]) / 2,
                                        (dmax[1]+dmin[1]) / 2,
                                        (dmax[2]+dmin[2]) / 2);
@@ -346,5 +356,49 @@ class eavl3DOpenGLWindow : public eavlWindow
     }
 };
 
+#ifdef HAVE_MPI
+#include <boost/mpi.hpp>
+
+class eavl3DParallelGLWindow : public eavl3DGLWindow
+{
+  protected:
+    boost::mpi::communicator &comm;
+  public:
+    eavl3DParallelGLWindow(boost::mpi::communicator &c) : comm(c)
+    {
+    }
+    virtual void ResetView()
+    {
+        eavl3DGLWindow::ResetView();
+
+        boost::mpi::all_reduce(comm, dmin[0], dmin[0], boost::mpi::minimum<float>());
+        boost::mpi::all_reduce(comm, dmin[1], dmin[1], boost::mpi::minimum<float>());
+        boost::mpi::all_reduce(comm, dmin[2], dmin[2], boost::mpi::minimum<float>());
+
+        boost::mpi::all_reduce(comm, dmax[0], dmax[0], boost::mpi::maximum<float>());
+        boost::mpi::all_reduce(comm, dmax[1], dmax[1], boost::mpi::maximum<float>());
+        boost::mpi::all_reduce(comm, dmax[2], dmax[2], boost::mpi::maximum<float>());
+
+        ds_size = sqrt( (dmax[0]-dmin[0])*(dmax[0]-dmin[0]) +
+                        (dmax[1]-dmin[1])*(dmax[1]-dmin[1]) +
+                        (dmax[2]-dmin[2])*(dmax[2]-dmin[2]) );
+
+        eavlPoint3 center = eavlPoint3((dmax[0]+dmin[0]) / 2,
+                                       (dmax[1]+dmin[1]) / 2,
+                                       (dmax[2]+dmin[2]) / 2);
+
+        camera.at   = center;
+        camera.from = camera.at + eavlVector3(0,0, -ds_size*2);
+        camera.up   = eavlVector3(0,1,0);
+        camera.fov  = 0.5;
+        camera.nearplane = ds_size/16.;
+        camera.farplane = ds_size*4;
+    }
+};
+
+
+
+
+#endif
 
 #endif
