@@ -1,4 +1,4 @@
-// Copyright 2010-2012 UT-Battelle, LLC.  See LICENSE.txt for more information.
+// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #ifndef EAVL_CONNECTIVITY_DEREFERENCE_OP_3_H
 #define EAVL_CONNECTIVITY_DEREFERENCE_OP_3_H
 

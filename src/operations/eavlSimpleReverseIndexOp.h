@@ -1,4 +1,4 @@
-// Copyright 2010-2012 UT-Battelle, LLC.  See LICENSE.txt for more information.
+// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #ifndef EAVL_SIMPLE_REVERSE_INDEX_OP_H
 #define EAVL_SIMPLE_REVERSE_INDEX_OP_H
 

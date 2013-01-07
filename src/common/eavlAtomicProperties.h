@@ -1,4 +1,4 @@
-// Copyright 2010-2012 UT-Battelle, LLC.  See LICENSE.txt for more information.
+// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
 // This file contains code from VisIt, (c) 2000-2012 LLNS.  See COPYRIGHT.txt.
 #ifndef EAVL_ATOMIC_PROPERTIES_H
 #define EAVL_ATOMIC_PROPERTIES_H
