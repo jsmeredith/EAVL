@@ -12,40 +12,50 @@
 #include "eavlMADNESSImporter.h"
 #include "eavlBOVImporter.h"
 #include "eavlPDBImporter.h"
+#include "eavlPNGImporter.h"
 
 #include "eavlException.h"
 
+#include <cctype>
+
 eavlImporter *
-eavlImporterFactory::GetImporterForFile(const std::string &filename)
+eavlImporterFactory::GetImporterForFile(const std::string &fn_orig)
 {
+    string filename(fn_orig);
+    std::transform(filename.begin(), filename.end(), filename.begin(), tolower);
+
     eavlImporter *importer = NULL;
 
     int flen = filename.length();
     if (flen>4 && filename.substr(flen-4) == ".vtk")
     {
-        importer = new eavlVTKImporter(filename);
+        importer = new eavlVTKImporter(fn_orig);
     }
     else if (flen>8 && filename.substr(flen-8) == ".madness")
     {
-        importer = new eavlMADNESSImporter(filename);
+        importer = new eavlMADNESSImporter(fn_orig);
     }
     else if (flen>4 && filename.substr(flen-4) == ".bov")
     {
-        importer = new eavlBOVImporter(filename);
+        importer = new eavlBOVImporter(fn_orig);
     }
     else if (flen>4 && filename.substr(flen-4) == ".pdb")
     {
-        importer = new eavlPDBImporter(filename);
+        importer = new eavlPDBImporter(fn_orig);
+    }
+    else if (flen>4 && filename.substr(flen-4) == ".png")
+    {
+        importer = new eavlPNGImporter(fn_orig);
     }
 #ifdef HAVE_NETCDF
     else if (flen>3 && filename.substr(flen-3) == ".nc")
     {
-        importer = new eavlNetCDFImporter(filename);
+        importer = new eavlNetCDFImporter(fn_orig);
 
         // this is the auto-decomposing importer when we're ready for it
         //int NUMDOMAINS = 8;
         //importer = new eavlNetCDFDecomposingImporter(NUMDOMAINS,
-        //                                             filename);
+        //                                             fn_orig);
     }
 #endif
 #ifdef HAVE_HDF5
@@ -57,21 +67,21 @@ eavlImporterFactory::GetImporterForFile(const std::string &filename)
 #ifdef HAVE_SILO
     else if (flen>5 && filename.substr(flen-5) == ".silo")
     {
-        importer = new eavlSiloImporter(filename);
+        importer = new eavlSiloImporter(fn_orig);
     }
     else if (flen>4 && filename.substr(flen-4) == ".chi")
     {
-        importer = new eavlChimeraImporter(filename);
+        importer = new eavlChimeraImporter(fn_orig);
     }
 #endif
 #ifdef HAVE_ADIOS
     else if (flen>3 && filename.substr(flen-3) == ".bp")
     {
-        importer = new eavlADIOSImporter(filename);
+        importer = new eavlADIOSImporter(fn_orig);
     }
     else if (flen>6 && filename.substr(flen-6) == ".pixie")
     {
-        importer = new eavlPixieImporter(filename);
+        importer = new eavlPixieImporter(fn_orig);
     }
 #endif
 

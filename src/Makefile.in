@@ -36,10 +36,16 @@ OBJ=\
  filters/eavlTesselate2DFilter.o \
  filters/eavlThresholdMutator.o \
  filters/eavlTransformMutator.o \
+ fonts/eavlBitmapFont.o \
+ fonts/eavlBitmapFontFactory.o \
+ fonts/Liberation2Mono.o \
+ fonts/Liberation2Sans.o \
+ fonts/Liberation2Serif.o \
  importers/eavlBOVImporter.o \
  importers/eavlImporterFactory.o \
  importers/eavlMADNESSImporter.o \
  importers/eavlPDBImporter.o \
+ importers/eavlPNGImporter.o \
  importers/eavlVTKImporter.o \
  math/eavlMatrix4x4.o \
  math/eavlPoint3.o \
@@ -62,7 +68,7 @@ ifneq (@ADIOS@, no)
  OBJ+=importers/eavlPixieImporter.o
 endif
 
-CPPFLAGS+=-I../config -Icommon/ -Iimporters/ -Imath/ -Irendering/ -Iexecutor/ -Ifunctors/ -Ioperations/ -Ifilters/
+CPPFLAGS+=-I../config -Icommon/ -Ifonts/ -Iimporters/ -Imath/ -Irendering/ -Iexecutor/ -Ifunctors/ -Ioperations/ -Ifilters/
 CPPFLAGS+=$(BOOST_CPPFLAGS) $(NETCDF_CPPFLAGS) $(SILO_CPPFLAGS) $(CUDA_CPPFLAGS) $(ADIOS_CPPFLAGS)
 
 LIBS=-lm

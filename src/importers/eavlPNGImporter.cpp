@@ -15,8 +15,16 @@ eavlPNGImporter::eavlPNGImporter(const string &filename)
 
   std::vector<unsigned char> buffer(size);
   file.read((char*)(&buffer[0]), size);
+  file.close();
 
   int error = decodePNG(rgba, width, height, &buffer[0], buffer.size());
+  if (error != 0)
+      THROW(eavlException, "Error decoding file to PNG");
+}
+
+eavlPNGImporter::eavlPNGImporter(const unsigned char *buffer, long long size)
+{
+  int error = decodePNG(rgba, width, height, buffer, size);
   if (error != 0)
       THROW(eavlException, "Error decoding file to PNG");
 }

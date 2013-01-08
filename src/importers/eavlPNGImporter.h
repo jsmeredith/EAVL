@@ -20,6 +20,7 @@ class eavlPNGImporter : public eavlImporter
 {
   public:
     eavlPNGImporter(const string &filename);
+    eavlPNGImporter(const unsigned char *buffer, long long size);
     ~eavlPNGImporter();
 
     int                 GetNumChunks(const std::string &mesh) { return 1; }
