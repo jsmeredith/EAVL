@@ -6,7 +6,7 @@
 #include "eavlCamera.h"
 #include "eavlRenderer.h"
 #include "eavlColorTable.h"
-
+#include "eavlPlot.h"
 
 // ****************************************************************************
 // Class:  eavlWindow

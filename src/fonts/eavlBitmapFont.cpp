@@ -7,7 +7,17 @@ eavlBitmapFont::eavlBitmapFont()
     for (int i=0; i<256; ++i)
         shortmap[i] = 0;
     padl=padr=padt=padb=0;
+    userPointer = NULL;
+    userLong    = 0;
 }
+
+vector<unsigned char> &
+eavlBitmapFont::GetRawImageData(string &type)
+{
+    type = "png"; ///<\todo: hardcoded to png
+    return rawimagefiledata;
+}
+
 
 #ifdef HAVE_XML_TOOLS
 
@@ -85,7 +95,6 @@ class eavlNGLFontParser : public XMLParser
     {
     }
 };
-
 
 void
 eavlBitmapFont::ReadFromNGLFile(const std::string &fn)
@@ -201,7 +210,7 @@ eavlBitmapFont::DumpToInitFile(const std::string &fn,
     cpp << "    {" << endl;
     cpp << "        font->chars.push_back(eavlBitmapFont::Character("
         << "charids[i],charmetrics[i]));" << endl;
-    cpp << "        font->shortmap[charmetrics[i][0]] == i;" << endl;
+    cpp << "        font->shortmap[charmetrics[i][0]] = i;" << endl;
     cpp << "    }" << endl;
     cpp << endl;
     cpp << "    // Any kerning data follows..." << endl;

@@ -67,6 +67,9 @@ struct eavlBitmapFont
     int    shortmap[256];
     vector<Character> chars;
 
+    void      *userPointer;
+    long long  userLong;
+
     vector<unsigned char> rawimagefiledata;
 
   public:

@@ -9534,7 +9534,7 @@ eavlBitmapFont *CreateLiberation2SansFont()
     for (int i=0; i<95; i++)
     {
         font->chars.push_back(eavlBitmapFont::Character(charids[i],charmetrics[i]));
-        font->shortmap[charmetrics[i][0]] == i;
+        font->shortmap[charmetrics[i][0]] = i;
     }
 
     // Any kerning data follows...
