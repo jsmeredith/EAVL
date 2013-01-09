@@ -24,6 +24,7 @@ class eavlTextAnnotation
     string text;
     bool twod;
     bool billboard;
+    bool fixed2Dscale;
     float scale;
     float x, y, z;
     eavlMatrix4x4 mtx;
@@ -43,7 +44,8 @@ class eavlTextAnnotation
         mtx.CreateIdentity();
     }
     eavlTextAnnotation(const string &txt, eavlColor c, float s,
-                       float ox, float oy, float oz)
+                       float ox, float oy, float oz,
+                       bool scale_is_fixed_in_2D)
     {
         text = txt;
         color = c;
@@ -53,6 +55,7 @@ class eavlTextAnnotation
         z = oz;
         twod = false;
         billboard = true;
+        fixed2Dscale = scale_is_fixed_in_2D;
         mtx.CreateIdentity();
     }
     eavlTextAnnotation(const string &txt, eavlColor c, float s,
@@ -94,24 +97,41 @@ class eavlTextAnnotation
 
         if (billboard)
         {
-            camera.UpdateProjectionMatrix();
-            camera.UpdateViewMatrix();
-            eavlPoint3 p = camera.P * camera.V * eavlPoint3(x,y,z);
+            if (fixed2Dscale)
+            {
+                eavlPoint3 p = camera.P * camera.V * eavlPoint3(x,y,z);
 
-            glMatrixMode( GL_PROJECTION );
-            glLoadIdentity();
-            glOrtho(-1,1, -1,1, -1,1);
+                glMatrixMode( GL_PROJECTION );
+                glLoadIdentity();
+                glOrtho(-1,1, -1,1, -1,1);
 
-            glMatrixMode( GL_MODELVIEW );
-            glLoadIdentity();
-            mtx.CreateTranslate(p.x, p.y, -p.z);
-            glMultMatrixf(mtx.GetOpenGLMatrix4x4());
-            mtx.CreateScale(1./camera.aspect, 1, 1);
-            glMultMatrixf(mtx.GetOpenGLMatrix4x4());
-            // height given in (0,1) vert range, but we
-            // are currently in -1,1 range, so scale up by 2.0
-            mtx.CreateScale(2.0, 2.0, 1.0);
-            glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+                glMatrixMode( GL_MODELVIEW );
+                glLoadIdentity();
+                mtx.CreateTranslate(p.x, p.y, -p.z);
+                glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+                mtx.CreateScale(1./camera.aspect, 1, 1);
+                glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+                // height given in (0,1) vert range, but we
+                // are currently in -1,1 range, so scale up by 2.0
+                mtx.CreateScale(2.0, 2.0, 1.0);
+                glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+            }
+            else
+            {
+                glMatrixMode( GL_PROJECTION );
+                glLoadIdentity();
+                glMultMatrixf(camera.P.GetOpenGLMatrix4x4());
+
+                glMatrixMode( GL_MODELVIEW );
+                glLoadIdentity();
+                glMultMatrixf(camera.V.GetOpenGLMatrix4x4());
+
+                mtx.CreateRBT(eavlPoint3(x,y,z),
+                              eavlPoint3(x,y,z) - (camera.from-camera.at),
+                              camera.up);
+                glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+
+            }
         }
         else if (twod)
         {
@@ -130,16 +150,13 @@ class eavlTextAnnotation
         {
             glMatrixMode( GL_PROJECTION );
             glLoadIdentity();
-            camera.UpdateProjectionMatrix();
             glMultMatrixf(camera.P.GetOpenGLMatrix4x4());
 
             glMatrixMode( GL_MODELVIEW );
             glLoadIdentity();
-            camera.UpdateViewMatrix();
             glMultMatrixf(camera.V.GetOpenGLMatrix4x4());
 
             glMultMatrixf(mtx.GetOpenGLMatrix4x4());
-
         }
 
         glColor3fv(color.c);
@@ -152,7 +169,7 @@ class eavlTextAnnotation
         // Or maybe draw text with two passes, once to update Z (when alpha==1) and once to draw pixels (when alpha>0).
         if (true)
         {
-            //glDepthMask(GL_FALSE);
+            glDepthMask(GL_FALSE);
         }
         else
         {
@@ -200,7 +217,7 @@ class eavlTextAnnotation
         glEnd();
 
         glTexEnvf(GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, 0);
-        //glDepthMask(GL_TRUE);
+        glDepthMask(GL_TRUE);
         glDisable(GL_ALPHA_TEST);
         tex->Disable();
     }
