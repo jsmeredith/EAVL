@@ -3,6 +3,17 @@
 
 #include "eavlDataSet.h"
 
+// ****************************************************************************
+// Class:  eavlTexture
+//
+// Purpose:
+///   Encapsulates an OpenGL/Mesa texture.
+//
+// Programmer:  Jeremy Meredith
+// Creation:    January  9, 2013
+//
+// Modifications:
+// ****************************************************************************
 class eavlTexture
 {
   protected:
@@ -36,8 +47,8 @@ class eavlTexture
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
             //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-            //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glEnable(GL_TEXTURE_2D);
         }
     }
