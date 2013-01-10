@@ -122,6 +122,7 @@ class eavlTextAnnotation
 //
 // Purpose:
 ///   Text location and height are in normalized screen space coordinates.
+///   At the default angle (0.0), text is oriented upright.
 //
 // Programmer:  Jeremy Meredith
 // Creation:    January 10, 2013
@@ -133,14 +134,16 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
   protected:
     float scale;
     float x,y;
+    float angle;
   public:
     eavlScreenTextAnnotation(const string &txt, eavlColor c, float s,
-                             float ox, float oy)
+                             float ox, float oy, float angleDeg = 0.)
         : eavlTextAnnotation(txt,c)
     {
         scale = s;
         x = ox;
         y = oy;
+        angle = angleDeg;
     }
     virtual void Render(eavlCamera &camera)
     {
@@ -158,6 +161,9 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
         mtx.CreateScale(1./camera.aspect, 1, 1);
         glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 
+        mtx.CreateRotateZ(angle * M_PI / 180.);
+        glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+
         RenderText(scale);
     }
 };
@@ -166,7 +172,7 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
 // Class:  eavlWorldTextAnnotation
 //
 // Purpose:
-///   Text location and height are in world space coordinates.
+///   Text location, orientation, and size are in world space coordinates.
 //
 // Programmer:  Jeremy Meredith
 // Creation:    January 10, 2013
@@ -210,7 +216,8 @@ class eavlWorldTextAnnotation : public eavlTextAnnotation
 //
 // Purpose:
 ///   Text location origin is in world space, but the text is rotated so it
-///   is always upright and always facing towards the user and upright.
+///   is always facing towards the user and always at the same orientation
+///   (e.g. upright if angle==0).
 ///   Height can either be in screen space height (so it doesn't change
 ///   apparent size as camera moves), or in world space height (so it
 ///   gets bigger and smaller based on distance to the viewer).
@@ -226,16 +233,19 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
     float scale;
     float x,y,z;
     bool fixed2Dscale;
+    float angle;
   public:
     eavlBillboardTextAnnotation(const string &txt, eavlColor c, float s,
                                 float ox, float oy, float oz,
-                                bool scaleIsScreenSpace)
+                                bool scaleIsScreenSpace,
+                                float angleDeg = 0.)
         : eavlTextAnnotation(txt,c)
     {
         scale = s;
         x = ox;
         y = oy;
         z = oz;
+        angle = angleDeg;
         fixed2Dscale = scaleIsScreenSpace;
     }
     virtual void Render(eavlCamera &camera)
@@ -262,6 +272,9 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
             // are currently in -1,1 range, so scale up by 2.0
             mtx.CreateScale(2.0, 2.0, 1.0);
             glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+
+            mtx.CreateRotateZ(angle * M_PI / 180.);
+            glMultMatrixf(mtx.GetOpenGLMatrix4x4());
         }
         else
         {
@@ -275,6 +288,9 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
             mtx.CreateRBT(eavlPoint3(x,y,z),
                           eavlPoint3(x,y,z) - (camera.from-camera.at),
                           camera.up);
+            glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+
+            mtx.CreateRotateZ(angle * M_PI / 180.);
             glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 
         }
