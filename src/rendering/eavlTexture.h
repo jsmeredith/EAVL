@@ -1,7 +1,9 @@
+// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #ifndef EAVL_TEXTURE_H
 #define EAVL_TEXTURE_H
 
 #include "eavlDataSet.h"
+#include "eavlColorTable.h"
 
 // ****************************************************************************
 // Class:  eavlTexture
@@ -19,11 +21,15 @@ class eavlTexture
   protected:
     GLuint id;
     int dim;
+    bool linear2D;
+    bool linearMip;
   public:
     eavlTexture()
     {
         id = 0;
         dim = 0;
+        linear2D = true;
+        linearMip = true;
     }
     void Enable()
     {
@@ -32,23 +38,42 @@ class eavlTexture
 
         if (dim == 1)
         {
+            // no mipmapping for 1D (at the moment)
             glBindTexture(GL_TEXTURE_1D, id);
-            glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_CLAMP);
             glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-            glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            if (linear2D)
+            {
+                glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            }
+            else
+            {
+                glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            }
             glEnable(GL_TEXTURE_1D);
         }
         else if (dim == 2)
         {
             glBindTexture(GL_TEXTURE_2D, id);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-            //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+            if (linear2D)
+            {
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                if (linearMip)
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+                else
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+            }
+            else
+            {
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                if (linearMip)
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+                else
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+            }
             glEnable(GL_TEXTURE_2D);
         }
     }
@@ -58,6 +83,35 @@ class eavlTexture
             glDisable(GL_TEXTURE_1D);
         else if (dim == 2)
             glDisable(GL_TEXTURE_2D);
+    }
+    void CreateFromColorTable(const eavlColorTable &ct)
+    {
+        dim = 1;
+        if (id == 0)
+             glGenTextures(1, &id);
+
+        glBindTexture(GL_TEXTURE_1D, id);
+      
+        linear2D = (ct.smooth);
+        // note: 2048 was NOT supported on Jeremy's Intel IGP laptop
+        //       but 1024 IS.  Real NVIDIA cards can go up to 8192.
+        //       Sticking with 1024; that should be plenty for good results.
+        const int n = 1024;
+        float colors[n*3];
+        for (int i=0; i<n; i++)
+        {
+            eavlColor c = ct.Map(float(i)/float(n-1));
+            colors[3*i+0] = c.c[0];
+            colors[3*i+1] = c.c[1];
+            colors[3*i+2] = c.c[2];
+        }
+        glTexImage1D(GL_TEXTURE_1D, 0,
+                     GL_RGB,
+                     n,
+                     0,
+                     GL_RGB,
+                     GL_FLOAT,
+                     colors);            
     }
     void CreateFromDataSet(eavlDataSet *ds,
                            bool cr, bool cg, bool cb, bool ca)
@@ -100,14 +154,15 @@ class eavlTexture
 
 #define HW_MIPMAPS
 
+        if (id == 0)
+            glGenTextures(1, &id);
+
         if (dim == 1)
         {
-            glGenTextures(1, &id);
             glBindTexture(GL_TEXTURE_1D, id);
         }
         else if (dim == 2)
         {
-            glGenTextures(1, &id);
             glBindTexture(GL_TEXTURE_2D, id);
 #ifdef HW_MIPMAPS
             glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);

@@ -1,3 +1,4 @@
+// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #ifndef EAVL_PLOT_H
 #define EAVL_PLOT_H
 

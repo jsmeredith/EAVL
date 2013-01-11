@@ -312,20 +312,14 @@ eavlMatrix4x4::CreateRBT(const eavlPoint3 &from,
     CreateIdentity();
 
     m[0][0] = right.x;
-    m[0][1] = right.y;
-    m[0][2] = right.z;
-    m[1][0] = up.x;
+    m[0][1] = up.x;
+    m[0][2] = view_dir.x;
+    m[1][0] = right.y;
     m[1][1] = up.y;
-    m[1][2] = up.z;
-    m[2][0] = view_dir.x;
-    m[2][1] = view_dir.y;
+    m[1][2] = view_dir.y;
+    m[2][0] = right.z;
+    m[2][1] = up.z;
     m[2][2] = view_dir.z;
-
-    //
-    // The matrix so far will put us in the local coordinate system...
-    // We want the inverse of that.
-    //
-    Invert();
 
     // Don't forget the translation
     m[0][3] = from.x;

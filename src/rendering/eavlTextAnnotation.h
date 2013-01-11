@@ -1,3 +1,4 @@
+// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #ifndef EAVL_TEXT_ANNOTATION_H
 #define EAVL_TEXT_ANNOTATION_H
 
@@ -6,6 +7,7 @@
 #include <eavlPNGImporter.h>
 #include <eavlTexture.h>
 #include <eavlMatrix4x4.h>
+#include <eavlAnnotation.h>
 
 // ****************************************************************************
 // Class:  eavlTextAnnotation
@@ -18,46 +20,50 @@
 //
 // Modifications:
 // ****************************************************************************
-class eavlTextAnnotation
+class eavlTextAnnotation : public eavlAnnotation
 {
   protected:
     string text;
     eavlColor color;
   public:
-    eavlTextAnnotation(const string &txt, eavlColor c)
-        : text(txt), color(c)
+    eavlTextAnnotation(eavlWindow *w, const string &txt, eavlColor c)
+        : eavlAnnotation(w), text(txt), color(c)
     {
     }
-    virtual void Render(eavlCamera &camera) = 0;
   protected:
     void RenderText(float scale)
     {
         // set up a texture for the font if needed
         eavlBitmapFont *fnt = eavlBitmapFontFactory::GetDefaultFont();
-        eavlTexture *tex = (eavlTexture*)fnt->userPointer;
+        eavlTexture *tex = win->GetTexture(fnt->name);
         if (!tex)
         {
-            string ftype;
-            vector<unsigned char> &rawpngdata = fnt->GetRawImageData(ftype);
-            if (ftype != "png")
-                cerr << "Error: expected PNG type for font image data\n";
-            eavlPNGImporter *pngimp = new eavlPNGImporter(&rawpngdata[0],
+            eavlDataSet *img = (eavlDataSet*)fnt->userPointer;
+            if (!img)
+            {
+                string ftype;
+                vector<unsigned char> &rawpngdata = fnt->GetRawImageData(ftype);
+                if (ftype != "png")
+                    cerr << "Error: expected PNG type for font image data\n";
+                eavlPNGImporter *pngimp = new eavlPNGImporter(&rawpngdata[0],
                                                           rawpngdata.size());
-            eavlDataSet *img = pngimp->GetMesh("mesh",0);
-            img->AddField(pngimp->GetField("a","mesh",0));
+                img = pngimp->GetMesh("mesh",0);
+                img->AddField(pngimp->GetField("a","mesh",0));
+                fnt->userPointer = img;
+            }
 
             tex = new eavlTexture;
             tex->CreateFromDataSet(img, false,false,false,true);
-            fnt->userPointer = tex;
+            win->SetTexture(fnt->name, tex);
         }
 
-        // Kerning causing overlapping polygons.  Ideally only draw
+        // Kerning causes overlapping polygons.  Ideally only draw
         // pixels where alpha>0, though this causes problems for alpha
         // between 0 and 1 (unless can solve with different blend
-        // func??).  Simpler is to just disable z-writing entirely,
-        // but then must draw all text last.  Or maybe draw text with
-        // two passes, once to update Z (when alpha==1) and once to
-        // draw pixels (when alpha>0).
+        // func??) when text isn't rendered last.  Simpler is to just
+        // disable z-writing entirely, but then must draw all text
+        // last anyway.  Or maybe draw text with two passes, once to
+        // update Z (when alpha==1) and once to draw pixels (when alpha>0).
         if (true)
         {
             glDepthMask(GL_FALSE);
@@ -136,16 +142,16 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
     float x,y;
     float angle;
   public:
-    eavlScreenTextAnnotation(const string &txt, eavlColor c, float s,
+    eavlScreenTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, float s,
                              float ox, float oy, float angleDeg = 0.)
-        : eavlTextAnnotation(txt,c)
+        : eavlTextAnnotation(w,txt,c)
     {
         scale = s;
         x = ox;
         y = oy;
         angle = angleDeg;
     }
-    virtual void Render(eavlCamera &camera)
+    virtual void Setup(eavlCamera &camera)
     {
         glMatrixMode( GL_PROJECTION );
         glLoadIdentity();
@@ -163,7 +169,9 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
 
         mtx.CreateRotateZ(angle * M_PI / 180.);
         glMultMatrixf(mtx.GetOpenGLMatrix4x4());
-
+    }
+    virtual void Render()
+    {
         RenderText(scale);
     }
 };
@@ -185,11 +193,11 @@ class eavlWorldTextAnnotation : public eavlTextAnnotation
     float scale;
     eavlMatrix4x4 mtx;
   public:
-    eavlWorldTextAnnotation(const string &txt, eavlColor c, float s,
+    eavlWorldTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, float s,
                             float ox, float oy, float oz,
                             float nx, float ny, float nz,
                             float ux, float uy, float uz)
-        : eavlTextAnnotation(txt,c)
+        : eavlTextAnnotation(w,txt,c)
     {
         scale = s;
         mtx.CreateRBT(eavlPoint3(ox,oy,oz),
@@ -197,7 +205,7 @@ class eavlWorldTextAnnotation : public eavlTextAnnotation
                       eavlVector3(ux,uy,uz));
 
     }
-    virtual void Render(eavlCamera &camera)
+    virtual void Setup(eavlCamera &camera)
     {
         glMatrixMode( GL_PROJECTION );
         glLoadMatrixf(camera.P.GetOpenGLMatrix4x4());
@@ -206,7 +214,9 @@ class eavlWorldTextAnnotation : public eavlTextAnnotation
         glLoadMatrixf(camera.V.GetOpenGLMatrix4x4());
 
         glMultMatrixf(mtx.GetOpenGLMatrix4x4());
-
+    }
+    virtual void Render()
+    {
         RenderText(scale);
     }
 };
@@ -219,8 +229,8 @@ class eavlWorldTextAnnotation : public eavlTextAnnotation
 ///   is always facing towards the user and always at the same orientation
 ///   (e.g. upright if angle==0).
 ///   Height can either be in screen space height (so it doesn't change
-///   apparent size as camera moves), or in world space height (so it
-///   gets bigger and smaller based on distance to the viewer).
+///   apparent size as the camera moves), or in world space height (so
+///   it gets bigger and smaller based on distance to the viewer).
 //
 // Programmer:  Jeremy Meredith
 // Creation:    January 10, 2013
@@ -235,11 +245,11 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
     bool fixed2Dscale;
     float angle;
   public:
-    eavlBillboardTextAnnotation(const string &txt, eavlColor c, float s,
+    eavlBillboardTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, float s,
                                 float ox, float oy, float oz,
                                 bool scaleIsScreenSpace,
                                 float angleDeg = 0.)
-        : eavlTextAnnotation(txt,c)
+        : eavlTextAnnotation(w,txt,c)
     {
         scale = s;
         x = ox;
@@ -248,7 +258,7 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
         angle = angleDeg;
         fixed2Dscale = scaleIsScreenSpace;
     }
-    virtual void Render(eavlCamera &camera)
+    virtual void Setup(eavlCamera &camera)
     {
         if (fixed2Dscale)
         {
@@ -294,7 +304,9 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
             glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 
         }
-
+    }
+    virtual void Render()
+    {
         RenderText(scale);
     }
 };

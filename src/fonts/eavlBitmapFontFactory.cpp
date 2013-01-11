@@ -1,3 +1,4 @@
+// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #include "eavlBitmapFontFactory.h"
 #include "eavlBitmapFont.h"
 

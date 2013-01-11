@@ -28,7 +28,7 @@ class eavlColorTable
     };
   public:
     vector<ColorControlPoint> pts;
-    eavlColor Map(float c)
+    eavlColor Map(float c) const
     {
         int n = pts.size();
         if (n == 0)

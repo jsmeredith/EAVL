@@ -2,6 +2,17 @@
 #ifndef EAVL_BOUNDING_BOX_ANNOTATION_H
 #define EAVL_BOUNDING_BOX_ANNOTATION_H
 
+// ****************************************************************************
+// Class:  eavlBoundingBoxAnnotation
+//
+// Purpose:
+///   A 3D bounding box.
+//
+// Programmer:  Jeremy Meredith
+// Creation:    January 11, 2013
+//
+// Modifications:
+// ****************************************************************************
 class eavlBoundingBoxAnnotation : public eavlWorldSpaceAnnotation
 {
   protected:
@@ -28,7 +39,7 @@ class eavlBoundingBoxAnnotation : public eavlWorldSpaceAnnotation
     {
         glDisable(GL_LIGHTING);
         glLineWidth(1);
-        glColor3f(.6,.6,.6);
+        glColor3f(.4,.4,.4);
         glBegin(GL_LINES);
         glVertex3d(dmin[0],dmin[1],dmin[2]); glVertex3d(dmin[0],dmin[1],dmax[2]);
         glVertex3d(dmin[0],dmax[1],dmin[2]); glVertex3d(dmin[0],dmax[1],dmax[2]);

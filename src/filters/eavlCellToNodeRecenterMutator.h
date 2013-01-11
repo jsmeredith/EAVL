@@ -1,3 +1,4 @@
+// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #ifndef EAVL_CELL_TO_NODE_RECENTER_MUTATOR_H
 #define EAVL_CELL_TO_NODE_RECENTER_MUTATOR_H
 #include "eavlFilter.h"

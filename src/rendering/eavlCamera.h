@@ -19,20 +19,49 @@
 class eavlCamera
 {
   public:
+    // common parameters
+    float        aspect;
+
+    // 3d parameters
     eavlPoint3   from;
     eavlPoint3   at;
     eavlVector3  up;
-    float        fov;
-    float        aspect;
     float        nearplane;
     float        farplane;
 
+    bool         perspective;
+    float        fov; // perspective only
+    float        size; // ortho only
+
+    // 2d parameters
+    bool         twod;
+    float        l,r,t,b;
+    eavlCamera()
+    {
+        aspect = 1;
+        size = 1;
+        fov = 0.5;
+        perspective = true;
+        twod = false;
+    }
+    
     void UpdateProjectionMatrix()
     {
-        P.CreatePerspectiveProjection(nearplane, farplane, fov, aspect);
+        if (twod)
+            P.CreateOrthographicProjection(fabs(b-t), +1, -1, aspect);
+        else if (perspective)
+            P.CreatePerspectiveProjection(nearplane, farplane, fov, aspect);
+        else
+            P.CreateOrthographicProjection(size, nearplane, farplane, aspect);
     }
     void UpdateViewMatrix()
     {
+        if (twod)
+        {
+            at = eavlPoint3((l+r)/2., (t+b)/2., 0);
+            from = at + eavlVector3(0,0,1);
+            up = eavlVector3(0,1,0);
+        }
         V.CreateView(from,at,up);
     }
 

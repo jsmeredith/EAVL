@@ -8,21 +8,21 @@
 // Class:  eavlColorBarAnnotation
 //
 // Purpose:
-///   Annotation which represents a colortable
+///   Annotation which renders a colortable to the screen.
 //
 // Programmer:  Jeremy Meredith
 // Creation:    January 10, 2013
 //
 // Modifications:
 // ****************************************************************************
-class eavlColorBarAnnotation : public eavlAnnotation
+class eavlColorBarAnnotation : public eavlScreenSpaceAnnotation
 {
   protected:
     string ctname;
     bool needsUpdate;
   public:
     GLuint texid;
-    eavlColorBarAnnotation(eavlWindow *win) : eavlAnnotation(win)
+    eavlColorBarAnnotation(eavlWindow *win) : eavlScreenSpaceAnnotation(win)
     {
         texid == 0;
         needsUpdate = true;
@@ -34,7 +34,7 @@ class eavlColorBarAnnotation : public eavlAnnotation
         ctname = colortablename;
         needsUpdate = true;
     }
-    virtual void Render(eavlCamera &camera)
+    virtual void Render()
     {
         eavlTexture *tex = win->GetTexture("colorbar");
         if (!tex || needsUpdate)
@@ -50,13 +50,6 @@ class eavlColorBarAnnotation : public eavlAnnotation
 
         glDisable(GL_LIGHTING);
         glColor3fv(eavlColor::white.c);
-
-        glMatrixMode( GL_PROJECTION );
-        glLoadIdentity();
-        glOrtho(-1,1, -1,1, -1,1);
-
-        glMatrixMode( GL_MODELVIEW );
-        glLoadIdentity();
 
         glBegin(GL_QUADS);
 
