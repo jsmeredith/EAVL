@@ -1,0 +1,77 @@
+// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
+#ifndef EAVL_COLOR_BAR_ANNOTATION_H
+#define EAVL_COLOR_BAR_ANNOTATION_H
+
+#include "eavlCamera.h"
+
+// ****************************************************************************
+// Class:  eavlColorBarAnnotation
+//
+// Purpose:
+///   Annotation which represents a colortable
+//
+// Programmer:  Jeremy Meredith
+// Creation:    January 10, 2013
+//
+// Modifications:
+// ****************************************************************************
+class eavlColorBarAnnotation : public eavlAnnotation
+{
+  protected:
+    string ctname;
+    bool needsUpdate;
+  public:
+    GLuint texid;
+    eavlColorBarAnnotation(eavlWindow *win) : eavlAnnotation(win)
+    {
+        texid == 0;
+        needsUpdate = true;
+    }
+    void SetColorTable(const string &colortablename)
+    {
+        if (ctname == colortablename)
+            return;
+        ctname = colortablename;
+        needsUpdate = true;
+    }
+    virtual void Render(eavlCamera &camera)
+    {
+        eavlTexture *tex = win->GetTexture("colorbar");
+        if (!tex || needsUpdate)
+        {
+            if (!tex)
+                tex = new eavlTexture;
+            tex->CreateFromColorTable(eavlColorTable(ctname));
+            win->SetTexture("colorbar", tex);
+        }
+        needsUpdate = false;
+
+        tex->Enable();
+
+        glDisable(GL_LIGHTING);
+        glColor3fv(eavlColor::white.c);
+
+        glMatrixMode( GL_PROJECTION );
+        glLoadIdentity();
+        glOrtho(-1,1, -1,1, -1,1);
+
+        glMatrixMode( GL_MODELVIEW );
+        glLoadIdentity();
+
+        glBegin(GL_QUADS);
+
+        glTexCoord1f(0);
+        glVertex3f(-.9, .87 ,.99);
+        glVertex3f(-.9, .95 ,.99);
+
+        glTexCoord1f(1);
+        glVertex3f(+.9, .95 ,.99);
+        glVertex3f(+.9, .87 ,.99);
+
+        glEnd();
+
+        tex->Disable();
+    }
+};
+
+#endif
