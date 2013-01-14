@@ -3,7 +3,7 @@
 #define EAVL_PLOT_H
 
 #include "eavl.h"
-#include "eavlCamera.h"
+#include "eavlView.h"
 #include "eavlRenderer.h"
 #include "eavlColorTable.h"
 

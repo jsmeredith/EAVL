@@ -3,7 +3,7 @@
 #define EAVL_WINDOW_H
 
 #include "eavl.h"
-#include "eavlCamera.h"
+#include "eavlView.h"
 #include "eavlRenderer.h"
 #include "eavlColorTable.h"
 #include "eavlPlot.h"
@@ -25,11 +25,11 @@ class eavlWindow
 {
   public:
     std::vector<eavlPlot> plots;
-    eavlCamera camera;
+    eavlView &view;
     std::map<std::string,eavlTexture*> textures;
 
   public:
-    eavlWindow() { }
+    eavlWindow(eavlView &v) : view(v) { }
     virtual void ResetView() = 0;
     virtual void Initialize() = 0;
     virtual void Resize(int w, int h) = 0;
@@ -58,7 +58,7 @@ class eavlWindow
 class eavl3DGLWindow : public eavlWindow
 {
   public:
-    eavl3DGLWindow() : eavlWindow()
+    eavl3DGLWindow(eavlView &v) : eavlWindow(v)
     {
         colortexId = 0;
     }
@@ -127,12 +127,12 @@ class eavl3DGLWindow : public eavlWindow
                                        (dmax[1]+dmin[1]) / 2,
                                        (dmax[2]+dmin[2]) / 2);
 
-        camera.at   = center;
-        camera.from = camera.at + eavlVector3(0,0, -ds_size*2);
-        camera.up   = eavlVector3(0,1,0);
-        camera.fov  = 0.5;
-        camera.nearplane = ds_size/16.;
-        camera.farplane = ds_size*4;
+        view.view3d.at   = center;
+        view.view3d.from = view.view3d.at + eavlVector3(0,0, -ds_size*2);
+        view.view3d.up   = eavlVector3(0,1,0);
+        view.view3d.fov  = 0.5;
+        view.view3d.nearplane = ds_size/16.;
+        view.view3d.farplane = ds_size*4;
 
     }
     virtual void Initialize()
@@ -140,14 +140,11 @@ class eavl3DGLWindow : public eavlWindow
     }
     virtual void Resize(int w, int h)
     {
+        ///\todo: I think we need to delete this line
         glViewport(0, 0, w, h);
-        camera.aspect = float(w)/float(h);
     }
     virtual void Paint()
     {
-        glClearColor(0.0, 0.2, 0.3, 1.0);
-        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
         if (plots.size() == 0)
             return;
 
@@ -158,10 +155,9 @@ class eavl3DGLWindow : public eavlWindow
             return;
 
         // matrices
+        view.SetMatricesForViewport();
         glMatrixMode( GL_PROJECTION );
-        glLoadIdentity();
-        camera.UpdateProjectionMatrix();
-        glMultMatrixf(camera.P.GetOpenGLMatrix4x4());
+        glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
 
         glMatrixMode( GL_MODELVIEW );
         glLoadIdentity();
@@ -186,8 +182,7 @@ class eavl3DGLWindow : public eavlWindow
             glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 8.0f);
         }
 
-        camera.UpdateViewMatrix();
-        glMultMatrixf(camera.V.GetOpenGLMatrix4x4());
+        glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
 
         // render the plots
         for (unsigned int i=0;  i<plots.size(); i++)
@@ -267,18 +262,18 @@ class eavl3DGLWindow : public eavlWindow
 class eavl2DGLWindow : public eavlWindow
 {
   public:
-    eavl2DGLWindow() : eavlWindow()
+    eavl2DGLWindow(eavlView &v) : eavlWindow(v)
     {
         colortexId = 0;
     }
 
   protected:
     float      dmin[3], dmax[3];
+    int width, height;
 
     ///\todo: big hack for saved_colortable
     string saved_colortable;
     int colortexId;
-
     virtual void ResetView()
     {
         dmin[0] = dmin[1] = dmin[2] = FLT_MAX;
@@ -330,26 +325,19 @@ class eavl2DGLWindow : public eavlWindow
                                        (dmax[1]+dmin[1]) / 2,
                                        (dmax[2]+dmin[2]) / 2);
 
-        camera.twod = true;
-        camera.l = dmin[0];
-        camera.r = dmax[0];
-        camera.t = dmin[1];
-        camera.b = dmax[1];
+        view.view2d.l = dmin[0];
+        view.view2d.r = dmax[0];
+        view.view2d.b = dmin[1];
+        view.view2d.t = dmax[1];
     }
     virtual void Initialize()
     {
     }
     virtual void Resize(int w, int h)
     {
-        //glViewport(0, 0, w, h);
-        glViewport(w*.1, h*.1, w*.8, h*.4);
-        camera.aspect = float(w)/float(h);
     }
     virtual void Paint()
     {
-        glClearColor(0.0, 0.2, 0.3, 1.0);
-        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
         if (plots.size() == 0)
             return;
 
@@ -360,36 +348,20 @@ class eavl2DGLWindow : public eavlWindow
             return;
 
         // matrices
+        float vl, vr, vt, vb;
+        view.GetReal2DViewport(vl,vr,vb,vt);
+        glViewport(float(view.w)*(1.+vl)/2.,
+                   float(view.h)*(1.+vb)/2.,
+                   float(view.w)*(vr-vl)/2.,
+                   float(view.h)*(vt-vb)/2.);
+
+        view.SetMatricesForViewport();
+
         glMatrixMode( GL_PROJECTION );
-        glLoadIdentity();
-        camera.UpdateProjectionMatrix();
-        glMultMatrixf(camera.P.GetOpenGLMatrix4x4());
+        glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
 
         glMatrixMode( GL_MODELVIEW );
-        glLoadIdentity();
-
-        // lighting
-        bool lighting = true;
-        if (lighting)
-        {
-            bool twoSidedLighting = true;
-            glShadeModel(GL_SMOOTH);
-            glEnable(GL_LIGHTING);
-            glEnable(GL_COLOR_MATERIAL);
-            glEnable(GL_LIGHT0);
-            glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, twoSidedLighting?1:0);
-            glLightModelfv(GL_LIGHT_MODEL_AMBIENT, eavlColor::grey20.c);
-            glLightfv(GL_LIGHT0, GL_AMBIENT, eavlColor::black.c);
-            glLightfv(GL_LIGHT0, GL_DIFFUSE, eavlColor::grey50.c);
-            float lightdir[4] = {0, 0, 1, 0};
-            glLightfv(GL_LIGHT0, GL_POSITION, lightdir);
-            glLightfv(GL_LIGHT0, GL_SPECULAR, eavlColor::white.c);
-            glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, eavlColor::grey40.c);
-            glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 8.0f);
-        }
-
-        camera.UpdateViewMatrix();
-        glMultMatrixf(camera.V.GetOpenGLMatrix4x4());
+        glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
 
         // render the plots
         for (unsigned int i=0;  i<plots.size(); i++)
@@ -451,28 +423,31 @@ class eavl2DGLWindow : public eavlWindow
             }
         }
 
-        // bounding box
+        view.SetMatricesForScreen();
+        glViewport(0,0,view.w,view.h);
+
+        glMatrixMode( GL_PROJECTION );
+        glLoadIdentity();
+        glOrtho(-1,1, -1,1, -1,1);
+        glMatrixMode( GL_MODELVIEW );
+        glLoadIdentity();
         glDisable(GL_LIGHTING);
-        glLineWidth(1);
-        glColor3f(.6,.6,.6);
+        glDisable(GL_DEPTH_TEST);
+        //glLineWidth(2);
+        glColor3f(.4,.4,.4);
         glBegin(GL_LINES);
-        glVertex3d(dmin[0],dmin[1],dmin[2]); glVertex3d(dmin[0],dmin[1],dmax[2]);
-        glVertex3d(dmin[0],dmax[1],dmin[2]); glVertex3d(dmin[0],dmax[1],dmax[2]);
-        glVertex3d(dmax[0],dmin[1],dmin[2]); glVertex3d(dmax[0],dmin[1],dmax[2]);
-        glVertex3d(dmax[0],dmax[1],dmin[2]); glVertex3d(dmax[0],dmax[1],dmax[2]);
+        glVertex2d(vl, vt);
+        glVertex2d(vl, vb);
 
-        glVertex3d(dmin[0],dmin[1],dmin[2]); glVertex3d(dmin[0],dmax[1],dmin[2]);
-        glVertex3d(dmin[0],dmin[1],dmax[2]); glVertex3d(dmin[0],dmax[1],dmax[2]);
-        glVertex3d(dmax[0],dmin[1],dmin[2]); glVertex3d(dmax[0],dmax[1],dmin[2]);
-        glVertex3d(dmax[0],dmin[1],dmax[2]); glVertex3d(dmax[0],dmax[1],dmax[2]);
+        glVertex2d(vr, vt);
+        glVertex2d(vr, vb);
 
-        glVertex3d(dmin[0],dmin[1],dmin[2]); glVertex3d(dmax[0],dmin[1],dmin[2]);
-        glVertex3d(dmin[0],dmin[1],dmax[2]); glVertex3d(dmax[0],dmin[1],dmax[2]);
-        glVertex3d(dmin[0],dmax[1],dmin[2]); glVertex3d(dmax[0],dmax[1],dmin[2]);
-        glVertex3d(dmin[0],dmax[1],dmax[2]); glVertex3d(dmax[0],dmax[1],dmax[2]);
+        glVertex2d(vl, vt);
+        glVertex2d(vr, vt);
+
+        glVertex2d(vl, vb);
+        glVertex2d(vr, vb);
         glEnd();
-
-        //delete[] pts;
     }
 };
 
@@ -507,12 +482,12 @@ class eavl3DParallelGLWindow : public eavl3DGLWindow
                                        (dmax[1]+dmin[1]) / 2,
                                        (dmax[2]+dmin[2]) / 2);
 
-        camera.at   = center;
-        camera.from = camera.at + eavlVector3(0,0, -ds_size*2);
-        camera.up   = eavlVector3(0,1,0);
-        camera.fov  = 0.5;
-        camera.nearplane = ds_size/16.;
-        camera.farplane = ds_size*4;
+        view.view3d.at   = center;
+        view.view3d.from = view.view3d.at + eavlVector3(0,0, -ds_size*2);
+        view.view3d.up   = eavlVector3(0,1,0);
+        view.view3d.fov  = 0.5;
+        view.view3d.nearplane = ds_size/16.;
+        view.view3d.farplane = ds_size*4;
     }
 };
 

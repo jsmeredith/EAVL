@@ -56,6 +56,8 @@ void eavlRenderPoints(int npts, double *pts,
         glVertex3dv(&(pts[j*3]));
     }
     glEnd();
+
+    glDisable(GL_TEXTURE_1D);
 }
 
 
@@ -109,6 +111,8 @@ void eavlRenderCells1D(eavlCellSet *cs,
         }
     }
     glEnd();
+
+    glDisable(GL_TEXTURE_1D);
 }
 
 
@@ -313,6 +317,8 @@ void eavlRenderCells2D(eavlCellSet *cs,
         }
     }
     glEnd();
+
+    glDisable(GL_TEXTURE_1D);
 }
 
 

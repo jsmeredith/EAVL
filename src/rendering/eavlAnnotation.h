@@ -24,7 +24,7 @@ class eavlAnnotation
         : win(w)
     {
     }
-    virtual void Setup(eavlCamera &camera) = 0;
+    virtual void Setup(eavlView &view) = 0;
     virtual void Render() = 0;
 };
 
@@ -47,13 +47,15 @@ class eavlWorldSpaceAnnotation : public eavlAnnotation
         : eavlAnnotation(w)
     {
     }
-    virtual void Setup(eavlCamera &camera)
+    virtual void Setup(eavlView &view)
     {
+        view.SetMatricesForViewport();
+
         glMatrixMode( GL_PROJECTION );
-        glLoadMatrixf(camera.P.GetOpenGLMatrix4x4());
+        glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
 
         glMatrixMode( GL_MODELVIEW );
-        glLoadMatrixf(camera.V.GetOpenGLMatrix4x4());
+        glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
     }
 };
 
@@ -76,8 +78,10 @@ class eavlScreenSpaceAnnotation : public eavlAnnotation
         : eavlAnnotation(w)
     {
     }
-    virtual void Setup(eavlCamera &camera)
+    virtual void Setup(eavlView &view)
     {
+        view.SetMatricesForScreen();
+
         glMatrixMode( GL_PROJECTION );
         glLoadIdentity();
         glOrtho(-1,1, -1,1, -1,1);

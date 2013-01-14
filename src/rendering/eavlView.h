@@ -1,0 +1,143 @@
+// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
+#ifndef EAVL_VIEW_H
+#define EAVL_VIEW_H
+
+#include "eavlVector3.h"
+#include "eavlPoint3.h"
+#include "eavlMatrix4x4.h"
+
+struct eavl3DView
+{
+    eavlPoint3   from;
+    eavlPoint3   at;
+    eavlVector3  up;
+    float        nearplane;
+    float        farplane;
+
+    bool         perspective;
+    float        fov; // perspective only
+    float        size; // ortho only
+
+    //float        xs, ys, zs; ///\todo: would like to add scaling/fullframe
+};
+
+struct eavl2DView
+{
+    float        l,r,t,b;
+    //bool logx, logy; ///\todo: would like to add logarithmic scaling
+    //float xs, ys; ///\todo: would like fullframe
+};
+
+struct eavlView
+{
+    enum ViewType { EAVL_VIEW_2D, EAVL_VIEW_3D };
+    ViewType viewtype;
+
+    // viewport
+    float vl, vr, vb, vt;
+
+    eavl3DView view3d;
+    eavl2DView view2d;
+
+    eavlMatrix4x4 P, V;
+
+    float w, h; // window width and height
+    float aspect;
+
+    eavlView()
+    {
+        vl = -1;  vr = +1;
+        vb = -1;  vt = +1;
+    }
+
+    void SetMatricesForViewport()
+    {
+        float l=vl, r=vr, b=vb, t=vt;
+        if (viewtype == EAVL_VIEW_2D)
+            GetReal2DViewport(l,r,t,b);
+
+        // aspect is the viewport's aspect ratio in terms of pixels
+        aspect = (w*(r-l)) / (h*(t-b));
+
+        // set up projection matrix
+        if (viewtype == EAVL_VIEW_2D)
+            P.CreateOrthographicProjection(fabs(view2d.t-view2d.b),
+                                           +1, -1, aspect);
+        else if (view3d.perspective)
+            P.CreatePerspectiveProjection(view3d.nearplane, view3d.farplane,
+                                          view3d.fov, aspect);
+        else
+            P.CreateOrthographicProjection(view3d.size,
+                                           view3d.nearplane, view3d.farplane,
+                                           aspect);
+
+        // set up view matrix
+        if (viewtype == EAVL_VIEW_2D)
+        {
+            eavlPoint3 at = eavlPoint3((view2d.l+view2d.r)/2., (view2d.t+view2d.b)/2., 0);
+            eavlPoint3 from = at + eavlVector3(0,0,1);
+            eavlVector3 up = eavlVector3(0,1,0);
+            V.CreateView(from,at,up);
+        }
+        else // EAVL_VIEW_3D
+        {
+            V.CreateView(view3d.from,view3d.at,view3d.up);
+        }
+
+        // set them in GL
+        glMatrixMode( GL_PROJECTION );
+        glLoadMatrixf(P.GetOpenGLMatrix4x4());
+
+        glMatrixMode( GL_MODELVIEW );
+        glLoadMatrixf(V.GetOpenGLMatrix4x4());
+    }
+    void SetMatricesForScreen()
+    {
+        aspect = w / h;
+        glMatrixMode( GL_PROJECTION );
+        glLoadIdentity();
+        glOrtho(-1,1, -1,1, -1,1);
+
+        glMatrixMode( GL_MODELVIEW );
+        glLoadIdentity();
+    }
+    void GetReal2DViewport(float &l, float &r, float &b, float &t)
+    {
+        // We set up a 2D viewport in window coordinates.
+        // It has some aspect ratio given the window
+        // width and height, but that aspect ratio may
+        // not match our view onto the 2D data; we need to clip
+        // the original viewport based on the aspect ratio
+        // of the window vs the eavl2DView.
+        ///\todo: implement this
+        float maxvw = (vr-vl) * w;
+        float maxvh = (vt-vb) * h;
+        float waspect = maxvw / maxvh;
+        float daspect = (view2d.r - view2d.l) / (view2d.t - view2d.b);
+        //cerr << "waspect="<<waspect << "   \tdaspect="<<daspect<<endl;
+        if (waspect > daspect)
+        {
+            float new_vr = vl + (vr-vl) * daspect / waspect;
+            l = vl;
+            r = new_vr;
+            b = vb;
+            t = vt;
+        }
+        else
+        {
+            float new_vt = vb + (vt-vb) * waspect / daspect;
+            l = vl;
+            r = vr;
+            b = vb;
+            t = new_vt;
+        }
+        /*
+        l = vl;
+        r = vr;
+        b = vb;
+        t = vt;
+        */
+    }
+};
+
+#endif

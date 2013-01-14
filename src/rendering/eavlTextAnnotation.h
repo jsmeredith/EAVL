@@ -151,8 +151,9 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
         y = oy;
         angle = angleDeg;
     }
-    virtual void Setup(eavlCamera &camera)
+    virtual void Setup(eavlView &view)
     {
+        
         glMatrixMode( GL_PROJECTION );
         glLoadIdentity();
         glOrtho(0,1, 0,1, -1,1);
@@ -164,7 +165,7 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
         mtx.CreateTranslate(x, y, 0);
         glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 
-        mtx.CreateScale(1./camera.aspect, 1, 1);
+        mtx.CreateScale(1./view.aspect, 1, 1);
         glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 
         mtx.CreateRotateZ(angle * M_PI / 180.);
@@ -205,13 +206,13 @@ class eavlWorldTextAnnotation : public eavlTextAnnotation
                       eavlVector3(ux,uy,uz));
 
     }
-    virtual void Setup(eavlCamera &camera)
+    virtual void Setup(eavlView &view)
     {
         glMatrixMode( GL_PROJECTION );
-        glLoadMatrixf(camera.P.GetOpenGLMatrix4x4());
+        glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
 
         glMatrixMode( GL_MODELVIEW );
-        glLoadMatrixf(camera.V.GetOpenGLMatrix4x4());
+        glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
 
         glMultMatrixf(mtx.GetOpenGLMatrix4x4());
     }
@@ -229,7 +230,7 @@ class eavlWorldTextAnnotation : public eavlTextAnnotation
 ///   is always facing towards the user and always at the same orientation
 ///   (e.g. upright if angle==0).
 ///   Height can either be in screen space height (so it doesn't change
-///   apparent size as the camera moves), or in world space height (so
+///   apparent size as the view moves), or in world space height (so
 ///   it gets bigger and smaller based on distance to the viewer).
 //
 // Programmer:  Jeremy Meredith
@@ -258,11 +259,11 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
         angle = angleDeg;
         fixed2Dscale = scaleIsScreenSpace;
     }
-    virtual void Setup(eavlCamera &camera)
+    virtual void Setup(eavlView &view)
     {
         if (fixed2Dscale)
         {
-            eavlPoint3 p = camera.P * camera.V * eavlPoint3(x,y,z);
+            eavlPoint3 p = view.P * view.V * eavlPoint3(x,y,z);
 
             glMatrixMode( GL_PROJECTION );
             glLoadIdentity();
@@ -275,7 +276,7 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
             mtx.CreateTranslate(p.x, p.y, -p.z);
             glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 
-            mtx.CreateScale(1./camera.aspect, 1, 1);
+            mtx.CreateScale(1./view.aspect, 1, 1);
             glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 
             // height given in (0,1) vert range, but we
@@ -289,15 +290,15 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
         else
         {
             glMatrixMode( GL_PROJECTION );
-            glLoadMatrixf(camera.P.GetOpenGLMatrix4x4());
+            glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
 
             glMatrixMode( GL_MODELVIEW );
-            glLoadMatrixf(camera.V.GetOpenGLMatrix4x4());
+            glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
 
             eavlMatrix4x4 mtx;
             mtx.CreateRBT(eavlPoint3(x,y,z),
-                          eavlPoint3(x,y,z) - (camera.from-camera.at),
-                          camera.up);
+                          eavlPoint3(x,y,z) - (view.view3d.from-view.view3d.at),
+                          view.view3d.up);
             glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 
             mtx.CreateRotateZ(angle * M_PI / 180.);

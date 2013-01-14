@@ -2,7 +2,7 @@
 #ifndef EAVL_COLOR_BAR_ANNOTATION_H
 #define EAVL_COLOR_BAR_ANNOTATION_H
 
-#include "eavlCamera.h"
+#include "eavlView.h"
 
 // ****************************************************************************
 // Class:  eavlColorBarAnnotation
