@@ -65,7 +65,6 @@ class eavl3DGLWindow : public eavlWindow
 
     ///\todo: hack: this shouldn't be public, but I'm not sure it's even
     /// the right spot for it, so I'm working around it at the moment....
-    float      dmin[3], dmax[3];
   protected:
 
     ///\todo: big hack for saved_colortable
@@ -74,8 +73,8 @@ class eavl3DGLWindow : public eavlWindow
 
     virtual void ResetView()
     {
-        dmin[0] = dmin[1] = dmin[2] = FLT_MAX;
-        dmax[0] = dmax[1] = dmax[2] = -FLT_MAX;
+        view.minextents[0] = view.minextents[1] = view.minextents[2] = FLT_MAX;
+        view.maxextents[0] = view.maxextents[1] = view.maxextents[2] = -FLT_MAX;
 
         for (unsigned int i=0; i<plots.size(); i++)
         {
@@ -98,35 +97,38 @@ class eavl3DGLWindow : public eavlWindow
                 {
                     double v = p.data->GetPoint(i,d);
                     //cerr << "findspatialextents: d="<<d<<" i="<<i<<"  v="<<v<<endl;
-                    if (v < dmin[d])
-                        dmin[d] = v;
-                    if (v > dmax[d])
-                        dmax[d] = v;
+                    if (v < view.minextents[d])
+                        view.minextents[d] = v;
+                    if (v > view.maxextents[d])
+                        view.maxextents[d] = v;
                 }
             }
         }
 
         // untouched dims force to zero
-        if (dmin[0] > dmax[0])
-            dmin[0] = dmax[0] = 0;
-        if (dmin[1] > dmax[1])
-            dmin[1] = dmax[1] = 0;
-        if (dmin[2] > dmax[2])
-            dmin[2] = dmax[2] = 0;
+        if (view.minextents[0] > view.maxextents[0])
+            view.minextents[0] = view.maxextents[0] = 0;
+        if (view.minextents[1] > view.maxextents[1])
+            view.minextents[1] = view.maxextents[1] = 0;
+        if (view.minextents[2] > view.maxextents[2])
+            view.minextents[2] = view.maxextents[2] = 0;
 
         //cerr << "extents: "
-        //     << dmin[0]<<":"<<dmax[0]<<"  "
-        //     << dmin[1]<<":"<<dmax[1]<<"  "
-        //     << dmin[2]<<":"<<dmax[2]<<"\n";
+        //     << view.minextents[0]<<":"<<view.maxextents[0]<<"  "
+        //     << view.minextents[1]<<":"<<view.maxextents[1]<<"  "
+        //     << view.minextents[2]<<":"<<view.maxextents[2]<<"\n";
 
-        float ds_size = sqrt( (dmax[0]-dmin[0])*(dmax[0]-dmin[0]) +
-                              (dmax[1]-dmin[1])*(dmax[1]-dmin[1]) +
-                              (dmax[2]-dmin[2])*(dmax[2]-dmin[2]) );
+        float ds_size = sqrt( (view.maxextents[0]-view.minextents[0])*(view.maxextents[0]-view.minextents[0]) +
+                              (view.maxextents[1]-view.minextents[1])*(view.maxextents[1]-view.minextents[1]) +
+                              (view.maxextents[2]-view.minextents[2])*(view.maxextents[2]-view.minextents[2]) );
 
-        eavlPoint3 center = eavlPoint3((dmax[0]+dmin[0]) / 2,
-                                       (dmax[1]+dmin[1]) / 2,
-                                       (dmax[2]+dmin[2]) / 2);
+        eavlPoint3 center = eavlPoint3((view.maxextents[0]+view.minextents[0]) / 2,
+                                       (view.maxextents[1]+view.minextents[1]) / 2,
+                                       (view.maxextents[2]+view.minextents[2]) / 2);
 
+        view.view3d.xpan = 0;
+        view.view3d.ypan = 0;
+        view.view3d.zoom = 1.0;
         view.view3d.at   = center;
         view.view3d.from = view.view3d.at + eavlVector3(0,0, -ds_size*2);
         view.view3d.up   = eavlVector3(0,1,0);
@@ -268,7 +270,6 @@ class eavl2DGLWindow : public eavlWindow
     }
 
   protected:
-    float      dmin[3], dmax[3];
     int width, height;
 
     ///\todo: big hack for saved_colortable
@@ -276,8 +277,8 @@ class eavl2DGLWindow : public eavlWindow
     int colortexId;
     virtual void ResetView()
     {
-        dmin[0] = dmin[1] = dmin[2] = FLT_MAX;
-        dmax[0] = dmax[1] = dmax[2] = -FLT_MAX;
+        view.minextents[0] = view.minextents[1] = view.minextents[2] = FLT_MAX;
+        view.maxextents[0] = view.maxextents[1] = view.maxextents[2] = -FLT_MAX;
 
         for (unsigned int i=0; i<plots.size(); i++)
         {
@@ -300,35 +301,35 @@ class eavl2DGLWindow : public eavlWindow
                 {
                     double v = p.data->GetPoint(i,d);
                     //cerr << "findspatialextents: d="<<d<<" i="<<i<<"  v="<<v<<endl;
-                    if (v < dmin[d])
-                        dmin[d] = v;
-                    if (v > dmax[d])
-                        dmax[d] = v;
+                    if (v < view.minextents[d])
+                        view.minextents[d] = v;
+                    if (v > view.maxextents[d])
+                        view.maxextents[d] = v;
                 }
             }
         }
 
         // untouched dims force to zero
-        if (dmin[0] > dmax[0])
-            dmin[0] = dmax[0] = 0;
-        if (dmin[1] > dmax[1])
-            dmin[1] = dmax[1] = 0;
-        if (dmin[2] > dmax[2])
-            dmin[2] = dmax[2] = 0;
+        if (view.minextents[0] > view.maxextents[0])
+            view.minextents[0] = view.maxextents[0] = 0;
+        if (view.minextents[1] > view.maxextents[1])
+            view.minextents[1] = view.maxextents[1] = 0;
+        if (view.minextents[2] > view.maxextents[2])
+            view.minextents[2] = view.maxextents[2] = 0;
 
         //cerr << "extents: "
-        //     << dmin[0]<<":"<<dmax[0]<<"  "
-        //     << dmin[1]<<":"<<dmax[1]<<"  "
-        //     << dmin[2]<<":"<<dmax[2]<<"\n";
+        //     << view.minextents[0]<<":"<<view.maxextents[0]<<"  "
+        //     << view.minextents[1]<<":"<<view.maxextents[1]<<"  "
+        //     << view.minextents[2]<<":"<<view.maxextents[2]<<"\n";
 
-        eavlPoint3 center = eavlPoint3((dmax[0]+dmin[0]) / 2,
-                                       (dmax[1]+dmin[1]) / 2,
-                                       (dmax[2]+dmin[2]) / 2);
+        eavlPoint3 center = eavlPoint3((view.maxextents[0]+view.minextents[0]) / 2,
+                                       (view.maxextents[1]+view.minextents[1]) / 2,
+                                       (view.maxextents[2]+view.minextents[2]) / 2);
 
-        view.view2d.l = dmin[0];
-        view.view2d.r = dmax[0];
-        view.view2d.b = dmin[1];
-        view.view2d.t = dmax[1];
+        view.view2d.l = view.minextents[0];
+        view.view2d.r = view.maxextents[0];
+        view.view2d.b = view.minextents[1];
+        view.view2d.t = view.maxextents[1];
     }
     virtual void Initialize()
     {
@@ -466,21 +467,21 @@ class eavl3DParallelGLWindow : public eavl3DGLWindow
     {
         eavl3DGLWindow::ResetView();
 
-        boost::mpi::all_reduce(comm, dmin[0], dmin[0], boost::mpi::minimum<float>());
-        boost::mpi::all_reduce(comm, dmin[1], dmin[1], boost::mpi::minimum<float>());
-        boost::mpi::all_reduce(comm, dmin[2], dmin[2], boost::mpi::minimum<float>());
+        boost::mpi::all_reduce(comm, view.minextents[0], view.minextents[0], boost::mpi::minimum<float>());
+        boost::mpi::all_reduce(comm, view.minextents[1], view.minextents[1], boost::mpi::minimum<float>());
+        boost::mpi::all_reduce(comm, view.minextents[2], view.minextents[2], boost::mpi::minimum<float>());
 
-        boost::mpi::all_reduce(comm, dmax[0], dmax[0], boost::mpi::maximum<float>());
-        boost::mpi::all_reduce(comm, dmax[1], dmax[1], boost::mpi::maximum<float>());
-        boost::mpi::all_reduce(comm, dmax[2], dmax[2], boost::mpi::maximum<float>());
+        boost::mpi::all_reduce(comm, view.maxextents[0], view.maxextents[0], boost::mpi::maximum<float>());
+        boost::mpi::all_reduce(comm, view.maxextents[1], view.maxextents[1], boost::mpi::maximum<float>());
+        boost::mpi::all_reduce(comm, view.maxextents[2], view.maxextents[2], boost::mpi::maximum<float>());
 
-        float ds_size = sqrt( (dmax[0]-dmin[0])*(dmax[0]-dmin[0]) +
-                              (dmax[1]-dmin[1])*(dmax[1]-dmin[1]) +
-                              (dmax[2]-dmin[2])*(dmax[2]-dmin[2]) );
+        float ds_size = sqrt( (view.maxextents[0]-view.minextents[0])*(view.maxextents[0]-view.minextents[0]) +
+                              (view.maxextents[1]-view.minextents[1])*(view.maxextents[1]-view.minextents[1]) +
+                              (view.maxextents[2]-view.minextents[2])*(view.maxextents[2]-view.minextents[2]) );
 
-        eavlPoint3 center = eavlPoint3((dmax[0]+dmin[0]) / 2,
-                                       (dmax[1]+dmin[1]) / 2,
-                                       (dmax[2]+dmin[2]) / 2);
+        eavlPoint3 center = eavlPoint3((view.maxextents[0]+view.minextents[0]) / 2,
+                                       (view.maxextents[1]+view.minextents[1]) / 2,
+                                       (view.maxextents[2]+view.minextents[2]) / 2);
 
         view.view3d.at   = center;
         view.view3d.from = view.view3d.at + eavlVector3(0,0, -ds_size*2);

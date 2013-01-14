@@ -18,6 +18,9 @@ struct eavl3DView
     float        fov; // perspective only
     float        size; // ortho only
 
+    float        zoom;
+    float        xpan, ypan;
+
     //float        xs, ys, zs; ///\todo: would like to add scaling/fullframe
 };
 
@@ -43,6 +46,9 @@ struct eavlView
 
     float w, h; // window width and height
     float aspect;
+
+    float minextents[3];
+    float maxextents[3];
 
     eavlView()
     {
@@ -82,6 +88,10 @@ struct eavlView
         else // EAVL_VIEW_3D
         {
             V.CreateView(view3d.from,view3d.at,view3d.up);
+            eavlMatrix4x4 M1, M2;
+            M1.CreateTranslate(view3d.xpan,view3d.ypan,0);
+            M2.CreateScale(view3d.zoom, view3d.zoom, 1);
+            P = M1*M2*P;
         }
 
         // set them in GL
@@ -109,34 +119,52 @@ struct eavlView
         // not match our view onto the 2D data; we need to clip
         // the original viewport based on the aspect ratio
         // of the window vs the eavl2DView.
-        ///\todo: implement this
         float maxvw = (vr-vl) * w;
         float maxvh = (vt-vb) * h;
         float waspect = maxvw / maxvh;
         float daspect = (view2d.r - view2d.l) / (view2d.t - view2d.b);
         //cerr << "waspect="<<waspect << "   \tdaspect="<<daspect<<endl;
+        const bool center = true; // if false, anchor to bottom-left
         if (waspect > daspect)
         {
-            float new_vr = vl + (vr-vl) * daspect / waspect;
-            l = vl;
-            r = new_vr;
+            float new_w = (vr-vl) * daspect / waspect;
+            if (center)
+            {
+                l = (vl+vr)/2. - new_w/2.;
+                r = (vl+vr)/2. + new_w/2.;
+            }
+            else
+            {
+                l = vl;
+                r = vl + new_w;
+            }
             b = vb;
             t = vt;
         }
         else
         {
-            float new_vt = vb + (vt-vb) * waspect / daspect;
+            float new_h = (vt-vb) * waspect / daspect;
+            if (center)
+            {
+                b = (vb+vt)/2. - new_h/2.;
+                t = (vb+vt)/2. + new_h/2.;
+            }
+            else
+            {
+                b = vb;
+                t = vb + new_h;
+            }
             l = vl;
             r = vr;
-            b = vb;
-            t = new_vt;
         }
-        /*
-        l = vl;
-        r = vr;
-        b = vb;
-        t = vt;
-        */
+
+        // if we don't want to try to clamp the
+        // viewport in 2D, just copy the original
+        // viewport as the 'real' one, i.e.:
+        // l = vl;
+        // r = vr;
+        // b = vb;
+        // t = vt;
     }
 };
 
