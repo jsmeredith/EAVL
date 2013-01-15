@@ -5,6 +5,10 @@
 #include "eavlArray.h"
 #include "eavlFlatArray.h"
 
+void CalculateTicks(double lower, double upper, bool minor,
+                    vector<double> &positions,
+                    vector<double> &proportions);
+
 template <class T>
 string VecPrint(T *const v, int n, int nmax, int group=1e9)
 {
@@ -69,5 +73,7 @@ void PrintVectorSummary(ostream &out, const eavlFlatArray<T> &v)
 {
     out << VecPrint(v, 20);
 }
+
+
 
 #endif

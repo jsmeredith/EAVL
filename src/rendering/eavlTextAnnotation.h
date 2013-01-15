@@ -23,15 +23,28 @@
 class eavlTextAnnotation : public eavlAnnotation
 {
   protected:
+    float  scale;
     string text;
     eavlColor color;
+    float anchorx, anchory;
   public:
-    eavlTextAnnotation(eavlWindow *w, const string &txt, eavlColor c)
-        : eavlAnnotation(w), text(txt), color(c)
+    eavlTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, float s)
+        : eavlAnnotation(w), text(txt), color(c), scale(s)
     {
+        anchorx = 0;
+        anchory = 0;
+    }
+    void SetText(const string &txt)
+    {
+        text = txt;
+    }
+    void SetAnchor(float h, float v)
+    {
+        anchorx = h;
+        anchory = v;
     }
   protected:
-    void RenderText(float scale)
+    void RenderText()
     {
         // set up a texture for the font if needed
         eavlBitmapFont *fnt = eavlBitmapFontFactory::GetDefaultFont();
@@ -85,7 +98,8 @@ class eavlTextAnnotation : public eavlAnnotation
 
         glBegin(GL_QUADS);
 
-        float fx = 0, fy = 0, fz = 0;
+        float textwidth = fnt->GetTextWidth(text);
+        float fx = -anchorx * textwidth, fy = -anchory, fz = 0;
         for (int i=0; i<text.length(); ++i)
         {
             char c = text[i];
@@ -138,25 +152,28 @@ class eavlTextAnnotation : public eavlAnnotation
 class eavlScreenTextAnnotation : public eavlTextAnnotation
 {
   protected:
-    float scale;
     float x,y;
     float angle;
   public:
     eavlScreenTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, float s,
                              float ox, float oy, float angleDeg = 0.)
-        : eavlTextAnnotation(w,txt,c)
+        : eavlTextAnnotation(w,txt,c,s)
     {
-        scale = s;
         x = ox;
         y = oy;
         angle = angleDeg;
+    }
+    void SetPosition(float ox, float oy)
+    {
+        x = ox;
+        y = oy;
     }
     virtual void Setup(eavlView &view)
     {
         
         glMatrixMode( GL_PROJECTION );
         glLoadIdentity();
-        glOrtho(0,1, 0,1, -1,1);
+        glOrtho(-1,1, -1,1, -1,1);
 
         glMatrixMode( GL_MODELVIEW );
         glLoadIdentity();
@@ -173,7 +190,7 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
     }
     virtual void Render()
     {
-        RenderText(scale);
+        RenderText();
     }
 };
 
@@ -191,16 +208,14 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
 class eavlWorldTextAnnotation : public eavlTextAnnotation
 {
   protected:
-    float scale;
     eavlMatrix4x4 mtx;
   public:
     eavlWorldTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, float s,
                             float ox, float oy, float oz,
                             float nx, float ny, float nz,
                             float ux, float uy, float uz)
-        : eavlTextAnnotation(w,txt,c)
+        : eavlTextAnnotation(w,txt,c,s)
     {
-        scale = s;
         mtx.CreateRBT(eavlPoint3(ox,oy,oz),
                       eavlPoint3(ox,oy,oz) - eavlVector3(nx,ny,nz),
                       eavlVector3(ux,uy,uz));
@@ -218,7 +233,7 @@ class eavlWorldTextAnnotation : public eavlTextAnnotation
     }
     virtual void Render()
     {
-        RenderText(scale);
+        RenderText();
     }
 };
 
@@ -241,7 +256,6 @@ class eavlWorldTextAnnotation : public eavlTextAnnotation
 class eavlBillboardTextAnnotation : public eavlTextAnnotation
 {
   protected:
-    float scale;
     float x,y,z;
     bool fixed2Dscale;
     float angle;
@@ -250,9 +264,8 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
                                 float ox, float oy, float oz,
                                 bool scaleIsScreenSpace,
                                 float angleDeg = 0.)
-        : eavlTextAnnotation(w,txt,c)
+        : eavlTextAnnotation(w,txt,c,s)
     {
-        scale = s;
         x = ox;
         y = oy;
         z = oz;
@@ -308,7 +321,7 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
     }
     virtual void Render()
     {
-        RenderText(scale);
+        RenderText();
     }
 };
 

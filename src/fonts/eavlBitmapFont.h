@@ -82,6 +82,21 @@ struct eavlBitmapFont
         return chars[shortmap[(unsigned char)c]];
     }
     vector<unsigned char> &GetRawImageData(string &type);
+    float GetTextWidth(const std::string &text)
+    {
+        float width = 0;
+        for (int i=0; i<text.length(); ++i)
+        {
+            Character c = GetChar(text[i]);
+            char nextchar = (i < text.length()-1) ? text[i+1] : 0;
+
+            const bool kerning = true;
+            if (kerning && nextchar>0)
+                width += float(c.kern[nextchar]) / float(height);
+            width += float(c.adv) / float(height);
+        }
+        return width;
+    }
     void GetCharPolygon(char character, float &x, float &y,
                         float &vl, float &vr, float &vt, float &vb,
                         float &tl, float &tr, float &tt, float &tb,
@@ -89,15 +104,20 @@ struct eavlBitmapFont
     {
         Character c = GetChar(character);
 
+        // By default, the origin for the font is at the
+        // baseline.  That's nice, but we'd rather it
+        // be at the actual bottom, so create an offset.
+        float yoff = -float(descender) / float(height);
+
         tl =      float(c.x +       padl) / float(imgw);
         tr =      float(c.x + c.w - padr) / float(imgw);
         tt = 1. - float(c.y +       padt) / float(imgh);
         tb = 1. - float(c.y + c.h - padb) / float(imgh);
 
-        vl = x + float(c.offx +       padl) / float(height);
-        vr = x + float(c.offx + c.w - padr) / float(height);
-        vt = y + float(c.offy -       padt) / float(height);
-        vb = y + float(c.offy - c.h + padb) / float(height);
+        vl =        x + float(c.offx +       padl) / float(height);
+        vr =        x + float(c.offx + c.w - padr) / float(height);
+        vt = yoff + y + float(c.offy -       padt) / float(height);
+        vb = yoff + y + float(c.offy - c.h + padb) / float(height);
 
         const bool kerning = true;
         if (kerning && nextchar>0)

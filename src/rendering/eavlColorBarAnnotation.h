@@ -54,12 +54,12 @@ class eavlColorBarAnnotation : public eavlScreenSpaceAnnotation
         glBegin(GL_QUADS);
 
         glTexCoord1f(0);
-        glVertex3f(-.9, .87 ,.99);
+        glVertex3f(-.9, .90 ,.99);
         glVertex3f(-.9, .95 ,.99);
 
         glTexCoord1f(1);
         glVertex3f(+.9, .95 ,.99);
-        glVertex3f(+.9, .87 ,.99);
+        glVertex3f(+.9, .90 ,.99);
 
         glEnd();
 

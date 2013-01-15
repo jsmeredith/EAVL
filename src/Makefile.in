@@ -24,6 +24,7 @@ OBJ=\
  common/eavlNewIsoTables.o \
  common/eavlOperation.o \
  common/eavlTimer.o \
+ common/eavlUtility.o \
  exporters/eavlVTKExporter.o \
  exporters/eavlPNMExporter.o \
  filters/eavl3X3AverageMutator.o \

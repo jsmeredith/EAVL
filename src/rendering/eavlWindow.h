@@ -427,6 +427,7 @@ class eavl2DGLWindow : public eavlWindow
         view.SetMatricesForScreen();
         glViewport(0,0,view.w,view.h);
 
+        /*
         glMatrixMode( GL_PROJECTION );
         glLoadIdentity();
         glOrtho(-1,1, -1,1, -1,1);
@@ -449,6 +450,7 @@ class eavl2DGLWindow : public eavlWindow
         glVertex2d(vl, vb);
         glVertex2d(vr, vb);
         glEnd();
+        */
     }
 };
 
