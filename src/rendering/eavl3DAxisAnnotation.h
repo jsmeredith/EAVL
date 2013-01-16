@@ -21,6 +21,7 @@ class eavl3DAxisAnnotation : public eavlWorldSpaceAnnotation
     double maj_size, maj_toff;
     double min_size, min_toff;
     int    axis;
+    float invertx, inverty, invertz;
     double x0, y0, z0,   x1, y1, z1;
     double lower, upper;
     double fontscale;
@@ -34,6 +35,12 @@ class eavl3DAxisAnnotation : public eavlWorldSpaceAnnotation
     void SetAxis(int a)
     {
         axis = a;
+    }
+    void SetTickInvert(bool x, bool y, bool z)
+    {
+        invertx = x ? +1 : -1;
+        inverty = y ? +1 : -1;
+        invertz = z ? +1 : -1;
     }
     void SetMajorTickSize(double size, double offset)
     {
@@ -72,7 +79,7 @@ class eavl3DAxisAnnotation : public eavlWorldSpaceAnnotation
     {
         glDisable(GL_LIGHTING);
         glLineWidth(1);
-        glColor3f(.4,.4,.4);
+        glColor3f(1,1,1);
         glBegin(GL_LINES);
         glVertex3d(x0, y0, z0);
         glVertex3d(x1, y1, z1);
@@ -103,6 +110,9 @@ class eavl3DAxisAnnotation : public eavlWorldSpaceAnnotation
                   case 1: if (pass==0) tx=maj_size; else tz=maj_size; break;
                   case 2: if (pass==0) tx=maj_size; else ty=maj_size; break;
                 }
+                tx *= invertx;
+                ty *= inverty;
+                tz *= invertz;
                 float xs = xc - tx*maj_toff;
                 float xe = xc + tx*(1. - maj_toff);
                 float ys = yc - ty*maj_toff;
@@ -122,6 +132,9 @@ class eavl3DAxisAnnotation : public eavlWorldSpaceAnnotation
               case 1: tx=s*fontscale; tz=s*fontscale; break;
               case 2: tx=s*fontscale; ty=s*fontscale; break;
             }
+            tx *= invertx;
+            ty *= inverty;
+            tz *= invertz;
             char val[256];
             snprintf(val, 256, "%g", positions[i]);
             labels[i]->SetText(val);
@@ -148,6 +161,9 @@ class eavl3DAxisAnnotation : public eavlWorldSpaceAnnotation
                   case 1: if (pass==0) tx=min_size; else tz=min_size; break;
                   case 2: if (pass==0) tx=min_size; else ty=min_size; break;
                 }
+                tx *= invertx;
+                ty *= inverty;
+                tz *= invertz;
                 float xs = xc - tx*min_toff;
                 float xe = xc + tx*(1. - min_toff);
                 float ys = yc - ty*min_toff;

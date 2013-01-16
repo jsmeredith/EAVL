@@ -424,33 +424,7 @@ class eavl2DGLWindow : public eavlWindow
             }
         }
 
-        view.SetMatricesForScreen();
         glViewport(0,0,view.w,view.h);
-
-        /*
-        glMatrixMode( GL_PROJECTION );
-        glLoadIdentity();
-        glOrtho(-1,1, -1,1, -1,1);
-        glMatrixMode( GL_MODELVIEW );
-        glLoadIdentity();
-        glDisable(GL_LIGHTING);
-        glDisable(GL_DEPTH_TEST);
-        //glLineWidth(2);
-        glColor3f(.4,.4,.4);
-        glBegin(GL_LINES);
-        glVertex2d(vl, vt);
-        glVertex2d(vl, vb);
-
-        glVertex2d(vr, vt);
-        glVertex2d(vr, vb);
-
-        glVertex2d(vl, vt);
-        glVertex2d(vr, vt);
-
-        glVertex2d(vl, vb);
-        glVertex2d(vr, vb);
-        glEnd();
-        */
     }
 };
 

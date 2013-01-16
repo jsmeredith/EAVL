@@ -74,7 +74,7 @@ class eavl2DAxisAnnotation : public eavlScreenSpaceAnnotation
     {
         glDisable(GL_LIGHTING);
         glLineWidth(1);
-        glColor3f(.4,.4,.4);
+        glColor3f(1,1,1);
         glBegin(GL_LINES);
         glVertex2d(x0, y0);
         glVertex2d(x1, y1);

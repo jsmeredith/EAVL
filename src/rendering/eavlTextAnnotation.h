@@ -170,6 +170,7 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
     }
     virtual void Setup(eavlView &view)
     {
+        view.SetMatricesForScreen();
         
         glMatrixMode( GL_PROJECTION );
         glLoadIdentity();
@@ -223,6 +224,8 @@ class eavlWorldTextAnnotation : public eavlTextAnnotation
     }
     virtual void Setup(eavlView &view)
     {
+        view.SetMatricesForViewport();
+
         glMatrixMode( GL_PROJECTION );
         glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
 
@@ -282,6 +285,8 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
     {
         if (fixed2Dscale)
         {
+            view.SetMatricesForScreen();
+
             eavlPoint3 p = view.P * view.V * eavlPoint3(x,y,z);
 
             glMatrixMode( GL_PROJECTION );
@@ -308,6 +313,8 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
         }
         else
         {
+            view.SetMatricesForViewport();
+
             glMatrixMode( GL_PROJECTION );
             glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
 
