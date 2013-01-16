@@ -28,7 +28,7 @@ struct eavl2DView
 {
     float        l,r,t,b;
     //bool logx, logy; ///\todo: would like to add logarithmic scaling
-    //float xs, ys; ///\todo: would like fullframe
+    float xscale;
 };
 
 struct eavlView
@@ -53,6 +53,7 @@ struct eavlView
     eavlView()
     {
         view3d.perspective = true;
+        view2d.xscale = 3;
         vl = -1;  vr = +1;
         vb = -1;  vt = +1;
     }
@@ -85,6 +86,9 @@ struct eavlView
             eavlPoint3 from = at + eavlVector3(0,0,1);
             eavlVector3 up = eavlVector3(0,1,0);
             V.CreateView(from,at,up);
+            eavlMatrix4x4 M1;
+            M1.CreateScale(view2d.xscale, 1, 1);
+            V=M1*V;
         }
         else // EAVL_VIEW_3D
         {
@@ -124,6 +128,7 @@ struct eavlView
         float maxvh = (vt-vb) * h;
         float waspect = maxvw / maxvh;
         float daspect = (view2d.r - view2d.l) / (view2d.t - view2d.b);
+        daspect *= view2d.xscale;
         //cerr << "waspect="<<waspect << "   \tdaspect="<<daspect<<endl;
         const bool center = true; // if false, anchor to bottom-left
         if (waspect > daspect)
