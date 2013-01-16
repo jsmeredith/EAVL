@@ -186,6 +186,7 @@ class eavl3DGLWindow : public eavlWindow
 
         glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
 
+        glEnable(GL_DEPTH_TEST);
         // render the plots
         for (unsigned int i=0;  i<plots.size(); i++)
         {

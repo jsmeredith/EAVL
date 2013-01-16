@@ -24,13 +24,25 @@ class eavl2DAxisAnnotation : public eavlScreenSpaceAnnotation
     double anchorx, anchory;
     double lower, upper;
     double fontscale;
+    int    linewidth;
     vector<eavlScreenTextAnnotation*> labels;
+
+    vector<double> maj_positions;
+    vector<double> maj_proportions;
+
+    vector<double> min_positions;
+    vector<double> min_proportions;
   public:
     eavl2DAxisAnnotation(eavlWindow *win) :
         eavlScreenSpaceAnnotation(win)
     {
         anchorx = anchory = 0;
         fontscale = 0.05;
+        linewidth = 1;
+    }
+    void SetLineWidth(int lw)
+    {
+        linewidth = lw;
     }
     void SetMajorTickSize(double xlen, double ylen, double offset)
     {
@@ -65,25 +77,50 @@ class eavl2DAxisAnnotation : public eavlScreenSpaceAnnotation
     {
         fontscale = s;
     }
-    void SetRange(double l, double u)
+    void SetRangeForAutoTicks(double l, double u)
     {
         lower = l;
         upper = u;
+
+        CalculateTicks(lower, upper, false, maj_positions, maj_proportions);
+        CalculateTicks(lower, upper, true,  min_positions, min_proportions);
+    }
+    void SetMajorTicks(const vector<double> &pos, const vector<double> &prop)
+    {
+        maj_positions.clear();
+        maj_positions.insert(maj_positions.begin(), pos.begin(), pos.end());
+
+        maj_proportions.clear();
+        maj_proportions.insert(maj_proportions.begin(), prop.begin(), prop.end());
+    }
+    void SetMinorTicks(const vector<double> &pos, const vector<double> &prop)
+    {
+        min_positions.clear();
+        min_positions.insert(min_positions.begin(), pos.begin(), pos.end());
+
+        min_proportions.clear();
+        min_proportions.insert(min_proportions.begin(), prop.begin(), prop.end());
     }
     virtual void Render()
     {
         glDisable(GL_LIGHTING);
-        glLineWidth(1);
         glColor3f(1,1,1);
+        if (linewidth > 0)
+        {
+            glLineWidth(linewidth);
+            glBegin(GL_LINES);
+            glVertex2d(x0, y0);
+            glVertex2d(x1, y1);
+            glEnd();
+        }
+
+        glLineWidth(1);
         glBegin(GL_LINES);
-        glVertex2d(x0, y0);
-        glVertex2d(x1, y1);
 
         vector<double> positions;
         vector<double> proportions;
         // major ticks
-        CalculateTicks(lower, upper, false, positions, proportions);
-        int nmajor = proportions.size();
+        int nmajor = maj_proportions.size();
         while (labels.size() < nmajor)
         {
             labels.push_back(new eavlScreenTextAnnotation(win,"test",
@@ -93,8 +130,8 @@ class eavl2DAxisAnnotation : public eavlScreenSpaceAnnotation
         }
         for (int i=0; i<nmajor; ++i)
         {
-            float xc = x0 + (x1-x0) * proportions[i];
-            float yc = y0 + (y1-y0) * proportions[i];
+            float xc = x0 + (x1-x0) * maj_proportions[i];
+            float yc = y0 + (y1-y0) * maj_proportions[i];
             float xs = xc - maj_tx*maj_toff;
             float xe = xc + maj_tx*(1. - maj_toff);
             float ys = yc - maj_ty*maj_toff;
@@ -109,28 +146,30 @@ class eavl2DAxisAnnotation : public eavlScreenSpaceAnnotation
             }
 
             char val[256];
-            snprintf(val, 256, "%g", positions[i]);
+            snprintf(val, 256, "%g", maj_positions[i]);
             labels[i]->SetText(val);
-            if (fabs(positions[i]) < 1e-10)
+            if (fabs(maj_positions[i]) < 1e-10)
                 labels[i]->SetText("0");
             labels[i]->SetPosition(xs,ys);
             labels[i]->SetAnchor(anchorx,anchory);
         }
 
         // minor ticks
-        CalculateTicks(lower, upper, true, positions, proportions);
-        int nminor = proportions.size();
-        for (int i=0; i<nminor; ++i)
+        if (min_tx != 0 && min_ty != 0)
         {
-            float xc = x0 + (x1-x0) * proportions[i];
-            float yc = y0 + (y1-y0) * proportions[i];
-            float xs = xc - min_tx*min_toff;
-            float xe = xc + min_tx*(1. - min_toff);
-            float ys = yc - min_ty*min_toff;
-            float ye = yc + min_ty*(1. - min_toff);
+            int nminor = min_proportions.size();
+            for (int i=0; i<nminor; ++i)
+            {
+                float xc = x0 + (x1-x0) * min_proportions[i];
+                float yc = y0 + (y1-y0) * min_proportions[i];
+                float xs = xc - min_tx*min_toff;
+                float xe = xc + min_tx*(1. - min_toff);
+                float ys = yc - min_ty*min_toff;
+                float ye = yc + min_ty*(1. - min_toff);
 
-            glVertex2d(xs, ys);
-            glVertex2d(xe, ye);
+                glVertex2d(xs, ys);
+                glVertex2d(xe, ye);
+            }
         }
 
         glEnd();

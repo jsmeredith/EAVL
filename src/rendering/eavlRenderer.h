@@ -433,6 +433,11 @@ class eavlPseudocolorRenderer : public eavlRenderer
             }
         }
     }
+    void GetLimits(double &minval, double &maxval)
+    {
+        minval = vmin;
+        maxval = vmax;
+    }
     virtual void RenderPoints()
     {
         if (fieldindices.size() == 0)

@@ -28,7 +28,8 @@ struct eavl2DView
 {
     float        l,r,t,b;
     //bool logx, logy; ///\todo: would like to add logarithmic scaling
-    float xscale;
+
+    float xscale; ///< change x scale for non-equal x/y scaling
 };
 
 struct eavlView
@@ -53,7 +54,7 @@ struct eavlView
     eavlView()
     {
         view3d.perspective = true;
-        view2d.xscale = 3;
+        view2d.xscale = 1;
         vl = -1;  vr = +1;
         vb = -1;  vt = +1;
     }

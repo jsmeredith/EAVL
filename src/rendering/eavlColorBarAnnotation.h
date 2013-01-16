@@ -4,6 +4,8 @@
 
 #include "eavlView.h"
 
+#include "eavl2DAxisAnnotation.h"
+
 // ****************************************************************************
 // Class:  eavlColorBarAnnotation
 //
@@ -20,12 +22,14 @@ class eavlColorBarAnnotation : public eavlScreenSpaceAnnotation
   protected:
     string ctname;
     bool needsUpdate;
+    eavl2DAxisAnnotation *axis;
   public:
     GLuint texid;
     eavlColorBarAnnotation(eavlWindow *win) : eavlScreenSpaceAnnotation(win)
     {
         texid == 0;
         needsUpdate = true;
+        axis = new eavl2DAxisAnnotation(win);
     }
     void SetColorTable(const string &colortablename)
     {
@@ -33,6 +37,19 @@ class eavlColorBarAnnotation : public eavlScreenSpaceAnnotation
             return;
         ctname = colortablename;
         needsUpdate = true;
+    }
+    void SetRange(double l, double h, int nticks)
+    {
+        vector<double> pos, prop;
+        axis->SetMinorTicks(pos, prop); // clear the minor ticks
+
+        for (int i=0; i<nticks; ++i)
+        {
+            double p = double(i) / double(nticks-1);
+            pos.push_back(l + p*(h-l));
+            prop.push_back(p);
+        }
+        axis->SetMajorTicks(pos, prop);
     }
     virtual void Render()
     {
@@ -48,22 +65,35 @@ class eavlColorBarAnnotation : public eavlScreenSpaceAnnotation
 
         tex->Enable();
 
+        glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
         glColor3fv(eavlColor::white.c);
 
         glBegin(GL_QUADS);
 
+        float l = -.9, r = +.9;
+        float b = +0.90, t= +0.95;
+
         glTexCoord1f(0);
-        glVertex3f(-.9, .90 ,.99);
-        glVertex3f(-.9, .95 ,.99);
+        glVertex3f(l, b, .99);
+        glVertex3f(l, t, .99);
 
         glTexCoord1f(1);
-        glVertex3f(+.9, .95 ,.99);
-        glVertex3f(+.9, .90 ,.99);
+        glVertex3f(r, t, .99);
+        glVertex3f(r, b, .99);
 
         glEnd();
 
         tex->Disable();
+
+        axis->SetLineWidth(0);
+        axis->SetScreenPosition(l,b, r,b);
+        axis->SetMajorTickSize(0, .02, 1.0);
+        axis->SetMinorTickSize(0,0,0); // no minor ticks
+        axis->SetLabelAnchor(0.5, 1.0);
+        axis->Setup(win->view);
+        axis->Render();
+
     }
 };
 
