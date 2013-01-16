@@ -303,11 +303,6 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
             mtx.CreateScale(1./view.aspect, 1, 1);
             glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 
-            // height given in (0,1) vert range, but we
-            // are currently in -1,1 range, so scale up by 2.0
-            mtx.CreateScale(2.0, 2.0, 1.0);
-            glMultMatrixf(mtx.GetOpenGLMatrix4x4());
-
             mtx.CreateRotateZ(angle * M_PI / 180.);
             glMultMatrixf(mtx.GetOpenGLMatrix4x4());
         }
