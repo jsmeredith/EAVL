@@ -52,6 +52,7 @@ struct eavlView
 
     eavlView()
     {
+        view3d.perspective = true;
         vl = -1;  vr = +1;
         vb = -1;  vt = +1;
     }

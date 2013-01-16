@@ -272,6 +272,12 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
         angle = angleDeg;
         fixed2Dscale = scaleIsScreenSpace;
     }
+    void SetPosition(float ox, float oy, float oz)
+    {
+        x = ox;
+        y = oy;
+        z = oz;
+    }
     virtual void Setup(eavlView &view)
     {
         if (fixed2Dscale)
