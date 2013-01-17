@@ -89,8 +89,6 @@ class eavl3DGLWindow : public eavlWindow
             if (dim > 3)
                 dim = 3;
     
-            if (dim < 2 || dim > 3)
-                THROW(eavlException,"only supports 2 or 3 dimensions for now");
             for (int d=0; d<dim; d++)
             {
                 for (int i=0; i<npts; i++)
@@ -294,8 +292,6 @@ class eavl2DGLWindow : public eavlWindow
             if (dim > 3)
                 dim = 3;
     
-            if (dim < 2 || dim > 3)
-                THROW(eavlException,"only supports 2 or 3 dimensions for now");
             for (int d=0; d<dim; d++)
             {
                 for (int i=0; i<npts; i++)
@@ -473,8 +469,6 @@ class eavl1DGLWindow : public eavlWindow
             if (dim > 3)
                 dim = 3;
     
-            if (dim < 2 || dim > 3)
-                THROW(eavlException,"only supports 2 or 3 dimensions for now");
             for (int d=0; d<dim; d++)
             {
                 for (int i=0; i<npts; i++)
@@ -519,11 +513,18 @@ class eavl1DGLWindow : public eavlWindow
             ((eavlCurveRenderer*)(plots[0].curveRenderer))->GetLimits(vmin, vmax);
             view.view2d.b = vmin;
             view.view2d.t = vmax;
-            if (view.view2d.b == view.view2d.t)
-            {
-                view.view2d.b -= .5;
-                view.view2d.t += .5;
-            }
+        }
+        else if (plots[0].barRenderer)
+        {
+            double vmin, vmax;
+            ((eavlBarRenderer*)(plots[0].barRenderer))->GetLimits(vmin, vmax);
+            view.view2d.b = vmin;
+            view.view2d.t = vmax;
+        }
+        if (view.view2d.b == view.view2d.t)
+        {
+            view.view2d.b -= .5;
+            view.view2d.t += .5;
         }
 
         // we always want to start with a curve being full-frame
@@ -577,6 +578,7 @@ class eavl1DGLWindow : public eavlWindow
                 if (p.cellset_index < 0)
                 {
                     if (p.curveRenderer) p.curveRenderer->RenderPoints();
+                    else if (p.barRenderer) p.barRenderer->RenderPoints();
                 }
                 else
                 {
@@ -584,6 +586,7 @@ class eavl1DGLWindow : public eavlWindow
                     if (cs->GetDimensionality() == 1)
                     {
                         if (p.curveRenderer) p.curveRenderer->RenderCells1D(cs);
+                        else if (p.barRenderer) p.barRenderer->RenderCells1D(cs);
                     }
                 }
             }

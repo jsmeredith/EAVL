@@ -572,7 +572,7 @@ class eavlSingleColorRenderer : public eavlRenderer
 };
 
 // ****************************************************************************
-// Class:  eavlPseudocolorRenderer
+// Class:  eavlCurveRenderer
 //
 // Purpose:
 ///   Render a 1D field as a curve.
@@ -694,6 +694,118 @@ class eavlCurveRenderer : public eavlRenderer
                     if (j<npts-1)
                         glVertex2d(pts[i1*3 + 0], value);
 
+                }
+            }
+        }
+        glEnd();
+    }
+};
+
+// ****************************************************************************
+// Class:  eavlBarRenderer
+//
+// Purpose:
+///   Render a 1D field as a series of vertical bars;
+//
+// Programmer:  Jeremy Meredith
+// Creation:    January 16, 2013
+//
+// Modifications:
+//
+// ****************************************************************************
+class eavlBarRenderer : public eavlRenderer
+{
+  protected:
+    std::vector<int> fieldindices;
+    double vmin, vmax;
+    bool nodal;
+    eavlColor color;
+    float gap;
+  public:
+    eavlBarRenderer(eavlDataSet *ds,
+                    eavlColor c, float interbargap,
+                    const std::string &fieldname)
+        : eavlRenderer(ds), color(c), gap(interbargap)
+    {
+        vmin = FLT_MAX;
+        vmax = -FLT_MAX;
+        nodal = false;
+        for (int i=0; i<ds->GetNumFields(); ++i)
+        {
+            eavlField *f = ds->GetField(i);
+            if (f->GetArray()->GetName() == fieldname)
+            {
+                nodal |= (f->GetAssociation() == eavlField::ASSOC_POINTS);
+                if (nodal && fieldindices.size() > 0)
+                    THROW(eavlException, "Can only have one nodal field with a given name.");
+                fieldindices.push_back(i);
+                
+                // get its limits
+                int nvals = f->GetArray()->GetNumberOfTuples();
+                for (int j=0; j<nvals; j++)
+                {
+                    // just do min/max based on first component for now
+                    double value = f->GetArray()->GetComponentAsDouble(j,0);
+                    if (value < vmin)
+                        vmin = value;
+                    if (value > vmax)
+                        vmax = value;
+                }
+                // don't break; we probably want to get the
+                // extents of all fields with this same name
+            }
+        }
+    }
+    void GetLimits(double &minval, double &maxval)
+    {
+        //minval = vmin;
+        minval = 0; // override; it's supposed to be a histogram starting at 0
+        maxval = vmax;
+    }
+    virtual void RenderCells1D(eavlCellSet *cs)
+    {
+        glDisable(GL_LIGHTING);
+        glDisable(GL_DEPTH_TEST);
+        glLineWidth(2);
+
+        glColor3fv(color.c);
+
+        glBegin(GL_QUADS);
+        for (unsigned int i=0; i<fieldindices.size(); ++i)
+        {
+            eavlField *f = dataset->GetField(fieldindices[i]);
+            if (nodal)
+            {
+                for (int j=0; j<npts; j++)
+                {
+                    double x = pts[j*3+0];
+                    double value = f->GetArray()->GetComponentAsDouble(j,0);
+                    ///\todo: how to handle this?
+                }
+            }
+            else
+            {
+                int ncells = cs->GetNumCells();
+                for (int j=0; j<ncells; j++)
+                {
+                    eavlCell cell = cs->GetCellNodes(j);
+                    if (cell.type != EAVL_BEAM)
+                        continue;
+
+                    double value = f->GetArray()->GetComponentAsDouble(j,0);
+
+                    int i0 = cell.indices[0];
+                    int i1 = cell.indices[1];
+
+                    double x0 = pts[i0*3 + 0];
+                    double x1 = pts[i1*3 + 0];
+
+                    double w = x1-x0;
+                    double g = w * gap / 2.;
+                    glVertex2d(x0 + g, 0);
+                    glVertex2d(x1 - g, 0);
+                    glVertex2d(x1 - g, value);
+                    glVertex2d(x0 + g, value);
                 }
             }
         }
