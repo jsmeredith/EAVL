@@ -429,6 +429,178 @@ class eavl2DGLWindow : public eavlWindow
     }
 };
 
+
+// ****************************************************************************
+// Class:  eavl1DGLWindow
+//
+// Purpose:
+///   A 1D output window with OpenGL/MesaGL rendering.
+//
+// Programmer:  Jeremy Meredith
+// Creation:    January 16, 2013
+//
+// Modifications:
+// ****************************************************************************
+class eavl1DGLWindow : public eavlWindow
+{
+  public:
+    eavl1DGLWindow(eavlView &v) : eavlWindow(v)
+    {
+        colortexId = 0;
+    }
+
+  protected:
+    int width, height;
+
+    ///\todo: big hack for saved_colortable
+    string saved_colortable;
+    int colortexId;
+    virtual void ResetView()
+    {
+        view.minextents[0] = view.minextents[1] = view.minextents[2] = FLT_MAX;
+        view.maxextents[0] = view.maxextents[1] = view.maxextents[2] = -FLT_MAX;
+
+        for (unsigned int i=0; i<plots.size(); i++)
+        {
+            eavlPlot &p = plots[i];
+            if (!p.data)
+                continue;
+
+            int npts = p.data->GetNumPoints();
+            int dim = p.data->GetCoordinateSystem(0)->GetDimension();
+
+            //CHIMERA HACK
+            if (dim > 3)
+                dim = 3;
+    
+            if (dim < 2 || dim > 3)
+                THROW(eavlException,"only supports 2 or 3 dimensions for now");
+            for (int d=0; d<dim; d++)
+            {
+                for (int i=0; i<npts; i++)
+                {
+                    double v = p.data->GetPoint(i,d);
+                    //cerr << "findspatialextents: d="<<d<<" i="<<i<<"  v="<<v<<endl;
+                    if (v < view.minextents[d])
+                        view.minextents[d] = v;
+                    if (v > view.maxextents[d])
+                        view.maxextents[d] = v;
+                }
+            }
+        }
+
+        // untouched dims force to zero
+        if (view.minextents[0] > view.maxextents[0])
+            view.minextents[0] = view.maxextents[0] = 0;
+        if (view.minextents[1] > view.maxextents[1])
+            view.minextents[1] = view.maxextents[1] = 0;
+        if (view.minextents[2] > view.maxextents[2])
+            view.minextents[2] = view.maxextents[2] = 0;
+
+        //cerr << "extents: "
+        //     << view.minextents[0]<<":"<<view.maxextents[0]<<"  "
+        //     << view.minextents[1]<<":"<<view.maxextents[1]<<"  "
+        //     << view.minextents[2]<<":"<<view.maxextents[2]<<"\n";
+
+        eavlPoint3 center = eavlPoint3((view.maxextents[0]+view.minextents[0]) / 2,
+                                       (view.maxextents[1]+view.minextents[1]) / 2,
+                                       (view.maxextents[2]+view.minextents[2]) / 2);
+
+        view.view2d.l = view.minextents[0];
+        view.view2d.r = view.maxextents[0];
+        // It's 1D; we'll use the field limits, but in case we don't
+        // have a field, just set it to something reasonable.
+        view.view2d.b = 0;
+        view.view2d.t = 1;
+
+        if (plots[0].curveRenderer)
+        {
+            double vmin, vmax;
+            ((eavlCurveRenderer*)(plots[0].curveRenderer))->GetLimits(vmin, vmax);
+            view.view2d.b = vmin;
+            view.view2d.t = vmax;
+            if (view.view2d.b == view.view2d.t)
+            {
+                view.view2d.b -= .5;
+                view.view2d.t += .5;
+            }
+        }
+
+        // we always want to start with a curve being full-frame
+        view.view2d.xscale = (float(view.w) / float(view.h)) *
+                             (view.view2d.t-view.view2d.b) /
+                             (view.view2d.r-view.view2d.l);
+
+    }
+    virtual void Initialize()
+    {
+    }
+    virtual void Resize(int w, int h)
+    {
+    }
+    virtual void Paint()
+    {
+        if (plots.size() == 0)
+            return;
+
+        int plotcount = 0;
+        for (unsigned int i=0; i<plots.size(); i++)
+            plotcount += (plots[i].data) ? 1 : 0;
+        if (plotcount == 0)
+            return;
+
+        // matrices
+        float vl, vr, vt, vb;
+        view.GetReal2DViewport(vl,vr,vb,vt);
+        glViewport(float(view.w)*(1.+vl)/2.,
+                   float(view.h)*(1.+vb)/2.,
+                   float(view.w)*(vr-vl)/2.,
+                   float(view.h)*(vt-vb)/2.);
+
+        view.SetMatricesForViewport();
+
+        glMatrixMode( GL_PROJECTION );
+        glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
+
+        glMatrixMode( GL_MODELVIEW );
+        glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
+
+        // render the plots
+        for (unsigned int i=0;  i<plots.size(); i++)
+        {
+            eavlPlot &p = plots[i];
+            if (!p.data)
+                continue;
+
+            try
+            {
+                if (p.cellset_index < 0)
+                {
+                    if (p.curveRenderer) p.curveRenderer->RenderPoints();
+                }
+                else
+                {
+                    eavlCellSet *cs = p.data->GetCellSet(p.cellset_index);
+                    if (cs->GetDimensionality() == 1)
+                    {
+                        if (p.curveRenderer) p.curveRenderer->RenderCells1D(cs);
+                    }
+                }
+            }
+            catch (const eavlException &e)
+            {
+                // The user can specify one cell for geometry and
+                // a different one for coloring; this currently results
+                // in an error; we'll just ignore it.
+                cerr << e.GetErrorText() << endl;
+                cerr << "-\n";
+            }
+        }
+
+        glViewport(0,0,view.w,view.h);
+    }
+};
+
 #ifdef HAVE_MPI
 #include <boost/mpi.hpp>
 

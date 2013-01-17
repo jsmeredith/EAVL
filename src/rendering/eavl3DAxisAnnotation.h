@@ -25,12 +25,18 @@ class eavl3DAxisAnnotation : public eavlWorldSpaceAnnotation
     double x0, y0, z0,   x1, y1, z1;
     double lower, upper;
     double fontscale;
+    eavlColor color;
     vector<eavlBillboardTextAnnotation*> labels;
   public:
     eavl3DAxisAnnotation(eavlWindow *win) :
         eavlWorldSpaceAnnotation(win)
     {
         axis = 0;
+        color = eavlColor::white;
+    }
+    void SetColor(eavlColor c)
+    {
+        color = c;
     }
     void SetAxis(int a)
     {
@@ -79,7 +85,7 @@ class eavl3DAxisAnnotation : public eavlWorldSpaceAnnotation
     {
         glDisable(GL_LIGHTING);
         glLineWidth(1);
-        glColor3f(1,1,1);
+        glColor3fv(color.c);
         glBegin(GL_LINES);
         glVertex3d(x0, y0, z0);
         glVertex3d(x1, y1, z1);
@@ -92,7 +98,7 @@ class eavl3DAxisAnnotation : public eavlWorldSpaceAnnotation
         while (labels.size() < nmajor)
         {
             labels.push_back(new eavlBillboardTextAnnotation(win,"test",
-                                                          eavlColor::white,
+                                                          color,
                                                           fontscale,
                                                           0,0,0, false, 0));
         }

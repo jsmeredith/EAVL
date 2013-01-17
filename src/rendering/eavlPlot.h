@@ -14,6 +14,7 @@ struct eavlPlot
     int           cellset_index;
     int           variable_fieldindex;
     //int           variable_cellindex;
+    eavlRenderer *curveRenderer;
     eavlRenderer *pcRenderer;
     eavlRenderer *meshRenderer;
 

@@ -17,12 +17,14 @@ class eavlBoundingBoxAnnotation : public eavlWorldSpaceAnnotation
 {
   protected:
     double dmin[3], dmax[3];
+    eavlColor color;
   public:
     eavlBoundingBoxAnnotation(eavlWindow *win) :
         eavlWorldSpaceAnnotation(win)
     {
         dmin[0] = dmin[1] = dmin[2] = -1;
         dmax[0] = dmax[1] = dmax[2] = +1;
+        color = eavlColor(.5,.5,.5);
     }
     void SetExtents(double xmin, double xmax,
                     double ymin, double ymax,
@@ -35,11 +37,15 @@ class eavlBoundingBoxAnnotation : public eavlWorldSpaceAnnotation
         dmin[2] = zmin;
         dmax[2] = zmax;
     }
+    void SetColor(eavlColor c)
+    {
+        color = c;
+    }
     virtual void Render()
     {
         glDisable(GL_LIGHTING);
         glLineWidth(1);
-        glColor3f(.4,.4,.4);
+        glColor3fv(color.c);
         glBegin(GL_LINES);
         glVertex3d(dmin[0],dmin[1],dmin[2]); glVertex3d(dmin[0],dmin[1],dmax[2]);
         glVertex3d(dmin[0],dmax[1],dmin[2]); glVertex3d(dmin[0],dmax[1],dmax[2]);

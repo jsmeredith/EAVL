@@ -25,6 +25,7 @@ class eavl2DAxisAnnotation : public eavlScreenSpaceAnnotation
     double lower, upper;
     double fontscale;
     int    linewidth;
+    eavlColor color;
     vector<eavlScreenTextAnnotation*> labels;
 
     vector<double> maj_positions;
@@ -39,6 +40,11 @@ class eavl2DAxisAnnotation : public eavlScreenSpaceAnnotation
         anchorx = anchory = 0;
         fontscale = 0.05;
         linewidth = 1;
+        color = eavlColor::white;
+    }
+    void SetColor(eavlColor c)
+    {
+        color = c;
     }
     void SetLineWidth(int lw)
     {
@@ -104,7 +110,7 @@ class eavl2DAxisAnnotation : public eavlScreenSpaceAnnotation
     virtual void Render()
     {
         glDisable(GL_LIGHTING);
-        glColor3f(1,1,1);
+        glColor3fv(color.c);
         if (linewidth > 0)
         {
             glLineWidth(linewidth);
@@ -124,7 +130,7 @@ class eavl2DAxisAnnotation : public eavlScreenSpaceAnnotation
         while (labels.size() < nmajor)
         {
             labels.push_back(new eavlScreenTextAnnotation(win,"test",
-                                                          eavlColor::white,
+                                                          color,
                                                           fontscale,
                                                           0,0, 0));
         }
@@ -155,7 +161,7 @@ class eavl2DAxisAnnotation : public eavlScreenSpaceAnnotation
         }
 
         // minor ticks
-        if (min_tx != 0 && min_ty != 0)
+        if (min_tx != 0 || min_ty != 0)
         {
             int nminor = min_proportions.size();
             for (int i=0; i<nminor; ++i)

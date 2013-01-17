@@ -17,12 +17,14 @@ class eavl2DFrameAnnotation : public eavlScreenSpaceAnnotation
 {
   protected:
     double dmin[2], dmax[2];
+    eavlColor color;
   public:
     eavl2DFrameAnnotation(eavlWindow *win) :
         eavlScreenSpaceAnnotation(win)
     {
         dmin[0] = dmin[1] = -1;
         dmax[0] = dmax[1] = +1;
+        color = eavlColor(.5,.5,.5);
     }
     void SetExtents(double xmin, double xmax,
                     double ymin, double ymax)
@@ -32,11 +34,15 @@ class eavl2DFrameAnnotation : public eavlScreenSpaceAnnotation
         dmin[1] = ymin;
         dmax[1] = ymax;
     }
+    void SetColor(eavlColor c)
+    {
+        color = c;
+    }
     virtual void Render()
     {
         glDisable(GL_LIGHTING);
         glLineWidth(1);
-        glColor3f(.4,.4,.4);
+        glColor3fv(color.c);
         glBegin(GL_LINES);
         glVertex2d(dmin[0],dmin[1]);
         glVertex2d(dmin[0],dmax[1]);

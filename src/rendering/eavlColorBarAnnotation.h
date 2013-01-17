@@ -51,6 +51,10 @@ class eavlColorBarAnnotation : public eavlScreenSpaceAnnotation
         }
         axis->SetMajorTicks(pos, prop);
     }
+    void SetAxisColor(eavlColor c)
+    {
+        axis->SetColor(c);
+    }
     virtual void Render()
     {
         eavlTexture *tex = win->GetTexture("colorbar");

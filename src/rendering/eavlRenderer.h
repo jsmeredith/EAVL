@@ -369,7 +369,6 @@ class eavlRenderer
         delete[] pts;
     }
     virtual void RenderPoints() { }
-    virtual void RenderCells(eavlCellSet *) { }
     virtual void RenderCells0D(eavlCellSet *) { }
     virtual void RenderCells1D(eavlCellSet *) { };
     virtual void RenderCells2D(eavlCellSet *, eavlField *) { };
@@ -569,6 +568,136 @@ class eavlSingleColorRenderer : public eavlRenderer
             eavlRenderCells2D<false, false, false, true>(cs, npts, pts, NULL,0,0,NULL, normals);
         else
             eavlRenderCells2D<false, false, false, false>(cs, npts, pts, NULL,0,0,NULL, NULL);
+    }
+};
+
+// ****************************************************************************
+// Class:  eavlPseudocolorRenderer
+//
+// Purpose:
+///   Render a 1D field as a curve.
+//
+// Programmer:  Jeremy Meredith
+// Creation:    January 16, 2013
+//
+// Modifications:
+//
+// ****************************************************************************
+class eavlCurveRenderer : public eavlRenderer
+{
+  protected:
+    std::vector<int> fieldindices;
+    double vmin, vmax;
+    bool nodal;
+    eavlColor color;
+  public:
+    eavlCurveRenderer(eavlDataSet *ds,
+                      eavlColor c,
+                      const std::string &fieldname)
+        : eavlRenderer(ds), color(c)
+    {
+        vmin = FLT_MAX;
+        vmax = -FLT_MAX;
+        nodal = false;
+        for (int i=0; i<ds->GetNumFields(); ++i)
+        {
+            eavlField *f = ds->GetField(i);
+            if (f->GetArray()->GetName() == fieldname)
+            {
+                nodal |= (f->GetAssociation() == eavlField::ASSOC_POINTS);
+                if (nodal && fieldindices.size() > 0)
+                    THROW(eavlException, "Can only have one nodal field with a given name.");
+                fieldindices.push_back(i);
+                
+                // get its limits
+                int nvals = f->GetArray()->GetNumberOfTuples();
+                for (int j=0; j<nvals; j++)
+                {
+                    // just do min/max based on first component for now
+                    double value = f->GetArray()->GetComponentAsDouble(j,0);
+                    if (value < vmin)
+                        vmin = value;
+                    if (value > vmax)
+                        vmax = value;
+                }
+                // don't break; we probably want to get the
+                // extents of all fields with this same name
+            }
+        }
+    }
+    void GetLimits(double &minval, double &maxval)
+    {
+        minval = vmin;
+        maxval = vmax;
+    }
+    virtual void RenderPoints()
+    {
+        glDisable(GL_LIGHTING);
+        glDisable(GL_DEPTH_TEST);
+        glLineWidth(2);
+
+        glColor3fv(color.c);
+        glBegin(GL_LINES);
+        for (unsigned int i=0; i<fieldindices.size(); ++i)
+        {
+            eavlField *f = dataset->GetField(fieldindices[i]);
+            for (int j=0; j<npts; j++)
+            {
+                double value = f->GetArray()->GetComponentAsDouble(j,0);
+                glVertex2d(pts[j*3+0], value);
+                if (j>0 && j<npts-1)
+                    glVertex2d(pts[j*3+0], value);
+            }
+        }
+        glEnd();
+    }
+    virtual void RenderCells1D(eavlCellSet *cs)
+    {
+        glDisable(GL_LIGHTING);
+        glDisable(GL_DEPTH_TEST);
+        glLineWidth(2);
+
+        glColor3fv(color.c);
+
+        glBegin(GL_LINES);
+        for (unsigned int i=0; i<fieldindices.size(); ++i)
+        {
+            eavlField *f = dataset->GetField(fieldindices[i]);
+            if (nodal)
+            {
+                for (int j=0; j<npts; j++)
+                {
+                    double value = f->GetArray()->GetComponentAsDouble(j,0);
+                    glVertex2d(pts[j*3+0], value);
+                    if (j>0 && j<npts-1)
+                        glVertex2d(pts[j*3+0], value);
+                }
+            }
+            else
+            {
+                int ncells = cs->GetNumCells();
+                for (int j=0; j<ncells; j++)
+                {
+                    eavlCell cell = cs->GetCellNodes(j);
+                    if (cell.type != EAVL_BEAM)
+                        continue;
+
+                    double value = f->GetArray()->GetComponentAsDouble(j,0);
+
+                    int i0 = cell.indices[0];
+                    int i1 = cell.indices[1];
+
+                    if (j>0)
+                        glVertex2d(pts[i0*3 + 0], value);
+                    glVertex2d(pts[i0*3 + 0], value);
+                    glVertex2d(pts[i1*3 + 0], value);
+                    if (j<npts-1)
+                        glVertex2d(pts[i1*3 + 0], value);
+
+                }
+            }
+        }
+        glEnd();
     }
 };
 
