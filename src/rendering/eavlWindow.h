@@ -7,8 +7,7 @@
 #include "eavlRenderer.h"
 #include "eavlColorTable.h"
 #include "eavlPlot.h"
-
-class eavlTexture;
+#include "eavlTexture.h"
 
 // ****************************************************************************
 // Class:  eavlWindow
@@ -124,6 +123,8 @@ class eavl3DGLWindow : public eavlWindow
                                        (view.maxextents[1]+view.minextents[1]) / 2,
                                        (view.maxextents[2]+view.minextents[2]) / 2);
 
+        view.viewtype = eavlView::EAVL_VIEW_3D;
+        view.view3d.perspective = true;
         view.view3d.xpan = 0;
         view.view3d.ypan = 0;
         view.view3d.zoom = 1.0;
@@ -140,7 +141,8 @@ class eavl3DGLWindow : public eavlWindow
     }
     virtual void Resize(int w, int h)
     {
-        ///\todo: I think we need to delete this line
+        ///\todo: I think we need to delete this line....
+        /// though we may need to set the viewport elsewhere
         glViewport(0, 0, w, h);
     }
     virtual void Paint()
@@ -156,6 +158,12 @@ class eavl3DGLWindow : public eavlWindow
 
         // matrices
         view.SetMatricesForViewport();
+
+        //glViewport(float(view.w)*(1.+view.vl)/2.,
+        //           float(view.h)*(1.+view.vb)/2.,
+        //           float(view.w)*(view.vr-view.vl)/2.,
+        //           float(view.h)*(view.vt-view.vb)/2.);
+
         glMatrixMode( GL_PROJECTION );
         glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
 
@@ -191,6 +199,18 @@ class eavl3DGLWindow : public eavlWindow
             eavlPlot &p = plots[i];
             if (!p.data)
                 continue;
+
+            eavlTexture *tex = GetTexture(p.colortable);
+            if (!tex)
+            {
+                if (!tex)
+                    tex = new eavlTexture;
+                tex->CreateFromColorTable(eavlColorTable(p.colortable));
+                SetTexture(p.colortable, tex);
+            }
+
+            if (p.pcRenderer)
+                tex->Enable();
 
             try
             {
@@ -243,6 +263,9 @@ class eavl3DGLWindow : public eavlWindow
                 cerr << e.GetErrorText() << endl;
                 cerr << "-\n";
             }
+
+            if (p.pcRenderer)
+                tex->Disable();
         }
     }
 };
@@ -323,10 +346,16 @@ class eavl2DGLWindow : public eavlWindow
                                        (view.maxextents[1]+view.minextents[1]) / 2,
                                        (view.maxextents[2]+view.minextents[2]) / 2);
 
+        view.viewtype = eavlView::EAVL_VIEW_2D;
         view.view2d.l = view.minextents[0];
         view.view2d.r = view.maxextents[0];
         view.view2d.b = view.minextents[1];
         view.view2d.t = view.maxextents[1];
+        if (view.view2d.b == view.view2d.t)
+        {
+            view.view2d.b -= .5;
+            view.view2d.t += .5;
+        }
     }
     virtual void Initialize()
     {
@@ -367,6 +396,18 @@ class eavl2DGLWindow : public eavlWindow
             eavlPlot &p = plots[i];
             if (!p.data)
                 continue;
+
+            eavlTexture *tex = GetTexture(p.colortable);
+            if (!tex)
+            {
+                if (!tex)
+                    tex = new eavlTexture;
+                tex->CreateFromColorTable(eavlColorTable(p.colortable));
+                SetTexture(p.colortable, tex);
+            }
+
+            if (p.pcRenderer)
+                tex->Enable();
 
             try
             {
@@ -419,6 +460,9 @@ class eavl2DGLWindow : public eavlWindow
                 cerr << e.GetErrorText() << endl;
                 cerr << "-\n";
             }
+
+            if (p.pcRenderer)
+                tex->Disable();
         }
 
         glViewport(0,0,view.w,view.h);
@@ -500,6 +544,7 @@ class eavl1DGLWindow : public eavlWindow
                                        (view.maxextents[1]+view.minextents[1]) / 2,
                                        (view.maxextents[2]+view.minextents[2]) / 2);
 
+        view.viewtype = eavlView::EAVL_VIEW_2D;
         view.view2d.l = view.minextents[0];
         view.view2d.r = view.maxextents[0];
         // It's 1D; we'll use the field limits, but in case we don't
@@ -612,7 +657,7 @@ class eavl3DParallelGLWindow : public eavl3DGLWindow
   protected:
     boost::mpi::communicator &comm;
   public:
-    eavl3DParallelGLWindow(boost::mpi::communicator &c) : comm(c)
+    eavl3DParallelGLWindow(boost::mpi::communicator &c, eavlView &v) : eavl3DGLWindow(v), comm(c)
     {
     }
     virtual void ResetView()

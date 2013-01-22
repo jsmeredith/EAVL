@@ -3,6 +3,7 @@
 #define EAVL_ANNOTATION_H
 
 class eavlWindow;
+#include "eavlView.h"
 
 // ****************************************************************************
 // Class:  eavlAnnotation

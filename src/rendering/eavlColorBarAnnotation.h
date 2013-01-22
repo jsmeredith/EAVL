@@ -21,14 +21,12 @@ class eavlColorBarAnnotation : public eavlScreenSpaceAnnotation
 {
   protected:
     string ctname;
-    bool needsUpdate;
     eavl2DAxisAnnotation *axis;
   public:
     GLuint texid;
     eavlColorBarAnnotation(eavlWindow *win) : eavlScreenSpaceAnnotation(win)
     {
         texid == 0;
-        needsUpdate = true;
         axis = new eavl2DAxisAnnotation(win);
     }
     void SetColorTable(const string &colortablename)
@@ -36,7 +34,6 @@ class eavlColorBarAnnotation : public eavlScreenSpaceAnnotation
         if (ctname == colortablename)
             return;
         ctname = colortablename;
-        needsUpdate = true;
     }
     void SetRange(double l, double h, int nticks)
     {
@@ -57,15 +54,14 @@ class eavlColorBarAnnotation : public eavlScreenSpaceAnnotation
     }
     virtual void Render()
     {
-        eavlTexture *tex = win->GetTexture("colorbar");
-        if (!tex || needsUpdate)
+        eavlTexture *tex = win->GetTexture(ctname);
+        if (!tex )
         {
             if (!tex)
                 tex = new eavlTexture;
             tex->CreateFromColorTable(eavlColorTable(ctname));
-            win->SetTexture("colorbar", tex);
+            win->SetTexture(ctname, tex);
         }
-        needsUpdate = false;
 
         tex->Enable();
 

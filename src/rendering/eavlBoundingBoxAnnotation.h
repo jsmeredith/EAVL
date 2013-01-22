@@ -2,6 +2,8 @@
 #ifndef EAVL_BOUNDING_BOX_ANNOTATION_H
 #define EAVL_BOUNDING_BOX_ANNOTATION_H
 
+#include "eavlAnnotation.h"
+
 // ****************************************************************************
 // Class:  eavlBoundingBoxAnnotation
 //
