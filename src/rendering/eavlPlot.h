@@ -14,10 +14,10 @@ struct eavlPlot
     int           cellset_index;
     int           variable_fieldindex;
     //int           variable_cellindex;
-    eavlRenderer *pcRenderer;
-    eavlRenderer *meshRenderer;
-    eavlRenderer *curveRenderer;
-    eavlRenderer *barRenderer;
+    eavlPseudocolorRenderer *pcRenderer;
+    eavlSingleColorRenderer *meshRenderer;
+    eavlCurveRenderer *curveRenderer;
+    eavlBarRenderer *barRenderer;
 
     eavlPlot()
         : data(NULL),

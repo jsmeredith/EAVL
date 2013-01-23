@@ -20,7 +20,9 @@ class eavlColor
     float c[4];
     eavlColor()
     {
-        c[0] = c[1] = c[2] = 0;
+        c[0] = 0;
+        c[1] = 0;
+        c[2] = 0;
         c[3] = 1;
     }
     eavlColor(float r_, float g_, float b_, float a_=1)
@@ -29,6 +31,23 @@ class eavlColor
         c[1] = g_;
         c[2] = b_;
         c[3] = a_;
+    }
+    inline void SetComponentFromByte(int i, unsigned char v)
+    {
+        c[i] = float(v) / 255.;
+    }
+    inline unsigned char GetComponentAsByte(int i)
+    {
+        int tv = c[i] * 255.;
+        return (tv < 0) ? 0 : (tv > 255) ? 255 : tv;
+    }
+    void GetRGBA(unsigned char &r, unsigned char &g,
+                 unsigned char &b, unsigned char &a)
+    {
+        r = GetComponentAsByte(0);
+        g = GetComponentAsByte(1);
+        b = GetComponentAsByte(2);
+        a = GetComponentAsByte(3);
     }
     friend ostream &operator<<(ostream &out, const eavlColor &c)
     {

@@ -6,6 +6,9 @@
 #include "eavlCellSet.h"
 #include "eavlColor.h"
 #include "eavlColorTable.h"
+#ifdef HAVE_MPI
+#include <boost/mpi.hpp>
+#endif
 
 static inline eavlColor MapValueToColor(double value,
                                  double vmin, double vmax,
@@ -436,6 +439,13 @@ class eavlPseudocolorRenderer : public eavlRenderer
     {
         minval = vmin;
         maxval = vmax;
+    }
+    void UnifyLimits(boost::mpi::communicator &comm)
+    {
+#ifdef HAVE_MPI
+        boost::mpi::all_reduce(comm, vmin, vmin, boost::mpi::minimum<double>());
+        boost::mpi::all_reduce(comm, vmax, vmax, boost::mpi::maximum<double>());      
+#endif
     }
     virtual void RenderPoints()
     {
