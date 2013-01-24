@@ -1,21 +1,23 @@
+------------------------------------------------------------------------------
+                                    EAVL
+------------------------------------------------------------------------------
+
 All EAVL code is copyright (c) 2010-2013, UT-Battelle, LLC.
 
 EAVL is made available under the "BSD 2-Clause" license.
 
 See LICENSE.txt for more information.
 
+
 ------------------------------------------------------------------------------
-
                     Third Party Libraries and Source Code
-
+------------------------------------------------------------------------------
 
 Some parts of EAVL also contain code from other appropriately licensed open-
 source software. Any such code is specifically labeled within the EAVL source.
 Any copyrights and disclaimers from those projects are reproduced below:
 
-------------------------------------------------------------------------------
-
-                                    VisIt
+ -   -   -   -   -   -   -   -   -  VisIt  -   -   -   -   -   -   -   -   -
 
 Copyright (c) 2000 - 2012 Lawrence Livermore National Security, LLC.
 Produced at the Lawrence Livermore National Laboratory

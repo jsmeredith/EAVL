@@ -19,6 +19,7 @@ OBJ=\
  common/eavlCUDA.o \
  common/eavlCellComponents.o \
  common/eavlCellSetExplicit.o \
+ common/eavlCompositor.o \
  common/eavlDataSet.o \
  common/eavlExecutor.o \
  common/eavlNewIsoTables.o \
@@ -71,7 +72,7 @@ ifneq (@ADIOS@, no)
 endif
 
 CPPFLAGS+=-I../config -Icommon/ -Ifonts/ -Iimporters/ -Imath/ -Irendering/ -Iexecutor/ -Ifunctors/ -Ioperations/ -Ifilters/
-CPPFLAGS+=$(BOOST_CPPFLAGS) $(NETCDF_CPPFLAGS) $(SILO_CPPFLAGS) $(CUDA_CPPFLAGS) $(ADIOS_CPPFLAGS)
+CPPFLAGS+=$(MPI_CPPFLAGS) $(BOOST_CPPFLAGS) $(NETCDF_CPPFLAGS) $(SILO_CPPFLAGS) $(CUDA_CPPFLAGS) $(ADIOS_CPPFLAGS)
 
 LIBS=-lm
 
