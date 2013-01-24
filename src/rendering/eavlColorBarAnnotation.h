@@ -17,14 +17,14 @@
 //
 // Modifications:
 // ****************************************************************************
-class eavlColorBarAnnotation : public eavlScreenSpaceAnnotation
+class eavlColorBarAnnotation : public eavlAnnotation
 {
   protected:
     string ctname;
     eavl2DAxisAnnotation *axis;
   public:
     GLuint texid;
-    eavlColorBarAnnotation(eavlWindow *win) : eavlScreenSpaceAnnotation(win)
+    eavlColorBarAnnotation(eavlWindow *win) : eavlAnnotation(win)
     {
         texid == 0;
         axis = new eavl2DAxisAnnotation(win);
@@ -52,8 +52,10 @@ class eavlColorBarAnnotation : public eavlScreenSpaceAnnotation
     {
         axis->SetColor(c);
     }
-    virtual void Render()
+    virtual void Render(eavlView &view)
     {
+        SetupForScreenSpace(view);
+
         eavlTexture *tex = win->GetTexture(ctname);
         if (!tex )
         {
@@ -91,8 +93,7 @@ class eavlColorBarAnnotation : public eavlScreenSpaceAnnotation
         axis->SetMajorTickSize(0, .02, 1.0);
         axis->SetMinorTickSize(0,0,0); // no minor ticks
         axis->SetLabelAnchor(0.5, 1.0);
-        axis->Setup(win->view);
-        axis->Render();
+        axis->Render(view);
 
     }
 };

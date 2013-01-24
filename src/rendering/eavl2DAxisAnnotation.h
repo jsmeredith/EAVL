@@ -15,7 +15,7 @@
 //
 // Modifications:
 // ****************************************************************************
-class eavl2DAxisAnnotation : public eavlScreenSpaceAnnotation
+class eavl2DAxisAnnotation : public eavlAnnotation
 {
   protected:
     double maj_tx, maj_ty, maj_toff;
@@ -35,7 +35,7 @@ class eavl2DAxisAnnotation : public eavlScreenSpaceAnnotation
     vector<double> min_proportions;
   public:
     eavl2DAxisAnnotation(eavlWindow *win) :
-        eavlScreenSpaceAnnotation(win)
+        eavlAnnotation(win)
     {
         anchorx = anchory = 0;
         fontscale = 0.05;
@@ -107,8 +107,10 @@ class eavl2DAxisAnnotation : public eavlScreenSpaceAnnotation
         min_proportions.clear();
         min_proportions.insert(min_proportions.begin(), prop.begin(), prop.end());
     }
-    virtual void Render()
+    virtual void Render(eavlView &view)
     {
+        SetupForScreenSpace(view);
+
         glDisable(GL_LIGHTING);
         glColor3fv(color.c);
         if (linewidth > 0)
@@ -182,8 +184,7 @@ class eavl2DAxisAnnotation : public eavlScreenSpaceAnnotation
 
         for (int i=0; i<nmajor; ++i)
         {
-            labels[i]->Setup(win->view);
-            labels[i]->Render();
+            labels[i]->Render(view);
         }
 
     }    

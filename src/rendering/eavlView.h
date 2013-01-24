@@ -46,7 +46,8 @@ struct eavlView
     eavlMatrix4x4 P, V;
 
     float w, h; // window width and height
-    float aspect;
+    float windowaspect;
+    float viewportaspect;
 
     float minextents[3];
     float maxextents[3];
@@ -59,66 +60,71 @@ struct eavlView
         vb = -1;  vt = +1;
     }
 
-    void SetMatricesForViewport()
+    void SetupMatrices()
     {
+        windowaspect = w / h;
+
         float l=vl, r=vr, b=vb, t=vt;
         if (viewtype == EAVL_VIEW_2D)
-            GetReal2DViewport(l,r,t,b);
+            GetRealViewport(l,r,t,b);
 
-        // aspect is the viewport's aspect ratio in terms of pixels
-        aspect = (w*(r-l)) / (h*(t-b));
+        // the viewport's aspect ratio is in terms of pixels
+        viewportaspect = (w*(r-l)) / (h*(t-b));
 
         // set up projection matrix
         if (viewtype == EAVL_VIEW_2D)
             P.CreateOrthographicProjection(fabs(view2d.t-view2d.b),
-                                           +1, -1, aspect);
+                                           +1, -1, viewportaspect);
         else if (view3d.perspective)
             P.CreatePerspectiveProjection(view3d.nearplane, view3d.farplane,
-                                          view3d.fov, aspect);
+                                          view3d.fov, viewportaspect);
         else
             P.CreateOrthographicProjection(view3d.size,
                                            view3d.nearplane, view3d.farplane,
-                                           aspect);
+                                           viewportaspect);
 
         // set up view matrix
-        if (viewtype == EAVL_VIEW_2D)
+        switch (viewtype)
         {
-            eavlPoint3 at = eavlPoint3((view2d.l+view2d.r)/2., (view2d.t+view2d.b)/2., 0);
-            eavlPoint3 from = at + eavlVector3(0,0,1);
-            eavlVector3 up = eavlVector3(0,1,0);
-            V.CreateView(from,at,up);
-            eavlMatrix4x4 M1;
-            M1.CreateScale(view2d.xscale, 1, 1);
-            V=M1*V;
+          case EAVL_VIEW_2D:
+            {
+                eavlPoint3 at = eavlPoint3((view2d.l+view2d.r)/2.,
+                                           (view2d.t+view2d.b)/2.,
+                                           0);
+                eavlPoint3 from = at + eavlVector3(0,0,1);
+                eavlVector3 up = eavlVector3(0,1,0);
+                V.CreateView(from,at,up);
+                eavlMatrix4x4 M1;
+                M1.CreateScale(view2d.xscale, 1, 1);
+                V=M1*V;
+            }
+            break;
+          case EAVL_VIEW_3D:
+            {
+                V.CreateView(view3d.from,view3d.at,view3d.up);
+                eavlMatrix4x4 M1, M2;
+                M1.CreateTranslate(view3d.xpan,view3d.ypan,0);
+                M2.CreateScale(view3d.zoom, view3d.zoom, 1);
+                P = M1*M2*P;
+            }
+            break;
         }
-        else // EAVL_VIEW_3D
+    }
+
+    void GetRealViewport(float &l, float &r, float &b, float &t)
+    {
+        if (viewtype == EAVL_VIEW_3D)
         {
-            V.CreateView(view3d.from,view3d.at,view3d.up);
-            eavlMatrix4x4 M1, M2;
-            M1.CreateTranslate(view3d.xpan,view3d.ypan,0);
-            M2.CreateScale(view3d.zoom, view3d.zoom, 1);
-            P = M1*M2*P;
+            // if we don't want to try to clamp the
+            // viewport as in 2D, just copy the original
+            // viewport as the 'real' one, i.e.:
+            l = vl;
+            r = vr;
+            b = vb;
+            t = vt;
+            return;
         }
 
-        // set them in GL
-        glMatrixMode( GL_PROJECTION );
-        glLoadMatrixf(P.GetOpenGLMatrix4x4());
-
-        glMatrixMode( GL_MODELVIEW );
-        glLoadMatrixf(V.GetOpenGLMatrix4x4());
-    }
-    void SetMatricesForScreen()
-    {
-        aspect = w / h;
-        glMatrixMode( GL_PROJECTION );
-        glLoadIdentity();
-        glOrtho(-1,1, -1,1, -1,1);
-
-        glMatrixMode( GL_MODELVIEW );
-        glLoadIdentity();
-    }
-    void GetReal2DViewport(float &l, float &r, float &b, float &t)
-    {
         // We set up a 2D viewport in window coordinates.
         // It has some aspect ratio given the window
         // width and height, but that aspect ratio may
@@ -164,14 +170,6 @@ struct eavlView
             l = vl;
             r = vr;
         }
-
-        // if we don't want to try to clamp the
-        // viewport in 2D, just copy the original
-        // viewport as the 'real' one, i.e.:
-        // l = vl;
-        // r = vr;
-        // b = vb;
-        // t = vt;
     }
 };
 

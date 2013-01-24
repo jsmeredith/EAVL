@@ -34,6 +34,64 @@ class eavlScene
     virtual void Initialize() = 0;
     virtual void Resize(int w, int h) = 0;
     virtual void Paint() = 0;
+
+
+    ///\todo: REMOVE THESE SIX FUNCTIONS AND MAKE EAVLSCENE
+    /// DERIVE FROM EAVLDRAWABLE (nee EAVLANNOTATION).
+    //
+    // Set up ONLY the viewport for world/screen space
+    //
+    void SetupViewportForWorld(eavlView &view)
+    {
+        float vl, vr, vt, vb;
+        view.GetRealViewport(vl,vr,vb,vt);
+        glViewport(float(view.w)*(1.+vl)/2.,
+                   float(view.h)*(1.+vb)/2.,
+                   float(view.w)*(vr-vl)/2.,
+                   float(view.h)*(vt-vb)/2.);
+    }
+    void SetupViewportForScreen(eavlView &view)
+    {
+        glViewport(0, 0, view.w, view.h);
+    }
+
+
+    //
+    // Set up ONLY the matrices for world/screen space
+    //
+    void SetupMatricesForWorld(eavlView &view)
+    {
+        glMatrixMode( GL_PROJECTION );
+        glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
+
+        glMatrixMode( GL_MODELVIEW );
+        glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
+    }
+    void SetupMatricesForScreen(eavlView &view)
+    {
+        glMatrixMode( GL_PROJECTION );
+        glLoadIdentity();
+        glOrtho(-1,1, -1,1, -1,1);
+
+        glMatrixMode( GL_MODELVIEW );
+        glLoadIdentity();
+    }
+
+
+    //
+    // Set up BOTH the matrices and viewport for world/screen space
+    //
+    void SetupForWorldSpace(eavlView &view)
+    {
+        SetupMatricesForWorld(view);
+        SetupViewportForWorld(view);
+    }
+    void SetupForScreenSpace(eavlView &view)
+    {
+        SetupMatricesForScreen(view);
+        SetupViewportForScreen(view);
+    }
+
 };
 
 // ****************************************************************************
@@ -134,9 +192,6 @@ class eavl3DGLScene : public eavlScene
     }
     virtual void Resize(int w, int h)
     {
-        ///\todo: I think we need to delete this line....
-        /// though we may need to set the viewport elsewhere
-        glViewport(0, 0, w, h);
     }
     virtual void Paint()
     {
@@ -149,17 +204,11 @@ class eavl3DGLScene : public eavlScene
         if (plotcount == 0)
             return;
 
-        // matrices
-        view.SetMatricesForViewport();
 
-        //glViewport(float(view.w)*(1.+view.vl)/2.,
-        //           float(view.h)*(1.+view.vb)/2.,
-        //           float(view.w)*(view.vr-view.vl)/2.,
-        //           float(view.h)*(view.vt-view.vb)/2.);
+        SetupForWorldSpace(view);
 
-        glMatrixMode( GL_PROJECTION );
-        glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
-
+        // We need to set lighting without the view matrix (for an eye
+        // light) so load the identity matrix into modelview temporarily....
         glMatrixMode( GL_MODELVIEW );
         glLoadIdentity();
 
@@ -183,6 +232,7 @@ class eavl3DGLScene : public eavlScene
             glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 8.0f);
         }
 
+        // Okay, safe to set the view matrix back now that lighting's done.
         glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
 
         glEnable(GL_DEPTH_TEST);
@@ -367,21 +417,7 @@ class eavl2DGLScene : public eavlScene
         if (plotcount == 0)
             return;
 
-        // matrices
-        float vl, vr, vt, vb;
-        view.GetReal2DViewport(vl,vr,vb,vt);
-        glViewport(float(view.w)*(1.+vl)/2.,
-                   float(view.h)*(1.+vb)/2.,
-                   float(view.w)*(vr-vl)/2.,
-                   float(view.h)*(vt-vb)/2.);
-
-        view.SetMatricesForViewport();
-
-        glMatrixMode( GL_PROJECTION );
-        glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
-
-        glMatrixMode( GL_MODELVIEW );
-        glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
+        SetupForWorldSpace(view);
 
         // render the plots
         for (unsigned int i=0;  i<plots.size(); i++)
@@ -457,8 +493,6 @@ class eavl2DGLScene : public eavlScene
             if (p.pcRenderer)
                 tex->Disable();
         }
-
-        glViewport(0,0,view.w,view.h);
     }
 };
 
@@ -588,21 +622,7 @@ class eavl1DGLScene : public eavlScene
         if (plotcount == 0)
             return;
 
-        // matrices
-        float vl, vr, vt, vb;
-        view.GetReal2DViewport(vl,vr,vb,vt);
-        glViewport(float(view.w)*(1.+vl)/2.,
-                   float(view.h)*(1.+vb)/2.,
-                   float(view.w)*(vr-vl)/2.,
-                   float(view.h)*(vt-vb)/2.);
-
-        view.SetMatricesForViewport();
-
-        glMatrixMode( GL_PROJECTION );
-        glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
-
-        glMatrixMode( GL_MODELVIEW );
-        glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
+        SetupForWorldSpace(view);
 
         // render the plots
         for (unsigned int i=0;  i<plots.size(); i++)
@@ -637,8 +657,6 @@ class eavl1DGLScene : public eavlScene
                 cerr << "-\n";
             }
         }
-
-        glViewport(0,0,view.w,view.h);
     }
 };
 

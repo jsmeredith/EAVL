@@ -15,14 +15,14 @@
 //
 // Modifications:
 // ****************************************************************************
-class eavlBoundingBoxAnnotation : public eavlWorldSpaceAnnotation
+class eavlBoundingBoxAnnotation : public eavlAnnotation
 {
   protected:
     double dmin[3], dmax[3];
     eavlColor color;
   public:
     eavlBoundingBoxAnnotation(eavlWindow *win) :
-        eavlWorldSpaceAnnotation(win)
+        eavlAnnotation(win)
     {
         dmin[0] = dmin[1] = dmin[2] = -1;
         dmax[0] = dmax[1] = dmax[2] = +1;
@@ -43,8 +43,10 @@ class eavlBoundingBoxAnnotation : public eavlWorldSpaceAnnotation
     {
         color = c;
     }
-    virtual void Render()
+    virtual void Render(eavlView &view)
     {
+        SetupForWorldSpace(view);
+
         glDisable(GL_LIGHTING);
         glLineWidth(1);
         glColor3fv(color.c);

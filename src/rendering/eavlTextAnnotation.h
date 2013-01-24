@@ -168,29 +168,20 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
         x = ox;
         y = oy;
     }
-    virtual void Setup(eavlView &view)
+    virtual void Render(eavlView &view)
     {
-        view.SetMatricesForScreen();
-        
-        glMatrixMode( GL_PROJECTION );
-        glLoadIdentity();
-        glOrtho(-1,1, -1,1, -1,1);
-
-        glMatrixMode( GL_MODELVIEW );
-        glLoadIdentity();
+        SetupForScreenSpace(view);
 
         eavlMatrix4x4 mtx;
         mtx.CreateTranslate(x, y, 0);
         glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 
-        mtx.CreateScale(1./view.aspect, 1, 1);
+        mtx.CreateScale(1./view.windowaspect, 1, 1);
         glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 
         mtx.CreateRotateZ(angle * M_PI / 180.);
         glMultMatrixf(mtx.GetOpenGLMatrix4x4());
-    }
-    virtual void Render()
-    {
+
         RenderText();
     }
 };
@@ -222,34 +213,22 @@ class eavlWorldTextAnnotation : public eavlTextAnnotation
                       eavlVector3(ux,uy,uz));
 
     }
-    virtual void Setup(eavlView &view)
+    virtual void Render(eavlView &view)
     {
-        view.SetMatricesForViewport();
+        SetupForWorldSpace(view);
 
         eavlMatrix4x4 M = view.V * mtx;
 
         if (view.viewtype == eavlView::EAVL_VIEW_2D)
         {
-            float vl, vr, vt, vb;
-            view.GetReal2DViewport(vl,vr,vb,vt);
-            glViewport(float(view.w)*(1.+vl)/2.,
-                       float(view.h)*(1.+vb)/2.,
-                       float(view.w)*(vr-vl)/2.,
-                       float(view.h)*(vt-vb)/2.);
-
             eavlMatrix4x4 S;
             S.CreateScale(1. / view.view2d.xscale, 1, 1);
             M = view.V * mtx * S;
         }
 
-        glMatrixMode( GL_PROJECTION );
-        glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
-
         glMatrixMode( GL_MODELVIEW );
         glLoadMatrixf(M.GetOpenGLMatrix4x4());
-    }
-    virtual void Render()
-    {
+
         RenderText();
     }
 };
@@ -295,42 +274,27 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
         y = oy;
         z = oz;
     }
-    virtual void Setup(eavlView &view)
+    virtual void Render(eavlView &view)
     {
-        if (view.viewtype == eavlView::EAVL_VIEW_2D)
-        {
-            float vl, vr, vt, vb;
-            view.GetReal2DViewport(vl,vr,vb,vt);
-            glViewport(float(view.w)*(1.+vl)/2.,
-                       float(view.h)*(1.+vb)/2.,
-                       float(view.w)*(vr-vl)/2.,
-                       float(view.h)*(vt-vb)/2.);
-        }
+        SetupViewportForWorld(view);
 
         if (fixed2Dscale)
         {
-            view.SetMatricesForScreen();
+            SetupMatricesForScreen(view);
 
             eavlPoint3 p = view.P * view.V * eavlPoint3(x,y,z);
-
-            glMatrixMode( GL_PROJECTION );
-            glLoadIdentity();
-            glOrtho(-1,1, -1,1, -1,1);
-
-            glMatrixMode( GL_MODELVIEW );
-            glLoadIdentity();
 
             eavlMatrix4x4 mtx;
             mtx.CreateTranslate(p.x, p.y, -p.z);
             glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 
-            mtx.CreateScale(1./view.aspect, 1, 1);
+            mtx.CreateScale(1./view.windowaspect, 1, 1);
             glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 
-            if (view.viewtype == eavlView::EAVL_VIEW_2D)
+            //if (view.viewtype == eavlView::EAVL_VIEW_2D)
             {
                 float vl, vr, vt, vb;
-                view.GetReal2DViewport(vl,vr,vb,vt);
+                view.GetRealViewport(vl,vr,vb,vt);
                 float xs = (vr-vl);
                 float ys = (vt-vb);
                 eavlMatrix4x4 S;
@@ -343,13 +307,7 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
         }
         else
         {
-            view.SetMatricesForViewport();
-
-            glMatrixMode( GL_PROJECTION );
-            glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
-
-            glMatrixMode( GL_MODELVIEW );
-            glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
+            SetupMatricesForWorld(view);
 
             eavlMatrix4x4 mtx;
             if (view.viewtype == eavlView::EAVL_VIEW_2D)
@@ -374,9 +332,7 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
             glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 
         }
-    }
-    virtual void Render()
-    {
+
         RenderText();
     }
 };

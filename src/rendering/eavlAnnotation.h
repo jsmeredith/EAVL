@@ -16,6 +16,9 @@ class eavlWindow;
 //
 // Modifications:
 // ****************************************************************************
+
+///\todo: Rename to "eavlGLDrawable" or something like that....
+/// Also implies the various annotations should be renamed to include "GL"?
 class eavlAnnotation
 {
   protected:
@@ -25,70 +28,63 @@ class eavlAnnotation
         : win(w)
     {
     }
-    virtual void Setup(eavlView &view) = 0;
-    virtual void Render() = 0;
-};
 
-// ****************************************************************************
-// Class:  eavlWorldSpaceAnnotation
-//
-// Purpose:
-///   Base class for annotations in world space.
-//
-// Programmer:  Jeremy Meredith
-// Creation:    January 11, 2013
-//
-// Modifications:
-// ****************************************************************************
-class eavlWorldSpaceAnnotation : public eavlAnnotation
-{
+
+    virtual void Render(eavlView &view) = 0;
+
   protected:
-  public:
-    eavlWorldSpaceAnnotation(eavlWindow *w)
-        : eavlAnnotation(w)
+    //
+    // Set up ONLY the viewport for world/screen space
+    //
+    void SetupViewportForWorld(eavlView &view)
     {
+        float vl, vr, vt, vb;
+        view.GetRealViewport(vl,vr,vb,vt);
+        glViewport(float(view.w)*(1.+vl)/2.,
+                   float(view.h)*(1.+vb)/2.,
+                   float(view.w)*(vr-vl)/2.,
+                   float(view.h)*(vt-vb)/2.);
     }
-    virtual void Setup(eavlView &view)
+    void SetupViewportForScreen(eavlView &view)
     {
-        view.SetMatricesForViewport();
+        glViewport(0, 0, view.w, view.h);
+    }
 
+
+    //
+    // Set up ONLY the matrices for world/screen space
+    //
+    void SetupMatricesForWorld(eavlView &view)
+    {
         glMatrixMode( GL_PROJECTION );
         glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
 
         glMatrixMode( GL_MODELVIEW );
         glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
     }
-};
-
-// ****************************************************************************
-// Class:  eavlScreenSpaceAnnotation
-//
-// Purpose:
-///   Base class for annotations in screen space.
-//
-// Programmer:  Jeremy Meredith
-// Creation:    January 11, 2013
-//
-// Modifications:
-// ****************************************************************************
-class eavlScreenSpaceAnnotation : public eavlAnnotation
-{
-  protected:
-  public:
-    eavlScreenSpaceAnnotation(eavlWindow *w)
-        : eavlAnnotation(w)
+    void SetupMatricesForScreen(eavlView &view)
     {
-    }
-    virtual void Setup(eavlView &view)
-    {
-        view.SetMatricesForScreen();
-
         glMatrixMode( GL_PROJECTION );
         glLoadIdentity();
         glOrtho(-1,1, -1,1, -1,1);
 
         glMatrixMode( GL_MODELVIEW );
         glLoadIdentity();
+    }
+
+
+    //
+    // Set up BOTH the matrices and viewport for world/screen space
+    //
+    void SetupForWorldSpace(eavlView &view)
+    {
+        SetupMatricesForWorld(view);
+        SetupViewportForWorld(view);
+    }
+    void SetupForScreenSpace(eavlView &view)
+    {
+        SetupMatricesForScreen(view);
+        SetupViewportForScreen(view);
     }
 };
 

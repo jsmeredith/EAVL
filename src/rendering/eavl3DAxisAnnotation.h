@@ -15,7 +15,7 @@
 //
 // Modifications:
 // ****************************************************************************
-class eavl3DAxisAnnotation : public eavlWorldSpaceAnnotation
+class eavl3DAxisAnnotation : public eavlAnnotation
 {
   protected:
     double maj_size, maj_toff;
@@ -29,7 +29,7 @@ class eavl3DAxisAnnotation : public eavlWorldSpaceAnnotation
     vector<eavlBillboardTextAnnotation*> labels;
   public:
     eavl3DAxisAnnotation(eavlWindow *win) :
-        eavlWorldSpaceAnnotation(win)
+        eavlAnnotation(win)
     {
         axis = 0;
         color = eavlColor::white;
@@ -81,8 +81,10 @@ class eavl3DAxisAnnotation : public eavlWorldSpaceAnnotation
         lower = l;
         upper = u;
     }
-    virtual void Render()
+    virtual void Render(eavlView &view)
     {
+        SetupForWorldSpace(view);
+
         glDisable(GL_LIGHTING);
         glLineWidth(1);
         glColor3fv(color.c);
@@ -186,8 +188,7 @@ class eavl3DAxisAnnotation : public eavlWorldSpaceAnnotation
 
         for (int i=0; i<nmajor; ++i)
         {
-            labels[i]->Setup(win->view);
-            labels[i]->Render();
+            labels[i]->Render(view);
         }
     }    
 };

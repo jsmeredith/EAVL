@@ -13,14 +13,13 @@
 //
 // Modifications:
 // ****************************************************************************
-class eavl2DFrameAnnotation : public eavlScreenSpaceAnnotation
+class eavl2DFrameAnnotation : public eavlAnnotation
 {
   protected:
     double dmin[2], dmax[2];
     eavlColor color;
   public:
-    eavl2DFrameAnnotation(eavlWindow *win) :
-        eavlScreenSpaceAnnotation(win)
+    eavl2DFrameAnnotation(eavlWindow *win) : eavlAnnotation(win)
     {
         dmin[0] = dmin[1] = -1;
         dmax[0] = dmax[1] = +1;
@@ -38,8 +37,10 @@ class eavl2DFrameAnnotation : public eavlScreenSpaceAnnotation
     {
         color = c;
     }
-    virtual void Render()
+    virtual void Render(eavlView &view)
     {
+        SetupForScreenSpace(view);
+
         glDisable(GL_LIGHTING);
         glLineWidth(1);
         glColor3fv(color.c);
