@@ -35,63 +35,6 @@ class eavlScene
     virtual void Resize(int w, int h) = 0;
     virtual void Paint() = 0;
 
-
-    ///\todo: REMOVE THESE SIX FUNCTIONS AND MAKE EAVLSCENE
-    /// DERIVE FROM EAVLDRAWABLE (nee EAVLANNOTATION).
-    //
-    // Set up ONLY the viewport for world/screen space
-    //
-    void SetupViewportForWorld(eavlView &view)
-    {
-        float vl, vr, vt, vb;
-        view.GetRealViewport(vl,vr,vb,vt);
-        glViewport(float(view.w)*(1.+vl)/2.,
-                   float(view.h)*(1.+vb)/2.,
-                   float(view.w)*(vr-vl)/2.,
-                   float(view.h)*(vt-vb)/2.);
-    }
-    void SetupViewportForScreen(eavlView &view)
-    {
-        glViewport(0, 0, view.w, view.h);
-    }
-
-
-    //
-    // Set up ONLY the matrices for world/screen space
-    //
-    void SetupMatricesForWorld(eavlView &view)
-    {
-        glMatrixMode( GL_PROJECTION );
-        glLoadMatrixf(view.P.GetOpenGLMatrix4x4());
-
-        glMatrixMode( GL_MODELVIEW );
-        glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
-    }
-    void SetupMatricesForScreen(eavlView &view)
-    {
-        glMatrixMode( GL_PROJECTION );
-        glLoadIdentity();
-        glOrtho(-1,1, -1,1, -1,1);
-
-        glMatrixMode( GL_MODELVIEW );
-        glLoadIdentity();
-    }
-
-
-    //
-    // Set up BOTH the matrices and viewport for world/screen space
-    //
-    void SetupForWorldSpace(eavlView &view)
-    {
-        SetupMatricesForWorld(view);
-        SetupViewportForWorld(view);
-    }
-    void SetupForScreenSpace(eavlView &view)
-    {
-        SetupMatricesForScreen(view);
-        SetupViewportForScreen(view);
-    }
-
 };
 
 // ****************************************************************************
@@ -205,7 +148,7 @@ class eavl3DGLScene : public eavlScene
             return;
 
 
-        SetupForWorldSpace(view);
+        win->SetupForWorldSpace();
 
         // We need to set lighting without the view matrix (for an eye
         // light) so load the identity matrix into modelview temporarily....
@@ -417,7 +360,7 @@ class eavl2DGLScene : public eavlScene
         if (plotcount == 0)
             return;
 
-        SetupForWorldSpace(view);
+        win->SetupForWorldSpace();
 
         // render the plots
         for (unsigned int i=0;  i<plots.size(); i++)
@@ -622,7 +565,7 @@ class eavl1DGLScene : public eavlScene
         if (plotcount == 0)
             return;
 
-        SetupForWorldSpace(view);
+        win->SetupForWorldSpace();
 
         // render the plots
         for (unsigned int i=0;  i<plots.size(); i++)

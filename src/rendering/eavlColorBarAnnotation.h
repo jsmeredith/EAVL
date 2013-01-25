@@ -54,7 +54,7 @@ class eavlColorBarAnnotation : public eavlAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        SetupForScreenSpace(view);
+        win->SetupForScreenSpace();
 
         eavlTexture *tex = win->GetTexture(ctname);
         if (!tex )

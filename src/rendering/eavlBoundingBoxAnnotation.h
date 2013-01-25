@@ -45,7 +45,7 @@ class eavlBoundingBoxAnnotation : public eavlAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        SetupForWorldSpace(view);
+        win->SetupForWorldSpace();
 
         glDisable(GL_LIGHTING);
         glLineWidth(1);

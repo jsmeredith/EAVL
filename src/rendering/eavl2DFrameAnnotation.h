@@ -39,7 +39,7 @@ class eavl2DFrameAnnotation : public eavlAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        SetupForScreenSpace(view);
+        win->SetupForScreenSpace();
 
         glDisable(GL_LIGHTING);
         glLineWidth(1);
