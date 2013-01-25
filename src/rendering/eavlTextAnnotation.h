@@ -170,7 +170,7 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        win->SetupForScreenSpace();
+        view.SetupForScreenSpace();
 
         eavlMatrix4x4 mtx;
         mtx.CreateTranslate(x, y, 0);
@@ -215,7 +215,7 @@ class eavlWorldTextAnnotation : public eavlTextAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        win->SetupForWorldSpace();
+        view.SetupForWorldSpace();
 
         eavlMatrix4x4 M = view.V * mtx;
 
@@ -276,11 +276,11 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        win->SetupViewportForWorld();
+        view.SetupViewportForWorld();
 
         if (fixed2Dscale)
         {
-            win->SetupMatricesForScreen();
+            view.SetupMatricesForScreen();
 
             eavlPoint3 p = view.P * view.V * eavlPoint3(x,y,z);
 
@@ -307,7 +307,7 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
         }
         else
         {
-            win->SetupMatricesForWorld();
+            view.SetupMatricesForWorld();
 
             eavlMatrix4x4 mtx;
             if (view.viewtype == eavlView::EAVL_VIEW_2D)

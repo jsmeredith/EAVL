@@ -171,6 +171,215 @@ struct eavlView
             r = vr;
         }
     }
+
+    // ------------------------------------------------------------------------
+
+    void Pan3D(float dx, float dy)
+    {
+        view3d.xpan += dx;
+        view3d.ypan += dy;
+    }
+    void Zoom3D(float zoom)
+    {
+        double factor = pow(4., zoom);
+        view3d.zoom *= factor;
+        view3d.xpan *= factor;
+        view3d.ypan *= factor;
+    }
+    void TrackballRotate(float x1, float y1, float x2, float y2)
+    {
+        eavlMatrix4x4 R1;
+        R1.CreateTrackball(-x1,-y1, -x2,-y2);
+        eavlMatrix4x4 T1;
+        T1.CreateTranslate(-view3d.at);
+        eavlMatrix4x4 T2;
+        T2.CreateTranslate(view3d.at);
+                
+        eavlMatrix4x4 V1(V);
+        V1.m[0][3]=0;
+        V1.m[1][3]=0;
+        V1.m[2][3]=0;
+        eavlMatrix4x4 V2(V1);
+        V2.Transpose();
+                
+        eavlMatrix4x4 MM = T2 * V2 * R1 * V1 * T1;
+                
+        view3d.from = MM * view3d.from;
+        view3d.at   = MM * view3d.at;
+        view3d.up   = MM * view3d.up;
+    }
+
+    void Pan2D(float dx, float dy)
+    {
+        float rvl, rvr, rvt, rvb;
+        GetRealViewport(rvl,rvr,rvb,rvt);
+
+        float xpan = dx * (view2d.r - view2d.l) / (rvr - rvl);
+        float ypan = dy * (view2d.t - view2d.b) / (rvt - rvb);
+
+        view2d.l -= xpan;
+        view2d.r -= xpan;
+
+        view2d.t -= ypan;
+        view2d.b -= ypan;
+    }
+    void Zoom2D(float zoom, bool allowExpand)
+    {
+        double factor = pow(4., zoom);
+        double xc = (view2d.l + view2d.r) / 2.;
+        double yc = (view2d.b + view2d.t) / 2.;
+        double xs = (view2d.r - view2d.l) / 2.;
+        double ys = (view2d.t - view2d.b) / 2.;
+        if (allowExpand)
+        {
+            float rvl, rvr, rvt, rvb;
+            GetRealViewport(rvl,rvr,rvb,rvt);
+
+            // If we're zooming in, we first want to expand the
+            // viewport if possible before actually having to pull
+            // the x/y region in.  We accomplish expanding the
+            // viewport the horizontal/vertical direction by
+            // (respectively) pulling in the y/x limits while
+            // leaving the x/y limits alone.  (Or at least leaving
+            // the x/y limits as large as possible.)
+            double allowed_x_expansion = (vr - vl) / (rvr - rvl);
+            double allowed_y_expansion = (vt - vb) / (rvt - rvb);
+
+            /*
+            cerr << "allowx = "<<allowed_x_expansion<<endl;
+            cerr << "allowy = "<<allowed_y_expansion<<endl;
+            cerr << "factor = "<<factor<<endl;
+            cerr << endl;
+            */
+
+            if (zoom > 0 && allowed_x_expansion>1.01)
+            {
+                // not using this:
+                //double xfactor = factor;
+                //if (allowed_x_expansion > xfactor)
+                //    xfactor = 1;
+                //else
+                //    xfactor /= allowed_x_expansion;
+
+                bool in_l = xc - xs/factor < minextents[0];
+                bool in_r = xc + xs/factor > maxextents[0];
+                if (in_l && in_r)
+                {
+                    view2d.l = xc - xs/factor;
+                    view2d.r = xc + xs/factor;
+                }
+                else if (in_l)
+                {
+                    view2d.l = xc - xs/(factor*factor);
+                }
+                else if (in_r)
+                {
+                    view2d.r = xc + xs/(factor*factor);
+                }
+
+                view2d.b = yc - ys/factor;
+                view2d.t = yc + ys/factor;
+            }
+            else if (zoom > 0 && allowed_y_expansion>1.01)
+            {
+                // not using this:
+                //double yfactor = factor;
+                //if (allowed_y_expansion > yfactor)
+                //    yfactor = 1;
+                //else
+                //    yfactor /= allowed_y_expansion;
+
+                bool in_b = yc - ys/factor < minextents[1];
+                bool in_t = yc + ys/factor > maxextents[1];
+                if (in_b && in_t)
+                {
+                    view2d.b = yc - ys/factor;
+                    view2d.t = yc + ys/factor;
+                }
+                else if (in_b)
+                {
+                    view2d.b = yc - ys/(factor*factor);
+                }
+                else if (in_t)
+                {
+                    view2d.t = yc + ys/(factor*factor);
+                }
+
+                view2d.l = xc - xs/factor;
+                view2d.r = xc + xs/factor;
+            }
+            else
+            {
+                view2d.l = xc - xs/factor;
+                view2d.r = xc + xs/factor;
+                view2d.b = yc - ys/factor;
+                view2d.t = yc + ys/factor;
+            }
+        }
+        else // no allowExpand
+        {
+            view2d.l = xc - xs/factor;
+            view2d.r = xc + xs/factor;
+            view2d.b = yc - ys/factor;
+            view2d.t = yc + ys/factor;
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    //
+    // Set up ONLY the viewport for world/screen space
+    //
+    void SetupViewportForWorld()
+    {
+        float vl, vr, vt, vb;
+        GetRealViewport(vl,vr,vb,vt);
+        glViewport(float(w)*(1.+vl)/2.,
+                   float(h)*(1.+vb)/2.,
+                   float(w)*(vr-vl)/2.,
+                   float(h)*(vt-vb)/2.);
+    }
+    void SetupViewportForScreen()
+    {
+        glViewport(0, 0, w, h);
+    }
+
+
+    //
+    // Set up ONLY the matrices for world/screen space
+    //
+    void SetupMatricesForWorld()
+    {
+        glMatrixMode( GL_PROJECTION );
+        glLoadMatrixf(P.GetOpenGLMatrix4x4());
+
+        glMatrixMode( GL_MODELVIEW );
+        glLoadMatrixf(V.GetOpenGLMatrix4x4());
+    }
+    void SetupMatricesForScreen()
+    {
+        glMatrixMode( GL_PROJECTION );
+        glLoadIdentity();
+        glOrtho(-1,1, -1,1, -1,1);
+
+        glMatrixMode( GL_MODELVIEW );
+        glLoadIdentity();
+    }
+
+
+    //
+    // Set up BOTH the matrices and viewport for world/screen space
+    //
+    void SetupForWorldSpace()
+    {
+        SetupMatricesForWorld();
+        SetupViewportForWorld();
+    }
+    void SetupForScreenSpace()
+    {
+        SetupMatricesForScreen();
+        SetupViewportForScreen();
+    }
+
 };
 
 #endif

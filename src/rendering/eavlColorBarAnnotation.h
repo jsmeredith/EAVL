@@ -26,7 +26,7 @@ class eavlColorBarAnnotation : public eavlAnnotation
     GLuint texid;
     eavlColorBarAnnotation(eavlWindow *win) : eavlAnnotation(win)
     {
-        texid == 0;
+        texid = 0;
         axis = new eavl2DAxisAnnotation(win);
     }
     void SetColorTable(const string &colortablename)
@@ -54,7 +54,7 @@ class eavlColorBarAnnotation : public eavlAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        win->SetupForScreenSpace();
+        view.SetupForScreenSpace();
 
         eavlTexture *tex = win->GetTexture(ctname);
         if (!tex )

@@ -109,7 +109,7 @@ class eavl2DAxisAnnotation : public eavlAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        win->SetupForScreenSpace();
+        view.SetupForScreenSpace();
 
         glDisable(GL_LIGHTING);
         glColor3fv(color.c);
