@@ -75,6 +75,7 @@ class eavl2DWindow : public eavlWindow
             colorbar->Render(view);
         }
 
+        glFinish();
     }
 };
 

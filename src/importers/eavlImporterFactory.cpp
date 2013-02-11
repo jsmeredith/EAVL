@@ -13,6 +13,7 @@
 #include "eavlBOVImporter.h"
 #include "eavlPDBImporter.h"
 #include "eavlPNGImporter.h"
+#include "eavlCurveImporter.h"
 
 #include "eavlException.h"
 
@@ -46,6 +47,10 @@ eavlImporterFactory::GetImporterForFile(const std::string &fn_orig)
     else if (flen>4 && filename.substr(flen-4) == ".png")
     {
         importer = new eavlPNGImporter(fn_orig);
+    }
+    else if (flen>6 && filename.substr(flen-6) == ".curve")
+    {
+        importer = new eavlCurveImporter(fn_orig);
     }
 #ifdef HAVE_NETCDF
     else if (flen>3 && filename.substr(flen-3) == ".nc")

@@ -128,6 +128,8 @@ class eavl3DWindow : public eavlWindow
             colorbar->SetColorTable(scene->plots[0].colortable);
             colorbar->Render(view);
         }
+
+        glFinish();
     }
 
     /*

@@ -61,6 +61,8 @@ class eavl1DWindow : public eavlWindow
         vaxis->SetMinorTickSize(.02 / view.windowaspect, 0, 1.0);
         vaxis->SetLabelAnchor(1.0, 0.47);
         vaxis->Render(view);
+
+        glFinish();
     }
 };
 

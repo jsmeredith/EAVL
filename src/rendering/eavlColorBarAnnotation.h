@@ -73,8 +73,8 @@ class eavlColorBarAnnotation : public eavlAnnotation
 
         glBegin(GL_QUADS);
 
-        float l = -.9, r = +.9;
-        float b = +0.90, t= +0.95;
+        float l = -0.88, r = +0.88;
+        float b = +0.90, t = +0.95;
 
         glTexCoord1f(0);
         glVertex3f(l, b, .99);

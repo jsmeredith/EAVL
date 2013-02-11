@@ -39,7 +39,7 @@ class eavlWindow
         view.w = w;
         view.h = h;
     }
-    virtual void Paint() { }
+    virtual void Paint() = 0;
 
     eavlTexture *GetTexture(const std::string &s)
     {
