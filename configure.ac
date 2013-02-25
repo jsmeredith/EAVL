@@ -474,10 +474,33 @@ GPU Support:
    NVCXXFLAGS="$NVCXXFLAGS -Xcompiler \"$""(CXXFLAGS)\""
 
    # see if we can use compute model 2.0
-   AC_MSG_CHECKING(if compute model 2.0 is supported)
+   AC_MSG_CHECKING(for latest compute model supported)
    echo "__global__ void testfunc() { }" > conftest.cu
-   if $NVCC -gencode=arch=compute_20,code=sm_20 -c conftest.cu 2>&AS_MESSAGE_LOG_FD ; then
-      AC_MSG_RESULT(yes)
+   if $NVCC -gencode=arch=compute_35,code=sm_35 -c conftest.cu 2>&AS_MESSAGE_LOG_FD ; then
+      AC_MSG_RESULT(3.5)
+      if test "$OLDGPU" = "yes"; then
+         AC_DEFINE(HAVE_OLD_GPU,[1])
+         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_10,code=sm_10 "
+         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_11,code=sm_11"
+         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_13,code=sm_13"
+      fi
+      NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_20,code=sm_20"
+      NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_30,code=sm_30"
+      NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_35,code=sm_35"
+      NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_35,code=compute_35"
+   elif $NVCC -gencode=arch=compute_30,code=sm_30 -c conftest.cu 2>&AS_MESSAGE_LOG_FD ; then
+      AC_MSG_RESULT(3.0)
+      if test "$OLDGPU" = "yes"; then
+         AC_DEFINE(HAVE_OLD_GPU,[1])
+         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_10,code=sm_10 "
+         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_11,code=sm_11"
+         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_13,code=sm_13"
+      fi
+      NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_20,code=sm_20"
+      NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_30,code=sm_30"
+      NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_30,code=compute_30"
+   elif $NVCC -gencode=arch=compute_20,code=sm_20 -c conftest.cu 2>&AS_MESSAGE_LOG_FD ; then
+      AC_MSG_RESULT(2.0)
       if test "$OLDGPU" = "yes"; then
          AC_DEFINE(HAVE_OLD_GPU,[1])
          NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_10,code=sm_10 "
@@ -487,7 +510,7 @@ GPU Support:
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_20,code=sm_20"
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_20,code=compute_20"
    else
-      AC_MSG_RESULT(no)
+      AC_MSG_RESULT(older than 2.0; assuming 1.3)
       if test "$OLDGPU" = "no"; then
          AC_MSG_ERROR([Your nvcc does not support capability 2.0+, but pre-2.0 support was disabled; try --enable-oldgpu or upgrade your CUDA version.])
       fi
