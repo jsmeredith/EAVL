@@ -173,8 +173,9 @@ class eavlArray
     }
 };
 
+
 // ****************************************************************************
-// Class:  eavlFloatArray
+// Class:  eavlConcreteArray
 //
 // Purpose:
 ///   Concrete subclass of eavlArray.
@@ -182,20 +183,25 @@ class eavlArray
 // Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern
 // Creation:    February 14, 2011
 //
+// Modifications:
+//   Jeremy Meredith, Mon Feb 25 16:12:23 EST 2013
+//   Change to templated type instead of code duplication.
+//
 // ****************************************************************************
-class eavlFloatArray : public eavlArray
+template<class T>
+class eavlConcreteArray : public eavlArray
 {
   protected:
-    vector<float> values;
+    vector<T> values;
 #ifdef HAVE_CUDA
     bool    host_dirty;
     bool    device_dirty;
-    float *device_values;
+    T *device_values;
     void NeedToUseOnHost()
     {
         if (device_dirty)
         {
-            int nbytes = values.size() * sizeof(float);
+            int nbytes = values.size() * sizeof(T);
             cudaMemcpy(&(values[0]), device_values,
                        nbytes, cudaMemcpyDeviceToHost);
             CUDA_CHECK_ERROR();
@@ -205,7 +211,7 @@ class eavlFloatArray : public eavlArray
     }
     void NeedToUseOnDevice()
     {
-        int nbytes = values.size() * sizeof(float);
+        int nbytes = values.size() * sizeof(T);
         if (device_values == NULL)
         {
             cudaMalloc((void**)&device_values, nbytes);
@@ -226,7 +232,7 @@ class eavlFloatArray : public eavlArray
     void NeedToUseOnDevice() const {};
 #endif
   public:
-    eavlFloatArray(const string &n, int nc = 1, int nt = 0) : eavlArray(n,nc)
+    eavlConcreteArray(const string &n, int nc = 1, int nt = 0) : eavlArray(n,nc)
     {
 #ifdef HAVE_CUDA
         host_dirty = false;
@@ -236,7 +242,7 @@ class eavlFloatArray : public eavlArray
         if (nt > 0)
             values.resize(ncomponents * nt);
     }
-    virtual ~eavlFloatArray()
+    virtual ~eavlConcreteArray()
     {
 #ifdef HAVE_CUDA
         if (device_values)
@@ -245,9 +251,9 @@ class eavlFloatArray : public eavlArray
     }
     virtual eavlArray *Create(const string &n, int nc = 1, int nt = 0)
     {
-        return new eavlFloatArray(n, nc, nt);
+        return new eavlConcreteArray<T>(n, nc, nt);
     }
-    virtual const char *GetBasicType() { return "float"; }
+    virtual const char *GetBasicType();
     virtual void *GetHostArray()
     {
         NeedToUseOnHost();
@@ -265,7 +271,7 @@ class eavlFloatArray : public eavlArray
             return 0;
         return values.size() / ncomponents;
     }
-    void SetTuple(int index, float *v)
+    void SetTuple(int index, T *v)
     {
         NeedToUseOnHost();
         for (int c=0; c<ncomponents; c++)
@@ -273,30 +279,30 @@ class eavlFloatArray : public eavlArray
     }
     ///\todo: there should be a const version of GetTuple, right? (hard with cuda added)
 #ifndef HAVE_CUDA
-    const float *GetTuple(int index) const
+    const T *GetTuple(int index) const
     {
         NeedToUseOnHost();
         return &(values[index*ncomponents]);
     }
 #endif
-    float *GetTuple(int index)
+    T *GetTuple(int index)
     {
         NeedToUseOnHost();
         return &(values[index*ncomponents]);
     }
-    float GetValue(int index)
+    T GetValue(int index)
     {
         // assert ncomponents==1?
         NeedToUseOnHost();
         return values[index*ncomponents+0];
     }
-    void SetValue(int index, float v)
+    void SetValue(int index, T v)
     {
         // assert ncomponents==1?
         NeedToUseOnHost();
         values[index*ncomponents+0] = v;
     }
-    void AddValue(float v)
+    void AddValue(T v)
     {
         // assert ncomponents==1?
         NeedToUseOnHost();
@@ -329,358 +335,22 @@ class eavlFloatArray : public eavlArray
         ///\todo: ignores device memory; is that right??
         long long mem = 0;
 
-        mem += sizeof(vector<float>);
-        mem += values.size() * sizeof(float);
+        mem += sizeof(vector<T>);
+        mem += values.size() * sizeof(T);
 
 #ifdef HAVE_CUDA
         mem += sizeof(bool);
         mem += sizeof(bool);
-        mem += sizeof(float*);
+        mem += sizeof(T*);
 #endif
         return mem + eavlArray::GetMemoryUsage();
     }
 };
 
 
-
-// ****************************************************************************
-// Class:  eavlIntArray
-//
-// Purpose:
-///   Concrete subclass of eavlArray.
-//
-// Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern
-// Creation:    February 14, 2011
-//
-// ****************************************************************************
-class eavlIntArray : public eavlArray
-{
-  protected:
-    vector<int> values;
-#ifdef HAVE_CUDA
-    bool    host_dirty;
-    bool    device_dirty;
-    int *device_values;
-    void NeedToUseOnHost()
-    {
-        if (device_dirty)
-        {
-            int nbytes = values.size() * sizeof(int);
-            cudaMemcpy(&(values[0]), device_values,
-                       nbytes, cudaMemcpyDeviceToHost);
-            CUDA_CHECK_ERROR();
-        }
-        device_dirty = false;
-        host_dirty = true;
-    }
-    void NeedToUseOnDevice()
-    {
-        int nbytes = values.size() * sizeof(int);
-        if (device_values == NULL)
-        {
-            cudaMalloc((void**)&device_values, nbytes);
-            CUDA_CHECK_ERROR();
-            //cudaMemset((void**)&device_values, 0, nbytes);
-        }
-        if (host_dirty)
-        {
-            cudaMemcpy(device_values, &(values[0]),
-                       nbytes, cudaMemcpyHostToDevice);
-            CUDA_CHECK_ERROR();
-        }
-        host_dirty = false;
-        device_dirty = true;
-    }
-#else
-    void NeedToUseOnHost() const {};
-    void NeedToUseOnDevice() const {};
-#endif
-  public:
-    eavlIntArray(const string &n, int nc = 1, int nt = 0) : eavlArray(n,nc)
-    {
-#ifdef HAVE_CUDA
-        host_dirty = false;
-        device_dirty = false;
-        device_values = NULL;
-#endif
-        if (nt > 0)
-            values.resize(ncomponents * nt);
-    }
-    virtual ~eavlIntArray()
-    {
-#ifdef HAVE_CUDA
-        if (device_values)
-            cudaFree(device_values);
-#endif
-    }
-    virtual eavlArray *Create(const string &n, int nc = 1, int nt = 0)
-    {
-        return new eavlIntArray(n, nc, nt);
-    }
-    virtual const char *GetBasicType() { return "int"; }
-    virtual void *GetHostArray()
-    {
-        NeedToUseOnHost();
-        return &(values[0]);
-    }
-    virtual void SetNumberOfTuples(int n)
-    {
-        NeedToUseOnHost();
-        values.resize(ncomponents * n);
-    }
-    virtual int GetNumberOfTuples() const
-    {
-        //NeedToUseOnHost();
-        if (ncomponents == 0)
-            return 0;
-        return values.size() / ncomponents;
-    }
-    void SetTuple(int index, int *v)
-    {
-        NeedToUseOnHost();
-        for (int c=0; c<ncomponents; c++)
-            values[index*ncomponents+c] = v[c];
-    }
-    ///\todo: there should be a const version of GetTuple, right? (hard with cuda added)
-#ifndef HAVE_CUDA
-    const int *GetTuple(int index) const
-    {
-        NeedToUseOnHost();
-        return &(values[index*ncomponents]);
-    }
-#endif
-    int *GetTuple(int index)
-    {
-        NeedToUseOnHost();
-        return &(values[index*ncomponents]);
-    }
-    int GetValue(int index)
-    {
-        // assert ncomponents==1?
-        NeedToUseOnHost();
-        return values[index*ncomponents+0];
-    }
-    void SetValue(int index, int v)
-    {
-        // assert ncomponents==1?
-        NeedToUseOnHost();
-        values[index*ncomponents+0] = v;
-    }
-    void AddValue(int v)
-    {
-        // assert ncomponents==1?
-        NeedToUseOnHost();
-        values.push_back(v);
-    }
-    virtual double GetComponentAsDouble(int i, int c)
-    {
-        NeedToUseOnHost();
-        return GetTuple(i)[c];
-    }
-    virtual void SetComponentFromDouble(int i, int c, double v)
-    {
-        NeedToUseOnHost();
-        GetTuple(i)[c] = v;
-    }
-#ifdef HAVE_CUDA
-    virtual void *GetCUDAArray()
-    {
-        NeedToUseOnDevice();
-        return (void*)(device_values);
-    }
-    void ZeroHostArrayForDebugging()
-    {
-        for (size_t i=0; i<values.size(); i++)
-            values[i] = 0;
-    }
-#endif
-    virtual long long GetMemoryUsage()
-    {
-        ///\todo: ignores device memory; is that right??
-        long long mem = 0;
-
-        mem += sizeof(vector<int>);
-        mem += values.size() * sizeof(int);
-
-#ifdef HAVE_CUDA
-        mem += sizeof(bool);
-        mem += sizeof(bool);
-        mem += sizeof(int*);
-#endif
-        return mem + eavlArray::GetMemoryUsage();
-    }
-};
-
-
-// ****************************************************************************
-// Class:  eavlByteArray
-//
-// Purpose:
-///   Concrete subclass of eavlArray.
-//
-// Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern
-// Creation:    February 14, 2011
-//
-// ****************************************************************************
-class eavlByteArray : public eavlArray
-{
-  protected:
-    vector<byte> values;
-#ifdef HAVE_CUDA
-    bool    host_dirty;
-    bool    device_dirty;
-    byte *device_values;
-    void NeedToUseOnHost()
-    {
-        if (device_dirty)
-        {
-            int nbytes = values.size() * sizeof(byte);
-            cudaMemcpy(&(values[0]), device_values,
-                       nbytes, cudaMemcpyDeviceToHost);
-            CUDA_CHECK_ERROR();
-        }
-        device_dirty = false;
-        host_dirty = true;
-    }
-    void NeedToUseOnDevice()
-    {
-        int nbytes = values.size() * sizeof(byte);
-        if (device_values == NULL)
-        {
-            cudaMalloc((void**)&device_values, nbytes);
-            CUDA_CHECK_ERROR();
-            //cudaMemset((void**)&device_values, 0, nbytes);
-        }
-        if (host_dirty)
-        {
-            cudaMemcpy(device_values, &(values[0]),
-                       nbytes, cudaMemcpyHostToDevice);
-            CUDA_CHECK_ERROR();
-        }
-        host_dirty = false;
-        device_dirty = true;
-    }
-#else
-    void NeedToUseOnHost() const {};
-    void NeedToUseOnDevice() const {};
-#endif
-  public:
-    eavlByteArray(const string &n, int nc = 1, int nt = 0) : eavlArray(n,nc)
-    {
-#ifdef HAVE_CUDA
-        host_dirty = false;
-        device_dirty = false;
-        device_values = NULL;
-#endif
-        if (nt > 0)
-            values.resize(ncomponents * nt);
-    }
-    virtual ~eavlByteArray()
-    {
-#ifdef HAVE_CUDA
-        if (device_values)
-            cudaFree(device_values);
-#endif
-    }
-    virtual eavlArray *Create(const string &n, int nc = 1, int nt = 0)
-    {
-        return new eavlByteArray(n, nc, nt);
-    }
-    virtual const char *GetBasicType() { return "byte"; }
-    virtual void *GetHostArray()
-    {
-        NeedToUseOnHost();
-        return &(values[0]);
-    }
-    virtual void SetNumberOfTuples(int n)
-    {
-        NeedToUseOnHost();
-        values.resize(ncomponents * n);
-    }
-    virtual int GetNumberOfTuples() const
-    {
-        //NeedToUseOnHost();
-        if (ncomponents == 0)
-            return 0;
-        return values.size() / ncomponents;
-    }
-    void SetTuple(int index, byte *v)
-    {
-        NeedToUseOnHost();
-        for (int c=0; c<ncomponents; c++)
-            values[index*ncomponents+c] = v[c];
-    }
-    ///\todo: there should be a const version of GetTuple, right? (hard with cuda added)
-#ifndef HAVE_CUDA
-    const byte *GetTuple(int index) const
-    {
-        NeedToUseOnHost();
-        return &(values[index*ncomponents]);
-    }
-#endif
-    byte *GetTuple(int index)
-    {
-        NeedToUseOnHost();
-        return &(values[index*ncomponents]);
-    }
-    byte GetValue(int index)
-    {
-        // assert ncomponents==1?
-        NeedToUseOnHost();
-        return values[index*ncomponents+0];
-    }
-    void SetValue(int index, byte v)
-    {
-        // assert ncomponents==1?
-        NeedToUseOnHost();
-        values[index*ncomponents+0] = v;
-    }
-    void AddValue(byte v)
-    {
-        // assert ncomponents==1?
-        NeedToUseOnHost();
-        values.push_back(v);
-    }
-    virtual double GetComponentAsDouble(int i, int c)
-    {
-        NeedToUseOnHost();
-        return GetTuple(i)[c];
-    }
-    virtual void SetComponentFromDouble(int i, int c, double v)
-    {
-        NeedToUseOnHost();
-        GetTuple(i)[c] = v;
-    }
-#ifdef HAVE_CUDA
-    virtual void *GetCUDAArray()
-    {
-        NeedToUseOnDevice();
-        return (void*)(device_values);
-    }
-    void ZeroHostArrayForDebugging()
-    {
-        for (size_t i=0; i<values.size(); i++)
-            values[i] = 0;
-    }
-#endif
-    virtual long long GetMemoryUsage()
-    {
-        ///\todo: ignores device memory; is that right??
-        long long mem = 0;
-
-        mem += sizeof(vector<byte>);
-        mem += values.size() * sizeof(byte);
-
-#ifdef HAVE_CUDA
-        mem += sizeof(bool);
-        mem += sizeof(bool);
-        mem += sizeof(byte*);
-#endif
-        return mem + eavlArray::GetMemoryUsage();
-    }
-};
-
-
+typedef eavlConcreteArray<int> eavlIntArray;
+typedef eavlConcreteArray<byte> eavlByteArray;
+typedef eavlConcreteArray<float> eavlFloatArray;
 
 
 
