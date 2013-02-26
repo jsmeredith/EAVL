@@ -614,7 +614,7 @@ eavlIsosurfaceFilter::Execute()
         conn.shapetype[i] = EAVL_TRI;
     for (int i=0; i<noutgeom; i++)
     {
-        int *o = outconn->GetTuple(i);
+        const int *o = outconn->GetTuple(i);
         conn.connectivity[i*4+0] = 3;
         conn.connectivity[i*4+1] = o[0];
         conn.connectivity[i*4+2] = o[1];

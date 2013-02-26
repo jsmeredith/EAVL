@@ -8,7 +8,7 @@ eavlPNMExporter::Export(ostream &out, int w, int h, eavlByteArray *array)
     if(array->GetNumberOfComponents() < 3)
         THROW(eavlException, "Error: PNM files need an R, G, and B component!");
 
-    byte *tuple; 
+    const byte *tuple; 
 
     out<<"P6"<<endl<<w<<" "<<h<<endl<<255<<endl;
     for(int i = h-1; i >= 0; i--)
@@ -40,7 +40,7 @@ eavlPNMExporter::ConvertAndExport(ostream &out, int w, int h, eavlFloatArray *ar
                 min = value;
         }
 
-    float *tuple;
+    const float *tuple;
     byte  *convertedTuple = new byte [ncomponents];
 
     out<<"P6"<<endl<<w<<" "<<h<<endl<<255<<endl;

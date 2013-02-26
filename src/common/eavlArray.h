@@ -187,22 +187,33 @@ class eavlArray
 //   Jeremy Meredith, Mon Feb 25 16:12:23 EST 2013
 //   Change to templated type instead of code duplication.
 //
+//   Jeremy Meredith, Tue Feb 26 14:23:48 EST 2013
+//   Allow externally-provided host arrays, e.g. for tightly-coupled in situ.
+//
 // ****************************************************************************
 template<class T>
 class eavlConcreteArray : public eavlArray
 {
   protected:
-    vector<T> values;
+    vector<T> host_values_self;
+    T *host_values_external;
+    int host_ntuples_external;
+    bool    host_provided; ///< we don't own the host array, it was given to us, and we cannot write to it
 #ifdef HAVE_CUDA
     bool    host_dirty;
     bool    device_dirty;
     T *device_values;
     void NeedToUseOnHost()
     {
+        if (host_provided)
+        {
+            // nothing to do
+            return;
+        }
         if (device_dirty)
         {
-            int nbytes = values.size() * sizeof(T);
-            cudaMemcpy(&(values[0]), device_values,
+            int nbytes = host_values_self.size() * sizeof(T);
+            cudaMemcpy(&(host_values_self[0]), device_values,
                        nbytes, cudaMemcpyDeviceToHost);
             CUDA_CHECK_ERROR();
         }
@@ -211,7 +222,7 @@ class eavlConcreteArray : public eavlArray
     }
     void NeedToUseOnDevice()
     {
-        int nbytes = values.size() * sizeof(T);
+        int nbytes = host_values_self.size() * sizeof(T);
         if (device_values == NULL)
         {
             cudaMalloc((void**)&device_values, nbytes);
@@ -220,7 +231,7 @@ class eavlConcreteArray : public eavlArray
         }
         if (host_dirty)
         {
-            cudaMemcpy(device_values, &(values[0]),
+            cudaMemcpy(device_values, &(host_values_self[0]),
                        nbytes, cudaMemcpyHostToDevice);
             CUDA_CHECK_ERROR();
         }
@@ -234,13 +245,31 @@ class eavlConcreteArray : public eavlArray
   public:
     eavlConcreteArray(const string &n, int nc = 1, int nt = 0) : eavlArray(n,nc)
     {
+        host_values_external = NULL;
+        host_ntuples_external = -1;
+        host_provided = false;
 #ifdef HAVE_CUDA
+        // the _dirty values are initialized to false because
+        // the user might start writing on host or device memory
         host_dirty = false;
         device_dirty = false;
         device_values = NULL;
 #endif
         if (nt > 0)
-            values.resize(ncomponents * nt);
+            host_values_self.resize(ncomponents * nt);
+    }
+    eavlConcreteArray(T *extarray,
+                      const string &n, int nc = 1, int nt = 0) : eavlArray(n,nc)
+    {
+        host_values_external = extarray;
+        host_provided = true;
+        host_ntuples_external = nt;
+#ifdef HAVE_CUDA
+        // assume host array is filled with valid data; set its _dirty flag to true
+        host_dirty = true;
+        device_dirty = false;
+        device_values = NULL;
+#endif
     }
     virtual ~eavlConcreteArray()
     {
@@ -254,59 +283,78 @@ class eavlConcreteArray : public eavlArray
         return new eavlConcreteArray<T>(n, nc, nt);
     }
     virtual const char *GetBasicType();
-    virtual void *GetHostArray()
+    virtual void *GetHostArray() ///\todo: we might like to make this return const
     {
         NeedToUseOnHost();
-        return &(values[0]);
+        if (host_provided)
+            return host_values_external;
+        else
+            return &(host_values_self[0]);
     }
     virtual void SetNumberOfTuples(int n)
     {
+        if (host_provided)
+            THROW(eavlException, "Cannot resize externally-provided array");
         NeedToUseOnHost();
-        values.resize(ncomponents * n);
+        host_values_self.resize(ncomponents * n);
     }
     virtual int GetNumberOfTuples() const
     {
         //NeedToUseOnHost();
         if (ncomponents == 0)
             return 0;
-        return values.size() / ncomponents;
+        if (host_provided)
+            return host_ntuples_external;
+        else
+            return host_values_self.size() / ncomponents;
     }
     void SetTuple(int index, T *v)
     {
+        if (host_provided)
+            THROW(eavlException, "Cannot write to externally-provided array");
         NeedToUseOnHost();
         for (int c=0; c<ncomponents; c++)
-            values[index*ncomponents+c] = v[c];
+            host_values_self[index*ncomponents+c] = v[c];
     }
-    ///\todo: there should be a const version of GetTuple, right? (hard with cuda added)
-#ifndef HAVE_CUDA
-    const T *GetTuple(int index) const
+    const T *GetTuple(int index) // can't make this method const
     {
         NeedToUseOnHost();
-        return &(values[index*ncomponents]);
+        if (host_provided)
+            return &(host_values_external[index*ncomponents]);
+        else
+            return &(host_values_self[index*ncomponents]);
     }
-#endif
-    T *GetTuple(int index)
+    T *GetTupleWritable(int index)
     {
+        if (host_provided)
+            THROW(eavlException, "Cannot write to externally-provided array");
         NeedToUseOnHost();
-        return &(values[index*ncomponents]);
+        return &(host_values_self[index*ncomponents]);
     }
     T GetValue(int index)
     {
         // assert ncomponents==1?
         NeedToUseOnHost();
-        return values[index*ncomponents+0];
+        if (host_provided)
+            return host_values_external[index*ncomponents+0];
+        else
+            return host_values_self[index*ncomponents+0];
     }
     void SetValue(int index, T v)
     {
+        if (host_provided)
+            THROW(eavlException, "Cannot write to externally-provided array");
         // assert ncomponents==1?
         NeedToUseOnHost();
-        values[index*ncomponents+0] = v;
+        host_values_self[index*ncomponents+0] = v;
     }
     void AddValue(T v)
     {
+        if (host_provided)
+            THROW(eavlException, "Cannot write to externally-provided array");
         // assert ncomponents==1?
         NeedToUseOnHost();
-        values.push_back(v);
+        host_values_self.push_back(v);
     }
     virtual double GetComponentAsDouble(int i, int c)
     {
@@ -316,18 +364,13 @@ class eavlConcreteArray : public eavlArray
     virtual void SetComponentFromDouble(int i, int c, double v)
     {
         NeedToUseOnHost();
-        GetTuple(i)[c] = v;
+        GetTupleWritable(i)[c] = v;
     }
 #ifdef HAVE_CUDA
     virtual void *GetCUDAArray()
     {
         NeedToUseOnDevice();
         return (void*)(device_values);
-    }
-    void ZeroHostArrayForDebugging()
-    {
-        for (size_t i=0; i<values.size(); i++)
-            values[i] = 0;
     }
 #endif
     virtual long long GetMemoryUsage()
@@ -336,7 +379,7 @@ class eavlConcreteArray : public eavlArray
         long long mem = 0;
 
         mem += sizeof(vector<T>);
-        mem += values.size() * sizeof(T);
+        mem += host_values_self.size() * sizeof(T);
 
 #ifdef HAVE_CUDA
         mem += sizeof(bool);
