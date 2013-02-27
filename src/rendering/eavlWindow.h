@@ -9,6 +9,7 @@
 #include "eavlPlot.h"
 #include "eavlTexture.h"
 
+class eavlScene;
 // ****************************************************************************
 // Class:  eavlWindow
 //
@@ -22,12 +23,17 @@
 // ****************************************************************************
 class eavlWindow
 {
-  public:
-    eavlView view;
+  protected:
+    eavlScene *scene;
     std::map<std::string,eavlTexture*> textures;
 
+  public: /// todo: hack, should not be public
+    eavlView view;
+
   public:
-    eavlWindow() { }
+    eavlWindow(eavlScene *s = NULL) : scene(s)
+    {
+    }
 
     /*
     virtual void ResetViewForCurrentExtents() { }

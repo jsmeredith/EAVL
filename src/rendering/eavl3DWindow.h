@@ -12,15 +12,12 @@
 
 class eavl3DWindow : public eavlWindow
 {
-  public:
-    ///\todo: HACK:
-    eavlScene *scene;
   protected:
     eavlColorBarAnnotation *colorbar;
     eavlBoundingBoxAnnotation *bbox;
     eavl3DAxisAnnotation *xaxis, *yaxis, *zaxis;
   public:
-    eavl3DWindow() : eavlWindow()
+    eavl3DWindow(eavlScene *s = NULL) : eavlWindow(s)
     {
         colorbar = new eavlColorBarAnnotation(this);
         bbox = new eavlBoundingBoxAnnotation(this);
@@ -38,7 +35,7 @@ class eavl3DWindow : public eavlWindow
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
         // render the plots
-        scene->Render(view);
+        scene->Render(this);
 
         bbox->SetColor(eavlColor(.3,.3,.3));
         bbox->SetExtents(view.minextents[0],

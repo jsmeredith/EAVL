@@ -25,16 +25,14 @@ class eavlScene
 {
   public:
     std::vector<eavlPlot> plots;
-    eavlView &view;
-    eavlWindow *win;
 
   public:
-    eavlScene(eavlWindow *w, eavlView &v) : win(w), view(v) { }
-    virtual void ResetView() = 0;
-    virtual void Render(eavlView &view) = 0;
+    eavlScene() { }
+    virtual void ResetView(eavlWindow *win) = 0;
+    virtual void Render(eavlWindow *win) = 0;
 
   protected:
-    void SetViewExtentsFromPlots()
+    void SetViewExtentsFromPlots(eavlView &view)
     {
         view.minextents[0] = view.minextents[1] = view.minextents[2] = FLT_MAX;
         view.maxextents[0] = view.maxextents[1] = view.maxextents[2] = -FLT_MAX;
@@ -95,7 +93,7 @@ class eavlScene
 class eavl3DGLScene : public eavlScene
 {
   public:
-    eavl3DGLScene(eavlWindow *w, eavlView &v) : eavlScene(w, v)
+    eavl3DGLScene() : eavlScene()
     {
         colortexId = 0;
     }
@@ -108,9 +106,10 @@ class eavl3DGLScene : public eavlScene
     string saved_colortable;
     int colortexId;
 
-    virtual void ResetView()
+    virtual void ResetView(eavlWindow *win)
     {
-        SetViewExtentsFromPlots();
+        eavlView &view = win->view;
+        SetViewExtentsFromPlots(view);
 
         float ds_size = sqrt( (view.maxextents[0]-view.minextents[0])*(view.maxextents[0]-view.minextents[0]) +
                               (view.maxextents[1]-view.minextents[1])*(view.maxextents[1]-view.minextents[1]) +
@@ -133,8 +132,9 @@ class eavl3DGLScene : public eavlScene
         view.view3d.farplane = ds_size*4;
 
     }
-    virtual void Render(eavlView &view)
+    virtual void Render(eavlWindow *win)
     {
+        eavlView &view = win->view;
         if (plots.size() == 0)
             return;
 
@@ -269,7 +269,7 @@ class eavl3DGLScene : public eavlScene
 class eavl2DGLScene : public eavlScene
 {
   public:
-    eavl2DGLScene(eavlWindow *w, eavlView &v) : eavlScene(w, v)
+    eavl2DGLScene() : eavlScene()
     {
         colortexId = 0;
     }
@@ -280,9 +280,10 @@ class eavl2DGLScene : public eavlScene
     ///\todo: big hack for saved_colortable
     string saved_colortable;
     int colortexId;
-    virtual void ResetView()
+    virtual void ResetView(eavlWindow *win)
     {
-        SetViewExtentsFromPlots();
+        eavlView &view = win->view;
+        SetViewExtentsFromPlots(view);
 
         eavlPoint3 center = eavlPoint3((view.maxextents[0]+view.minextents[0]) / 2,
                                        (view.maxextents[1]+view.minextents[1]) / 2,
@@ -299,8 +300,9 @@ class eavl2DGLScene : public eavlScene
             view.view2d.t += .5;
         }
     }
-    virtual void Render(eavlView &view)
+    virtual void Render(eavlWindow *win)
     {
+        eavlView &view = win->view;
         if (plots.size() == 0)
             return;
 
@@ -404,7 +406,7 @@ class eavl2DGLScene : public eavlScene
 class eavl1DGLScene : public eavlScene
 {
   public:
-    eavl1DGLScene(eavlWindow *w, eavlView &v) : eavlScene(w, v)
+    eavl1DGLScene() : eavlScene()
     {
         colortexId = 0;
     }
@@ -415,9 +417,10 @@ class eavl1DGLScene : public eavlScene
     ///\todo: big hack for saved_colortable
     string saved_colortable;
     int colortexId;
-    virtual void ResetView()
+    virtual void ResetView(eavlWindow *win)
     {
-        SetViewExtentsFromPlots();
+        eavlView &view = win->view;
+        SetViewExtentsFromPlots(view);
 
         eavlPoint3 center = eavlPoint3((view.maxextents[0]+view.minextents[0]) / 2,
                                        (view.maxextents[1]+view.minextents[1]) / 2,
@@ -457,8 +460,9 @@ class eavl1DGLScene : public eavlScene
                              (view.view2d.r-view.view2d.l);
 
     }
-    virtual void Render(eavlView &view)
+    virtual void Render(eavlWindow *win)
     {
+        eavlView &view = win->view;
         if (plots.size() == 0)
             return;
 
@@ -514,14 +518,14 @@ class eavl3DParallelGLScene : public eavl3DGLScene
   protected:
     boost::mpi::communicator &comm;
   public:
-    eavl3DParallelGLScene(boost::mpi::communicator &c,
-                          eavlWindow *w, eavlView &v) :
-        eavl3DGLScene(w,v), comm(c)
+    eavl3DParallelGLScene(boost::mpi::communicator &c) :
+        eavl3DGLScene(), comm(c)
     {
     }
-    virtual void ResetView()
+    virtual void ResetView(eavlWindow *win)
     {
-        eavl3DGLScene::ResetView();
+        eavlView &view = win->view;
+        eavl3DGLScene::ResetView(win);
 
         boost::mpi::all_reduce(comm, view.minextents[0], view.minextents[0], boost::mpi::minimum<float>());
         boost::mpi::all_reduce(comm, view.minextents[1], view.minextents[1], boost::mpi::minimum<float>());

@@ -10,14 +10,11 @@
 
 class eavl1DWindow : public eavlWindow
 {
-  public:
-    ///\todo: HACK:
-    eavlScene *scene;
   protected:
     eavl2DAxisAnnotation *haxis, *vaxis;
     eavl2DFrameAnnotation *frame;
   public:
-    eavl1DWindow() : eavlWindow()
+    eavl1DWindow(eavlScene *s = NULL) : eavlWindow(s)
     {
         view.vl = -.7;
         view.vr = +.7;
@@ -36,7 +33,7 @@ class eavl1DWindow : public eavlWindow
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
         // render the plots
-        scene->Render(view);
+        scene->Render(this);
 
         glDisable(GL_DEPTH_TEST);
 
