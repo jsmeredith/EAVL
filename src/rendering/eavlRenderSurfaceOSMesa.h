@@ -6,6 +6,7 @@
 
 #include "GL/gl_mangle.h"
 #include "GL/osmesa.h"
+#include "GL/gl.h"
 
 class eavlRenderSurfaceOSMesa : public eavlRenderSurface
 {
@@ -37,11 +38,14 @@ class eavlRenderSurfaceOSMesa : public eavlRenderSurface
             THROW(eavlException,
                   "Couldn't make framebuffer current for osmesa context");
 
-        int z, s, a;
-        mglGetIntegerv(GL_DEPTH_BITS, &z);
-        mglGetIntegerv(GL_STENCIL_BITS, &s);
-        mglGetIntegerv(GL_ACCUM_RED_BITS, &a);
-        printf("Depth=%d Stencil=%d Accum=%d\n", z, s, a);
+        if (false)
+        {
+            int z, s, a;
+            glGetIntegerv(GL_DEPTH_BITS, &z);
+            glGetIntegerv(GL_STENCIL_BITS, &s);
+            glGetIntegerv(GL_ACCUM_RED_BITS, &a);
+            printf("Depth=%d Stencil=%d Accum=%d\n", z, s, a);
+        }
     }
     virtual const unsigned char *GetRGBABuffer()
     {
@@ -63,6 +67,10 @@ class eavlRenderSurfaceOSMesa : public eavlRenderSurface
         for (int i=0; i<npixels; ++i)
             zbuff[i] = raw_zbuff[i] / float(UINT_MAX);
         return &zbuff[0];
+    }
+    virtual void Finish()
+    {
+        glFinish();
     }
 };
 

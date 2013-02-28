@@ -70,19 +70,10 @@ class eavlWindow
         Render();
 
         glFinish();
-    }
 
-    /*
-    unsigned char *GetRGBABuffer()
-    {
+        if (surface)
+            surface->Finish();
     }
-    *GetZBuffer()
-    {
-    }
-    void PasteRGBABuffer(unsigned char *)
-    {
-    }
-    */
 
     virtual void Render() = 0;
 
@@ -116,9 +107,6 @@ class eavlWindow
         }
         out.close();
     }
-
-  protected:
-  public:
 };
 
 #endif
