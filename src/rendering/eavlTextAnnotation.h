@@ -23,12 +23,12 @@
 class eavlTextAnnotation : public eavlAnnotation
 {
   protected:
-    float  scale;
+    double  scale;
     string text;
     eavlColor color;
-    float anchorx, anchory;
+    double anchorx, anchory;
   public:
-    eavlTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, float s)
+    eavlTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, double s)
         : eavlAnnotation(w), text(txt), color(c), scale(s)
     {
         anchorx = 0;
@@ -38,7 +38,7 @@ class eavlTextAnnotation : public eavlAnnotation
     {
         text = txt;
     }
-    void SetAnchor(float h, float v)
+    void SetAnchor(double h, double v)
     {
         anchorx = h;
         anchory = v;
@@ -98,15 +98,15 @@ class eavlTextAnnotation : public eavlAnnotation
 
         glBegin(GL_QUADS);
 
-        float textwidth = fnt->GetTextWidth(text);
-        float fx = -anchorx * textwidth, fy = -anchory, fz = 0;
+        double textwidth = fnt->GetTextWidth(text);
+        double fx = -anchorx * textwidth, fy = -anchory, fz = 0;
         for (int i=0; i<text.length(); ++i)
         {
             char c = text[i];
             char nextchar = (i < text.length()-1) ? text[i+1] : 0;
 
-            float vl,vr,vt,vb;
-            float tl,tr,tt,tb;
+            double vl,vr,vt,vb;
+            double tl,tr,tt,tb;
             fnt->GetCharPolygon(c, fx, fy,
                                 vl, vr, vt, vb,
                                 tl, tr, tt, tb, nextchar);
@@ -152,18 +152,18 @@ class eavlTextAnnotation : public eavlAnnotation
 class eavlScreenTextAnnotation : public eavlTextAnnotation
 {
   protected:
-    float x,y;
-    float angle;
+    double x,y;
+    double angle;
   public:
-    eavlScreenTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, float s,
-                             float ox, float oy, float angleDeg = 0.)
+    eavlScreenTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, double s,
+                             double ox, double oy, double angleDeg = 0.)
         : eavlTextAnnotation(w,txt,c,s)
     {
         x = ox;
         y = oy;
         angle = angleDeg;
     }
-    void SetPosition(float ox, float oy)
+    void SetPosition(double ox, double oy)
     {
         x = ox;
         y = oy;
@@ -202,10 +202,10 @@ class eavlWorldTextAnnotation : public eavlTextAnnotation
   protected:
     eavlMatrix4x4 mtx;
   public:
-    eavlWorldTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, float s,
-                            float ox, float oy, float oz,
-                            float nx, float ny, float nz,
-                            float ux, float uy, float uz)
+    eavlWorldTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, double s,
+                            double ox, double oy, double oz,
+                            double nx, double ny, double nz,
+                            double ux, double uy, double uz)
         : eavlTextAnnotation(w,txt,c,s)
     {
         mtx.CreateRBT(eavlPoint3(ox,oy,oz),
@@ -252,14 +252,14 @@ class eavlWorldTextAnnotation : public eavlTextAnnotation
 class eavlBillboardTextAnnotation : public eavlTextAnnotation
 {
   protected:
-    float x,y,z;
+    double x,y,z;
     bool fixed2Dscale;
-    float angle;
+    double angle;
   public:
-    eavlBillboardTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, float s,
-                                float ox, float oy, float oz,
+    eavlBillboardTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, double s,
+                                double ox, double oy, double oz,
                                 bool scaleIsScreenSpace,
-                                float angleDeg = 0.)
+                                double angleDeg = 0.)
         : eavlTextAnnotation(w,txt,c,s)
     {
         x = ox;
@@ -268,7 +268,7 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
         angle = angleDeg;
         fixed2Dscale = scaleIsScreenSpace;
     }
-    void SetPosition(float ox, float oy, float oz)
+    void SetPosition(double ox, double oy, double oz)
     {
         x = ox;
         y = oy;
@@ -293,10 +293,10 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
 
             //if (view.viewtype == eavlView::EAVL_VIEW_2D)
             {
-                float vl, vr, vt, vb;
+                double vl, vr, vt, vb;
                 view.GetRealViewport(vl,vr,vb,vt);
-                float xs = (vr-vl);
-                float ys = (vt-vb);
+                double xs = (vr-vl);
+                double ys = (vt-vb);
                 eavlMatrix4x4 S;
                 S.CreateScale(2./xs, 2./ys, 1);
                 glMultMatrixf(S.GetOpenGLMatrix4x4());

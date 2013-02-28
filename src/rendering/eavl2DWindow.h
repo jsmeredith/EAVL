@@ -16,7 +16,7 @@ class eavl2DWindow : public eavlWindow
     eavl2DAxisAnnotation *haxis, *vaxis;
     eavl2DFrameAnnotation *frame;
   public:
-    eavl2DWindow(eavlScene *s = NULL) : eavlWindow(s)
+    eavl2DWindow(eavlColor bg, eavlScene *s = NULL) : eavlWindow(bg,s)
     {
         view.vl = -.7;
         view.vr = +.7;
@@ -28,19 +28,15 @@ class eavl2DWindow : public eavlWindow
         vaxis = new eavl2DAxisAnnotation(this);
         frame = new eavl2DFrameAnnotation(this);
     }
-    virtual void Paint()
+    virtual void Render()
     {
-        view.SetupMatrices();
-
-        glClearColor(0.0, 0.15, 0.3, 1.0);
-        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
         // render the plots
         scene->Render(this);
 
+        // render the annotations
         glDisable(GL_DEPTH_TEST);
 
-        float vl, vr, vt, vb;
+        double vl, vr, vt, vb;
         view.GetRealViewport(vl,vr,vb,vt);
         frame->SetExtents(vl,vr, vb,vt);
         frame->SetColor(eavlColor(.7,.7,.7));

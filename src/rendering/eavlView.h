@@ -11,25 +11,25 @@ struct eavl3DView
     eavlPoint3   from;
     eavlPoint3   at;
     eavlVector3  up;
-    float        nearplane;
-    float        farplane;
+    double        nearplane;
+    double        farplane;
 
     bool         perspective;
-    float        fov; // perspective only
-    float        size; // ortho only
+    double        fov; // perspective only
+    double        size; // ortho only
 
-    float        zoom;
-    float        xpan, ypan;
+    double        zoom;
+    double        xpan, ypan;
 
-    //float        xs, ys, zs; ///\todo: would like to add scaling/fullframe
+    //double        xs, ys, zs; ///\todo: would like to add scaling/fullframe
 };
 
 struct eavl2DView
 {
-    float        l,r,t,b;
+    double        l,r,t,b;
     //bool logx, logy; ///\todo: would like to add logarithmic scaling
 
-    float xscale; ///< change x scale for non-equal x/y scaling
+    double xscale; ///< change x scale for non-equal x/y scaling
 };
 
 struct eavlView
@@ -38,19 +38,19 @@ struct eavlView
     ViewType viewtype;
 
     // viewport
-    float vl, vr, vb, vt;
+    double vl, vr, vb, vt;
 
     eavl3DView view3d;
     eavl2DView view2d;
 
     eavlMatrix4x4 P, V;
 
-    float w, h; // window width and height
-    float windowaspect;
-    float viewportaspect;
+    double w, h; // window width and height
+    double windowaspect;
+    double viewportaspect;
 
-    float minextents[3];
-    float maxextents[3];
+    double minextents[3];
+    double maxextents[3];
 
     eavlView()
     {
@@ -64,7 +64,7 @@ struct eavlView
     {
         windowaspect = w / h;
 
-        float l=vl, r=vr, b=vb, t=vt;
+        double l=vl, r=vr, b=vb, t=vt;
         if (viewtype == EAVL_VIEW_2D)
             GetRealViewport(l,r,t,b);
 
@@ -111,7 +111,7 @@ struct eavlView
         }
     }
 
-    void GetRealViewport(float &l, float &r, float &b, float &t)
+    void GetRealViewport(double &l, double &r, double &b, double &t)
     {
         if (viewtype == EAVL_VIEW_3D)
         {
@@ -131,16 +131,16 @@ struct eavlView
         // not match our view onto the 2D data; we need to clip
         // the original viewport based on the aspect ratio
         // of the window vs the eavl2DView.
-        float maxvw = (vr-vl) * w;
-        float maxvh = (vt-vb) * h;
-        float waspect = maxvw / maxvh;
-        float daspect = (view2d.r - view2d.l) / (view2d.t - view2d.b);
+        double maxvw = (vr-vl) * w;
+        double maxvh = (vt-vb) * h;
+        double waspect = maxvw / maxvh;
+        double daspect = (view2d.r - view2d.l) / (view2d.t - view2d.b);
         daspect *= view2d.xscale;
         //cerr << "waspect="<<waspect << "   \tdaspect="<<daspect<<endl;
         const bool center = true; // if false, anchor to bottom-left
         if (waspect > daspect)
         {
-            float new_w = (vr-vl) * daspect / waspect;
+            double new_w = (vr-vl) * daspect / waspect;
             if (center)
             {
                 l = (vl+vr)/2. - new_w/2.;
@@ -156,7 +156,7 @@ struct eavlView
         }
         else
         {
-            float new_h = (vt-vb) * waspect / daspect;
+            double new_h = (vt-vb) * waspect / daspect;
             if (center)
             {
                 b = (vb+vt)/2. - new_h/2.;
@@ -174,19 +174,19 @@ struct eavlView
 
     // ------------------------------------------------------------------------
 
-    void Pan3D(float dx, float dy)
+    void Pan3D(double dx, double dy)
     {
         view3d.xpan += dx;
         view3d.ypan += dy;
     }
-    void Zoom3D(float zoom)
+    void Zoom3D(double zoom)
     {
         double factor = pow(4., zoom);
         view3d.zoom *= factor;
         view3d.xpan *= factor;
         view3d.ypan *= factor;
     }
-    void TrackballRotate(float x1, float y1, float x2, float y2)
+    void TrackballRotate(double x1, double y1, double x2, double y2)
     {
         eavlMatrix4x4 R1;
         R1.CreateTrackball(-x1,-y1, -x2,-y2);
@@ -209,13 +209,13 @@ struct eavlView
         view3d.up   = MM * view3d.up;
     }
 
-    void Pan2D(float dx, float dy)
+    void Pan2D(double dx, double dy)
     {
-        float rvl, rvr, rvt, rvb;
+        double rvl, rvr, rvt, rvb;
         GetRealViewport(rvl,rvr,rvb,rvt);
 
-        float xpan = dx * (view2d.r - view2d.l) / (rvr - rvl);
-        float ypan = dy * (view2d.t - view2d.b) / (rvt - rvb);
+        double xpan = dx * (view2d.r - view2d.l) / (rvr - rvl);
+        double ypan = dy * (view2d.t - view2d.b) / (rvt - rvb);
 
         view2d.l -= xpan;
         view2d.r -= xpan;
@@ -223,7 +223,7 @@ struct eavlView
         view2d.t -= ypan;
         view2d.b -= ypan;
     }
-    void Zoom2D(float zoom, bool allowExpand)
+    void Zoom2D(double zoom, bool allowExpand)
     {
         double factor = pow(4., zoom);
         double xc = (view2d.l + view2d.r) / 2.;
@@ -232,7 +232,7 @@ struct eavlView
         double ys = (view2d.t - view2d.b) / 2.;
         if (allowExpand)
         {
-            float rvl, rvr, rvt, rvb;
+            double rvl, rvr, rvt, rvb;
             GetRealViewport(rvl,rvr,rvb,rvt);
 
             // If we're zooming in, we first want to expand the
@@ -331,12 +331,12 @@ struct eavlView
     //
     void SetupViewportForWorld()
     {
-        float vl, vr, vt, vb;
+        double vl, vr, vt, vb;
         GetRealViewport(vl,vr,vb,vt);
-        glViewport(float(w)*(1.+vl)/2.,
-                   float(h)*(1.+vb)/2.,
-                   float(w)*(vr-vl)/2.,
-                   float(h)*(vt-vb)/2.);
+        glViewport(double(w)*(1.+vl)/2.,
+                   double(h)*(1.+vb)/2.,
+                   double(w)*(vr-vl)/2.,
+                   double(h)*(vt-vb)/2.);
     }
     void SetupViewportForScreen()
     {

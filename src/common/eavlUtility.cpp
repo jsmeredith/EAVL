@@ -47,15 +47,10 @@ void CalculateTicks(double lower, double upper, bool minor,
     // Find the integral points.
     double pow10 = log10(range);
 
-    // Build in numerical tolerance
-    if (pow10 != 0.)
-    {
-        double eps = 10.0e-10;
-        if (pow10 < 0)
-            pow10 -= eps;
-        else
-            pow10 += eps;
-    }
+    // Build in numerical tolerance    
+    double eps = 10.0e-10;
+    pow10 += eps;
+
 
     // ffix moves you in the wrong direction if pow10 is negative.
     if (pow10 < 0.)

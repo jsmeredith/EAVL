@@ -82,9 +82,9 @@ struct eavlBitmapFont
         return chars[shortmap[(unsigned char)c]];
     }
     vector<unsigned char> &GetRawImageData(string &type);
-    float GetTextWidth(const std::string &text)
+    double GetTextWidth(const std::string &text)
     {
-        float width = 0;
+        double width = 0;
         for (int i=0; i<text.length(); ++i)
         {
             Character c = GetChar(text[i]);
@@ -92,14 +92,14 @@ struct eavlBitmapFont
 
             const bool kerning = true;
             if (kerning && nextchar>0)
-                width += float(c.kern[nextchar]) / float(height);
-            width += float(c.adv) / float(height);
+                width += double(c.kern[nextchar]) / double(height);
+            width += double(c.adv) / double(height);
         }
         return width;
     }
-    void GetCharPolygon(char character, float &x, float &y,
-                        float &vl, float &vr, float &vt, float &vb,
-                        float &tl, float &tr, float &tt, float &tb,
+    void GetCharPolygon(char character, double &x, double &y,
+                        double &vl, double &vr, double &vt, double &vb,
+                        double &tl, double &tr, double &tt, double &tb,
                         char nextchar = 0)
     {
         Character c = GetChar(character);
@@ -107,22 +107,22 @@ struct eavlBitmapFont
         // By default, the origin for the font is at the
         // baseline.  That's nice, but we'd rather it
         // be at the actual bottom, so create an offset.
-        float yoff = -float(descender) / float(height);
+        double yoff = -double(descender) / double(height);
 
-        tl =      float(c.x +       padl) / float(imgw);
-        tr =      float(c.x + c.w - padr) / float(imgw);
-        tt = 1. - float(c.y +       padt) / float(imgh);
-        tb = 1. - float(c.y + c.h - padb) / float(imgh);
+        tl =      double(c.x +       padl) / double(imgw);
+        tr =      double(c.x + c.w - padr) / double(imgw);
+        tt = 1. - double(c.y +       padt) / double(imgh);
+        tb = 1. - double(c.y + c.h - padb) / double(imgh);
 
-        vl =        x + float(c.offx +       padl) / float(height);
-        vr =        x + float(c.offx + c.w - padr) / float(height);
-        vt = yoff + y + float(c.offy -       padt) / float(height);
-        vb = yoff + y + float(c.offy - c.h + padb) / float(height);
+        vl =        x + double(c.offx +       padl) / double(height);
+        vr =        x + double(c.offx + c.w - padr) / double(height);
+        vt = yoff + y + double(c.offy -       padt) / double(height);
+        vb = yoff + y + double(c.offy - c.h + padb) / double(height);
 
         const bool kerning = true;
         if (kerning && nextchar>0)
-            x += float(c.kern[nextchar]) / float(height);
-        x += float(c.adv) / float(height);
+            x += double(c.kern[nextchar]) / double(height);
+        x += double(c.adv) / double(height);
     }
     void Print(ostream &out)
     {

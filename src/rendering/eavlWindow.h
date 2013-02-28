@@ -8,6 +8,7 @@
 #include "eavlColorTable.h"
 #include "eavlPlot.h"
 #include "eavlTexture.h"
+#include "eavlRenderSurface.h"
 
 class eavlScene;
 // ****************************************************************************
@@ -24,14 +25,16 @@ class eavlScene;
 class eavlWindow
 {
   protected:
+    eavlColor bg;
     eavlScene *scene;
     std::map<std::string,eavlTexture*> textures;
 
   public: /// todo: hack, should not be public
+    eavlRenderSurface *surface;
     eavlView view;
 
   public:
-    eavlWindow(eavlScene *s = NULL) : scene(s)
+    eavlWindow(eavlColor bgcolor, eavlScene *s = NULL) : bg(bgcolor), scene(s), surface(NULL)
     {
     }
 
@@ -39,13 +42,47 @@ class eavlWindow
     virtual void ResetViewForCurrentExtents() { }
     */
 
-    virtual void Initialize() { }
-    virtual void Resize(int w, int h)
+    void Initialize()
     {
+        if (surface)
+            surface->Initialize();
+    }
+    void Resize(int w, int h)
+    {
+        if (surface)
+            surface->Resize(w,h);
+
         view.w = w;
         view.h = h;
     }
-    virtual void Paint() = 0;
+    void Paint()
+    {
+        if (surface)
+            surface->Activate();
+
+        view.SetupMatrices();
+        glClearColor(bg.c[0], bg.c[1], bg.c[2], 1.0); ///< c[3] instead of 1.0?
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+        // render the plots and annotations
+        Render();
+
+        glFinish();
+    }
+
+    /*
+    unsigned char *GetRGBABuffer()
+    {
+    }
+    *GetZBuffer()
+    {
+    }
+    void PasteRGBABuffer(unsigned char *)
+    {
+    }
+    */
+
+    virtual void Render() = 0;
 
     eavlTexture *GetTexture(const std::string &s)
     {

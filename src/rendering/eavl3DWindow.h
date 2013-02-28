@@ -17,7 +17,7 @@ class eavl3DWindow : public eavlWindow
     eavlBoundingBoxAnnotation *bbox;
     eavl3DAxisAnnotation *xaxis, *yaxis, *zaxis;
   public:
-    eavl3DWindow(eavlScene *s = NULL) : eavlWindow(s)
+    eavl3DWindow(eavlColor bg, eavlScene *s = NULL) : eavlWindow(bg,s)
     {
         colorbar = new eavlColorBarAnnotation(this);
         bbox = new eavlBoundingBoxAnnotation(this);
@@ -26,17 +26,12 @@ class eavl3DWindow : public eavlWindow
         zaxis = new eavl3DAxisAnnotation(this);
     }
 
-    virtual void Paint()
+    virtual void Render()
     {
-        view.SetupMatrices();
-
-        //cerr << "EL3DWindow::paintGL\n";
-        glClearColor(0.2, 0.0, 0.3, 1.0);
-        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
         // render the plots
         scene->Render(this);
 
+        // render the annotations
         bbox->SetColor(eavlColor(.3,.3,.3));
         bbox->SetExtents(view.minextents[0],
                          view.maxextents[0],
