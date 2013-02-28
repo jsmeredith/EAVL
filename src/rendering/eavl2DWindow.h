@@ -16,7 +16,8 @@ class eavl2DWindow : public eavlWindow
     eavl2DAxisAnnotation *haxis, *vaxis;
     eavl2DFrameAnnotation *frame;
   public:
-    eavl2DWindow(eavlColor bg, eavlScene *s = NULL) : eavlWindow(bg,s)
+    eavl2DWindow(eavlColor bg, eavlRenderSurface *surf, eavlScene *s = NULL)
+        : eavlWindow(bg,surf,s)
     {
         view.vl = -.7;
         view.vr = +.7;

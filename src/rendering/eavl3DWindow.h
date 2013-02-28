@@ -17,7 +17,8 @@ class eavl3DWindow : public eavlWindow
     eavlBoundingBoxAnnotation *bbox;
     eavl3DAxisAnnotation *xaxis, *yaxis, *zaxis;
   public:
-    eavl3DWindow(eavlColor bg, eavlScene *s = NULL) : eavlWindow(bg,s)
+    eavl3DWindow(eavlColor bg, eavlRenderSurface *surf, eavlScene *s = NULL)
+        : eavlWindow(bg,surf,s)
     {
         colorbar = new eavlColorBarAnnotation(this);
         bbox = new eavlBoundingBoxAnnotation(this);

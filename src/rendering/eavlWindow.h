@@ -34,7 +34,8 @@ class eavlWindow
     eavlView view;
 
   public:
-    eavlWindow(eavlColor bgcolor, eavlScene *s = NULL) : bg(bgcolor), scene(s), surface(NULL)
+    eavlWindow(eavlColor bgcolor, eavlRenderSurface *surf,
+               eavlScene *s = NULL) : bg(bgcolor), surface(surf), scene(s)
     {
     }
 
@@ -44,6 +45,7 @@ class eavlWindow
 
     void Initialize()
     {
+        ///\todo: we want to make sure initialize called before resize/paint?
         if (surface)
             surface->Initialize();
     }
@@ -91,6 +93,28 @@ class eavlWindow
     void SetTexture(const std::string &s, eavlTexture *tex)
     {
         textures[s] = tex;
+    }
+
+    void SaveWindowAsPNM(const std::string &fn)
+    {
+        if (surface)
+            surface->Activate();
+
+        int w = view.w, h = view.h;
+        vector<byte> rgba(w*h*4);
+        glReadPixels(0,0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, &rgba[0]);
+
+        ofstream out(fn.c_str());
+        out<<"P6"<<endl<<w<<" "<<h<<endl<<255<<endl;
+        for(int i = h-1; i >= 0; i--)
+        {
+            for(int j = 0; j < w; j++)
+            {
+                const byte *tuple = &(rgba[i*w*4 + j*4]);
+                out<<tuple[0]<<tuple[1]<<tuple[2];
+            }
+        }
+        out.close();
     }
 
   protected:
