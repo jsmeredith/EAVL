@@ -4,9 +4,7 @@
 
 #include "eavl.h"
 #include "eavlView.h"
-#include "eavlRenderer.h"
-#include "eavlColorTable.h"
-#include "eavlPlot.h"
+#include "eavlColor.h"
 #include "eavlTexture.h"
 #include "eavlRenderSurface.h"
 

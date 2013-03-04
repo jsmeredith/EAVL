@@ -112,13 +112,13 @@ class eavl3DWindow : public eavlWindow
 
         glDepthRange(0,1);
 
-        if (scene->plots[0].pcRenderer)
+        if (scene->plots.size() > 0)
         {
-            double vmin, vmax;
-            ((eavlPseudocolorRenderer*)(scene->plots[0].pcRenderer))->GetLimits(vmin, vmax);
+            double vmin = scene->plots[0]->GetMinDataExtent();
+            double vmax = scene->plots[0]->GetMaxDataExtent();
             colorbar->SetAxisColor(eavlColor::white);
             colorbar->SetRange(vmin, vmax, 5);
-            colorbar->SetColorTable(scene->plots[0].colortable);
+            colorbar->SetColorTable(scene->plots[0]->GetColorTableName());
             colorbar->Render(view);
         }
 

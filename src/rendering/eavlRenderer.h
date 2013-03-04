@@ -332,19 +332,40 @@ void eavlRenderCells2D(eavlCellSet *cs,
 // Creation:    July 18, 2012
 //
 // Modifications:
+//   Jeremy Meredith, Mon Mar  4 15:44:23 EST 2013
+//   Big refactoring; more consistent internal code with less
+//   duplication and cleaner external API.
+//
 // ****************************************************************************
 class eavlRenderer
 {
   protected:
     eavlDataSet *dataset;
-    eavlCellSet *cellset;
     int          npts;
     double      *pts;
+    eavlCellSet *cellset;
+    eavlField   *field;
+    bool         field_nodal;
+    eavlField   *normals;
+
+    double min_coord_extents[3];
+    double max_coord_extents[3];
+
+    double min_data_extents;
+    double max_data_extents;
   public:
-    eavlRenderer(eavlDataSet *ds)
-        : dataset(ds)
+    eavlRenderer(eavlDataSet *ds,
+                 const string &csname = "",
+                 const string &fieldname = "")
+        : dataset(ds), cellset(NULL), field(NULL), normals(NULL)
     {
-        // extract the points
+        //
+        // extract the points and find coordinate extents
+        //
+
+        min_coord_extents[0] = min_coord_extents[1] = min_coord_extents[2] = +DBL_MAX;
+        max_coord_extents[0] = max_coord_extents[1] = max_coord_extents[2] = -DBL_MAX;
+
         npts = dataset->GetNumPoints();
         int dim = dataset->GetCoordinateSystem(0)->GetDimension();
     
@@ -360,19 +381,156 @@ class eavlRenderer
             pts[3*i+2] = 0;
             for (int d=0; d<dim; d++)
             {
-                pts[3*i+d] = dataset->GetPoint(i,d);
+                double v = dataset->GetPoint(i,d);
+                pts[3*i+d] = v;
+                if (v < min_coord_extents[d])
+                    min_coord_extents[d] = v;
+                if (v > max_coord_extents[d])
+                    max_coord_extents[d] = v;
             }
-        }        
+        }
+
+        // untouched dims force to zero
+        if (min_coord_extents[0] > max_coord_extents[0])
+            min_coord_extents[0] = max_coord_extents[0] = 0;
+        if (min_coord_extents[1] > max_coord_extents[1])
+            min_coord_extents[1] = max_coord_extents[1] = 0;
+        if (min_coord_extents[2] > max_coord_extents[2])
+            min_coord_extents[2] = max_coord_extents[2] = 0;
+
+        //
+        // if they gave us a cell set, grab a pointer to it
+        //
+        if (csname != "")
+        {
+            cellset = ds->GetCellSet(csname);
+
+            for (int i=0; i<dataset->GetNumFields(); i++)
+            {
+                eavlField *f = ds->GetField(i);
+                if (f->GetArray()->GetName() == "surface_normals" &&
+                    f->GetAssociation() == eavlField::ASSOC_CELL_SET &&
+                    dataset->GetCellSet(f->GetAssocCellSet()) == cellset)
+                {
+                    normals = f;
+                }
+            }
+            // override with node-centered ones if we have them
+            for (int i=0; i<dataset->GetNumFields(); i++)
+            {
+                eavlField *f = ds->GetField(i);
+                if (f->GetArray()->GetName() == "nodecentered_surface_normals" &&
+                    f->GetAssociation() == eavlField::ASSOC_POINTS)
+                {
+                    normals = dataset->GetField(i);
+                }
+            }
+        }
+
+        //
+        // if they gave us a field, find its data extents
+        //
+        min_data_extents = 0;
+        max_data_extents = 0;
+        if (fieldname != "")
+        {
+            min_data_extents = +DBL_MAX;
+            max_data_extents = -DBL_MAX;
+            field_nodal = false;
+            for (int i=0; i<ds->GetNumFields(); ++i)
+            {
+                eavlField *f = ds->GetField(i);
+                if (f->GetArray()->GetName() == fieldname)
+                {
+                    if (f->GetAssociation() == eavlField::ASSOC_CELL_SET)
+                    {
+                        if (cellset &&
+                            cellset != ds->GetCellSet(f->GetAssocCellSet()))
+                        {
+                            // the caller has specified a cell set, but not this one
+                            continue;
+                        }
+                    }
+
+                    field_nodal = (f->GetAssociation() == eavlField::ASSOC_POINTS);
+                
+                    // get its limits
+                    int nvals = f->GetArray()->GetNumberOfTuples();
+                    int ncomp = f->GetArray()->GetNumberOfComponents();
+                    for (int j=0; j<nvals; j++)
+                    {
+                        // just do min/max based on first component for now
+                        double value = f->GetArray()->GetComponentAsDouble(j,0);
+                        if (value < min_data_extents)
+                            min_data_extents = value;
+                        if (value > max_data_extents)
+                            max_data_extents = value;
+                    }
+
+                    // Do we break here?  In the old code, we would
+                    // plot all cell sets for a field.  Now we pick one.
+                    // So we can probably safely break now.
+                    field = f;
+                    break;
+                }
+            }
+        }
     }
     ~eavlRenderer()
     {
         delete[] pts;
     }
+    eavlDataSet *GetDataSet() { return dataset; }
+    double GetMinCoordExtent(int axis) { return min_coord_extents[axis]; }
+    double GetMaxCoordExtent(int axis) { return max_coord_extents[axis]; }
+    double GetMinDataExtent() { return min_data_extents; }
+    double GetMaxDataExtent() { return max_data_extents; }
+    void SetDataExtents(double minval, double maxval)
+    {
+        min_data_extents = minval;
+        max_data_extents = maxval;
+    }
+    virtual string GetColorTableName() { return ""; }
+    void Render()
+    {
+        try
+        {
+            if (!cellset)
+            {
+                RenderPoints();
+            }
+            else
+            {
+                if (cellset->GetDimensionality() == 1)
+                {
+                    RenderCells1D();
+                }
+                else if (cellset->GetDimensionality() == 2)
+                {
+                    RenderCells2D();
+                }
+                else if (cellset->GetDimensionality() == 3)
+                {
+                    // do anything with 3D?
+                    // not right now, now.
+                }
+            }
+        }
+        catch (const eavlException &e)
+        {
+            // The user can specify one cell for geometry and
+            // a different one for coloring; this currently results
+            // in an error; we'll just ignore it.
+            cerr << e.GetErrorText() << endl;
+            cerr << "-\n";
+        }
+
+    }
     virtual void RenderPoints() { }
-    virtual void RenderCells0D(eavlCellSet *) { }
-    virtual void RenderCells1D(eavlCellSet *) { };
-    virtual void RenderCells2D(eavlCellSet *, eavlField *) { };
-    virtual void RenderCells3D(eavlCellSet *) { };
+    virtual void RenderCells0D() { }
+    virtual void RenderCells1D() { };
+    virtual void RenderCells2D() { };
+    virtual void RenderCells3D() { };
 };
 
 // ****************************************************************************
@@ -393,132 +551,118 @@ class eavlRenderer
 class eavlPseudocolorRenderer : public eavlRenderer
 {
   protected:
+    string         colortablename;
     eavlColorTable colortable;
-    std::vector<int> fieldindices;
-    double vmin, vmax;
-    bool nodal;
   public:
     eavlPseudocolorRenderer(eavlDataSet *ds,
                             const std::string &ctname,
-                            const std::string &fieldname)
-        : eavlRenderer(ds), colortable(ctname)
+                            const string &csname,
+                            const string &fieldname)
+        : eavlRenderer(ds, csname, fieldname),
+          colortablename(ctname),
+          colortable(ctname)
     {
-        vmin = FLT_MAX;
-        vmax = -FLT_MAX;
-        nodal = false;
-        for (int i=0; i<ds->GetNumFields(); ++i)
-        {
-            eavlField *f = ds->GetField(i);
-            if (f->GetArray()->GetName() == fieldname)
-            {
-                nodal |= (f->GetAssociation() == eavlField::ASSOC_POINTS);
-                if (nodal && fieldindices.size() > 0)
-                    THROW(eavlException, "Can only have one nodal field with a given name.");
-                fieldindices.push_back(i);
-                
-                // get its limits
-                int nvals = f->GetArray()->GetNumberOfTuples();
-                for (int j=0; j<nvals; j++)
-                {
-                    // just do min/max based on first component for now
-                    double value = f->GetArray()->GetComponentAsDouble(j,0);
-                    if (value < vmin)
-                        vmin = value;
-                    if (value > vmax)
-                        vmax = value;
-                }
-                // don't break; we probably want to get the
-                // extents of all fields with this same name
-            }
-        }
     }
-    void GetLimits(double &minval, double &maxval)
+    virtual string GetColorTableName()
     {
-        minval = vmin;
-        maxval = vmax;
-    }
-    void SetLimits(double minval, double maxval)
-    {
-        vmin = minval;
-        vmax = maxval;
+        return colortablename;
     }
     virtual void RenderPoints()
     {
-        if (fieldindices.size() == 0)
-            return;
-
-        if (!nodal)
+        if (!field_nodal)
             THROW(eavlException, "Can't render points for cell-centered field.");
 
         glEnable(GL_DEPTH_TEST);
         glPointSize(2);
 
-        eavlRenderPoints<true>(npts, pts,
-                        dataset->GetField(fieldindices[0]), vmin,vmax, &colortable);
+        eavlRenderPoints<true>(npts, pts, field,
+                               min_data_extents, max_data_extents,
+                               &colortable);
     }
-    virtual void RenderCells1D(eavlCellSet *cs)
+    virtual void RenderCells1D()
     {
-        if (fieldindices.size() == 0)
+        if (!field)
             return;
 
         glEnable(GL_DEPTH_TEST);
         glLineWidth(2);
 
-        for (unsigned int i=0; i<fieldindices.size(); ++i)
+        if (field_nodal)
         {
-            eavlField *f = dataset->GetField(fieldindices[i]);
-            if (nodal)
-            {
-                eavlRenderCells1D<true, false>(cs, npts, pts,
-                                               f, vmin, vmax, &colortable);
-                return;
-            }
-            else if (dataset->GetCellSet(f->GetAssocCellSet()) == cs)
-            {
-                eavlRenderCells1D<false, true>(cs, npts, pts,
-                                               f, vmin, vmax, &colortable);
-                return;
-            }
+            eavlRenderCells1D<true, false>(cellset, npts, pts,
+                                           field,
+                                           min_data_extents, max_data_extents,
+                                           &colortable);
+            return;
+        }
+        else if (dataset->GetCellSet(field->GetAssocCellSet()) == cellset)
+        {
+            eavlRenderCells1D<false, true>(cellset, npts, pts,
+                                           field,
+                                           min_data_extents, max_data_extents,
+                                           &colortable);
+            return;
         }
 
         THROW(eavlException,"Error finding field to render given cell set.");
     }
-    virtual void RenderCells2D(eavlCellSet *cs, eavlField *normals=NULL)
+    virtual void RenderCells2D()
     {
-        if (fieldindices.size() == 0)
+        if (!field)
             return;
 
-
         glEnable(GL_DEPTH_TEST);
-        for (unsigned int i=0; i<fieldindices.size(); ++i)
+        if (field_nodal)
         {
-            eavlField *f = dataset->GetField(fieldindices[i]);
-            if (nodal)
-            {
-                if (normals && normals->GetAssociation()==eavlField::ASSOC_POINTS)
-                    eavlRenderCells2D<true, false, true, false>(cs, npts, pts,
-                                          f, vmin, vmax, &colortable, normals);
-                else if (normals)
-                    eavlRenderCells2D<true, false, false, true>(cs, npts, pts,
-                                          f, vmin, vmax, &colortable, normals);
-                else
-                    eavlRenderCells2D<true, false, false, false>(cs, npts, pts,
-                                          f, vmin, vmax, &colortable, NULL);
-                return;
-            }
-            else if (dataset->GetCellSet(f->GetAssocCellSet()) == cs)
-            {
-                if (normals && normals->GetAssociation()==eavlField::ASSOC_POINTS)
-                    eavlRenderCells2D<false, true, true, false>(cs, npts, pts,
-                                         f, vmin, vmax, &colortable, normals);
-                else if (normals)
-                    eavlRenderCells2D<false, true, false, true>(cs, npts, pts,
-                                         f, vmin, vmax, &colortable, normals);
-                else
-                    eavlRenderCells2D<false, true, false, false>(cs, npts, pts,
-                                         f, vmin, vmax, &colortable, NULL);
-                return;
-            }
+            if (normals && normals->GetAssociation()==eavlField::ASSOC_POINTS)
+                eavlRenderCells2D<true, false, true, false>(cellset,
+                                                            npts, pts,
+                                                            field,
+                                                            min_data_extents,
+                                                            max_data_extents,
+                                                            &colortable, normals);
+            else if (normals)
+                eavlRenderCells2D<true, false, false, true>(cellset,
+                                                            npts, pts,
+                                                            field,
+                                                            min_data_extents,
+                                                            max_data_extents,
+                                                            &colortable, normals);
+            else
+                eavlRenderCells2D<true, false, false, false>(cellset,
+                                                             npts, pts,
+                                                             field,
+                                                             min_data_extents,
+                                                             max_data_extents,
+                                                             &colortable,
+                                                             NULL);
+            return;
+        }
+        else if (dataset->GetCellSet(field->GetAssocCellSet()) == cellset)
+        {
+            if (normals && normals->GetAssociation()==eavlField::ASSOC_POINTS)
+                eavlRenderCells2D<false, true, true, false>(cellset,
+                                                            npts, pts,
+                                                            field,
+                                                            min_data_extents,
+                                                            max_data_extents,
+                                                            &colortable, normals);
+            else if (normals)
+                eavlRenderCells2D<false, true, false, true>(cellset,
+                                                            npts, pts,
+                                                            field,
+                                                            min_data_extents,
+                                                            max_data_extents,
+                                                            &colortable, normals);
+            else
+                eavlRenderCells2D<false, true, false, false>(cellset,
+                                                             npts, pts,
+                                                             field,
+                                                             min_data_extents,
+                                                             max_data_extents,
+                                                             &colortable,
+                                                             NULL);
+            return;
         }
 
         THROW(eavlException,"Error finding field to render given cell set.");
@@ -543,8 +687,9 @@ class eavlSingleColorRenderer : public eavlRenderer
     eavlColor color;
   public:
     eavlSingleColorRenderer(eavlDataSet *ds,
-                            eavlColor c)
-        : eavlRenderer(ds), color(c)
+                            eavlColor c,
+                            const string &csname)
+        : eavlRenderer(ds, csname), color(c)
     {
     }
     virtual void RenderPoints()
@@ -561,18 +706,18 @@ class eavlSingleColorRenderer : public eavlRenderer
         glDisable(GL_LIGHTING);
         glEnable(GL_DEPTH_TEST);
         glLineWidth(2);
-        eavlRenderCells1D<false, false>(cs, npts, pts, NULL,0,0,NULL);
+        eavlRenderCells1D<false, false>(cellset, npts, pts, NULL,0,0,NULL);
     }
-    virtual void RenderCells2D(eavlCellSet *cs, eavlField *normals=NULL)
+    virtual void RenderCells2D()
     {
         glDisable(GL_LIGHTING);
         glEnable(GL_DEPTH_TEST);
         if (normals && normals->GetAssociation()==eavlField::ASSOC_POINTS)
-            eavlRenderCells2D<false, false, true, false>(cs, npts, pts, NULL,0,0,NULL, normals);
+            eavlRenderCells2D<false, false, true, false>(cellset, npts, pts, NULL,0,0,NULL, normals);
         else if (normals)
-            eavlRenderCells2D<false, false, false, true>(cs, npts, pts, NULL,0,0,NULL, normals);
+            eavlRenderCells2D<false, false, false, true>(cellset, npts, pts, NULL,0,0,NULL, normals);
         else
-            eavlRenderCells2D<false, false, false, false>(cs, npts, pts, NULL,0,0,NULL, NULL);
+            eavlRenderCells2D<false, false, false, false>(cellset, npts, pts, NULL,0,0,NULL, NULL);
     }
 };
 
@@ -591,49 +736,14 @@ class eavlSingleColorRenderer : public eavlRenderer
 class eavlCurveRenderer : public eavlRenderer
 {
   protected:
-    std::vector<int> fieldindices;
-    double vmin, vmax;
-    bool nodal;
     eavlColor color;
   public:
     eavlCurveRenderer(eavlDataSet *ds,
                       eavlColor c,
-                      const std::string &fieldname)
-        : eavlRenderer(ds), color(c)
+                      const string &csname,
+                      const string &fieldname)
+        : eavlRenderer(ds, csname, fieldname), color(c)
     {
-        vmin = FLT_MAX;
-        vmax = -FLT_MAX;
-        nodal = false;
-        for (int i=0; i<ds->GetNumFields(); ++i)
-        {
-            eavlField *f = ds->GetField(i);
-            if (f->GetArray()->GetName() == fieldname)
-            {
-                nodal |= (f->GetAssociation() == eavlField::ASSOC_POINTS);
-                if (nodal && fieldindices.size() > 0)
-                    THROW(eavlException, "Can only have one nodal field with a given name.");
-                fieldindices.push_back(i);
-                
-                // get its limits
-                int nvals = f->GetArray()->GetNumberOfTuples();
-                for (int j=0; j<nvals; j++)
-                {
-                    // just do min/max based on first component for now
-                    double value = f->GetArray()->GetComponentAsDouble(j,0);
-                    if (value < vmin)
-                        vmin = value;
-                    if (value > vmax)
-                        vmax = value;
-                }
-                // don't break; we probably want to get the
-                // extents of all fields with this same name
-            }
-        }
-    }
-    void GetLimits(double &minval, double &maxval)
-    {
-        minval = vmin;
-        maxval = vmax;
     }
     virtual void RenderPoints()
     {
@@ -643,20 +753,16 @@ class eavlCurveRenderer : public eavlRenderer
 
         glColor3fv(color.c);
         glBegin(GL_LINES);
-        for (unsigned int i=0; i<fieldindices.size(); ++i)
+        for (int j=0; j<npts; j++)
         {
-            eavlField *f = dataset->GetField(fieldindices[i]);
-            for (int j=0; j<npts; j++)
-            {
-                double value = f->GetArray()->GetComponentAsDouble(j,0);
+            double value = field->GetArray()->GetComponentAsDouble(j,0);
+            glVertex2d(pts[j*3+0], value);
+            if (j>0 && j<npts-1)
                 glVertex2d(pts[j*3+0], value);
-                if (j>0 && j<npts-1)
-                    glVertex2d(pts[j*3+0], value);
-            }
         }
         glEnd();
     }
-    virtual void RenderCells1D(eavlCellSet *cs)
+    virtual void RenderCells1D()
     {
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);
@@ -665,41 +771,39 @@ class eavlCurveRenderer : public eavlRenderer
         glColor3fv(color.c);
 
         glBegin(GL_LINES);
-        for (unsigned int i=0; i<fieldindices.size(); ++i)
+        if (field_nodal)
         {
-            eavlField *f = dataset->GetField(fieldindices[i]);
-            if (nodal)
+            ///\todo: should probably render the cells still, not
+            /// simply assume the cell set is point indices 1..n
+            for (int j=0; j<npts; j++)
             {
-                for (int j=0; j<npts; j++)
-                {
-                    double value = f->GetArray()->GetComponentAsDouble(j,0);
+                double value = field->GetArray()->GetComponentAsDouble(j,0);
+                glVertex2d(pts[j*3+0], value);
+                if (j>0 && j<npts-1)
                     glVertex2d(pts[j*3+0], value);
-                    if (j>0 && j<npts-1)
-                        glVertex2d(pts[j*3+0], value);
-                }
             }
-            else
+        }
+        else
+        {
+            int ncells = cellset->GetNumCells();
+            for (int j=0; j<ncells; j++)
             {
-                int ncells = cs->GetNumCells();
-                for (int j=0; j<ncells; j++)
-                {
-                    eavlCell cell = cs->GetCellNodes(j);
-                    if (cell.type != EAVL_BEAM)
-                        continue;
+                eavlCell cell = cellset->GetCellNodes(j);
+                if (cell.type != EAVL_BEAM)
+                    continue;
 
-                    double value = f->GetArray()->GetComponentAsDouble(j,0);
+                double value = field->GetArray()->GetComponentAsDouble(j,0);
 
-                    int i0 = cell.indices[0];
-                    int i1 = cell.indices[1];
+                int i0 = cell.indices[0];
+                int i1 = cell.indices[1];
 
-                    if (j>0)
-                        glVertex2d(pts[i0*3 + 0], value);
+                if (j>0)
                     glVertex2d(pts[i0*3 + 0], value);
+                glVertex2d(pts[i0*3 + 0], value);
+                glVertex2d(pts[i1*3 + 0], value);
+                if (j<npts-1)
                     glVertex2d(pts[i1*3 + 0], value);
-                    if (j<npts-1)
-                        glVertex2d(pts[i1*3 + 0], value);
 
-                }
             }
         }
         glEnd();
@@ -722,52 +826,21 @@ class eavlBarRenderer : public eavlRenderer
 {
   protected:
     std::vector<int> fieldindices;
-    double vmin, vmax;
-    bool nodal;
     eavlColor color;
     float gap;
   public:
     eavlBarRenderer(eavlDataSet *ds,
-                    eavlColor c, float interbargap,
-                    const std::string &fieldname)
-        : eavlRenderer(ds), color(c), gap(interbargap)
+                    eavlColor c,
+                    float interbargap,
+                    const string &csname,
+                    const string &fieldname)
+        : eavlRenderer(ds, csname, fieldname), color(c), gap(interbargap)
     {
-        vmin = FLT_MAX;
-        vmax = -FLT_MAX;
-        nodal = false;
-        for (int i=0; i<ds->GetNumFields(); ++i)
-        {
-            eavlField *f = ds->GetField(i);
-            if (f->GetArray()->GetName() == fieldname)
-            {
-                nodal |= (f->GetAssociation() == eavlField::ASSOC_POINTS);
-                if (nodal && fieldindices.size() > 0)
-                    THROW(eavlException, "Can only have one nodal field with a given name.");
-                fieldindices.push_back(i);
-                
-                // get its limits
-                int nvals = f->GetArray()->GetNumberOfTuples();
-                for (int j=0; j<nvals; j++)
-                {
-                    // just do min/max based on first component for now
-                    double value = f->GetArray()->GetComponentAsDouble(j,0);
-                    if (value < vmin)
-                        vmin = value;
-                    if (value > vmax)
-                        vmax = value;
-                }
-                // don't break; we probably want to get the
-                // extents of all fields with this same name
-            }
-        }
+        ///\todo: a bit of a hack: force min data value to 0
+        /// since a histpgram starts at zero
+        min_data_extents = 0;
     }
-    void GetLimits(double &minval, double &maxval)
-    {
-        //minval = vmin;
-        minval = 0; // override; it's supposed to be a histogram starting at 0
-        maxval = vmax;
-    }
-    virtual void RenderCells1D(eavlCellSet *cs)
+    virtual void RenderCells1D()
     {
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);
@@ -776,42 +849,38 @@ class eavlBarRenderer : public eavlRenderer
         glColor3fv(color.c);
 
         glBegin(GL_QUADS);
-        for (unsigned int i=0; i<fieldindices.size(); ++i)
+        if (field_nodal)
         {
-            eavlField *f = dataset->GetField(fieldindices[i]);
-            if (nodal)
+            for (int j=0; j<npts; j++)
             {
-                for (int j=0; j<npts; j++)
-                {
-                    double x = pts[j*3+0];
-                    double value = f->GetArray()->GetComponentAsDouble(j,0);
-                    ///\todo: how to handle this?
-                }
+                double x = pts[j*3+0];
+                double value = field->GetArray()->GetComponentAsDouble(j,0);
+                ///\todo: how to handle this?
             }
-            else
+        }
+        else
+        {
+            int ncells = cellset->GetNumCells();
+            for (int j=0; j<ncells; j++)
             {
-                int ncells = cs->GetNumCells();
-                for (int j=0; j<ncells; j++)
-                {
-                    eavlCell cell = cs->GetCellNodes(j);
-                    if (cell.type != EAVL_BEAM)
-                        continue;
+                eavlCell cell = cellset->GetCellNodes(j);
+                if (cell.type != EAVL_BEAM)
+                    continue;
 
-                    double value = f->GetArray()->GetComponentAsDouble(j,0);
+                double value = field->GetArray()->GetComponentAsDouble(j,0);
 
-                    int i0 = cell.indices[0];
-                    int i1 = cell.indices[1];
+                int i0 = cell.indices[0];
+                int i1 = cell.indices[1];
 
-                    double x0 = pts[i0*3 + 0];
-                    double x1 = pts[i1*3 + 0];
+                double x0 = pts[i0*3 + 0];
+                double x1 = pts[i1*3 + 0];
 
-                    double w = x1-x0;
-                    double g = w * gap / 2.;
-                    glVertex2d(x0 + g, 0);
-                    glVertex2d(x1 - g, 0);
-                    glVertex2d(x1 - g, value);
-                    glVertex2d(x0 + g, value);
-                }
+                double w = x1-x0;
+                double g = w * gap / 2.;
+                glVertex2d(x0 + g, 0);
+                glVertex2d(x1 - g, 0);
+                glVertex2d(x1 - g, value);
+                glVertex2d(x0 + g, value);
             }
         }
         glEnd();

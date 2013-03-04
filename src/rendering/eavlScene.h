@@ -6,7 +6,6 @@
 #include "eavlView.h"
 #include "eavlRenderer.h"
 #include "eavlColorTable.h"
-#include "eavlPlot.h"
 #include "eavlTexture.h"
 #include "eavlWindow.h"
 
@@ -20,11 +19,15 @@
 // Creation:    December 27, 2012
 //
 // Modifications:
+//   Jeremy Meredith, Mon Mar  4 15:44:23 EST 2013
+//   Big refactoring; more consistent internal code with less
+//   duplication and cleaner external API.
+//
 // ****************************************************************************
 class eavlScene
 {
   public:
-    std::vector<eavlPlot> plots;
+    std::vector<eavlRenderer*> plots;
 
   public:
     eavlScene() { }
@@ -39,28 +42,18 @@ class eavlScene
 
         for (unsigned int i=0; i<plots.size(); i++)
         {
-            eavlPlot &p = plots[i];
-            if (!p.data)
+            eavlRenderer *p = plots[i];
+            if (!p)
                 continue;
 
-            int npts = p.data->GetNumPoints();
-            int dim = p.data->GetCoordinateSystem(0)->GetDimension();
-
-            //CHIMERA HACK
-            if (dim > 3)
-                dim = 3;
-    
-            for (int d=0; d<dim; d++)
+            for (int d=0; d<3; d++)
             {
-                for (int i=0; i<npts; i++)
-                {
-                    double v = p.data->GetPoint(i,d);
-                    //cerr << "findspatialextents: d="<<d<<" i="<<i<<"  v="<<v<<endl;
-                    if (v < view.minextents[d])
-                        view.minextents[d] = v;
-                    if (v > view.maxextents[d])
-                        view.maxextents[d] = v;
-                }
+                double vmin = p->GetMinCoordExtent(d);
+                if (vmin < view.minextents[d])
+                    view.minextents[d] = vmin;
+                double vmax = p->GetMaxCoordExtent(d);
+                if (vmax > view.maxextents[d])
+                    view.maxextents[d] = vmax;
             }
         }
 
@@ -138,12 +131,7 @@ class eavl3DGLScene : public eavlScene
         if (plots.size() == 0)
             return;
 
-        int plotcount = 0;
-        for (unsigned int i=0; i<plots.size(); i++)
-            plotcount += (plots[i].data) ? 1 : 0;
-        if (plotcount == 0)
-            return;
-
+        int plotcount = plots.size();
 
         view.SetupForWorldSpace();
 
@@ -176,78 +164,31 @@ class eavl3DGLScene : public eavlScene
         glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
 
         glEnable(GL_DEPTH_TEST);
+
         // render the plots
         for (unsigned int i=0;  i<plots.size(); i++)
         {
-            eavlPlot &p = plots[i];
-            if (!p.data)
-                continue;
+            eavlRenderer *r = plots[i];
 
-            eavlTexture *tex = win->GetTexture(p.colortable);
-            if (!tex)
+            eavlTexture *tex = NULL;
+            if (r->GetColorTableName() != "")
             {
+                tex = win->GetTexture(r->GetColorTableName());
                 if (!tex)
-                    tex = new eavlTexture;
-                tex->CreateFromColorTable(eavlColorTable(p.colortable));
-                win->SetTexture(p.colortable, tex);
+                {
+                    if (!tex)
+                        tex = new eavlTexture;
+                    tex->CreateFromColorTable(eavlColorTable(r->GetColorTableName()));
+                    win->SetTexture(r->GetColorTableName(), tex);
+                }
             }
 
-            if (p.pcRenderer)
+            if (tex)
                 tex->Enable();
 
-            try
-            {
-                if (p.cellset_index < 0)
-                {
-                    if (p.pcRenderer)          p.pcRenderer->RenderPoints();
-                    else if (p.meshRenderer)   p.meshRenderer->RenderPoints();
-                }
-                else
-                {
-                    eavlCellSet *cs = p.data->GetCellSet(p.cellset_index);
-                    if (cs->GetDimensionality() == 1)
-                    {
-                        if (p.pcRenderer)          p.pcRenderer->RenderCells1D(cs);
-                        else if (p.meshRenderer)   p.meshRenderer->RenderCells1D(cs);
-                    }
-                    else if (cs->GetDimensionality() == 2)
-                    {
-                        eavlField *normals = NULL;
-                        // look for face-centered surface normals first
-                        for (int i=0; i<p.data->GetNumFields(); i++)
-                        {
-                            if (p.data->GetField(i)->GetArray()->GetName() == "surface_normals" &&
-                                p.data->GetField(i)->GetAssociation() == eavlField::ASSOC_CELL_SET &&
-                                p.data->GetField(i)->GetAssocCellSet() == p.cellset_index)
-                            {
-                                normals = p.data->GetField(i);
-                            }
-                        }
-                        // override with node-centered ones if we have them
-                        for (int i=0; i<p.data->GetNumFields(); i++)
-                        {
-                            if (p.data->GetField(i)->GetArray()->GetName() == "nodecentered_surface_normals" &&
-                                p.data->GetField(i)->GetAssociation() == eavlField::ASSOC_POINTS)
-                            {
-                                normals = p.data->GetField(i);
-                            }
-                        }
+            r->Render();
 
-                        if (p.pcRenderer)          p.pcRenderer->RenderCells2D(cs, normals);
-                        else if (p.meshRenderer)   p.meshRenderer->RenderCells2D(cs, normals);
-                    }
-                }
-            }
-            catch (const eavlException &e)
-            {
-                // The user can specify one cell for geometry and
-                // a different one for coloring; this currently results
-                // in an error; we'll just ignore it.
-                cerr << e.GetErrorText() << endl;
-                cerr << "-\n";
-            }
-
-            if (p.pcRenderer)
+            if (tex)
                 tex->Disable();
         }
     }
@@ -306,86 +247,40 @@ class eavl2DGLScene : public eavlScene
         if (plots.size() == 0)
             return;
 
-        int plotcount = 0;
-        for (unsigned int i=0; i<plots.size(); i++)
-            plotcount += (plots[i].data) ? 1 : 0;
-        if (plotcount == 0)
-            return;
+        int plotcount = plots.size();
 
         view.SetupForWorldSpace();
+
+        ///\todo: the tail of the 1D/2D/3D Render() methods are currently
+        /// identical.  Can we merge them?  (If the renderers had
+        /// access to the window, or texture cache if it gets moved
+        /// out of the window, then we just move the texture mgt into
+        /// eavlRenderer base, and that makes this code a one-line loop.
 
         // render the plots
         for (unsigned int i=0;  i<plots.size(); i++)
         {
-            eavlPlot &p = plots[i];
-            if (!p.data)
-                continue;
+            eavlRenderer *r = plots[i];
 
-            eavlTexture *tex = win->GetTexture(p.colortable);
-            if (!tex)
+            eavlTexture *tex = NULL;
+            if (r->GetColorTableName() != "")
             {
+                tex = win->GetTexture(r->GetColorTableName());
                 if (!tex)
-                    tex = new eavlTexture;
-                tex->CreateFromColorTable(eavlColorTable(p.colortable));
-                win->SetTexture(p.colortable, tex);
+                {
+                    if (!tex)
+                        tex = new eavlTexture;
+                    tex->CreateFromColorTable(eavlColorTable(r->GetColorTableName()));
+                    win->SetTexture(r->GetColorTableName(), tex);
+                }
             }
 
-            if (p.pcRenderer)
+            if (tex)
                 tex->Enable();
 
-            try
-            {
-                if (p.cellset_index < 0)
-                {
-                    if (p.pcRenderer)          p.pcRenderer->RenderPoints();
-                    else if (p.meshRenderer)   p.meshRenderer->RenderPoints();
-                }
-                else
-                {
-                    eavlCellSet *cs = p.data->GetCellSet(p.cellset_index);
-                    if (cs->GetDimensionality() == 1)
-                    {
-                        if (p.pcRenderer)          p.pcRenderer->RenderCells1D(cs);
-                        else if (p.meshRenderer)   p.meshRenderer->RenderCells1D(cs);
-                    }
-                    else if (cs->GetDimensionality() == 2)
-                    {
-                        eavlField *normals = NULL;
-                        // look for face-centered surface normals first
-                        for (int i=0; i<p.data->GetNumFields(); i++)
-                        {
-                            if (p.data->GetField(i)->GetArray()->GetName() == "surface_normals" &&
-                                p.data->GetField(i)->GetAssociation() == eavlField::ASSOC_CELL_SET &&
-                                p.data->GetField(i)->GetAssocCellSet() == p.cellset_index)
-                            {
-                                normals = p.data->GetField(i);
-                            }
-                        }
-                        // override with node-centered ones if we have them
-                        for (int i=0; i<p.data->GetNumFields(); i++)
-                        {
-                            if (p.data->GetField(i)->GetArray()->GetName() == "nodecentered_surface_normals" &&
-                                p.data->GetField(i)->GetAssociation() == eavlField::ASSOC_POINTS)
-                            {
-                                normals = p.data->GetField(i);
-                            }
-                        }
+            r->Render();
 
-                        if (p.pcRenderer)          p.pcRenderer->RenderCells2D(cs, normals);
-                        else if (p.meshRenderer)   p.meshRenderer->RenderCells2D(cs, normals);
-                    }
-                }
-            }
-            catch (const eavlException &e)
-            {
-                // The user can specify one cell for geometry and
-                // a different one for coloring; this currently results
-                // in an error; we'll just ignore it.
-                cerr << e.GetErrorText() << endl;
-                cerr << "-\n";
-            }
-
-            if (p.pcRenderer)
+            if (tex)
                 tex->Disable();
         }
     }
@@ -429,25 +324,12 @@ class eavl1DGLScene : public eavlScene
         view.viewtype = eavlView::EAVL_VIEW_2D;
         view.view2d.l = view.minextents[0];
         view.view2d.r = view.maxextents[0];
-        // It's 1D; we'll use the field limits, but in case we don't
-        // have a field, just set it to something reasonable.
-        view.view2d.b = 0;
-        view.view2d.t = 1;
 
-        if (plots[0].curveRenderer)
-        {
-            double vmin, vmax;
-            ((eavlCurveRenderer*)(plots[0].curveRenderer))->GetLimits(vmin, vmax);
-            view.view2d.b = vmin;
-            view.view2d.t = vmax;
-        }
-        else if (plots[0].barRenderer)
-        {
-            double vmin, vmax;
-            ((eavlBarRenderer*)(plots[0].barRenderer))->GetLimits(vmin, vmax);
-            view.view2d.b = vmin;
-            view.view2d.t = vmax;
-        }
+        double vmin = plots[0]->GetMinDataExtent();
+        double vmax = plots[0]->GetMaxDataExtent();
+        view.view2d.b = vmin;
+        view.view2d.t = vmax;
+
         if (view.view2d.b == view.view2d.t)
         {
             view.view2d.b -= .5;
@@ -466,46 +348,35 @@ class eavl1DGLScene : public eavlScene
         if (plots.size() == 0)
             return;
 
-        int plotcount = 0;
-        for (unsigned int i=0; i<plots.size(); i++)
-            plotcount += (plots[i].data) ? 1 : 0;
-        if (plotcount == 0)
-            return;
+        int plotcount = plots.size();
 
         view.SetupForWorldSpace();
 
         // render the plots
         for (unsigned int i=0;  i<plots.size(); i++)
         {
-            eavlPlot &p = plots[i];
-            if (!p.data)
-                continue;
+            eavlRenderer *r = plots[i];
 
-            try
+            eavlTexture *tex = NULL;
+            if (r->GetColorTableName() != "")
             {
-                if (p.cellset_index < 0)
+                tex = win->GetTexture(r->GetColorTableName());
+                if (!tex)
                 {
-                    if (p.curveRenderer) p.curveRenderer->RenderPoints();
-                    else if (p.barRenderer) p.barRenderer->RenderPoints();
-                }
-                else
-                {
-                    eavlCellSet *cs = p.data->GetCellSet(p.cellset_index);
-                    if (cs->GetDimensionality() == 1)
-                    {
-                        if (p.curveRenderer) p.curveRenderer->RenderCells1D(cs);
-                        else if (p.barRenderer) p.barRenderer->RenderCells1D(cs);
-                    }
+                    if (!tex)
+                        tex = new eavlTexture;
+                    tex->CreateFromColorTable(eavlColorTable(r->GetColorTableName()));
+                    win->SetTexture(r->GetColorTableName(), tex);
                 }
             }
-            catch (const eavlException &e)
-            {
-                // The user can specify one cell for geometry and
-                // a different one for coloring; this currently results
-                // in an error; we'll just ignore it.
-                cerr << e.GetErrorText() << endl;
-                cerr << "-\n";
-            }
+
+            if (tex)
+                tex->Enable();
+
+            r->Render();
+
+            if (tex)
+                tex->Disable();
         }
     }
 };
