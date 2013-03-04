@@ -88,17 +88,9 @@ class eavl3DGLScene : public eavlScene
   public:
     eavl3DGLScene() : eavlScene()
     {
-        colortexId = 0;
     }
 
-    ///\todo: hack: this shouldn't be public, but I'm not sure it's even
-    /// the right spot for it, so I'm working around it at the moment....
   protected:
-
-    ///\todo: big hack for saved_colortable
-    string saved_colortable;
-    int colortexId;
-
     virtual void ResetView(eavlWindow *win)
     {
         eavlView &view = win->view;
@@ -169,6 +161,8 @@ class eavl3DGLScene : public eavlScene
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             eavlRenderer *r = plots[i];
+            if (!r)
+                continue;
 
             eavlTexture *tex = NULL;
             if (r->GetColorTableName() != "")
@@ -212,15 +206,9 @@ class eavl2DGLScene : public eavlScene
   public:
     eavl2DGLScene() : eavlScene()
     {
-        colortexId = 0;
     }
 
   protected:
-    int width, height;
-
-    ///\todo: big hack for saved_colortable
-    string saved_colortable;
-    int colortexId;
     virtual void ResetView(eavlWindow *win)
     {
         eavlView &view = win->view;
@@ -261,6 +249,8 @@ class eavl2DGLScene : public eavlScene
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             eavlRenderer *r = plots[i];
+            if (!r)
+                continue;
 
             eavlTexture *tex = NULL;
             if (r->GetColorTableName() != "")
@@ -303,15 +293,9 @@ class eavl1DGLScene : public eavlScene
   public:
     eavl1DGLScene() : eavlScene()
     {
-        colortexId = 0;
     }
 
   protected:
-    int width, height;
-
-    ///\todo: big hack for saved_colortable
-    string saved_colortable;
-    int colortexId;
     virtual void ResetView(eavlWindow *win)
     {
         eavlView &view = win->view;
@@ -325,8 +309,13 @@ class eavl1DGLScene : public eavlScene
         view.view2d.l = view.minextents[0];
         view.view2d.r = view.maxextents[0];
 
-        double vmin = plots[0]->GetMinDataExtent();
-        double vmax = plots[0]->GetMaxDataExtent();
+        double vmin = 0;
+        double vmax = 1;
+        if (plots.size() > 0 && plots[0])
+        {
+            vmin = plots[0]->GetMinDataExtent();
+            vmax = plots[0]->GetMaxDataExtent();
+        }
         view.view2d.b = vmin;
         view.view2d.t = vmax;
 
@@ -356,6 +345,8 @@ class eavl1DGLScene : public eavlScene
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             eavlRenderer *r = plots[i];
+            if (!r)
+                continue;
 
             eavlTexture *tex = NULL;
             if (r->GetColorTableName() != "")
