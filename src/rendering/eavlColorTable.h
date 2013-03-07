@@ -123,17 +123,28 @@ class eavlColorTable
         else if (name == "dense" || name == "sharp")
         {
             smooth = (name == "dense") ? true : false;
-            pts.push_back(ColorControlPoint(0.0, eavlColor(0.28, 0.28, 0.86)));
-            pts.push_back(ColorControlPoint(0.1, eavlColor(0.00, 0.00, 0.36)));
+            pts.push_back(ColorControlPoint(0.0, eavlColor(0.26, 0.22, 0.92)));
+            pts.push_back(ColorControlPoint(0.1, eavlColor(0.00, 0.00, 0.52)));
             pts.push_back(ColorControlPoint(0.2, eavlColor(0.00, 1.00, 1.00)));
             pts.push_back(ColorControlPoint(0.3, eavlColor(0.00, 0.50, 0.00)));
             pts.push_back(ColorControlPoint(0.4, eavlColor(1.00, 1.00, 0.00)));
-            pts.push_back(ColorControlPoint(0.5, eavlColor(0.75, 0.57, 0.00)));
+            pts.push_back(ColorControlPoint(0.5, eavlColor(0.60, 0.47, 0.00)));
             pts.push_back(ColorControlPoint(0.6, eavlColor(1.00, 0.47, 0.00)));
-            pts.push_back(ColorControlPoint(0.7, eavlColor(0.58, 0.00, 0.00)));
+            pts.push_back(ColorControlPoint(0.7, eavlColor(0.61, 0.18, 0.00)));
             pts.push_back(ColorControlPoint(0.8, eavlColor(1.00, 0.03, 0.17)));
-            pts.push_back(ColorControlPoint(0.9, eavlColor(0.69, 0.14, 0.38)));
-            pts.push_back(ColorControlPoint(1.0, eavlColor(1.00, 0.00, 1.00)));
+            pts.push_back(ColorControlPoint(0.9, eavlColor(0.63, 0.12, 0.34)));
+            pts.push_back(ColorControlPoint(1.0, eavlColor(1.00, 0.40, 1.00)));
+        }
+        else if (name == "thermal")
+        {
+            pts.push_back(ColorControlPoint(0.0, eavlColor(0.30, 0.00, 0.00)));
+            pts.push_back(ColorControlPoint(0.25,eavlColor(1.00, 0.00, 0.00)));
+            pts.push_back(ColorControlPoint(0.50,eavlColor(1.00, 1.00, 0.00)));
+            pts.push_back(ColorControlPoint(0.55,eavlColor(0.80, 0.55, 0.20)));
+            pts.push_back(ColorControlPoint(0.60,eavlColor(0.60, 0.37, 0.40)));
+            pts.push_back(ColorControlPoint(0.65,eavlColor(0.40, 0.22, 0.60)));
+            pts.push_back(ColorControlPoint(0.75,eavlColor(0.00, 0.00, 1.00)));
+            pts.push_back(ColorControlPoint(1.00,eavlColor(1.00, 1.00, 1.00)));
         }
         else //if (name == "tmp") // or anything else
         {

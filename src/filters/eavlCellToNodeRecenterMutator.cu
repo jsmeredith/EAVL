@@ -51,10 +51,10 @@ void eavlCellToNodeRecenterMutator::Execute()
     eavlCellSet *cellSet = dataset->GetCellSet(cellsetname);
 
     if (field->GetAssociation() != eavlField::ASSOC_CELL_SET)
-        THROW(eavlException, "expected nodal field")
+        THROW(eavlException, "expected cellset field")
 
     if (field->GetAssocCellSet() != cellSetIndex)
-        THROW(eavlException, "expected nodal field")
+        THROW(eavlException, "expected cellset field")
 
     int ncells = cellSet->GetNumCells();
     int npts = dataset->GetNumPoints();
@@ -72,7 +72,7 @@ void eavlCellToNodeRecenterMutator::Execute()
                                                         result,
                                                         AverageFunctor1());
 
-        eavlExecutor::AddOperation(op, "recenter to the cells");
+        eavlExecutor::AddOperation(op, "recenter to the nodes");
         eavlExecutor::Go();
     }
     else if (ncomp == 3)
@@ -88,7 +88,7 @@ void eavlCellToNodeRecenterMutator::Execute()
                                                         eavlArrayWithLinearIndex(result,2),
                                                         AverageFunctor3());
 
-        eavlExecutor::AddOperation(op, "recenter to the cells");
+        eavlExecutor::AddOperation(op, "recenter to the nodes");
         eavlExecutor::Go();
     }
     else

@@ -17,7 +17,7 @@ eavlElevateMutator::Execute()
         inField->GetAssociation() != eavlField::ASSOC_WHOLEMESH &&
         inField->GetAssociation() != eavlField::ASSOC_LOGICALDIM)
     {
-        THROW(eavlException,"Field for elevate doesn't have an expected association.");
+        THROW(eavlException,"Field for elevate cannot be associated with a cell set.");
     }
 
 
@@ -57,7 +57,11 @@ eavlElevateMutator::Execute()
     }
     else
     {
-        THROW(eavlException,"Unexpected number of dimensions");
+        THROW(eavlException,"Can only elevate 1D or 2D coordinate systems.  "
+              "(If you believe you have a 2D coordinate system but are still "
+              "getting this error, it may be because your file contains, for "
+              "example, Z coordinates which are all zero.  The file reader "
+              "must be updated to strip this axis in that case.");
     }
     dataset->SetCoordinateSystem(0, coords);
 }
