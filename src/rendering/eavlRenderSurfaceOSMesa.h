@@ -18,6 +18,12 @@ class eavlRenderSurfaceOSMesa : public eavlRenderSurface
   public:
     eavlRenderSurfaceOSMesa() : eavlRenderSurface(), width(0),height(0)
     {
+        ctx = NULL;
+    }
+    virtual ~eavlRenderSurfaceOSMesa()
+    {
+        if (ctx)
+            OSMesaDestroyContext(ctx);
     }
     virtual void Initialize()
     {

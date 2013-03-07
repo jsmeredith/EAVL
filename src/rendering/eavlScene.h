@@ -31,6 +31,14 @@ class eavlScene
 
   public:
     eavlScene() { }
+    ~eavlScene()
+    {
+        for (int i=0; i<plots.size(); i++)
+        {
+            delete plots[i];
+        }
+        plots.clear();
+    }
     virtual void ResetView(eavlWindow *win) = 0;
     virtual void Render(eavlWindow *win) = 0;
 
@@ -374,6 +382,50 @@ class eavl1DGLScene : public eavlScene
 
 #ifdef HAVE_MPI
 #include <boost/mpi.hpp>
+
+class eavl2DParallelGLScene : public eavl2DGLScene
+{
+  protected:
+    boost::mpi::communicator &comm;
+  public:
+    eavl2DParallelGLScene(boost::mpi::communicator &c) :
+        eavl2DGLScene(), comm(c)
+    {
+    }
+    virtual void ResetView(eavlWindow *win)
+    {
+        eavlView &view = win->view;
+        eavl2DGLScene::ResetView(win);
+
+        boost::mpi::all_reduce(comm, view.minextents[0], view.minextents[0], boost::mpi::minimum<float>());
+        boost::mpi::all_reduce(comm, view.minextents[1], view.minextents[1], boost::mpi::minimum<float>());
+        boost::mpi::all_reduce(comm, view.minextents[2], view.minextents[2], boost::mpi::minimum<float>());
+
+        boost::mpi::all_reduce(comm, view.maxextents[0], view.maxextents[0], boost::mpi::maximum<float>());
+        boost::mpi::all_reduce(comm, view.maxextents[1], view.maxextents[1], boost::mpi::maximum<float>());
+        boost::mpi::all_reduce(comm, view.maxextents[2], view.maxextents[2], boost::mpi::maximum<float>());
+
+        float ds_size = sqrt( (view.maxextents[0]-view.minextents[0])*(view.maxextents[0]-view.minextents[0]) +
+                              (view.maxextents[1]-view.minextents[1])*(view.maxextents[1]-view.minextents[1]) +
+                              (view.maxextents[2]-view.minextents[2])*(view.maxextents[2]-view.minextents[2]) );
+
+        eavlPoint3 center = eavlPoint3((view.maxextents[0]+view.minextents[0]) / 2,
+                                       (view.maxextents[1]+view.minextents[1]) / 2,
+                                       (view.maxextents[2]+view.minextents[2]) / 2);
+
+        view.viewtype = eavlView::EAVL_VIEW_2D;
+        view.view2d.l = view.minextents[0];
+        view.view2d.r = view.maxextents[0];
+        view.view2d.b = view.minextents[1];
+        view.view2d.t = view.maxextents[1];
+        if (view.view2d.b == view.view2d.t)
+        {
+            view.view2d.b -= .5;
+            view.view2d.t += .5;
+        }
+    }
+};
+
 
 class eavl3DParallelGLScene : public eavl3DGLScene
 {

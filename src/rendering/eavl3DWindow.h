@@ -20,13 +20,22 @@ class eavl3DWindow : public eavlWindow
     eavl3DWindow(eavlColor bg, eavlRenderSurface *surf, eavlScene *s = NULL)
         : eavlWindow(bg,surf,s)
     {
+        //view.vt = +.8; // save room for legend (and prove 3D viewports work)
+
         colorbar = new eavlColorBarAnnotation(this);
         bbox = new eavlBoundingBoxAnnotation(this);
         xaxis = new eavl3DAxisAnnotation(this);
         yaxis = new eavl3DAxisAnnotation(this);
         zaxis = new eavl3DAxisAnnotation(this);
     }
-
+    ~eavl3DWindow()
+    {
+        delete colorbar;
+        delete bbox;
+        delete xaxis;
+        delete yaxis;
+        delete zaxis;
+    }
     virtual void Render()
     {
         // render the plots
@@ -60,6 +69,12 @@ class eavl3DWindow : public eavlWindow
             ytest = !ytest;
         }
 
+        // note that this should be based on the apparent size if we ever
+        // add 3D visual nonuniform scaling, not the size in world space.
+        double xrel = fabs(view.maxextents[0]-view.minextents[0]) / ds_size;
+        double yrel = fabs(view.maxextents[1]-view.minextents[1]) / ds_size;
+        double zrel = fabs(view.maxextents[2]-view.minextents[2]) / ds_size;
+
         xaxis->SetAxis(0);
         xaxis->SetColor(eavlColor::white);
         xaxis->SetTickInvert(xtest,ytest,ztest);
@@ -73,7 +88,9 @@ class eavl3DWindow : public eavlWindow
         xaxis->SetMajorTickSize(ds_size / 40., 0);
         xaxis->SetMinorTickSize(ds_size / 80., 0);
         xaxis->SetLabelFontScale(ds_size / 30.);
+        xaxis->SetMoreOrLessTickAdjustment(xrel < .3 ? -1 : 0);
         xaxis->Render(view);
+            
 
         yaxis->SetAxis(1);
         yaxis->SetColor(eavlColor::white);
@@ -88,6 +105,7 @@ class eavl3DWindow : public eavlWindow
         yaxis->SetMajorTickSize(ds_size / 40., 0);
         yaxis->SetMinorTickSize(ds_size / 80., 0);
         yaxis->SetLabelFontScale(ds_size / 30.);
+        yaxis->SetMoreOrLessTickAdjustment(yrel < .3 ? -1 : 0);
         yaxis->Render(view);
 
         if (outsideedges)
@@ -108,6 +126,7 @@ class eavl3DWindow : public eavlWindow
         zaxis->SetMajorTickSize(ds_size / 40., 0);
         zaxis->SetMinorTickSize(ds_size / 80., 0);
         zaxis->SetLabelFontScale(ds_size / 30.);
+        zaxis->SetMoreOrLessTickAdjustment(zrel < .3 ? -1 : 0);
         zaxis->Render(view);
 
         glDepthRange(0,1);

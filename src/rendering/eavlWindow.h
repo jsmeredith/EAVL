@@ -36,6 +36,14 @@ class eavlWindow
                eavlScene *s = NULL) : bg(bgcolor), surface(surf), scene(s)
     {
     }
+    virtual ~eavlWindow()
+    {
+        //delete scene;
+        for (std::map<std::string,eavlTexture*>::iterator i = textures.begin();
+             i != textures.end() ; ++i)
+            delete i->second;
+        textures.clear();
+    }
 
     /*
     virtual void ResetViewForCurrentExtents() { }

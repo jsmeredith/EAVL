@@ -43,6 +43,10 @@ class eavlTextAnnotation : public eavlAnnotation
         anchorx = h;
         anchory = v;
     }
+    void SetScale(double s)
+    {
+        scale = s;
+    }
   protected:
     void RenderText()
     {

@@ -27,12 +27,17 @@ class eavl3DAxisAnnotation : public eavlAnnotation
     double fontscale;
     eavlColor color;
     vector<eavlBillboardTextAnnotation*> labels;
+    int moreOrLessTickAdjustment;
   public:
     eavl3DAxisAnnotation(eavlWindow *win) :
         eavlAnnotation(win)
     {
         axis = 0;
         color = eavlColor::white;
+    }
+    void SetMoreOrLessTickAdjustment(int offset)
+    {
+        moreOrLessTickAdjustment = offset;
     }
     void SetColor(eavlColor c)
     {
@@ -75,6 +80,8 @@ class eavl3DAxisAnnotation : public eavlAnnotation
     void SetLabelFontScale(float s)
     {
         fontscale = s;
+        for (int i=0; i<labels.size(); i++)
+            labels[i]->SetScale(s);
     }
     void SetRange(double l, double u)
     {
@@ -95,7 +102,7 @@ class eavl3DAxisAnnotation : public eavlAnnotation
         vector<double> positions;
         vector<double> proportions;
         // major ticks
-        CalculateTicks(lower, upper, false, positions, proportions);
+        CalculateTicks(lower, upper, false, positions, proportions, moreOrLessTickAdjustment);
         int nmajor = proportions.size();
         while (labels.size() < nmajor)
         {
@@ -153,7 +160,7 @@ class eavl3DAxisAnnotation : public eavlAnnotation
         }
 
         // minor ticks
-        CalculateTicks(lower, upper, true, positions, proportions);
+        CalculateTicks(lower, upper, true, positions, proportions, moreOrLessTickAdjustment);
         int nminor = proportions.size();
         for (int i=0; i<nminor; ++i)
         {

@@ -33,6 +33,8 @@ class eavl2DAxisAnnotation : public eavlAnnotation
 
     vector<double> min_positions;
     vector<double> min_proportions;
+
+    int moreOrLessTickAdjustment;
   public:
     eavl2DAxisAnnotation(eavlWindow *win) :
         eavlAnnotation(win)
@@ -41,6 +43,11 @@ class eavl2DAxisAnnotation : public eavlAnnotation
         fontscale = 0.05;
         linewidth = 1;
         color = eavlColor::white;
+        moreOrLessTickAdjustment = 0;
+    }
+    void SetMoreOrLessTickAdjustment(int offset)
+    {
+        moreOrLessTickAdjustment = offset;
     }
     void SetColor(eavlColor c)
     {
@@ -82,14 +89,16 @@ class eavl2DAxisAnnotation : public eavlAnnotation
     void SetLabelFontScale(float s)
     {
         fontscale = s;
+        for (int i=0; i<labels.size(); i++)
+            labels[i]->SetScale(s);
     }
     void SetRangeForAutoTicks(double l, double u)
     {
         lower = l;
         upper = u;
 
-        CalculateTicks(lower, upper, false, maj_positions, maj_proportions);
-        CalculateTicks(lower, upper, true,  min_positions, min_proportions);
+        CalculateTicks(lower, upper, false, maj_positions, maj_proportions, moreOrLessTickAdjustment);
+        CalculateTicks(lower, upper, true,  min_positions, min_proportions, moreOrLessTickAdjustment);
     }
     void SetMajorTicks(const vector<double> &pos, const vector<double> &prop)
     {

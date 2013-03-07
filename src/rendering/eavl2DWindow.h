@@ -29,6 +29,13 @@ class eavl2DWindow : public eavlWindow
         vaxis = new eavl2DAxisAnnotation(this);
         frame = new eavl2DFrameAnnotation(this);
     }
+    ~eavl2DWindow()
+    {
+        delete colorbar;
+        delete haxis;
+        delete vaxis;
+        delete frame;
+    }
     virtual void Render()
     {
         // render the plots
@@ -42,6 +49,9 @@ class eavl2DWindow : public eavlWindow
         frame->SetExtents(vl,vr, vb,vt);
         frame->SetColor(eavlColor(.7,.7,.7));
         frame->Render(view);
+
+        haxis->SetMoreOrLessTickAdjustment(fabs(view.viewportaspect) < .59 ? -1 : 0);
+        vaxis->SetMoreOrLessTickAdjustment(fabs(view.viewportaspect) > 1.7 ? -1 : 0);
 
         haxis->SetColor(eavlColor::white);
         haxis->SetScreenPosition(vl,vb, vr,vb);
