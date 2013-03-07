@@ -19,6 +19,12 @@
 // Creation:    January 15, 2013
 //
 // Modifications:
+//   Jeremy Meredith, Thu Mar  7 13:22:43 EST 2013
+//   Give a little wiggle room so that ranges like (0,1) get the 0 and 1 major
+//   tick marks.  Also, allow an offset to the tick quantity (useful values
+//   are -1 for fewer, 0 for normal, and +1 for more ticks).  This latter
+//   feature is useful if you have axis of rather different length.
+//
 // ****************************************************************************
 inline double ffix(double value)
 {
@@ -33,7 +39,8 @@ inline double ffix(double value)
 
 void CalculateTicks(double lower, double upper, bool minor,
                     vector<double> &positions,
-                    vector<double> &proportions)
+                    vector<double> &proportions,
+                    int modifyTickQuantity)
 {
     positions.clear();
     proportions.clear();
@@ -78,13 +85,7 @@ void CalculateTicks(double lower, double upper, bool minor,
     // that only those values are factors of 10.....)
     double divs[5] = { 0.5, 1, 2, 5, 10 };
     int divindex = (numTicks >= 5) ? 1 : (numTicks >= 3 ? 2 : 3);
-    ///\todo: don't hardcode this more/less setting, obviously:
-    bool wantmore = false;
-    bool wantless = false;
-    if (wantmore)
-        divindex++;
-    else if (wantless)
-        divindex--;
+    divindex += modifyTickQuantity;
 
     double div = divs[divindex];
 
@@ -120,13 +121,13 @@ void CalculateTicks(double lower, double upper, bool minor,
     double majorStart, minorStart;
     if (sortedRange[0] < 0.)
     {
-        majorStart = majorStep*(ffix(sortedRange[0]*(1./majorStep)) + 0.);
-        minorStart = minorStep*(ffix(sortedRange[0]*(1./minorStep)) + 0.);
+        majorStart = majorStep*(ffix(sortedRange[0]*(1./majorStep)));
+        minorStart = minorStep*(ffix(sortedRange[0]*(1./minorStep)));
     }
     else
     {
-        majorStart = majorStep*(ffix(sortedRange[0]*(1./majorStep)) + 1.);
-        minorStart = minorStep*(ffix(sortedRange[0]*(1./minorStep)) + 1.);
+        majorStart = majorStep*(ffix(sortedRange[0]*(1./majorStep) + .999));
+        minorStart = minorStep*(ffix(sortedRange[0]*(1./minorStep) + .999));
     }
 
     // Create all of the minor ticks
@@ -134,7 +135,7 @@ void CalculateTicks(double lower, double upper, bool minor,
     numTicks = 0;
     double location = minor ? minorStart : majorStart;
     double step = minor ? minorStep : majorStep;
-    while (location < sortedRange[1] && numTicks < max_count_cutoff)
+    while (location <= sortedRange[1] && numTicks < max_count_cutoff)
     {
         positions.push_back(location);
         proportions.push_back((location - sortedRange[0]) / range);

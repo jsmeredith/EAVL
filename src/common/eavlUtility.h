@@ -7,7 +7,8 @@
 
 void CalculateTicks(double lower, double upper, bool minor,
                     vector<double> &positions,
-                    vector<double> &proportions);
+                    vector<double> &proportions,
+                    int modifyTickQuantity=0); ///< -1 for less, +1 for more
 
 template <class T>
 string VecPrint(T *const v, int n, int nmax, int group=1e9)
