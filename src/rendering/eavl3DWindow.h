@@ -38,6 +38,8 @@ class eavl3DWindow : public eavlWindow
     }
     virtual void Render()
     {
+        glEnable(GL_DEPTH_TEST);
+
         // render the plots
         scene->Render(this);
 
