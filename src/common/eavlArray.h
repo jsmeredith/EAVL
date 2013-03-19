@@ -13,6 +13,7 @@
 #endif
 
 #include <cfloat>
+#include <cmath>
 
 
 // ****************************************************************************
@@ -81,62 +82,89 @@ class eavlArray
     {
         return ncomponents;
     }
-    double GetMaxAsDouble(int comp = -1)
+    double GetTupleMin(int index)
     {
-        int nc = GetNumberOfComponents();
+        double mymin = +DBL_MAX;
+        for (int j=0; j<ncomponents; j++)
+        {
+            double v = GetComponentAsDouble(index,j);
+            if (v < mymin)
+                mymin = v;
+        }
+        return mymin;
+    }
+    double GetTupleMax(int index)
+    {
+        double mymax = -DBL_MAX;
+        for (int j=0; j<ncomponents; j++)
+        {
+            double v = GetComponentAsDouble(index,j);
+            if (v > mymax)
+                mymax = v;
+        }
+        return mymax;
+    }
+    double GetTupleMagnitude(int index)
+    {
+        double mymag = 0;
+        for (int j=0; j<ncomponents; j++)
+        {
+            double v = GetComponentAsDouble(index,j);
+            mymag += v*v;
+        }
+        return sqrt(mymag);
+    }
+
+    double GetComponentWiseMin()
+    {
+        int nt = GetNumberOfTuples();
+        double mymin = +DBL_MAX;
+        for (int i=0; i<nt; i++)
+        {
+            double v = GetTupleMin(i);
+            if (v < mymin)
+                mymin = v;
+        }
+        return mymin;
+    }
+    double GetComponentWiseMax()
+    {
         int nt = GetNumberOfTuples();
         double mymax = -DBL_MAX;
-        if (comp < 0)
+        for (int i=0; i<nt; i++)
         {
-            for (int i=0; i<nt; i++)
-            {
-                for (int j=0; j<nc; j++)
-                {
-                    double v = GetComponentAsDouble(i,j);
-                    if (v > mymax)
-                        mymax = v;
-                }
-            }
-        }
-        else
-        {
-            for (int i=0; i<nt; i++)
-            {
-                double v = GetComponentAsDouble(i,comp);
-                if (v > mymax)
-                    mymax = v;
-            }
+            double v = GetTupleMax(i);
+            if (v > mymax)
+                mymax = v;
         }
         return mymax;
     }
-    double GetMinAsDouble(int comp = -1)
+
+    double GetMagnitudeMin()
     {
-        int nc = GetNumberOfComponents();
         int nt = GetNumberOfTuples();
-        double mymax = +DBL_MAX;
-        if (comp < 0)
+        double mymin = +DBL_MAX;
+        for (int i=0; i<nt; i++)
         {
-            for (int i=0; i<nt; i++)
-            {
-                for (int j=0; j<nc; j++)
-                {
-                    double v = GetComponentAsDouble(i,j);
-                    if (v < mymax)
-                        mymax = v;
-                }
-            }
+            double v = GetTupleMagnitude(i);
+            if (v < mymin)
+                mymin = v;
         }
-        else
+        return mymin;
+    }
+    double GetMagnitudeMax()
+    {
+        int nt = GetNumberOfTuples();
+        double mymax = 0;
+        for (int i=0; i<nt; i++)
         {
-            for (int i=0; i<nt; i++)
-            {
-                double v = GetComponentAsDouble(i,comp);
-                if (v < mymax)
-                    mymax = v;
-            }
+            double v = GetTupleMagnitude(i);
+            if (v > mymax)
+                mymax = v;
         }
         return mymax;
     }
+
     void PrintSummary(ostream &out)
     {
         int n = GetNumberOfTuples() * GetNumberOfComponents();
