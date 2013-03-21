@@ -26,13 +26,15 @@ class eavl2DAxisAnnotation : public eavlAnnotation
     double fontscale;
     int    linewidth;
     eavlColor color;
-    vector<eavlScreenTextAnnotation*> labels;
+    vector<eavlTextAnnotation*> labels;
 
     vector<double> maj_positions;
     vector<double> maj_proportions;
 
     vector<double> min_positions;
     vector<double> min_proportions;
+    
+    bool worldSpace;
 
     int moreOrLessTickAdjustment;
   public:
@@ -44,6 +46,11 @@ class eavl2DAxisAnnotation : public eavlAnnotation
         linewidth = 1;
         color = eavlColor::white;
         moreOrLessTickAdjustment = 0;
+        worldSpace = false;
+    }
+    void SetWorldSpace(bool ws)
+    {
+        worldSpace = ws;
     }
     void SetMoreOrLessTickAdjustment(int offset)
     {
@@ -72,6 +79,7 @@ class eavl2DAxisAnnotation : public eavlAnnotation
         min_ty=ylen;
         min_toff = offset;
     }
+    ///\todo: rename, since it might be screen OR world position?
     void SetScreenPosition(double x0_, double y0_,
                            double x1_, double y1_)
     {
@@ -118,7 +126,10 @@ class eavl2DAxisAnnotation : public eavlAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupForScreenSpace();
+        if (worldSpace)
+            view.SetupForWorldSpace();
+        else
+            view.SetupForScreenSpace();
 
         glDisable(GL_LIGHTING);
         glColor3fv(color.c);
@@ -134,16 +145,24 @@ class eavl2DAxisAnnotation : public eavlAnnotation
         glLineWidth(1);
         glBegin(GL_LINES);
 
-        vector<double> positions;
-        vector<double> proportions;
         // major ticks
         int nmajor = maj_proportions.size();
         while (labels.size() < nmajor)
         {
-            labels.push_back(new eavlScreenTextAnnotation(win,"test",
-                                                          color,
-                                                          fontscale,
-                                                          0,0, 0));
+            if (worldSpace)
+            {
+                labels.push_back(new eavlBillboardTextAnnotation(win,"test",
+                                                                 color,
+                                                                 fontscale,
+                                                                 0,0,0, true));
+            }
+            else
+            {
+                labels.push_back(new eavlScreenTextAnnotation(win,"test",
+                                                              color,
+                                                              fontscale,
+                                                              0,0, 0));
+            }
         }
         for (int i=0; i<nmajor; ++i)
         {
@@ -159,6 +178,7 @@ class eavl2DAxisAnnotation : public eavlAnnotation
 
             if (maj_ty == 0)
             {
+                // slight shift to space between label and tick
                 xs -= (maj_tx<0?-1.:+1.) * fontscale * .1;
             }
 
@@ -167,7 +187,11 @@ class eavl2DAxisAnnotation : public eavlAnnotation
             labels[i]->SetText(val);
             if (fabs(maj_positions[i]) < 1e-10)
                 labels[i]->SetText("0");
-            labels[i]->SetPosition(xs,ys);
+            if (worldSpace)
+                ((eavlBillboardTextAnnotation*)(labels[i]))->SetPosition(xs,ys,0);
+            else
+                ((eavlScreenTextAnnotation*)(labels[i]))->SetPosition(xs,ys);
+
             labels[i]->SetAnchor(anchorx,anchory);
         }
 

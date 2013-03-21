@@ -598,6 +598,8 @@ class eavlRenderer
     double max_data_extents;
   public:
     eavlRenderer(eavlDataSet *ds,
+                 void (*xform)(double c0, double c1, double c2,
+                                 double &x, double &y, double &z),
                  const string &csname = "",
                  const string &fieldname = "")
         : dataset(ds), cellset(NULL), field(NULL), normals(NULL)
@@ -640,6 +642,21 @@ class eavlRenderer
             min_coord_extents[1] = max_coord_extents[1] = 0;
         if (min_coord_extents[2] > max_coord_extents[2])
             min_coord_extents[2] = max_coord_extents[2] = 0;
+
+        //
+        // if they gave us a transform, get pts[] into cartesian space
+        //
+        if (xform)
+        {
+            for (int i=0; i<npts; i++)
+            {
+                double x,y,z;
+                xform(pts[3*i+0], pts[3*i+1], pts[3*i+2], x, y, z);
+                pts[3*i+0] = x;
+                pts[3*i+1] = y;
+                pts[3*i+2] = z;
+            }
+        }
 
         //
         // if they gave us a cell set, grab a pointer to it
@@ -799,11 +816,13 @@ class eavlPseudocolorRenderer : public eavlRenderer
     bool           wireframe;
   public:
     eavlPseudocolorRenderer(eavlDataSet *ds,
+                            void (*xform)(double c0, double c1, double c2,
+                                            double &x, double &y, double &z),
                             const std::string &ctname,
                             bool wire,
                             const string &csname,
                             const string &fieldname)
-        : eavlRenderer(ds, csname, fieldname),
+        : eavlRenderer(ds, xform, csname, fieldname),
           colortablename(ctname),
           colortable(ctname),
           wireframe(wire)
@@ -987,10 +1006,12 @@ class eavlSingleColorRenderer : public eavlRenderer
     bool wireframe;
   public:
     eavlSingleColorRenderer(eavlDataSet *ds,
+                            void (*xform)(double c0, double c1, double c2,
+                                            double &x, double &y, double &z),
                             eavlColor c,
                             bool wire,
                             const string &csname)
-        : eavlRenderer(ds, csname), color(c), wireframe(wire)
+        : eavlRenderer(ds, xform, csname), color(c), wireframe(wire)
     {
     }
     virtual void RenderPoints()
@@ -1050,10 +1071,12 @@ class eavlCurveRenderer : public eavlRenderer
     eavlColor color;
   public:
     eavlCurveRenderer(eavlDataSet *ds,
+                      void (*xform)(double c0, double c1, double c2,
+                                      double &x, double &y, double &z),
                       eavlColor c,
                       const string &csname,
                       const string &fieldname)
-        : eavlRenderer(ds, csname, fieldname), color(c)
+        : eavlRenderer(ds, xform, csname, fieldname), color(c)
     {
     }
     virtual void RenderPoints()
@@ -1139,11 +1162,13 @@ class eavlBarRenderer : public eavlRenderer
     float gap;
   public:
     eavlBarRenderer(eavlDataSet *ds,
+                    void (*xform)(double c0, double c1, double c2,
+                                    double &x, double &y, double &z),
                     eavlColor c,
                     float interbargap,
                     const string &csname,
                     const string &fieldname)
-        : eavlRenderer(ds, csname, fieldname), color(c), gap(interbargap)
+        : eavlRenderer(ds, xform, csname, fieldname), color(c), gap(interbargap)
     {
         ///\todo: a bit of a hack: force min data value to 0
         /// since a histpgram starts at zero

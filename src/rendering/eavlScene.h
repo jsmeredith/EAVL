@@ -285,6 +285,85 @@ class eavl2DGLScene : public eavlScene
 };
 
 
+class eavlPolarGLScene : public eavlScene
+{
+  public:
+    eavlPolarGLScene() : eavlScene()
+    {
+    }
+
+  protected:
+    virtual void ResetView(eavlWindow *win)
+    {
+        eavlView &view = win->view;
+        SetViewExtentsFromPlots(view);
+
+        eavlPoint3 center = eavlPoint3((view.maxextents[0]+view.minextents[0]) / 2,
+                                       (view.maxextents[1]+view.minextents[1]) / 2,
+                                       (view.maxextents[2]+view.minextents[2]) / 2);
+
+        view.viewtype = eavlView::EAVL_VIEW_2D;
+        // the *1.3 is because we're currently drawing the axis in world
+        // space, so we need to leave room inside the viewport for
+        // the labels around the outside of the outer axis
+        view.view2d.l = -view.maxextents[0] * 1.3;
+        view.view2d.r = +view.maxextents[0] * 1.3;
+        view.view2d.b = -view.maxextents[0] * 1.3;
+        view.view2d.t = +view.maxextents[0] * 1.3;
+        if (view.view2d.b == view.view2d.t)
+        {
+            view.view2d.b -= .5;
+            view.view2d.t += .5;
+        }
+    }
+    virtual void Render(eavlWindow *win)
+    {
+        eavlView &view = win->view;
+        if (plots.size() == 0)
+            return;
+
+        int plotcount = plots.size();
+
+        view.SetupForWorldSpace();
+
+        ///\todo: the tail of the 1D/2D/3D Render() methods are currently
+        /// identical.  Can we merge them?  (If the renderers had
+        /// access to the window, or texture cache if it gets moved
+        /// out of the window, then we just move the texture mgt into
+        /// eavlRenderer base, and that makes this code a one-line loop.
+
+        // render the plots
+        for (unsigned int i=0;  i<plots.size(); i++)
+        {
+            eavlRenderer *r = plots[i];
+            if (!r)
+                continue;
+
+            eavlTexture *tex = NULL;
+            if (r->GetColorTableName() != "")
+            {
+                tex = win->GetTexture(r->GetColorTableName());
+                if (!tex)
+                {
+                    if (!tex)
+                        tex = new eavlTexture;
+                    tex->CreateFromColorTable(eavlColorTable(r->GetColorTableName()));
+                    win->SetTexture(r->GetColorTableName(), tex);
+                }
+            }
+
+            if (tex)
+                tex->Enable();
+
+            r->Render();
+
+            if (tex)
+                tex->Disable();
+        }
+    }
+};
+
+
 // ****************************************************************************
 // Class:  eavl1DGLScene
 //
