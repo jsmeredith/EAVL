@@ -41,19 +41,19 @@ if (TEST_RESULT)
   message( FATAL_ERROR "Failed: Test program ${TEST_COMMAND} ${TEST_ARGSLIST} exited != 0. \n${TEST_ERROR}")
 endif (TEST_RESULT)
 
+if (TEST_TRIM_LINES) 
+  message("TEST_TRIM_LINES SET TO ${TEST_TRIM_LINES} \nexecuting head -n -${TEST_TRIM_LINES} ${TEST_OUTPUT}")
+  execute_process(
+    COMMAND head -n -${TEST_TRIM_LINES} "${CMAKE_CURRENT_BINARY_DIR}/${TEST_OUTPUT}"
+    OUTPUT_VARIABLE TRIM_RESULT
+  )
+  file(WRITE ${TEST_OUTPUT}.trimmed "${TRIM_RESULT}")
+  set (TEST_OUTPUT ${TEST_OUTPUT}.trimmed)
+endif (TEST_TRIM_LINES)
+
 # now compare the output with the reference, use diff command if possible, since we can
 # use -w to ignore whitespace/line ending differences across platforms
 if (TEST_DIFF_EXECUTABLE) 
-  if (TEST_TRIM_LINES) 
-    message("TEST_TRIM_LINES SET TO ${TEST_TRIM_LINES} \nexecuting head -n -${TEST_TRIM_LINES} ${TEST_OUTPUT}")
-    execute_process(
-      COMMAND head -n -${TEST_TRIM_LINES} "${CMAKE_CURRENT_BINARY_DIR}/${TEST_OUTPUT}"
-      OUTPUT_VARIABLE TRIM_RESULT
-    )
-    file(WRITE ${TEST_OUTPUT}.trimmed "${TRIM_RESULT}")
-    set (TEST_OUTPUT ${TEST_OUTPUT}.trimmed)
-  endif (TEST_TRIM_LINES)
-
   # we need to un-escape spaces in the file names of executables like diff
   STRING(REPLACE "\\ " " " TEST_DIFF_EXECUTABLE "${TEST_DIFF_EXECUTABLE}")
   message("executing ${TEST_DIFF_EXECUTABLE} -w -q ${CMAKE_CURRENT_BINARY_DIR}/${TEST_OUTPUT} ${TEST_BASELINE}")
