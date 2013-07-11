@@ -9,6 +9,10 @@
 #include <eavlMatrix4x4.h>
 #include <eavlAnnotation.h>
 
+#ifdef _WIN32
+ #include "GL/glext.h"
+#endif
+
 // ****************************************************************************
 // Class:  eavlTextAnnotation
 //

@@ -118,6 +118,7 @@ eavlBitmapFont::ReadFromNGLFile(const std::string &fn)
     file.close();
 }
 #else
+#include "eavl.h"
 #include "eavlException.h"
 void
 eavlBitmapFont::ReadFromNGLFile(const std::string &fn)

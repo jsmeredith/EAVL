@@ -5,6 +5,11 @@
 #include "eavlDataSet.h"
 #include "eavlColorTable.h"
 
+#ifdef _WIN32
+ #include "GL/glext.h"
+ #define GL_GENERATE_MIPMAP_SGIS GL_GENERATE_MIPMAP
+#endif
+
 // ****************************************************************************
 // Class:  eavlTexture
 //
@@ -153,7 +158,6 @@ class eavlTexture
         void *va = ca ? field_a->GetArray()->GetHostArray() : NULL;
 
 #define HW_MIPMAPS
-
         if (id == 0)
             glGenTextures(1, &id);
 

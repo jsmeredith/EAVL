@@ -12,6 +12,7 @@
 #include <cuda_runtime_api.h>
 #endif
 
+#define _USE_MATH_DEFINES
 #include <cfloat>
 #include <cmath>
 
