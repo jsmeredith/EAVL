@@ -1,0 +1,31 @@
+#-----------------------------------------------------------------------------
+# EAVL Config file for compiling against the build directory
+#-----------------------------------------------------------------------------
+get_filename_component(SELF_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+#-----------------------------------------------------------------------------
+# Version Strings
+#-----------------------------------------------------------------------------
+set(EAVL_VERSION_STRING  @EAVL_PACKAGE_VERSION@)
+set(EAVL_VERSION_MAJOR   @EAVL_VERS_MAJOR@)
+set(EAVL_VERSION_MINOR   @EAVL_VERS_MINOR@)
+set(EAVL_VERSION_RELEASE @EAVL_VERS_RELEASE@)
+
+#-----------------------------------------------------------------------------
+# Include Directories
+#-----------------------------------------------------------------------------
+set(EAVL_INCLUDE_DIR "@EAVL_INCLUDES_BUILD_TIME@")
+
+#-----------------------------------------------------------------------------
+# Options we need to make visible
+#-----------------------------------------------------------------------------
+
+
+#-----------------------------------------------------------------------------
+# Don't include targets if this file is being picked up by another
+# project which has already build EAVL as a subproject
+#-----------------------------------------------------------------------------
+if(NOT TARGET "EAVL" AND NOT EAVL_INSTALL_SKIP_TARGETS)
+  include(${SELF_DIR}/eavl-targets.cmake)
+endif(NOT TARGET "EAVL" AND NOT EAVL_INSTALL_SKIP_TARGETS)
+

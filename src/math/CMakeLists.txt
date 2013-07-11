@@ -7,3 +7,5 @@ SET(EAVL_MATH_SRCS
 add_library(eavl_math 
   ${EAVL_MATH_SRCS}
 )
+
+ADD_GLOBAL_LIST(EAVL_EXPORTED_LIBS eavl_math)

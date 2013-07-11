@@ -1,9 +1,12 @@
 SET(EAVL_IMPORTERS_SRCS
+  eavlImporterFactory.cpp
   eavlBOVImporter.cpp
   eavlImporterFactory.cpp
   eavlMADNESSImporter.cpp
   eavlPDBImporter.cpp
   eavlVTKImporter.cpp
+  eavlCurveImporter.cpp
+  eavlPNGImporter.cpp
 )
 
 #-------------------------------
@@ -13,6 +16,8 @@ IF(EAVL_HAVE_ADIOS)
   SET(EAVL_ADIOS_SRCS
     ADIOSFileObject.cpp
     eavlADIOSImporter.cpp
+    eavlPixieImporter.cpp
+    # seems to depend on ADIOS
     eavlPixieImporter.cpp
   )
 ENDIF(EAVL_HAVE_ADIOS)
@@ -56,3 +61,5 @@ add_library(eavl_importers
   ${EAVL_NETCDF_SRCS}
   ${EAVL_CHIMERA_SRCS}
 )
+
+ADD_GLOBAL_LIST(EAVL_EXPORTED_LIBS eavl_importers)

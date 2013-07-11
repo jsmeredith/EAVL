@@ -4,8 +4,25 @@ project(EAVL)
 #-----------------------------------------------------------------------------
 # Run all the CMake configuration tests for our build environment
 #-----------------------------------------------------------------------------
-INCLUDE (cmake/ConfigureChecks.cmake)
-SET(CMAKE_MODULE_PATH ${EAVL_SOURCE_DIR}/cmake)
+if(NOT EAVL_EXTERNALLY_CONFIGURED)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY
+      ${PROJECT_BINARY_DIR}/bin CACHE PATH "Single Directory for all Executables."
+  )
+  set(EXECUTABLE_OUTPUT_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY
+      ${PROJECT_BINARY_DIR}/bin CACHE PATH "Single Directory for all Libraries"
+  )
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY
+      ${PROJECT_BINARY_DIR}/bin CACHE PATH "Single Directory for all static libraries."
+  )
+endif(NOT EAVL_EXTERNALLY_CONFIGURED)
+
+#-----------------------------------------------------------------------------
+# Run all the CMake configuration tests for our build environment
+#-----------------------------------------------------------------------------
+set(CMAKE_MODULE_PATH ${EAVL_SOURCE_DIR}/cmake)
+include(${CMAKE_MODULE_PATH}/ConfigureChecks.cmake)
+include(${CMAKE_MODULE_PATH}/EAVLMacros.cmake)
 
 #-----------------------------------------------------------------------------
 # Find Boost
@@ -45,31 +62,64 @@ IF (BUILD_CUDA)
 ENDIF (BUILD_CUDA)
 
 #-----------------------------------------------------------------------------
+# setup a global variable that we will add all libraries to.
+# For export of targets, so that other projects can pick them up cleanly
+#-----------------------------------------------------------------------------
+INIT_GLOBAL_LIST(EAVL_EXPORTED_LIBS "")
+
+#-----------------------------------------------------------------------------
 # Include directories
 #-----------------------------------------------------------------------------
-include_directories(
+set(EAVL_INCLUDE_DIRECTORIES
   ${EAVL_BINARY_DIR}
   ${EAVL_SOURCE_DIR}/config
-  ${EAVL_SOURCE_DIR}/src/math
   ${EAVL_SOURCE_DIR}/src/common
+  ${EAVL_SOURCE_DIR}/src/exporters
+  ${EAVL_SOURCE_DIR}/src/filters
+  ${EAVL_SOURCE_DIR}/src/fonts
+  ${EAVL_SOURCE_DIR}/src/importers
+  ${EAVL_SOURCE_DIR}/src/math
+  ${EAVL_SOURCE_DIR}/src/operations
+  ${EAVL_SOURCE_DIR}/src/rendering
 )
 IF (HAVE_CUDA)
-  include_directories(
+  list(APPEND EAVL_INCLUDE_DIRECTORIES
     "${CUDA_INCLUDE_DIRS}"
     "${EAVL_SOURCE_DIR}/src/operations"
   )
 ENDIF (HAVE_CUDA)
+
+include_directories(${EAVL_INCLUDE_DIRECTORIES})
 
 #-----------------------------------------------------------------------------
 # setup src
 #-----------------------------------------------------------------------------
 add_subdirectory(src)
 
-
 #-----------------------------------------------------------------------------
-# Generate the eavlConfig.h file containing settings needed by compilation
+# Generate the eavlConfig.h file containing settings needed for compilation
 #-----------------------------------------------------------------------------
 CONFIGURE_FILE (cmake/eavlConfig.h.in ${EAVL_BINARY_DIR}/eavlConfig.h @ONLY)
+
+#-----------------------------------------------------------------------------
+# Export all exported targets to the build tree for use by parent project
+#-----------------------------------------------------------------------------
+EXPORT (
+  TARGETS
+    ${EAVL_EXPORTED_LIBS}
+  FILE
+    eavl-targets.cmake
+)
+
+#-----------------------------------------------------------------------------
+# Configure the EAVL-config.cmake file for the build directory
+#-----------------------------------------------------------------------------
+set(EAVL_INCLUDES_BUILD_TIME ${EAVL_INCLUDE_DIRECTORIES})
+
+configure_file(
+  ${EAVL_SOURCE_DIR}/CMake/eavl-config.cmake.build.in 
+  ${EAVL_BINARY_DIR}/eavl-config.cmake @ONLY
+)
 
 #-----------------------------------------------------------------------------
 # Testing
