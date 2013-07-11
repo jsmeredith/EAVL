@@ -1,16 +1,18 @@
 // Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
-#include "eavl2DGraphLayoutMutator.h"
+#include "eavl2DGraphLayoutForceMutator.h"
 #include "eavlCellSetExplicit.h"
 
-eavl2DGraphLayoutMutator::eavl2DGraphLayoutMutator()
+eavl2DGraphLayoutForceMutator::eavl2DGraphLayoutForceMutator()
 {
-    niter = 30;
-    startdist = 0.3;
-    finaldist = 0.01;
+    niter = 100;
+    startdist = 1.0;
+    finaldist = 0.005;
+    areaconstant = 1.0;
+    gravityconstant = 0.3;
 }
 
 void
-eavl2DGraphLayoutMutator::Execute()
+eavl2DGraphLayoutForceMutator::Execute()
 {
     eavlCellSet *cs = dataset->GetCellSet(cellsetname);
     eavlCellSetExplicit *cse = dynamic_cast<eavlCellSetExplicit*>(cs);
@@ -19,7 +21,9 @@ eavl2DGraphLayoutMutator::Execute()
 
     int npts = dataset->GetNumPoints();
 
-    // add coordinates
+    //
+    // add coordinates, or clobber the old ones
+    //
     eavlCoordinatesCartesian *coords =
         new eavlCoordinatesCartesian(NULL,
                                      eavlCoordinatesCartesian::X,
@@ -36,17 +40,18 @@ eavl2DGraphLayoutMutator::Execute()
     dataset->AddField(new eavlField(1, x, eavlField::ASSOC_POINTS));
     dataset->AddField(new eavlField(1, y, eavlField::ASSOC_POINTS));
 
-    //srand(npts+15);
-    //srand(time(NULL));
-    // set coordinates to something
-#if 0 // first option: arrange them in a circle; that's alas correct too easily
+    //
+    // coordinate initialization
+    //
+
+#if 0 // first option: arrange them in a circle
     for (int i=0; i<npts; ++i)
     {
         float a = float(i)/float(npts);
         x->SetValue(i, cos(a * 2 * M_PI));
         y->SetValue(i, sin(a * 2 * M_PI));
     }
-#elif 0 // second option: in a grid; less often correct for simple graphs
+#elif 0 // second option: in a grid
     int sq = sqrt(npts);
     for (int i=0; i<npts; ++i)
     {
@@ -65,8 +70,11 @@ eavl2DGraphLayoutMutator::Execute()
     }
 #endif
 
-    float area = 1;
-    float k = sqrt(area / npts);
+    //
+    // do the force-directed layout in 2D
+    //
+
+    float k = sqrt(areaconstant / npts);
     float k2 = k*k;
     vector<float> vx(npts, 0);
     vector<float> vy(npts, 0);
@@ -74,6 +82,7 @@ eavl2DGraphLayoutMutator::Execute()
     double distdelta  = niter==1 ? 1 : pow(distchange, 1. / double(niter-1));
     for (int iter = 0 ; iter < niter ; ++iter)
     {
+        // cooling schedule determines current maxdist
         float maxdist = startdist * pow(distdelta, iter);
 
         // init vels to 0
@@ -143,7 +152,7 @@ eavl2DGraphLayoutMutator::Execute()
            
         }
 
-#if 0
+#if 1
         // attract to center to keep trees from escaping forest
         for (int i=0; i<npts; ++i)
         {
@@ -156,15 +165,14 @@ eavl2DGraphLayoutMutator::Execute()
             float udx = dx/len;
             float udy = dy/len;
 
-            float scale = 0.3;
-            float fcx = scale * udx * len / k;
-            float fcy = scale * udy * len / k;
+            float fcx = gravityconstant * udx * len / k;
+            float fcy = gravityconstant * udy * len / k;
             vx[i] -= fcx;
             vy[i] -= fcy;
         }
 #endif
 
-        // clamp to maxdist
+        // clamp any distance to current maxdist (defined by cooling schedule)
         for (int i=0; i<npts; ++i)
         {
             float len = sqrt(vx[i]*vx[i] + vy[i]*vy[i]);

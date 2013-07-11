@@ -28,6 +28,7 @@ OBJ=\
  common/eavlUtility.o \
  exporters/eavlVTKExporter.o \
  exporters/eavlPNMExporter.o \
+ filters/eavl2DGraphLayoutForceMutator.o \
  filters/eavl3X3AverageMutator.o \
  filters/eavlBinaryMathMutator.o \
  filters/eavlCellToNodeRecenterMutator.o \

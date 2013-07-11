@@ -9,7 +9,7 @@
 #include "eavlImporterFactory.h"
 #include "eavlVTKExporter.h"
 
-#include "eavl2DGraphLayoutMutator.h"
+#include "eavl2DGraphLayoutForceMutator.h"
 #include "eavlExecutor.h"
 
 
@@ -56,12 +56,13 @@ int main(int argc, char *argv[])
 
         int cellsetindex = 0;
 
-        eavl2DGraphLayoutMutator *layout = new eavl2DGraphLayoutMutator;
+        eavl2DGraphLayoutForceMutator *layout = new eavl2DGraphLayoutForceMutator;
         layout->SetDataSet(data);
         layout->SetCellSet(data->GetCellSet(cellsetindex)->GetName());
 
         int seed = time(NULL);
 #if 0
+        // experiment designed to watch the iteration process
         for (int niter = 0 ; niter < 300 ; niter++)
         {
             srand(seed);
@@ -74,9 +75,8 @@ int main(int argc, char *argv[])
             WriteToVTKFile(data, fn, cellsetindex);
         }
 #else
-        layout->SetNumIterations(300);
-        layout->SetStartDist(1.0);
-        layout->SetFinalDist(0.01);
+        // perform default actions on input graph
+        srand(seed);
         layout->Execute();
 #endif
 
