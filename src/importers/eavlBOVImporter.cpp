@@ -45,7 +45,7 @@ vector<string>
 eavlBOVImporter::GetFieldList(const string&)
 {
     vector<string> fields;
-    
+
     fields.push_back(variable);
     return fields;
 }
@@ -83,10 +83,10 @@ eavlBOVImporter::GetMesh(const string&, int chunk)
         dy += 1;
         dz += 1;
     }
-    
+
     vector<vector<double> > coords;
     vector<string> coordNames;
-    
+
     coords.resize(3);
     coordNames.resize(3);
     coordNames[0] = "XDir";
@@ -125,7 +125,7 @@ CopyValues(string nm, T *buff, int nTups, int nComps)
             arr->SetComponentFromDouble(j, i, (double)(buff[idx]));
     }
 
-    return arr;    
+    return arr;
 }
 
 eavlField *
@@ -135,14 +135,14 @@ eavlBOVImporter::GetField(const string &var, const string &mesh, int chunk)
     bool gzipped = (fileName.length() > 3 && fileName.substr(fileName.length()-3) == ".gz");
 
     int nTuples = brickSize[0]*brickSize[1]*brickSize[2];
-    
+
     size_t typeSz = SizeOfDataType();
     size_t sz = nTuples*numComponents*typeSz;
     void *buff = new void*[sz];
     if (gzipped)
     {
 #ifdef HAVE_ZLIB
-        void *fp = gzopen(fileName.c_str(), "r");
+        gzFile fp = gzopen(fileName.c_str(), "r");
         size_t nread = gzread(fp, buff, sz);
         gzclose(fp);
         if (nread != sz)
@@ -159,10 +159,10 @@ eavlBOVImporter::GetField(const string &var, const string &mesh, int chunk)
         if (nread != sz)
             THROW(eavlException,"error reading "+fileName);
     }
-    
+
     if (swapBytes)
         cerr<<"SWAP BYTES NOT SUPPORTED. But it still seems to work... ????"<<endl;
-    
+
     eavlArray *arr;
     if (dataT == FLOAT)
         arr = CopyValues(var, (float *)buff, nTuples, numComponents);
@@ -208,7 +208,7 @@ eavlBOVImporter::ReadTOC(const string &fn)
         filePath = "./";
     else
         filePath = fn.substr(0, slashPos+1);
-    
+
     FILE *fp = fopen(fn.c_str(), "r");
 
     char buff[1024];
@@ -225,7 +225,7 @@ eavlBOVImporter::ReadTOC(const string &fn)
             dataFilePattern = &buff[strlen(key)];
             continue;
         }
-        
+
         key = "DATA SIZE: ";
         if (strncmp(buff, key, strlen(key)) == 0)
         {
@@ -236,7 +236,7 @@ eavlBOVImporter::ReadTOC(const string &fn)
         if (strncmp(buff, key, strlen(key)) == 0)
         {
             string dataFormat = &buff[strlen(key)];
-            
+
             continue;
         }
         key = "DATA_COMPONENTS: ";
@@ -281,14 +281,14 @@ eavlBOVImporter::ReadTOC(const string &fn)
 #endif
             continue;
         }
-        
+
         key = "DATA_BRICKLETS: ";
         if (strncmp(buff, key, strlen(key)) == 0)
         {
             sscanf(&buff[strlen(key)], "%d %d %d", &brickSize[0], &brickSize[1], &brickSize[2]);
             continue;
         }
-        
+
         key = "BRICK_ORIGIN: ";
         if (strncmp(buff, key, strlen(key)) == 0)
         {
@@ -315,7 +315,7 @@ eavlBOVImporter::ReadTOC(const string &fn)
         }
     }
     fclose(fp);
-    
+
     int nX = dataSize[0], nY = dataSize[1], nZ = dataSize[2];
     if (brickSize[0] > 1 || brickSize[1] > 1 || brickSize[2] > 1)
         numChunks = (nX/brickSize[0])*(nY/brickSize[1])*(nZ/brickSize[2]);
