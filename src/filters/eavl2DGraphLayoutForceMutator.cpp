@@ -1,6 +1,8 @@
 // Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
-#include "eavl2DGraphLayoutMutator.h"
+#include "eavl2DGraphLayoutForceMutator.h"
 #include "eavlCellSetExplicit.h"
+// stl
+#include <random>
 
 eavl2DGraphLayoutMutator::eavl2DGraphLayoutMutator()
 {
@@ -56,12 +58,13 @@ eavl2DGraphLayoutMutator::Execute()
         y->SetValue(i, float(yy)/float(sq));
     }
 #else // third option: random
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(0.0, 1.0);
     for (int i=0; i<npts; ++i)
     {
-        float xx = double(random()) / double(RAND_MAX);
-        float yy = double(random()) / double(RAND_MAX);
-        x->SetValue(i, 2.*xx-1.);
-        y->SetValue(i, 2.*yy-1.);
+        x->SetValue(i, 2*dis(gen)-1);
+        y->SetValue(i, 2*dis(gen)-1);
     }
 #endif
 
