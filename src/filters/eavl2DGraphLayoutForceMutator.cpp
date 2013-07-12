@@ -2,6 +2,10 @@
 #include "eavl2DGraphLayoutForceMutator.h"
 #include "eavlCellSetExplicit.h"
 
+#ifdef _WIN32
+ #define random rand
+#endif
+
 eavl2DGraphLayoutForceMutator::eavl2DGraphLayoutForceMutator()
 {
     niter = 100;
