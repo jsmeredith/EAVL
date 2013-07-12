@@ -2,6 +2,8 @@
 #include "eavlTimer.h"
 #include <stdio.h>
 #include <algorithm>
+#include <ctime>
+
 #include "eavl.h"
 #include "eavlException.h"
 #include "eavlCUDA.h"

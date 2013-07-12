@@ -3,6 +3,7 @@
 #define EAVL_H
 
 #include "eavlConfig.h"
+#include "eavlPlatform.h"
 
 #ifdef HAVE_CUDA
 

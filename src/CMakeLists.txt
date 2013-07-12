@@ -1,0 +1,7 @@
+add_subdirectory(math)
+add_subdirectory(common)
+add_subdirectory(filters)
+add_subdirectory(fonts)
+add_subdirectory(exporters)
+add_subdirectory(importers)
+add_subdirectory(rendering)

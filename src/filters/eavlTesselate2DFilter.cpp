@@ -3,10 +3,11 @@
 #include "eavlCoordinates.h"
 #include "eavlCellSetExplicit.h"
 #include "eavlException.h"
+#include <cmath>
 
 static float Legendre(int i, float x)
 {
-    float scale = sqrt(2 * i + 1);
+  float scale = sqrt(2. * i + 1.);
     switch (i)
     {
       case 0:    return scale * 1;

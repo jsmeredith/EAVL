@@ -130,7 +130,7 @@ eavlDataSet *GenerateCurv2Din3D(int ni, int nj)
         int j = p / ni;
         x->SetValue(p, 100 + 10*i + (j%3)*3);
         y->SetValue(p, 100 + i-.1*j*j);
-        z->SetValue(p, 200 + 15*j + 2*sin(i));
+        z->SetValue(p, 200 + 15*j + 2*sin((double)i));
     }
 
     // add the coordinate axis arrays as linear fields on logical dims
@@ -186,7 +186,7 @@ eavlDataSet *GenerateRectXY_ElevToZ(int ni, int nj)
 
     eavlFloatArray *z = new eavlFloatArray("z", 1, npts);
     for (int p=0; p<npts; ++p)
-        z->SetValue(p, 4 * (p%3) + 5 * sqrt(p));
+        z->SetValue(p, 4 * (p%3) + 5 * sqrt((double)p));
 
     // add the coordinate axis arrays as linear fields on logical dims
     data->AddField(new eavlField(1, x, eavlField::ASSOC_LOGICALDIM, 0));
@@ -335,7 +335,7 @@ eavlDataSet *GenerateExplicitOnLogical(int ni, int nj)
     {
         for (int i=0; i<ni-1; ++i)
         {
-            bool included = sqrt(i*i + j*j) >= 8;
+            bool included = sqrt((double)(i*i + j*j)) >= 8;
             if (!included)
                 continue;
             int cellpts[4] = { reg.CalculateNodeIndex2D(i+0, j+0),
