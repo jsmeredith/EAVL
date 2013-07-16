@@ -361,7 +361,6 @@ void eavlCellSetExplicit::BuildNodeCellConnectivity()
     }
 
     int last_node = -1;
-    int cur_node_ctr = 0;
     int cur_node_connstart = 0;
     for (multimap<int,int>::iterator iter = cells_of_nodes.begin();
          iter != cells_of_nodes.end(); iter++)
@@ -371,7 +370,6 @@ void eavlCellSetExplicit::BuildNodeCellConnectivity()
         {
             ++last_node;
             nodeCellConnectivity.shapetype.push_back(EAVL_POINT);
-            cur_node_ctr = 0;
             cur_node_connstart = nodeCellConnectivity.connectivity.size();
             nodeCellConnectivity.connectivity.push_back(0);
         }

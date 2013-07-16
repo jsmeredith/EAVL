@@ -63,11 +63,11 @@ eavlPNGImporter::GetMesh(const string &name, int chunk)
     vector<string> coordNames;
 
     vector<double> x(width+1);
-    for (int i=0; i<=width; i++)
+    for (unsigned int i=0; i<=width; i++)
         x[i] = i;
 
     vector<double> y(height+1);
-    for (int i=0; i<=height; i++)
+    for (unsigned int i=0; i<=height; i++)
         y[i] = i;
 
     coordNames.push_back("x");
@@ -113,6 +113,7 @@ eavlPNGImporter::GetField(const string &name, const string &mesh, int chunk)
 //    2. added using for size_t declaration.
 //    3. removed default argument since it was added in a new prototype above.
 //    4. main() and helper code at the bottom of the file was removed.
+//    5. remove unused known_type variable.
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
@@ -379,7 +380,7 @@ static int decodePNG(std::vector<unsigned char>& out_image, unsigned long& image
       readPngHeader(&in[0], size); if(error) return;
       size_t pos = 33; //first byte of the first chunk after the header
       std::vector<unsigned char> idat; //the data from idat chunks
-      bool IEND = false, known_type = true;
+      bool IEND = false;
       info.key_defined = false;
       while(!IEND) //loop through the chunks, ignoring unknown chunks and stopping at IEND chunk. IDAT data is put at the start of the in buffer
       {
@@ -431,7 +432,6 @@ static int decodePNG(std::vector<unsigned char>& out_image, unsigned long& image
         {
           if(!(in[pos + 0] & 32)) { error = 69; return; } //error: unknown critical chunk (5th bit of first byte of chunk type is 0)
           pos += (chunkLength + 4); //skip 4 letters and uninterpreted data of unimplemented chunk
-          known_type = false;
         }
         pos += 4; //step over CRC (which is ignored)
       }

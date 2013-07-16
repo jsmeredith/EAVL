@@ -43,7 +43,7 @@ eavlThresholdMutator::Execute()
     int new_cell_index = dataset->GetNumCellSets();
     dataset->AddCellSet(subset);
 
-    for (size_t i=0; i<dataset->GetNumFields(); i++)
+    for (int i=0; i<dataset->GetNumFields(); i++)
     {
         eavlField *f = dataset->GetField(i);
         if (f->GetAssociation() == eavlField::ASSOC_CELL_SET &&

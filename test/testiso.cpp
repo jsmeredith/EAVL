@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
         //data->PrintSummary(cout);
 
         int cellsetindex = -1;
-        for (size_t i=0; i<data->GetNumCellSets(); i++)
+        for (int i=0; i<data->GetNumCellSets(); i++)
         {
             if (data->GetCellSet(i)->GetDimensionality() == 3)
             {

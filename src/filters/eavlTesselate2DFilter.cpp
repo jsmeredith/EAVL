@@ -85,7 +85,7 @@ eavlTesselate2DFilter::Execute()
     // tesselate high-order cell arrays and fields to single-component nodal scalars
     //
     vector<pair<eavlArray*,eavlArray*> > legendre3x3_arrays;
-    for (size_t i=0; i<input->GetNumFields(); i++)
+    for (int i=0; i<input->GetNumFields(); i++)
     {
         if (input->GetField(i)->GetAssociation() == eavlField::ASSOC_CELL_SET &&
             input->GetField(i)->GetOrder() == 2 &&
@@ -105,7 +105,7 @@ eavlTesselate2DFilter::Execute()
     // create nodal arrays and fields
     //
     vector<pair<eavlArray*,eavlArray*> > nodal_arrays;
-    for (size_t i=0; i<input->GetNumFields(); i++)
+    for (int i=0; i<input->GetNumFields(); i++)
     {
         if (input->GetField(i)->GetAssociation() == eavlField::ASSOC_POINTS &&
             input->GetField(i)->GetOrder() == 1)

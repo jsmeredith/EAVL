@@ -85,14 +85,14 @@ struct eavlBitmapFont
     double GetTextWidth(const std::string &text)
     {
         double width = 0;
-        for (int i=0; i<text.length(); ++i)
+        for (unsigned int i=0; i<text.length(); ++i)
         {
             Character c = GetChar(text[i]);
             char nextchar = (i < text.length()-1) ? text[i+1] : 0;
 
             const bool kerning = true;
             if (kerning && nextchar>0)
-                width += double(c.kern[nextchar]) / double(height);
+                width += double(c.kern[int(nextchar)]) / double(height);
             width += double(c.adv) / double(height);
         }
         return width;
@@ -121,7 +121,7 @@ struct eavlBitmapFont
 
         const bool kerning = true;
         if (kerning && nextchar>0)
-            x += double(c.kern[nextchar]) / double(height);
+            x += double(c.kern[int(nextchar)]) / double(height);
         x += double(c.adv) / double(height);
     }
     void Print(ostream &out)
@@ -136,7 +136,7 @@ struct eavlBitmapFont
         out << "padding   = " 
             << padl << "," << padr << "," << padt << "," << padb 
             << " (l,r,t,b)" << endl;
-        for (int i=0; i<chars.size(); ++i)
+        for (unsigned int i=0; i<chars.size(); ++i)
         {
             Character &c = chars[i];
             out << "  char "<<i<<": ";

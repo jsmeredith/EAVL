@@ -219,7 +219,7 @@ vector<string>
 eavlChimeraImporter::GetFieldList(const string &mesh)
 {
     vector<string> fields;
-    for (size_t i = 0; i < data->GetNumFields(); i++)
+    for (int i = 0; i < data->GetNumFields(); i++)
         fields.push_back(data->GetField(i)->GetArray()->GetName());
 
     return fields;

@@ -56,7 +56,6 @@ void eavlCellToNodeRecenterMutator::Execute()
     if (field->GetAssocCellSet() != cellSetIndex)
         THROW(eavlException, "expected cellset field")
 
-    int ncells = cellSet->GetNumCells();
     int npts = dataset->GetNumPoints();
     int ncomp = array->GetNumberOfComponents();
 

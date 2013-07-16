@@ -531,7 +531,7 @@ eavlIsosurfaceFilter::Execute()
         "generate z coords");
 
     /// interpolate the point vars and gather the cell vars
-    for (unsigned int i=0; i<input->GetNumFields(); i++)
+    for (int i=0; i<input->GetNumFields(); i++)
     {
         eavlField *f = input->GetField(i);
         eavlArray *a = f->GetArray();

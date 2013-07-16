@@ -668,7 +668,7 @@ eavlVTKImporter::ParseScalars(eavlVTKImporter::Location loc)
     eavlFloatArray *a = new eavlFloatArray(an,ac);
 
     int ntotalcells = 0;
-    for (unsigned int i=0; i<data->GetNumCellSets(); i++)
+    for (int i=0; i<data->GetNumCellSets(); i++)
         ntotalcells += data->GetCellSet(i)->GetNumCells();
 
     if (loc == LOC_CELLS)
@@ -708,7 +708,7 @@ eavlVTKImporter::ParseVectors(eavlVTKImporter::Location loc)
     eavlFloatArray *a = new eavlFloatArray(an,ac);
 
     int ntotalcells = 0;
-    for (unsigned int i=0; i<data->GetNumCellSets(); i++)
+    for (int i=0; i<data->GetNumCellSets(); i++)
         ntotalcells += data->GetCellSet(i)->GetNumCells();
 
     if (loc == LOC_CELLS)
@@ -748,7 +748,7 @@ eavlVTKImporter::ParseNormals(eavlVTKImporter::Location loc)
     eavlFloatArray *a = new eavlFloatArray(an,ac);
 
     int ntotalcells = 0;
-    for (unsigned int i=0; i<data->GetNumCellSets(); i++)
+    for (int i=0; i<data->GetNumCellSets(); i++)
         ntotalcells += data->GetCellSet(i)->GetNumCells();
 
     if (loc == LOC_CELLS)

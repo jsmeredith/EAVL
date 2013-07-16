@@ -146,7 +146,7 @@ void callCellMapKernelStructured_1_1(int nCells,
                           eavlArray *o0, int o0mul, int o0add,
                           F &functor)
 {
-    int n = o0->GetNumberOfTuples();
+    //int n = o0->GetNumberOfTuples();
     ///\todo: assert num for all output arrays is the same?
 
     i0->GetCUDAArray();
@@ -209,7 +209,7 @@ void callCellMapKernelExplicit_1_1(int nCells,
                             eavlArray *o0, int o0mul, int o0add,
                             F &functor)
 {
-    int n = o0->GetNumberOfTuples();
+    //int n = o0->GetNumberOfTuples();
     ///\todo: assert num for all output arrays is the same?
 
 

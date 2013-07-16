@@ -146,8 +146,7 @@ void CalculateTicks(double lower, double upper, bool minor,
     if (sortedRange[0] != lower)
     {
         // We must reverse all of the proportions.
-        int  j;
-        for (j = 0 ; j < proportions.size(); j++)
+        for (unsigned int j = 0 ; j < proportions.size(); j++)
         {
             proportions[j] = 1. - proportions[j];
         }

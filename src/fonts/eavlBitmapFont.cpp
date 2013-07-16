@@ -148,7 +148,7 @@ eavlBitmapFont::DumpToInitFile(const std::string &fn,
     cpp << "#include <eavlBitmapFont.h>" << endl;
     cpp << endl;
     cpp << "static int charmetrics[][8] = {" << endl;
-    for (int i=0; i<chars.size(); i++)
+    for (unsigned int i=0; i<chars.size(); i++)
     {
         Character &c = chars[i];
         cpp << "    {"
@@ -163,7 +163,7 @@ eavlBitmapFont::DumpToInitFile(const std::string &fn,
     }
     cpp << "};" << endl;
     cpp << "static const char *charids[] = {" << endl;
-    for (int i=0; i<chars.size(); i++)
+    for (unsigned int i=0; i<chars.size(); i++)
     {
         Character &c = chars[i];
         if (i % 10 == 0)
@@ -177,7 +177,7 @@ eavlBitmapFont::DumpToInitFile(const std::string &fn,
     cpp << "};" << endl;
     cpp << endl;
     cpp << "static const unsigned char rawimage[] = {";
-    for (int i=0; i<rawimagefiledata.size(); ++i)
+    for (unsigned int i=0; i<rawimagefiledata.size(); ++i)
     {
         if (i % 10 == 0)
             cpp << endl << "    ";
@@ -217,7 +217,7 @@ eavlBitmapFont::DumpToInitFile(const std::string &fn,
     cpp << endl;
     cpp << "    // Any kerning data follows..." << endl;
     cpp << endl;
-    for (int i=0; i<chars.size(); i++)
+    for (unsigned int i=0; i<chars.size(); i++)
     {
         Character &c = chars[i];
         bool header = false;

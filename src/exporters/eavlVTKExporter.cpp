@@ -61,7 +61,7 @@ eavlVTKExporter::ExportFields(ostream &out)
 {
     // do point data
     bool wrote_point_header = false;
-    for (unsigned int f = 0; f < data->GetNumFields(); f++)
+    for (int f = 0; f < data->GetNumFields(); f++)
     {
         int ntuples = data->GetField(f)->GetArray()->GetNumberOfTuples();
         int ncomp = data->GetField(f)->GetArray()->GetNumberOfComponents();
@@ -86,7 +86,7 @@ eavlVTKExporter::ExportFields(ostream &out)
 
     // do cell data
     bool wrote_cell_header = false;
-    for (unsigned int f = 0; f < data->GetNumFields(); f++)
+    for (int f = 0; f < data->GetNumFields(); f++)
     {
         int ntuples = data->GetField(f)->GetArray()->GetNumberOfTuples();
         int ncomp = data->GetField(f)->GetArray()->GetNumberOfComponents();
@@ -117,7 +117,6 @@ eavlVTKExporter::ExportPoints(ostream &out)
 {
     out<<"POINTS "<<data->GetNumPoints()<<" float"<<endl;
 
-    int dim = data->GetCoordinateSystem(0)->GetDimension();
     int npts = data->GetNumPoints();
     for (int i = 0; i < npts; i++)
     {

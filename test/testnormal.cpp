@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
         eavlDataSet *data = ReadWholeFile(argv[1]);
 
         int cellsetindex = -1;
-        for (size_t i=0; i<data->GetNumCellSets(); i++)
+        for (int i=0; i<data->GetNumCellSets(); i++)
         {
             if (data->GetCellSet(i)->GetDimensionality() == 2)
             {
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
         {
             cerr << "Couldn't find a 2D cell set.  Trying to add external faces to a 3D set.\n";
             int cellsetindex3d = -1;
-            for (size_t i=0; i<data->GetNumCellSets(); i++)
+            for (int i=0; i<data->GetNumCellSets(); i++)
             {
                 if (data->GetCellSet(i)->GetDimensionality() == 3)
                 {
