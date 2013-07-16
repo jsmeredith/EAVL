@@ -128,7 +128,7 @@ FinalizeMPIStuff(void)
 }
 
 void
-ParallelZComposite(boost::mpi::communicator &comm,
+ParallelZComposite(const MPI_Comm &comm,
                    int npixels,
                    const float *inz, const unsigned char *inrgba,
                    float *outz, unsigned char *outrgba,

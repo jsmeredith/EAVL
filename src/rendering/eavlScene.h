@@ -440,14 +440,13 @@ class eavl1DGLScene : public eavlScene
 };
 
 #ifdef HAVE_MPI
-#include <boost/mpi.hpp>
 
 class eavl2DParallelGLScene : public eavl2DGLScene
 {
   protected:
-    boost::mpi::communicator &comm;
+    MPI_Comm comm;
   public:
-    eavl2DParallelGLScene(boost::mpi::communicator &c) :
+    eavl2DParallelGLScene(const MPI_Comm &c) :
         eavl2DGLScene(), comm(c)
     {
     }
@@ -456,13 +455,20 @@ class eavl2DParallelGLScene : public eavl2DGLScene
         eavlView &view = win->view;
         eavl2DGLScene::ResetView(win);
 
-        boost::mpi::all_reduce(comm, view.minextents[0], view.minextents[0], boost::mpi::minimum<float>());
-        boost::mpi::all_reduce(comm, view.minextents[1], view.minextents[1], boost::mpi::minimum<float>());
-        boost::mpi::all_reduce(comm, view.minextents[2], view.minextents[2], boost::mpi::minimum<float>());
+        double tmp;
+        MPI_Allreduce(&view.minextents[0], &tmp, 1, MPI_DOUBLE, MPI_MIN, comm);
+        view.minextents[0] = tmp;
+        MPI_Allreduce(&view.minextents[1], &tmp, 1, MPI_DOUBLE, MPI_MIN, comm);
+        view.minextents[1] = tmp;
+        MPI_Allreduce(&view.minextents[2], &tmp, 1, MPI_DOUBLE, MPI_MIN, comm);
+        view.minextents[2] = tmp;
 
-        boost::mpi::all_reduce(comm, view.maxextents[0], view.maxextents[0], boost::mpi::maximum<float>());
-        boost::mpi::all_reduce(comm, view.maxextents[1], view.maxextents[1], boost::mpi::maximum<float>());
-        boost::mpi::all_reduce(comm, view.maxextents[2], view.maxextents[2], boost::mpi::maximum<float>());
+        MPI_Allreduce(&view.maxextents[0], &tmp, 1, MPI_DOUBLE, MPI_MAX, comm);
+        view.maxextents[0] = tmp;
+        MPI_Allreduce(&view.maxextents[1], &tmp, 1, MPI_DOUBLE, MPI_MAX, comm);
+        view.maxextents[1] = tmp;
+        MPI_Allreduce(&view.maxextents[2], &tmp, 1, MPI_DOUBLE, MPI_MAX, comm);
+        view.maxextents[2] = tmp;
 
         float ds_size = sqrt( (view.maxextents[0]-view.minextents[0])*(view.maxextents[0]-view.minextents[0]) +
                               (view.maxextents[1]-view.minextents[1])*(view.maxextents[1]-view.minextents[1]) +
@@ -485,9 +491,9 @@ class eavl2DParallelGLScene : public eavl2DGLScene
 class eavl3DParallelGLScene : public eavl3DGLScene
 {
   protected:
-    boost::mpi::communicator &comm;
+    MPI_Comm comm;
   public:
-    eavl3DParallelGLScene(boost::mpi::communicator &c) :
+    eavl3DParallelGLScene(const MPI_Comm &c) :
         eavl3DGLScene(), comm(c)
     {
     }
@@ -496,13 +502,20 @@ class eavl3DParallelGLScene : public eavl3DGLScene
         eavlView &view = win->view;
         eavl3DGLScene::ResetView(win);
 
-        boost::mpi::all_reduce(comm, view.minextents[0], view.minextents[0], boost::mpi::minimum<float>());
-        boost::mpi::all_reduce(comm, view.minextents[1], view.minextents[1], boost::mpi::minimum<float>());
-        boost::mpi::all_reduce(comm, view.minextents[2], view.minextents[2], boost::mpi::minimum<float>());
+        double tmp;
+        MPI_Allreduce(&view.minextents[0], &tmp, 1, MPI_DOUBLE, MPI_MIN, comm);
+        view.minextents[0] = tmp;
+        MPI_Allreduce(&view.minextents[1], &tmp, 1, MPI_DOUBLE, MPI_MIN, comm);
+        view.minextents[1] = tmp;
+        MPI_Allreduce(&view.minextents[2], &tmp, 1, MPI_DOUBLE, MPI_MIN, comm);
+        view.minextents[2] = tmp;
 
-        boost::mpi::all_reduce(comm, view.maxextents[0], view.maxextents[0], boost::mpi::maximum<float>());
-        boost::mpi::all_reduce(comm, view.maxextents[1], view.maxextents[1], boost::mpi::maximum<float>());
-        boost::mpi::all_reduce(comm, view.maxextents[2], view.maxextents[2], boost::mpi::maximum<float>());
+        MPI_Allreduce(&view.maxextents[0], &tmp, 1, MPI_DOUBLE, MPI_MAX, comm);
+        view.maxextents[0] = tmp;
+        MPI_Allreduce(&view.maxextents[1], &tmp, 1, MPI_DOUBLE, MPI_MAX, comm);
+        view.maxextents[1] = tmp;
+        MPI_Allreduce(&view.maxextents[2], &tmp, 1, MPI_DOUBLE, MPI_MAX, comm);
+        view.maxextents[2] = tmp;
 
         float ds_size = sqrt( (view.maxextents[0]-view.minextents[0])*(view.maxextents[0]-view.minextents[0]) +
                               (view.maxextents[1]-view.minextents[1])*(view.maxextents[1]-view.minextents[1]) +

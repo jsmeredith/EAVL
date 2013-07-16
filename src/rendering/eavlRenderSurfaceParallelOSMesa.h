@@ -10,10 +10,10 @@ class eavlRenderSurfaceParallelOSMesa : public eavlRenderSurfaceOSMesa
   protected:
     vector<unsigned char> composited_rgba;
     vector<float> composited_zbuff;
-    boost::mpi::communicator &comm;
+    MPI_Comm comm;
     eavlColor bg;
   public:
-    eavlRenderSurfaceParallelOSMesa(boost::mpi::communicator &mpicomm,
+    eavlRenderSurfaceParallelOSMesa(const MPI_Comm &mpicomm,
                                     eavlColor &bgcolor)
         : eavlRenderSurfaceOSMesa(), comm(mpicomm), bg(bgcolor)
     {
