@@ -1360,12 +1360,11 @@ MPI Options:
   --without-mpi           (DEFAULT) disable MPI
 
 Boost Options:
-  --with-boost             (DEFAULT) assume compiler knows about boost
-  --with-boost=path        specify location of BOOST installation,
-  --without-boost          disable BOOST support; not that BOOST
-                           will eventually be mandatory, but
-                           you can compile without BOOST for now
-                           if you are not using MPI
+  --with-boost             assume compiler knows about Boost
+  --with-boost=path        specify location of Boost installation
+  --without-boost          (DEFAULT) disable Boost support; note that at
+                           the moment, all Boost usage has been removed
+                           from EAVL to minimize dependencies]
 
 CUDA Options:
   --with-cuda             (DEFAULT) search for CUDA
@@ -3780,14 +3779,14 @@ $as_echo_n "checking for Boost... " >&6; }
 if test "${with_boost+set}" = set; then :
   withval=$with_boost; BOOST="$withval"
 else
-  if test -z "$BOOST"; then BOOST="yes"; fi
+  if test -z "$BOOST"; then BOOST="no"; fi
 fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $BOOST" >&5
 $as_echo "$BOOST" >&6; }
 
-## \TODO: We do not YET use boost in EAVL without MPI.
-## Uncomment the next 3 lines when we do need it.
+## \TODO: We have removed all boost from EAVL for now.
+## Uncomment the next 3 lines if we do need it.
 #if test "$BOOST" = "no"; then
 #   AC_MSG_ERROR(Boost is required)
 #fi
@@ -3824,7 +3823,7 @@ else
 $as_echo "no" >&6; }
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-## \TODO: We do not YET use boost in EAVL without MPI.
+## \TODO: We have removed all boost from EAVL for now.
 ## Remove the preceeding line and replace it with this next
 ## line when we do need it (i.e. add the fatal error back in).
 #              AC_MSG_RESULT(no);AC_MSG_ERROR(Boost is required))
@@ -3868,7 +3867,7 @@ $as_echo "no" >&6; }
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-## \TODO: We do not YET use boost in EAVL without MPI.
+## \TODO: We have removed all boost from EAVL for now.
 ## Remove the preceeding line and replace it with this next
 ## line when we do need it (i.e. add the fatal error back in).
 #            AC_MSG_RESULT(no);AC_MSG_ERROR(Boost is required))
@@ -3903,7 +3902,7 @@ $as_echo "no" >&6; }
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-    ## \TODO: We do not YET use boost in EAVL without MPI.
+    ## \TODO: We have removed all boost from EAVL for now.
     ## Remove the preceeding line and replace it with this next
     ## line when we do need it (i.e. add the fatal error back in).
     #          AC_MSG_RESULT(no);AC_MSG_ERROR(Boost is required))
@@ -3930,10 +3929,14 @@ if ac_fn_cxx_try_link "$LINENO"; then :
 $as_echo "yes" >&6; };BOOST_LIBS="$BOOST_LIBS $tmplib"
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; };as_fn_error $? "Boost MPI is required when MPI is enabled" "$LINENO" 5
+$as_echo "no" >&6; }
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
+    ## \TODO: We have removed all boost from EAVL for now.
+    ## Remove the preceeding line and replace it with this next
+    ## line when we do need it (i.e. add the fatal error back in).
+    #          AC_MSG_RESULT(no);AC_MSG_ERROR(Boost is required))
 fi
 
 CPPFLAGS=$old_cppflags
@@ -3993,9 +3996,13 @@ if ac_fn_cxx_try_compile "$LINENO"; then :
 $as_echo "yes" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; };as_fn_error $? "TR1 headers are required" "$LINENO" 5
+$as_echo "no" >&6; }
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+    ## \TODO: We have removed all TR1 usage from EAVL for now.
+    ## Remove the preceeding line and replace it with this next
+    ## line when we do need it (i.e. add the fatal error back in).
+    #             AC_MSG_RESULT(no);AC_MSG_ERROR(TR1 headers are required))
    CPPFLAGS=$old_cppflags
 fi
 

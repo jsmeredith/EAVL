@@ -252,18 +252,17 @@ AC_MSG_CHECKING(for Boost)
 ## Remove the "--without-boost" help text option entirely when we do need it.
 AC_ARG_WITH(boost,[
 Boost Options:
-  --with-boost             (DEFAULT) assume compiler knows about boost
-  --with-boost=path        specify location of BOOST installation,
-  --without-boost          disable BOOST support; not that BOOST
-                           will eventually be mandatory, but
-                           you can compile without BOOST for now
-                           if you are not using MPI],
+  --with-boost             assume compiler knows about Boost
+  --with-boost=path        specify location of Boost installation
+  --without-boost          (DEFAULT) disable Boost support; note that at
+                           the moment, all Boost usage has been removed
+                           from EAVL to minimize dependencies]],
         BOOST="$withval",
-        if test -z "$BOOST"; then BOOST="yes"; fi)
+        if test -z "$BOOST"; then BOOST="no"; fi)
 AC_MSG_RESULT($BOOST)
 
-## \TODO: We do not YET use boost in EAVL without MPI.
-## Uncomment the next 3 lines when we do need it.
+## \TODO: We have removed all boost from EAVL for now.
+## Uncomment the next 3 lines if we do need it.
 #if test "$BOOST" = "no"; then
 #   AC_MSG_ERROR(Boost is required)
 #fi
@@ -284,7 +283,7 @@ AC_TRY_COMPILE([#include <boost/logic/tribool.hpp>],
                [boost::tribool tb(false);],
                AC_MSG_RESULT(yes),
                AC_MSG_RESULT(no))
-## \TODO: We do not YET use boost in EAVL without MPI.
+## \TODO: We have removed all boost from EAVL for now.
 ## Remove the preceeding line and replace it with this next
 ## line when we do need it (i.e. add the fatal error back in).
 #              AC_MSG_RESULT(no);AC_MSG_ERROR(Boost is required))
@@ -307,7 +306,7 @@ AC_TRY_LINK([#include <boost/regex.hpp>],
              return boost::regex_match("foo1234",re);],
             AC_MSG_RESULT(yes);BOOST_LIBS="$BOOST_LIBS $tmplib",
             AC_MSG_RESULT(no))
-## \TODO: We do not YET use boost in EAVL without MPI.
+## \TODO: We have removed all boost from EAVL for now.
 ## Remove the preceeding line and replace it with this next
 ## line when we do need it (i.e. add the fatal error back in).
 #            AC_MSG_RESULT(no);AC_MSG_ERROR(Boost is required))
@@ -325,7 +324,7 @@ if test "$MPI" = "no"; then
                 int i=105; ar & i;],
                AC_MSG_RESULT(yes);BOOST_LIBS="$BOOST_LIBS $tmplib",
                AC_MSG_RESULT(no))
-    ## \TODO: We do not YET use boost in EAVL without MPI.
+    ## \TODO: We have removed all boost from EAVL for now.
     ## Remove the preceeding line and replace it with this next
     ## line when we do need it (i.e. add the fatal error back in).
     #          AC_MSG_RESULT(no);AC_MSG_ERROR(Boost is required))
@@ -338,7 +337,11 @@ else
    AC_TRY_LINK([#include <boost/mpi.hpp>],
                [boost::mpi::communicator world;],
                AC_MSG_RESULT(yes);BOOST_LIBS="$BOOST_LIBS $tmplib",
-               AC_MSG_RESULT(no);AC_MSG_ERROR(Boost MPI is required when MPI is enabled))
+               AC_MSG_RESULT(no))
+    ## \TODO: We have removed all boost from EAVL for now.
+    ## Remove the preceeding line and replace it with this next
+    ## line when we do need it (i.e. add the fatal error back in).
+    #          AC_MSG_RESULT(no);AC_MSG_ERROR(Boost is required))
 fi
 
 CPPFLAGS=$old_cppflags
@@ -370,7 +373,11 @@ if test "$compiler_has_tr1" = "no"; then
    AC_TRY_COMPILE([#include <tr1/unordered_map>],
                   [std::tr1::unordered_map<int,double> hashtable;],
                   AC_MSG_RESULT(yes),
-                  AC_MSG_RESULT(no);AC_MSG_ERROR(TR1 headers are required))
+                  AC_MSG_RESULT(no))
+    ## \TODO: We have removed all TR1 usage from EAVL for now.
+    ## Remove the preceeding line and replace it with this next
+    ## line when we do need it (i.e. add the fatal error back in).
+    #             AC_MSG_RESULT(no);AC_MSG_ERROR(TR1 headers are required))
    CPPFLAGS=$old_cppflags
 fi
 
