@@ -4227,7 +4227,16 @@ else
 fi
 
 
-   NVCXXFLAGS="$NVCXXFLAGS -Xcompiler \"$""(CXXFLAGS)\""
+   # We don't want to interpret the CXXFLAGS value right now, so we
+   # need to have it pass the CXXFLAGS variable to be interpolated at
+   # the last minute.
+   # However, nvcc needs -Xcompiler flag prefacing to all of the flags.
+   # Something in depcomp isn't quoting the CXXFLAGS properly (and it
+   # doesn't look easily fixable properly), or else just double-quoting
+   # CXXFLAGS here would work.  However, -Xcompiler will accept comma-
+   # separated flags, so we just have it translate spaces to commas
+   # at the last minute.
+   NVCXXFLAGS="$NVCXXFLAGS -Xcompiler \`echo \"$""(CXXFLAGS)\" | tr ' ' ','\`"
 
    # see if we can use compute model 2.0
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for latest compute model supported" >&5
