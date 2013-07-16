@@ -27,9 +27,9 @@
 class eavlTextAnnotation : public eavlAnnotation
 {
   protected:
-    double  scale;
     string text;
     eavlColor color;
+    double  scale;
     double anchorx, anchory;
   public:
     eavlTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, double s)
@@ -108,7 +108,7 @@ class eavlTextAnnotation : public eavlAnnotation
 
         double textwidth = fnt->GetTextWidth(text);
         double fx = -anchorx * textwidth, fy = -anchory, fz = 0;
-        for (int i=0; i<text.length(); ++i)
+        for (unsigned int i=0; i<text.length(); ++i)
         {
             char c = text[i];
             char nextchar = (i < text.length()-1) ? text[i+1] : 0;

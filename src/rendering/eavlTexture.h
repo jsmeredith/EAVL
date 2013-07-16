@@ -133,7 +133,7 @@ class eavlTexture
         reg = logReg->GetRegularStructure();
         int w = reg.cellDims[0];
         int h = reg.cellDims[1];
-        int n = reg.GetNumCells();
+        //int n = reg.GetNumCells();
 
         eavlField *field_r = cr ? ds->GetField("r") : NULL;
         eavlField *field_g = cg ? ds->GetField("g") : NULL;
@@ -152,9 +152,9 @@ class eavlTexture
             (ca && string(field_a->GetArray()->GetBasicType()) != "byte"))
             THROW(eavlException, "Expected byte arrays");
 
-        void *vr = cr ? field_r->GetArray()->GetHostArray() : NULL;
-        void *vg = cg ? field_g->GetArray()->GetHostArray() : NULL;
-        void *vb = cb ? field_b->GetArray()->GetHostArray() : NULL;
+        //void *vr = cr ? field_r->GetArray()->GetHostArray() : NULL;
+        //void *vg = cg ? field_g->GetArray()->GetHostArray() : NULL;
+        //void *vb = cb ? field_b->GetArray()->GetHostArray() : NULL;
         void *va = ca ? field_a->GetArray()->GetHostArray() : NULL;
 
 #define HW_MIPMAPS

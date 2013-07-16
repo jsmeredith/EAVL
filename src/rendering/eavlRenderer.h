@@ -716,7 +716,7 @@ class eavlRenderer
                 
                     // get its limits
                     int nvals = f->GetArray()->GetNumberOfTuples();
-                    int ncomp = f->GetArray()->GetNumberOfComponents();
+                    //int ncomp = f->GetArray()->GetNumberOfComponents();
                     for (int j=0; j<nvals; j++)
                     {
                         // just do min/max based on first component for now
@@ -1021,7 +1021,7 @@ class eavlSingleColorRenderer : public eavlRenderer
         glColor3fv(color.c);
         eavlRenderPoints<false>(npts, pts, NULL,0,0,NULL);
     }
-    virtual void RenderCells1D(eavlCellSet *cs)
+    virtual void RenderCells1D()
     {
         glDisable(GL_LIGHTING);
         glLineWidth(2);
@@ -1186,8 +1186,8 @@ class eavlBarRenderer : public eavlRenderer
         {
             for (int j=0; j<npts; j++)
             {
-                double x = pts[j*3+0];
-                double value = field->GetArray()->GetComponentAsDouble(j,0);
+                //double x = pts[j*3+0];
+                //double value = field->GetArray()->GetComponentAsDouble(j,0);
                 ///\todo: how to handle this?
             }
         }

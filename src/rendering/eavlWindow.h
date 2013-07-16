@@ -33,7 +33,7 @@ class eavlWindow
 
   public:
     eavlWindow(eavlColor bgcolor, eavlRenderSurface *surf,
-               eavlScene *s = NULL) : bg(bgcolor), surface(surf), scene(s)
+               eavlScene *s = NULL) : bg(bgcolor), scene(s), surface(surf)
     {
     }
     virtual ~eavlWindow()

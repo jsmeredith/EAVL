@@ -80,7 +80,7 @@ class eavl3DAxisAnnotation : public eavlAnnotation
     void SetLabelFontScale(float s)
     {
         fontscale = s;
-        for (int i=0; i<labels.size(); i++)
+        for (unsigned int i=0; i<labels.size(); i++)
             labels[i]->SetScale(s);
     }
     void SetRange(double l, double u)
@@ -104,7 +104,7 @@ class eavl3DAxisAnnotation : public eavlAnnotation
         // major ticks
         CalculateTicks(lower, upper, false, positions, proportions, moreOrLessTickAdjustment);
         int nmajor = proportions.size();
-        while (labels.size() < nmajor)
+        while ((int)labels.size() < nmajor)
         {
             labels.push_back(new eavlBillboardTextAnnotation(win,"test",
                                                           color,

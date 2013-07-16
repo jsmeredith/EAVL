@@ -79,7 +79,7 @@ class eavl2DRadialAxisAnnotation : public eavlAnnotation
     void SetLabelFontScale(float s)
     {
         fontscale = s;
-        for (int i=0; i<labels.size(); i++)
+        for (unsigned int i=0; i<labels.size(); i++)
             labels[i]->SetScale(s);
     }
     void SetRangeForAutoTicks(double l, double u)
@@ -136,7 +136,7 @@ class eavl2DRadialAxisAnnotation : public eavlAnnotation
         glBegin(GL_LINES);
         // major ticks
         int nmajor = maj_proportions.size();
-        while (labels.size() < nmajor)
+        while ((int)labels.size() < nmajor)
         {
             labels.push_back(new eavlBillboardTextAnnotation(win,"test",
                                                              color,

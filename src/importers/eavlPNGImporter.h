@@ -23,7 +23,7 @@ class eavlPNGImporter : public eavlImporter
     eavlPNGImporter(const unsigned char *buffer, long long size);
     ~eavlPNGImporter();
 
-    int                 GetNumChunks(const std::string &mesh) { return 1; }
+    int                 GetNumChunks(const std::string &) { return 1; }
     vector<string>      GetFieldList(const std::string &mesh);
     vector<string>      GetCellSetList(const std::string &mesh);
 

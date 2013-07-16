@@ -33,7 +33,7 @@ class eavlScene
     eavlScene() { }
     ~eavlScene()
     {
-        for (int i=0; i<plots.size(); i++)
+        for (unsigned int i=0; i<plots.size(); i++)
         {
             delete plots[i];
         }
@@ -131,8 +131,6 @@ class eavl3DGLScene : public eavlScene
         if (plots.size() == 0)
             return;
 
-        int plotcount = plots.size();
-
         view.SetupForWorldSpace();
 
         // We need to set lighting without the view matrix (for an eye
@@ -222,10 +220,6 @@ class eavl2DGLScene : public eavlScene
         eavlView &view = win->view;
         SetViewExtentsFromPlots(view);
 
-        eavlPoint3 center = eavlPoint3((view.maxextents[0]+view.minextents[0]) / 2,
-                                       (view.maxextents[1]+view.minextents[1]) / 2,
-                                       (view.maxextents[2]+view.minextents[2]) / 2);
-
         view.viewtype = eavlView::EAVL_VIEW_2D;
         view.view2d.l = view.minextents[0];
         view.view2d.r = view.maxextents[0];
@@ -242,8 +236,6 @@ class eavl2DGLScene : public eavlScene
         eavlView &view = win->view;
         if (plots.size() == 0)
             return;
-
-        int plotcount = plots.size();
 
         view.SetupForWorldSpace();
 
@@ -298,10 +290,6 @@ class eavlPolarGLScene : public eavlScene
         eavlView &view = win->view;
         SetViewExtentsFromPlots(view);
 
-        eavlPoint3 center = eavlPoint3((view.maxextents[0]+view.minextents[0]) / 2,
-                                       (view.maxextents[1]+view.minextents[1]) / 2,
-                                       (view.maxextents[2]+view.minextents[2]) / 2);
-
         view.viewtype = eavlView::EAVL_VIEW_2D;
         // the *1.3 is because we're currently drawing the axis in world
         // space, so we need to leave room inside the viewport for
@@ -321,8 +309,6 @@ class eavlPolarGLScene : public eavlScene
         eavlView &view = win->view;
         if (plots.size() == 0)
             return;
-
-        int plotcount = plots.size();
 
         view.SetupForWorldSpace();
 
@@ -388,10 +374,6 @@ class eavl1DGLScene : public eavlScene
         eavlView &view = win->view;
         SetViewExtentsFromPlots(view);
 
-        eavlPoint3 center = eavlPoint3((view.maxextents[0]+view.minextents[0]) / 2,
-                                       (view.maxextents[1]+view.minextents[1]) / 2,
-                                       (view.maxextents[2]+view.minextents[2]) / 2);
-
         view.viewtype = eavlView::EAVL_VIEW_2D;
         view.view2d.l = view.minextents[0];
         view.view2d.r = view.maxextents[0];
@@ -423,8 +405,6 @@ class eavl1DGLScene : public eavlScene
         eavlView &view = win->view;
         if (plots.size() == 0)
             return;
-
-        int plotcount = plots.size();
 
         view.SetupForWorldSpace();
 
@@ -487,10 +467,6 @@ class eavl2DParallelGLScene : public eavl2DGLScene
         float ds_size = sqrt( (view.maxextents[0]-view.minextents[0])*(view.maxextents[0]-view.minextents[0]) +
                               (view.maxextents[1]-view.minextents[1])*(view.maxextents[1]-view.minextents[1]) +
                               (view.maxextents[2]-view.minextents[2])*(view.maxextents[2]-view.minextents[2]) );
-
-        eavlPoint3 center = eavlPoint3((view.maxextents[0]+view.minextents[0]) / 2,
-                                       (view.maxextents[1]+view.minextents[1]) / 2,
-                                       (view.maxextents[2]+view.minextents[2]) / 2);
 
         view.viewtype = eavlView::EAVL_VIEW_2D;
         view.view2d.l = view.minextents[0];
