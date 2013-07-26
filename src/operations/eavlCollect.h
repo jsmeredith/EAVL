@@ -49,24 +49,24 @@ struct const_collectclass
 {
     EAVL_HOSTDEVICE static typename collecttype<T>::const_type get(int i, const T &t)
     {
-        return typename collecttype<T>::const_type(t.first.array[t.first.indexer.index(i)],
-                                                   const_collectclass<typename T::resttype>::get(i, t.rest));
+        return typename collecttype<const T>::const_type(t.first.array[t.first.indexer.index(i)],
+                                                   const_collectclass<const typename T::resttype>::get(i, t.rest));
     }
 };
 
 template <class FT>
 struct const_collectclass< const cons<FT, nulltype> >
 {
-    EAVL_HOSTDEVICE static typename collecttype<cons<FT,nulltype> >::const_type get(int i, const cons<FT, nulltype> &t)
+    EAVL_HOSTDEVICE static typename collecttype<const cons<FT,nulltype> >::const_type get(int i, const cons<FT, nulltype> &t)
     {
-        return typename collecttype< cons<FT,nulltype> >::const_type(t.first.array[t.first.indexer.index(i)],
+        return typename collecttype< const cons<FT,nulltype> >::const_type(t.first.array[t.first.indexer.index(i)],
                                                                      cnull());
     }
 };
 
 // collect, using the index, one value from each array in the input, and return as references
 template<class FT, class RT>
-EAVL_HOSTDEVICE typename collecttype< cons<FT, RT> >::const_type collect(int i, const cons<FT, RT> &t)
+EAVL_HOSTDEVICE typename collecttype< const cons<FT, RT> >::const_type collect(int i, const cons<FT, RT> &t)
 {
     return const_collectclass< const cons<FT,RT> >::get(i, t);
 }
