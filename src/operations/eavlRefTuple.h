@@ -242,39 +242,10 @@ EAVL_HOSTDEVICE typename refelementtype<N, refcons<HT,TT> >::type &get(refcons<H
     return refgetclass<N>::template get<typename refelementtype<N, refcons<HT,TT> >::type,HT,TT>(rc);
 }
 
-// now get the function just redirects to the class version
 template<int N, class HT, class TT>
 EAVL_HOSTDEVICE const typename refelementtype<N, refcons<HT,TT> >::type &get(const refcons<HT,TT> &rc)
 {
     return refgetclass<N>::template get<typename refelementtype<N, const refcons<HT,TT> >::type,HT,TT>(rc);
-}
-
-// -- length() returns the number of elements in a tuple
-
-template<class HT, class TT>
-struct reflengthclass
-{
-    EAVL_HOSTDEVICE static int length(const refcons<HT,TT> &c)
-    {
-        return 1 + reflengthclass<typename TT::firsttype,typename TT::resttype>::length(c.rest);
-    }
-};
-
-template <class HT>
-struct reflengthclass<HT, nulltype>
-{
-    EAVL_HOSTDEVICE static int length(const refcons<HT,nulltype> &c)
-    {
-        return 1;
-    }
-};
-
-
-// now get the function just redirects to the class version
-template<class HT, class TT>
-EAVL_HOSTDEVICE int length(const refcons<HT,TT> &c)
-{
-    return reflengthclass<HT,TT>::length(c);
 }
 
 #endif
