@@ -19,6 +19,8 @@
 
 
 // Create a tuple of indexable arrays.  This style is called if your inputs are all eavlIndexable<> types already.
+inline nulltype eavlOpArgs() { return cnull(); }
+
 template <class A>
 inline tuple<A> eavlOpArgs(const A &a) { return tuple<A>(a); }
 

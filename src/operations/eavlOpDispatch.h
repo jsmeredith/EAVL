@@ -107,7 +107,7 @@ struct dispatchclass_start<1, K, S, nulltype, nulltype, nulltype, nulltype, null
                    RZ2 ptrs2,
                    F &functor)
     {
-        K::call(n, reversed(ptrs2), functor);
+        K::call(n, structure, reversed(ptrs2), functor);
     }
 };
 
@@ -129,7 +129,7 @@ struct dispatchclass_start<2, K, S, nulltype, nulltype, nulltype, nulltype, null
                    RZ2 ptrs2,
                    F &functor)
     {
-        K::call(n, reversed(ptrs1), reversed(ptrs2), functor);
+        K::call(n, structure, reversed(ptrs1), reversed(ptrs2), functor);
     }
 };
 
@@ -151,7 +151,7 @@ struct dispatchclass_start<3, K, S, nulltype, nulltype, nulltype, nulltype, null
                    RZ2 ptrs2,
                    F &functor)
     {
-        K::call(n, reversed(ptrs0), reversed(ptrs1), reversed(ptrs2), functor);
+        K::call(n, structure, reversed(ptrs0), reversed(ptrs1), reversed(ptrs2), functor);
     }
 };
 
@@ -318,26 +318,6 @@ void eavlOpDispatch(int n, S &structure, T0 arrays0, T1 arrays1, F functor)
         nulltype,
         nulltype,
         F>::go(n, structure, arrays0, arrays1, empty, cnull(), cnull(), cnull(), functor);
-}
-
-///\todo: this is an EXAMPLE of how we could specialize to
-/// get this to work without ptrtuples as inputs.
-/// we need to overload the other versions, too, if we like
-/// this.
-template<class K, class S, class T0, class T1, class F>
-void eavlOpDispatch(int n, S &structure, T0 *arrays0, T1 *arrays1, F functor)
-{
-    cons<T0,nulltype> a0(arrays0);
-    cons<T1,nulltype> a1(arrays1);
-    cons<nulltype,nulltype> empty;
-    dispatchclassgetrawptr<0, K, S,
-        T0, nulltype,
-        T1, nulltype,
-        nulltype, nulltype,
-        nulltype,
-        nulltype,
-        nulltype,
-        F>::go(n, structure, a0, a1, empty, cnull(), cnull(), cnull(), functor);
 }
 
 // 1-arg

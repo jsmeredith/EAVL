@@ -27,5 +27,7 @@ EAVL_HOSTDEVICE const nulltype cnull() { return nulltype(); }
 inline const nulltype cnull() { return nulltype(); }
 #endif
 
+#define MAX_LOCAL_TOPOLOGY_IDS 12
+
 
 #endif

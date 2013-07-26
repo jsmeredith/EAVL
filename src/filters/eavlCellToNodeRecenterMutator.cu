@@ -3,40 +3,42 @@
 #include "eavlDataSet.h"
 #include "eavlException.h"
 #include "eavlExecutor.h"
-#include "eavlTopologyMapOp_1_0_1.h"
-#include "eavlTopologyMapOp_3_0_3.h"
+#include "eavlTopologyMapOp.h"
 
+///\todo: I think we could replace these with a 1-size-fits-all version.
 struct AverageFunctor1
 {
-    EAVL_FUNCTOR float operator()(int shapeType, int n, float vals[])
+    template <class IN>
+    EAVL_FUNCTOR float operator()(int shapeType, int n, int ids[], IN inputs)
     {
         float result = 0.f;
         for (int i=0; i<n; i++)
-            result += vals[i];
+            result += collect(ids[i], inputs);
         return result / float(n);
     }
 };
 
 struct AverageFunctor3
 {
-    EAVL_FUNCTOR void operator()(int shapeType, int n,
-                                 float ivals0[], float ivals1[], float ivals2[],
-                                 float &oval0, float &oval1, float &oval2)
+    template <class IN>
+    EAVL_FUNCTOR tuple<float,float,float> operator()(int shapeType, int n, int ids[], const IN inputs)
     {
-        float result0 = 0.f;
-        float result1 = 0.f;
-        float result2 = 0.f;
+        tuple<float,float,float> result(0,0,0);
         for (int i=0; i<n; i++)
         {
-            result0 += ivals0[i];
-            result1 += ivals1[i];
-            result2 += ivals2[i];
+            typename collecttype<IN>::const_type in(collect(ids[i], inputs));
+            get<0>(result) += get<0>(in);
+            get<1>(result) += get<1>(in);
+            get<2>(result) += get<2>(in);
         }
-        oval0 = result0 / float(n);
-        oval1 = result1 / float(n);
-        oval2 = result2 / float(n);
+        get<0>(result) /= n;
+        get<1>(result) /= n;
+        get<2>(result) /= n;
+
+        return result;
     }
 };
+
 
 eavlCellToNodeRecenterMutator::eavlCellToNodeRecenterMutator()
 {
@@ -64,30 +66,28 @@ void eavlCellToNodeRecenterMutator::Execute()
 
     if (ncomp == 1)
     {
-        eavlOperation *op =
-            new eavlTopologyMapOp_1_0_1<AverageFunctor1>(cellSet,
-                                                        EAVL_CELLS_OF_NODES,
-                                                        array,
-                                                        result,
-                                                        AverageFunctor1());
-
-        eavlExecutor::AddOperation(op, "recenter to the nodes");
+        eavlOperation *op = 
+            new_eavlTopologyMapOp(cellSet,
+                                  EAVL_CELLS_OF_NODES,
+                                  eavlOpArgs(array),
+                                  eavlOpArgs(result),
+                                  AverageFunctor1());
+        eavlExecutor::AddOperation(op, "1-comp recenter to the nodes");
         eavlExecutor::Go();
     }
     else if (ncomp == 3)
     {
-        eavlOperation *op =
-            new eavlTopologyMapOp_3_0_3<AverageFunctor3>(cellSet,
-                                                        EAVL_CELLS_OF_NODES,
-                                                        eavlArrayWithLinearIndex(array,0),
-                                                        eavlArrayWithLinearIndex(array,1),
-                                                        eavlArrayWithLinearIndex(array,2),
-                                                        eavlArrayWithLinearIndex(result,0),
-                                                        eavlArrayWithLinearIndex(result,1),
-                                                        eavlArrayWithLinearIndex(result,2),
-                                                        AverageFunctor3());
-
-        eavlExecutor::AddOperation(op, "recenter to the nodes");
+        eavlOperation *op = 
+            new_eavlTopologyMapOp(cellSet,
+                                  EAVL_CELLS_OF_NODES,
+                                  eavlOpArgs(make_indexable(array,0),
+                                             make_indexable(array,1), 
+                                             make_indexable(array,2)),
+                                  eavlOpArgs(make_indexable(result,0),
+                                             make_indexable(result,1), 
+                                             make_indexable(result,2)),
+                                  AverageFunctor3());
+        eavlExecutor::AddOperation(op, "3-comp recenter to the nodes");
         eavlExecutor::Go();
     }
     else
