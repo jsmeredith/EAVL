@@ -30,7 +30,7 @@ eavlExecutor::real_Go()
                     cerr << "   CPU error was: " << e2.GetErrorText() << endl;
                 }
             }
-
+            break;
           case ForceGPU:
             plan[i]->GoGPU();
             break;
