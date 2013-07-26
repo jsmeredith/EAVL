@@ -212,6 +212,11 @@ struct refgetclass
     {
         return refgetclass<N-1>::template get<T>(rc.rest);
     }
+    template<class T, class HT, class TT>
+    EAVL_HOSTDEVICE static const T &get(const refcons<HT,TT> &rc)
+    {
+        return refgetclass<N-1>::template get<T>(rc.rest);
+    }
 };
 
 template <>
@@ -219,6 +224,11 @@ struct refgetclass<0>
 {
     template<class T, class HT, class TT>
     EAVL_HOSTDEVICE static T &get(refcons<HT,TT> &rc)
+    {
+        return rc.first;
+    }
+    template<class T, class HT, class TT>
+    EAVL_HOSTDEVICE static const T &get(const refcons<HT,TT> &rc)
     {
         return rc.first;
     }
@@ -230,6 +240,13 @@ template<int N, class HT, class TT>
 EAVL_HOSTDEVICE typename refelementtype<N, refcons<HT,TT> >::type &get(refcons<HT,TT> &rc)
 {
     return refgetclass<N>::template get<typename refelementtype<N, refcons<HT,TT> >::type,HT,TT>(rc);
+}
+
+// now get the function just redirects to the class version
+template<int N, class HT, class TT>
+EAVL_HOSTDEVICE const typename refelementtype<N, refcons<HT,TT> >::type &get(const refcons<HT,TT> &rc)
+{
+    return refgetclass<N>::template get<typename refelementtype<N, const refcons<HT,TT> >::type,HT,TT>(rc);
 }
 
 // -- length() returns the number of elements in a tuple
