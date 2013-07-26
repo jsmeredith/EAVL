@@ -10,6 +10,7 @@
 #include "eavlVTKExporter.h"
 
 #include "eavlBinaryMathMutator.h"
+#include "eavlUnaryMathMutator.h"
 #include "eavlExecutor.h"
 
 
@@ -69,6 +70,18 @@ int main(int argc, char *argv[])
         math->SetOperation(eavlBinaryMathMutator::Multiply);
         math->SetResultName(string(argv[2]) + "_times_" + argv[3]);
         math->Execute();
+
+        eavlUnaryMathMutator *umath = new eavlUnaryMathMutator();
+        umath->SetDataSet(data);
+        umath->SetOperation(eavlUnaryMathMutator::Negate);
+
+        umath->SetField(argv[2]);
+        umath->SetResultName(string("neg_") + argv[2]);
+        umath->Execute();
+
+        umath->SetField(argv[3]);
+        umath->SetResultName(string("neg_") + argv[3]);
+        umath->Execute();
 
         if (argc == 5)
         {

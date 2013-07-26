@@ -223,6 +223,8 @@ class eavlArray
 template<class T>
 class eavlConcreteArray : public eavlArray
 {
+  public:
+    typedef T type;
   protected:
     vector<T> host_values_self;
     T *host_values_external;

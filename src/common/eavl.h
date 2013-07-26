@@ -20,5 +20,12 @@
 
 typedef unsigned char byte;
 
+struct nulltype { };
+#ifdef __CUDACC__
+EAVL_HOSTDEVICE const nulltype cnull() { return nulltype(); }
+#else
+inline const nulltype cnull() { return nulltype(); }
+#endif
+
 
 #endif

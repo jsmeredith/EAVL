@@ -10,8 +10,67 @@
 #include "eavlRegularStructure.h"
 #include "eavlExplicitConnectivity.h"
 #include "eavlCUDA.h"
+#include "eavlIndexable.h"
 
-///\todo: finalize this and make it its own thing
+#include "eavlTuple.h"
+#include "eavlRefTuple.h"
+#include "eavlTupleTraits.h"
+#include "eavlCollect.h"
+
+
+// Create a tuple of indexable arrays.  This style is called if your inputs are all eavlIndexable<> types already.
+template <class A>
+inline tuple<A> eavlOpArgs(const A &a) { return tuple<A>(a); }
+
+template <class A, class B>
+inline tuple<A,B> eavlOpArgs(const A &a, const B &b) { return tuple<A,B>(a,b); }
+
+template <class A, class B, class C>
+inline tuple<A,B,C> eavlOpArgs(const A &a, const B &b, const C &c) { return tuple<A,B,C>(a,b,c); }
+
+template <class A, class B, class C, class D>
+inline tuple<A,B,C,D> eavlOpArgs(const A &a, const B &b, const C &c, const D &d) { return tuple<A,B,C,D>(a,b,c,d); }
+
+template <class A, class B, class C, class D, class E>
+inline tuple<A,B,C,D,E> eavlOpArgs(const A &a, const B &b, const C &c, const D &d, const E &e) { return tuple<A,B,C,D,E>(a,b,c,d,e); }
+
+template <class A, class B, class C, class D, class E, class F>
+inline tuple<A,B,C,D,E,F> eavlOpArgs(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f) { return tuple<A,B,C,D,E,F>(a,b,c,d,e,f); }
+
+template <class A, class B, class C, class D, class E, class F, class G>
+inline tuple<A,B,C,D,E,F,G> eavlOpArgs(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g) { return tuple<A,B,C,D,E,F,G>(a,b,c,d,e,f,g); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H>
+inline tuple<A,B,C,D,E,F,G,H> eavlOpArgs(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h) { return tuple<A,B,C,D,E,F,G,H>(a,b,c,d,e,f,g,h); }
+
+
+// Create a tuple of indexable arrays.  This style is called if your inputs are all standard arrays; it will create linear indexes for them.
+template <class A>
+inline tuple< eavlIndexable<A> > eavlOpArgs(A *a) { return make_tuple(eavlIndexable<A>(a)); }
+
+template <class A, class B>
+inline tuple< eavlIndexable<A> , eavlIndexable<B> > eavlOpArgs(A *a, B *b) { return make_tuple(eavlIndexable<A>(a), eavlIndexable<B>(b)); }
+
+template <class A, class B, class C>
+inline tuple< eavlIndexable<A> , eavlIndexable<B> , eavlIndexable<C> > eavlOpArgs(A *a, B *b, C *c) { return make_tuple(eavlIndexable<A>(a), eavlIndexable<B>(b), eavlIndexable<C>(c)); }
+
+template <class A, class B, class C, class D>
+inline tuple< eavlIndexable<A> , eavlIndexable<B> , eavlIndexable<C> , eavlIndexable<D> > eavlOpArgs(A *a, B *b, C *c, D *d) { return make_tuple(eavlIndexable<A>(a), eavlIndexable<B>(b), eavlIndexable<C>(c), eavlIndexable<D>(d)); }
+
+template <class A, class B, class C, class D, class E>
+inline tuple< eavlIndexable<A> , eavlIndexable<B> , eavlIndexable<C> , eavlIndexable<D> , eavlIndexable<E> > eavlOpArgs(A *a, B *b, C *c, D *d, E *e) { return make_tuple(eavlIndexable<A>(a), eavlIndexable<B>(b), eavlIndexable<C>(c), eavlIndexable<D>(d), eavlIndexable<E>(e)); }
+
+template <class A, class B, class C, class D, class E, class F>
+inline tuple< eavlIndexable<A> , eavlIndexable<B> , eavlIndexable<C> , eavlIndexable<D> , eavlIndexable<E> , eavlIndexable<F> > eavlOpArgs(A *a, B *b, C *c, D *d, E *e, F *f) { return make_tuple(eavlIndexable<A>(a), eavlIndexable<B>(b), eavlIndexable<C>(c), eavlIndexable<D>(d), eavlIndexable<E>(e), eavlIndexable<F>(f)); }
+
+template <class A, class B, class C, class D, class E, class F, class G>
+inline tuple< eavlIndexable<A> , eavlIndexable<B> , eavlIndexable<C> , eavlIndexable<D> , eavlIndexable<E> , eavlIndexable<F> , eavlIndexable<G> > eavlOpArgs(A *a, B *b, C *c, D *d, E *e, F *f, G *g) { return make_tuple(eavlIndexable<A>(a), eavlIndexable<B>(b), eavlIndexable<C>(c), eavlIndexable<D>(d), eavlIndexable<E>(e), eavlIndexable<F>(f), eavlIndexable<G>(g)); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H>
+inline tuple< eavlIndexable<A> , eavlIndexable<B> , eavlIndexable<C> , eavlIndexable<D> , eavlIndexable<E> , eavlIndexable<F> , eavlIndexable<G> , eavlIndexable<H> > eavlOpArgs(A *a, B *b, C *c, D *d, E *e, F *f, G *g, H *h) { return make_tuple(eavlIndexable<A>(a), eavlIndexable<B>(b), eavlIndexable<C>(c), eavlIndexable<D>(d), eavlIndexable<E>(e), eavlIndexable<F>(f), eavlIndexable<G>(g), eavlIndexable<H>(h)); }
+
+
+///\todo: switch to the new eavlIndexable and remove this
 struct eavlArrayWithLinearIndex
 {
     eavlArray *array;

@@ -2,7 +2,13 @@
 #include "eavlUnaryMathMutator.h"
 #include "eavlException.h"
 #include "eavlExecutor.h"
-#include "eavlMapOp_1_1.h"
+#include "eavlMapOp.h"
+
+template<class T>
+struct eavlNegateFunctor
+{
+    EAVL_FUNCTOR T operator()(T value) { return -value; }
+};
 
 eavlUnaryMathMutator::eavlUnaryMathMutator()
 {
@@ -22,18 +28,19 @@ eavlUnaryMathMutator::Execute()
 
     int n = field->GetArray()->GetNumberOfTuples();
 
-    eavlArray *result = new eavlFloatArray(resultname, 1, n);
+    eavlFloatArray *result = new eavlFloatArray(resultname, 1, n);
 
     switch (optype)
     {
       case Negate:
         eavlExecutor::AddOperation(
-	   new eavlMapOp_1_1<eavlNegateFunctor<float> >(field->GetArray(),
-						     result,
-						     eavlNegateFunctor<float>()),
-	   "negate");
+           new_eavlMapOp(eavlOpArgs(field->GetArray()),
+                         eavlOpArgs(result),
+                         eavlNegateFunctor<float>()),
+           "negate");
         break;
 
+        /*
       case Square:
         eavlExecutor::AddOperation(
 	   new eavlMapOp_1_1<eavlSquareFunctor<float> >(field->GetArray(),
@@ -73,7 +80,10 @@ eavlUnaryMathMutator::Execute()
 						     eavlLnFunctor<float>()),
 	   "Ln");
         break;
-
+        */
+        ///\todo: implement the other functors and remove the default:throw
+      default:
+        THROW(eavlException, "Unimplemented");
 
     }
     eavlExecutor::Go();

@@ -40,6 +40,7 @@ OBJ=\
  filters/eavlTesselate2DFilter.o \
  filters/eavlThresholdMutator.o \
  filters/eavlTransformMutator.o \
+ filters/eavlUnaryMathMutator.o \
  fonts/eavlBitmapFont.o \
  fonts/eavlBitmapFontFactory.o \
  fonts/Liberation2Mono.o \
