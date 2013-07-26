@@ -23,7 +23,7 @@ struct collecttype<nulltype>
 template <class T>
 struct collectclass
 {
-    EAVL_HOSTDEVICE static typename collecttype<T>::type get(int i, T &t)
+    EAVL_HOSTDEVICE static typename collecttype<T>::type get(int i, const T &t)
     {
         //typedef typename collecttype<T::resttype> TT;
         typename collecttype<T>::type
@@ -36,7 +36,7 @@ struct collectclass
 template <class FT>
 struct collectclass< cons<FT, nulltype> >
 {
-    EAVL_HOSTDEVICE static typename collecttype<cons<FT,nulltype> >::type get(int i, cons<FT, nulltype> &t)
+    EAVL_HOSTDEVICE static typename collecttype<cons<FT,nulltype> >::type get(int i, const cons<FT, nulltype> &t)
     {
         typename collecttype< cons<FT,nulltype> >::type cc(t.first.array[t.first.indexer.index(i)],
                                                                    cnull());
@@ -48,7 +48,7 @@ struct collectclass< cons<FT, nulltype> >
 // T is the cons of raw pointers
 // i is the index
 template<class FT, class RT>
-EAVL_HOSTDEVICE typename collecttype< cons<FT, RT> >::type collect(int i, cons<FT, RT> &t)
+EAVL_HOSTDEVICE typename collecttype< cons<FT, RT> >::type collect(int i, const cons<FT, RT> &t)
 {
     return collectclass< cons<FT,RT> >::get(i, t);
 }

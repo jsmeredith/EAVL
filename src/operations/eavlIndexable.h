@@ -12,7 +12,7 @@ class eavlArrayIndexer
     {
         out << "eavlArrayIndexer{"<<add<<","<<mul<<",<<"<<div<<","<<mod<<"}\n";
     }
-    EAVL_HOSTDEVICE int index(int i) { return (((i/div)%mod)*mul)+add; }
+    EAVL_HOSTDEVICE int index(int i) const { return (((i/div)%mod)*mul)+add; }
 };
 
 template <class T>

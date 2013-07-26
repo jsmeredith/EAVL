@@ -14,7 +14,7 @@ struct eavlMapOp_CPU
 {
     static inline eavlArray::Location location() { return eavlArray::HOST; }
     template <class F, class IN, class OUT>
-    static void call(int n, IN inputs, OUT outputs, F &functor)
+    static void call(int n, const IN inputs, OUT outputs, F &functor)
     {
         for (int i=0; i<n; ++i)
         {
@@ -30,7 +30,7 @@ struct eavlMapOp_CPU
 
 template <class F, class IN, class OUT>
 __global__ void
-mapKernel(int n, IN inputs, OUT outputs, F functor)
+mapKernel(int n, const IN inputs, OUT outputs, F functor)
 {
     const int numThreads = blockDim.x * gridDim.x;
     const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
@@ -51,7 +51,7 @@ struct eavlMapOp_GPU
     static inline eavlArray::Location location() { return eavlArray::DEVICE; }
 
     template <class F, class IN, class OUT>
-    static void call(int n, IN inputs, OUT outputs, F &functor)
+    static void call(int n, const IN inputs, OUT outputs, F &functor)
     {
         int numThreads = 64;
         dim3 threads(numThreads,   1, 1);
