@@ -86,11 +86,10 @@ struct refcons<FT, nulltype>
     template <class FT2>
     EAVL_HOSTDEVICE refcons(cons<FT2,nulltype> &c);
 
-    EAVL_HOSTDEVICE operator FT()
+    EAVL_HOSTDEVICE operator FT() const
     {
         return first;
     }
-
 };
 
 // recursive (first+rest) typing structure

@@ -18,7 +18,7 @@ struct eavlMapOp_CPU
     {
         for (int i=0; i<n; ++i)
         {
-            typename collecttype<IN>::type in(collect(i, inputs));
+            typename collecttype<IN>::const_type in(collect(i, inputs));
             typename collecttype<OUT>::type out(collect(i, outputs));
             out = functor(in);
         }
