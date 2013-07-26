@@ -29,7 +29,7 @@ eavlDataSet:
         shapetype[150] = 3 3 3 3 3 3 3 3 3 3 ... 3 3 3 3 3 3 3 3 3 3
         connectivity[750] = 4 0 4 7 3 4 0 1 5 4 ... 4 178 214 215 179 4 208 209 215 214
         mapCellToIndex[150] = 0 5 10 15 20 25 30 35 40 45 ... 700 705 710 715 720 725 730 735 740 745
-  fields[7]:
+  fields[8]:
       array name = xcoord
       order = 1
       association = POINTS
@@ -67,4 +67,9 @@ eavlDataSet:
       association = CELL_SET
       assoc_cell_set (index) = 1
       array = float surface_normals[150][3] = -0.999974  0.0069133  0.00183763  0.00309332  -0.999987 ... 0.999992  -0.00395136  0.00283711  -0.0142497  0.999894
+
+      array name = nodecentered_surface_normals
+      order = 0
+      association = POINTS
+      array = float nodecentered_surface_normals[216][3] = -0.331508  -0.329112  -0.33137  0.00144884  -0.495959 ... 0.493958  0.497204  0.33382  0.318794  0.332068
 

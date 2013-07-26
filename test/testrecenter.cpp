@@ -87,7 +87,5 @@ int main(int argc, char *argv[])
     }
 
 
-    eavlTimer::Dump(cout);
-
     return 0;
 }

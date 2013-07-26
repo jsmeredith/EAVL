@@ -23,7 +23,7 @@ eavlDataSet:
         dimensionality = 2
         nCells = 49
         zdims[] = 7 7
-  fields[9]:
+  fields[10]:
       array name = xcoord
       order = 1
       association = WHOLEMESH
@@ -72,4 +72,9 @@ eavlDataSet:
       association = CELL_SET
       assoc_cell_set (index) = 0
       array = float surface_normals[49][3] = 1  0  -0  1  0 ... 0  -0  1  0  -0
+
+      array name = nodecentered_surface_normals
+      order = 0
+      association = POINTS
+      array = float nodecentered_surface_normals[64][3] = 1  0  0  1  0 ... 0  0  1  0  0
 

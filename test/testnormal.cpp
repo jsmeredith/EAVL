@@ -126,7 +126,6 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    eavlTimer::Dump(cout);
 
     return 0;
 }
