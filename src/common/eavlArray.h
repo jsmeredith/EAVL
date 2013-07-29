@@ -16,6 +16,7 @@
 #include <cfloat>
 #include <cmath>
 
+//#define DEBUG_ARRAY_TRANSFERS
 
 // ****************************************************************************
 // Class:  eavlArray
@@ -70,7 +71,7 @@ class eavlArray
     ///\todo: Refresh is a little odd; we're using it for CUDA-based
     /// in situ where we need some way of forcing it to assume the 
     /// device data has been updated and force new data back to the host.
-    virtual void Refresh(Location) = 0;
+    virtual void MarkAsDirty(Location) = 0;
     void *GetRawPointer(Location loc)
     {
         if (loc == HOST)
@@ -257,6 +258,9 @@ class eavlConcreteArray : public eavlArray
                 // host, we need to allocate the host array spacee.
                 host_values_self.resize(ncomponents * provided_ntuples);
             }
+#ifdef DEBUG_ARRAY_TRANSFERS
+            cerr << "Transferring "<<name<<" array to host\n";
+#endif
             int nbytes = host_values_self.size() * sizeof(T);
             cudaMemcpy(&(host_values_self[0]), device_values,
                        nbytes, cudaMemcpyDeviceToHost);
@@ -283,6 +287,9 @@ class eavlConcreteArray : public eavlArray
         if (host_dirty)
         {
             CUDA_CHECK_ERROR();
+#ifdef DEBUG_ARRAY_TRANSFERS
+            cerr << "Transferring "<<name<<" array to device\n";
+#endif
             cudaMemcpy(device_values, &(host_values_self[0]),
                        nbytes, cudaMemcpyHostToDevice);
             CUDA_CHECK_ERROR();
@@ -290,24 +297,24 @@ class eavlConcreteArray : public eavlArray
         host_dirty = false;
         device_dirty = true;
     }
-    void Refresh(eavlArray::Location loc)
+    void MarkAsDirty(eavlArray::Location loc)
     {
-        if (loc == eavlArray::HOST)
+        if (loc == eavlArray::DEVICE)
         {
             device_dirty = true;
-            NeedToUseOnHost();
+            //NeedToUseOnHost();
         }
-        else  // loc == eavlArray::DEVICE
+        else  // loc == eavlArray::HOST
         {
             host_dirty = true;
-            NeedToUseOnDevice();
+            //NeedToUseOnDevice();
         }
     }
 
 #else
     void NeedToUseOnHost() const {}
     void NeedToUseOnDevice() const {}
-    void Refresh(eavlArray::Location) {}
+    void MarkAsDirty(eavlArray::Location) {}
 #endif
   public:
     eavlConcreteArray(const string &n, int nc = 1, int nt = 0) : eavlArray(n,nc)
@@ -391,7 +398,11 @@ class eavlConcreteArray : public eavlArray
         //NeedToUseOnHost();
         if (ncomponents == 0)
             return 0;
-        if (host_provided)
+        if (host_provided
+#ifdef HAVE_CUDA
+            || device_provided
+#endif
+            )
             return provided_ntuples;
         else
             return host_values_self.size() / ncomponents;
