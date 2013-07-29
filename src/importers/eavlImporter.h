@@ -41,8 +41,8 @@ class eavlMissingImporter : public eavlImporter
     virtual vector<string> GetFieldList(const std::string &) { throw; }
     virtual int            GetNumChunks(const std::string &) { throw; }
 
-    virtual eavlDataSet   *GetMesh(int) { throw; }
-    virtual eavlField     *GetField(int,string) { throw; }
+    virtual eavlDataSet *GetMesh(const string&, int) { throw; }
+    virtual eavlField   *GetField(const string&, const string&, int) { throw; }
 };
 
 #endif
