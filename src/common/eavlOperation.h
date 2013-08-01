@@ -159,48 +159,146 @@ struct eavlArrayWithLinearIndex
 //
 // ****************************************************************************
 
+// Note:
+//    These functors are more complex than they need to be for most usage.
+//    However, as these are provided for arbitrary use, they need to be
+//    flexible.  For instance, they need to support use with either a
+//    pair of arguments or a tuple.  And in the case of a tuple, we want
+//    to support a tuple of references to the original arrays (refcons)
+//    or a standard tuple of some known type.  The associative/commutative
+//    ones -- like addition or min and max -- are worse, because you might
+//    potentially want to collapse any number of items with these functors,
+//    and so those must use template-recursion to walk through all items.
+//    When you are writing your own functor, you know how it will be used,
+//    and so you can often get away with a single operator() taking 
+//    either a tuple or primitive arguments.  So while the functors below
+//    can provide an example of how to write one which will perform well
+//    and accurately in any situation, you can generally write a much
+//    simpler functor without having to follow these patterns.
+
 template<class T>
 struct eavlAddFunctor
 {
-    EAVL_FUNCTOR T operator()(T a, T b) { return a + b; }
+    // this works on two inputs (each of arbitrary length) by calling the single-arg versions below
+    template<class A, class B>
+    EAVL_FUNCTOR T operator()(const A &args0, const B &args1) { return operator()(args0) + operator()(args1); }
+
+    // this works on one primitive type
+    template<class A>
+    EAVL_FUNCTOR T operator()(const A &arg) { return arg; }
+
+    // this works on one input (of arbitrary length) via template recursion; cons/tuple version
+    template<class HT, class TT>
+    EAVL_FUNCTOR T operator()(const cons<HT,TT> &args) { return T(args.first) + operator()(args.rest); }
+    template<class HT>
+    EAVL_FUNCTOR T operator()(const cons<HT,nulltype> &args) { return T(args.first); }
+
+    // this works on one input (of arbitrary length) via template recursion; refcons version
+    template<class HT, class TT>
+    EAVL_FUNCTOR T operator()(const refcons<HT,TT> &args) { return T(args.first) + operator()(args.rest); }
+    template<class HT>
+    EAVL_FUNCTOR T operator()(const refcons<HT,nulltype> &args) { return T(args.first); }
+
     T identity() { return 0; }
 };
-
 
 template<class T>
 struct eavlSubFunctor
 {
     EAVL_FUNCTOR T operator()(T a, T b) { return a - b; }
+    template <class T1, class T2>
+    EAVL_FUNCTOR T operator()(const cons<T1, const cons<T2, nulltype> > &args) { return T(args.first) - T(args.rest.first); }
+    template <class T1, class T2>
+    EAVL_FUNCTOR T operator()(const refcons<T1, const refcons<T2, nulltype> > &args) { return T(args.first) - T(args.rest.first); }
     T identity() { return 0; }
 };
 
 template<class T>
 struct eavlMulFunctor
 {
-    EAVL_FUNCTOR T operator()(T a, T b) { return a * b; }
-    T identity() { return 1; }
+    // this works on two inputs (each of arbitrary length) by calling the single-arg versions below
+    template<class A, class B>
+    EAVL_FUNCTOR T operator()(const A &args0, const B &args1) { return operator()(args0) * operator()(args1); }
+
+    // this works on one primitive type
+    template<class A>
+    EAVL_FUNCTOR T operator()(const A &arg) { return arg; }
+
+    // this works on one input (of arbitrary length) via template recursion; cons/tuple version
+    template<class HT, class TT>
+    EAVL_FUNCTOR T operator()(const cons<HT,TT> &args) { return T(args.first) * operator()(args.rest); }
+    template<class HT>
+    EAVL_FUNCTOR T operator()(const cons<HT,nulltype> &args) { return T(args.first); }
+
+    // this works on one input (of arbitrary length) via template recursion; refcons version
+    template<class HT, class TT>
+    EAVL_FUNCTOR T operator()(const refcons<HT,TT> &args) { return T(args.first) * operator()(args.rest); }
+    template<class HT>
+    EAVL_FUNCTOR T operator()(const refcons<HT,nulltype> &args) { return T(args.first); }
+
+    T identity() { return 0; }
 };
 
 template<class T>
 struct eavlDivFunctor
 {
     EAVL_FUNCTOR T operator()(T a, T b) { return a / b; }
-    T identity() { return 1; }
+    template <class T1, class T2>
+    EAVL_FUNCTOR T operator()(const cons<T1, const cons<T2, nulltype> > &args) { return T(args.first) / T(args.rest.first); }
+    template <class T1, class T2>
+    EAVL_FUNCTOR T operator()(const refcons<T1, const refcons<T2, nulltype> > &args) { return T(args.first) / T(args.rest.first); }
+    T identity() { return 0; }
 };
 
 template<class T>
 struct eavlMaxFunctor
 {
-    EAVL_FUNCTOR T operator()(T a, T b) { return (a > b) ? a : b; }
+    // this works on two inputs (each of arbitrary length) by calling the single-arg versions below
+    template<class A, class B>
+    EAVL_FUNCTOR T operator()(const A &args0, const B &args1) { T a0 = operator()(args0); T a1 = operator()(args1); return a0>a1 ? a0:a1; }
+
+    // this works on one primitive type
+    template<class A>
+    EAVL_FUNCTOR T operator()(const A &arg) { return arg; }
+
+    // this works on one input (of arbitrary length) via template recursion; cons/tuple version
+    template<class HT, class TT>
+    EAVL_FUNCTOR T operator()(const cons<HT,TT> &args) { T a0 = args.first;  T a1 = operator()(args.rest); return a0>a1 ? a0:a1; }
+    template<class HT>
+    EAVL_FUNCTOR T operator()(const cons<HT,nulltype> &args) { return T(args.first); }
+
+    // this works on one input (of arbitrary length) via template recursion; refcons version
+    template<class HT, class TT>
+    EAVL_FUNCTOR T operator()(const refcons<HT,TT> &args) { T a0 = args.first;  T a1 = operator()(args.rest); return a0>a1 ? a0:a1; }
+    template<class HT>
+    EAVL_FUNCTOR T operator()(const refcons<HT,nulltype> &args) { return T(args.first); }
+
     T identity();
 };
-
 
 template<class T>
 struct eavlMinFunctor
 {
-  public:
-    EAVL_FUNCTOR T operator()(T a, T b) { return (a < b) ? a : b; }
+    // this works on two inputs (each of arbitrary length) by calling the single-arg versions below
+    template<class A, class B>
+    EAVL_FUNCTOR T operator()(const A &args0, const B &args1) { T a0 = operator()(args0); T a1 = operator()(args1); return a0<a1 ? a0:a1; }
+
+    // this works on one primitive type
+    template<class A>
+    EAVL_FUNCTOR T operator()(const A &arg) { return arg; }
+
+    // this works on one input (of arbitrary length) via template recursion; cons/tuple version
+    template<class HT, class TT>
+    EAVL_FUNCTOR T operator()(const cons<HT,TT> &args) { T a0 = args.first;  T a1 = operator()(args.rest); return a0<a1 ? a0:a1; }
+    template<class HT>
+    EAVL_FUNCTOR T operator()(const cons<HT,nulltype> &args) { return T(args.first); }
+
+    // this works on one input (of arbitrary length) via template recursion; refcons version
+    template<class HT, class TT>
+    EAVL_FUNCTOR T operator()(const refcons<HT,TT> &args) { T a0 = args.first;  T a1 = operator()(args.rest); return a0<a1 ? a0:a1; }
+    template<class HT>
+    EAVL_FUNCTOR T operator()(const refcons<HT,nulltype> &args) { return T(args.first); }
+
     T identity();
 };
 

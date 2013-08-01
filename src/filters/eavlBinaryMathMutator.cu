@@ -2,7 +2,7 @@
 #include "eavlBinaryMathMutator.h"
 #include "eavlException.h"
 #include "eavlExecutor.h"
-#include "eavlMapOp_2_1.h"
+#include "eavlMapOp.h"
 
 eavlBinaryMathMutator::eavlBinaryMathMutator()
 {
@@ -30,40 +30,36 @@ eavlBinaryMathMutator::Execute()
               "eavlBinaryMathMutator expects two arrays with same length");
     }
 
-    eavlArray *result = new eavlFloatArray(resultname, 1, n);
+    eavlFloatArray *result = new eavlFloatArray(resultname, 1, n);
 
     switch (optype)
     {
       case Add:
-        eavlExecutor::AddOperation(
-            new eavlMapOp_2_1<eavlAddFunctor<float> >(field1->GetArray(),
-                                                      field2->GetArray(),
-                                                      result,
-                                                      eavlAddFunctor<float>()),
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(field1->GetArray(),
+                                                            field2->GetArray()),
+                                                 eavlOpArgs(result),
+                                                 eavlAddFunctor<float>()),
             "binary addition");
         break;
       case Subtract:
-        eavlExecutor::AddOperation(
-            new eavlMapOp_2_1<eavlSubFunctor<float> >(field1->GetArray(),
-                                                      field2->GetArray(),
-                                                      result,
-                                                      eavlSubFunctor<float>()),
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(field1->GetArray(),
+                                                            field2->GetArray()),
+                                                 eavlOpArgs(result),
+                                                 eavlSubFunctor<float>()),
             "binary subtraction");
         break;
       case Multiply:
-        eavlExecutor::AddOperation(
-            new eavlMapOp_2_1<eavlMulFunctor<float> >(field1->GetArray(),
-                                                      field2->GetArray(),
-                                                      result,
-                                                      eavlMulFunctor<float>()),
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(field1->GetArray(),
+                                                            field2->GetArray()),
+                                                 eavlOpArgs(result),
+                                                 eavlMulFunctor<float>()),
             "binary multiplication");
         break;
       case Divide:
-        eavlExecutor::AddOperation(
-            new eavlMapOp_2_1<eavlDivFunctor<float> >(field1->GetArray(),
-                                                      field2->GetArray(),
-                                                      result,
-                                                      eavlDivFunctor<float>()),
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(field1->GetArray(),
+                                                            field2->GetArray()),
+                                                 eavlOpArgs(result),
+                                                 eavlDivFunctor<float>()),
             "binary division");
         break;
     }

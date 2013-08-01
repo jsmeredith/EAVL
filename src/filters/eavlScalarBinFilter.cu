@@ -48,7 +48,7 @@ void eavlScalarBinFilter::Execute()
     float fmax = maxval->GetComponentAsDouble(0,0);
     float fsize = fmax - fmin;
 
-        eavlFloatArray *cutoffs = new eavlFloatArray("cutoffs", 1, nbins+1);
+    eavlFloatArray *cutoffs = new eavlFloatArray("cutoffs", 1, nbins+1);
     for (int i = 0; i <= nbins; ++i)
         cutoffs->SetValue(i,  fmin + fsize * float(i) / float(nbins));
 
