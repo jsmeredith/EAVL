@@ -31,9 +31,7 @@ struct eavlTopologyMapOp_CPU
             int nids;
             int shapeType = conn.GetElementComponents(index, nids, ids);
 
-            typename collecttype<OUT>::type out(collect(index, outputs));
-
-            out = functor(shapeType, nids, ids, s_inputs);
+            collect(index, outputs) = functor(shapeType, nids, ids, s_inputs);
         }
     }
 };
@@ -53,9 +51,7 @@ topologyMapKernel(int nitems, CONN conn,
         int nids;
         int shapeType = conn.GetElementComponents(index, nids, ids);
 
-        typename collecttype<OUT>::type out(collect(index, outputs));
-
-        out = functor(shapeType, nids, ids, s_inputs);
+        collect(index, outputs) = functor(shapeType, nids, ids, s_inputs);
     }
 }
 
