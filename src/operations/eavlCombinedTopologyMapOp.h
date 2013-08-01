@@ -1,6 +1,6 @@
 // Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
-#ifndef EAVL_TOPOLOGY_MAP_OP_H
-#define EAVL_TOPOLOGY_MAP_OP_H
+#ifndef EAVL_COMBINED_TOPOLOGY_MAP_OP_H
+#define EAVL_COMBINED_TOPOLOGY_MAP_OP_H
 
 #include "eavlCUDA.h"
 #include "eavlCellSet.h"
@@ -17,13 +17,15 @@
 
 #ifndef DOXYGEN
 
+///\todo: the source-in + dest-in  topologymap should just be a different op from
+/// the source-in only (i.e. no dest-in) topologymap
 template <class CONN>
-struct eavlTopologyMapOp_CPU
+struct eavlCombinedTopologyMapOp_CPU
 {
     static inline eavlArray::Location location() { return eavlArray::HOST; }
-    template <class F, class IN, class OUT>
+    template <class F, class IN0, class IN1, class OUT>
     static void call(int nitems, CONN &conn,
-                     const IN s_inputs, OUT outputs, F &functor)
+                     const IN0 s_inputs, const IN1 d_inputs, OUT outputs, F &functor)
     {
         int ids[MAX_LOCAL_TOPOLOGY_IDS];
         for (int index = 0; index < nitems; ++index)
@@ -31,83 +33,61 @@ struct eavlTopologyMapOp_CPU
             int nids;
             int shapeType = conn.GetElementComponents(index, nids, ids);
 
+            typename collecttype<IN1>::const_type in_d(collect(index, d_inputs));
             typename collecttype<OUT>::type out(collect(index, outputs));
 
-            out = functor(shapeType, nids, ids, s_inputs);
+            out = functor(shapeType, nids, ids, s_inputs, in_d);
         }
     }
 };
 
 #if defined __CUDACC__
 
-template <class CONN, class F, class IN, class OUT>
-__global__ void
-topologyMapKernel(int nitems, CONN conn,
-                  const IN s_inputs, OUT outputs, F functor)
-{
-    const int numThreads = blockDim.x * gridDim.x;
-    const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
-    int ids[MAX_LOCAL_TOPOLOGY_IDS];
-    for (int index = threadID; index < nitems; index += numThreads)
-    {
-        int nids;
-        int shapeType = conn.GetElementComponents(index, nids, ids);
-
-        typename collecttype<OUT>::type out(collect(index, outputs));
-
-        out = functor(shapeType, nids, ids, s_inputs);
-    }
-}
-
 template <class CONN>
-struct eavlTopologyMapOp_GPU
+struct eavlCombinedTopologyMapOp_GPU
 {
     static inline eavlArray::Location location() { return eavlArray::DEVICE; }
-    template <class F, class IN, class OUT>
+    template <class F, class IN0, class IN1, class OUT>
     static void call(int nitems, CONN &conn,
-                     const IN s_inputs, OUT outputs, F &functor)
+                     const IN0 s_inputs, const IN1 d_inputs, OUT outputs, F &functor)
     {
-        int numThreads = 256;
-        dim3 threads(numThreads,   1, 1);
-        dim3 blocks (32,           1, 1);
-        topologyMapKernel<<< blocks, threads >>>(nitems, conn,
-                                                 s_inputs, outputs, functor);
-        CUDA_CHECK_ERROR();
+        cerr << "IMPLEMENT ME!\n";
+        ///\todo: implement!
     }
 };
 
+
 #endif
 
 #endif
 
 // ****************************************************************************
-// Class:  eavlTopologyMapOp
+// Class:  eavlCombinedTopologyMapOp
 //
 // Purpose:
 ///   Map from one topological element in a mesh to another, with
-///   input arrays on the source topology and with outputs
-///   on the destination topology.  (If you need inputs on the
-///   destination topology as well, use eavlCombinedTopologyMap.)
+///   input arrays on both the source and destination topology
+///   and with outputs on the destination topology.
 //
 // Programmer:  Jeremy Meredith
-// Creation:    July 26, 2013
+// Creation:    August  1, 2013
 //
 // Modifications:
 // ****************************************************************************
-// specialization without destination-topology inputs
-template <class IS, class O, class F>
-class eavlTopologyMapOp : public eavlOperation
+template <class IS, class ID, class O, class F>
+class eavlCombinedTopologyMapOp : public eavlOperation
 {
   protected:
     eavlCellSet *cells;
     eavlTopology topology;
     IS           s_inputs;
+    ID           d_inputs;
     O            outputs;
     F            functor;
   public:
-    eavlTopologyMapOp(eavlCellSet *c, eavlTopology t,
-                      IS is, O o, F f)
-        : cells(c), topology(t), s_inputs(is), outputs(o), functor(f)
+    eavlCombinedTopologyMapOp(eavlCellSet *c, eavlTopology t,
+                      IS is, ID id, O o, F f)
+        : cells(c), topology(t), s_inputs(is), d_inputs(id), outputs(o), functor(f)
     {
     }
     virtual void GoCPU()
@@ -118,12 +98,12 @@ class eavlTopologyMapOp : public eavlOperation
         if (elExp)
         {
             eavlExplicitConnectivity &conn = elExp->GetConnectivity(topology);
-            eavlOpDispatch<eavlTopologyMapOp_CPU<eavlExplicitConnectivity> >(n, conn, s_inputs, outputs, functor);
+            eavlOpDispatch<eavlCombinedTopologyMapOp_CPU<eavlExplicitConnectivity> >(n, conn, s_inputs, d_inputs, outputs, functor);
         }
         else if (elStr)
         {
             eavlRegularConnectivity conn = eavlRegularConnectivity(elStr->GetRegularStructure(),topology);
-            eavlOpDispatch<eavlTopologyMapOp_CPU<eavlRegularConnectivity> >(n, conn, s_inputs, outputs, functor);
+            eavlOpDispatch<eavlCombinedTopologyMapOp_CPU<eavlRegularConnectivity> >(n, conn, s_inputs, d_inputs, outputs, functor);
         }
     }
     virtual void GoGPU()
@@ -140,7 +120,7 @@ class eavlTopologyMapOp : public eavlOperation
             conn.connectivity.NeedOnDevice();
             conn.mapCellToIndex.NeedOnDevice();
 
-            eavlOpDispatch<eavlTopologyMapOp_GPU<eavlExplicitConnectivity> >(n, conn, s_inputs, outputs, functor);
+            eavlOpDispatch<eavlCombinedTopologyMapOp_GPU<eavlExplicitConnectivity> >(n, conn, s_inputs, d_inputs, outputs, functor);
 
             conn.shapetype.NeedOnHost();
             conn.connectivity.NeedOnHost();
@@ -149,7 +129,7 @@ class eavlTopologyMapOp : public eavlOperation
         else if (elStr)
         {
             eavlRegularConnectivity conn = eavlRegularConnectivity(elStr->GetRegularStructure(),topology);
-            eavlOpDispatch<eavlTopologyMapOp_GPU<eavlRegularConnectivity> >(n, conn, s_inputs, outputs, functor);
+            eavlOpDispatch<eavlCombinedTopologyMapOp_GPU<eavlRegularConnectivity> >(n, conn, s_inputs, d_inputs, outputs, functor);
         }
 #else
         THROW(eavlException,"Executing GPU code without compiling under CUDA compiler.");
@@ -158,11 +138,11 @@ class eavlTopologyMapOp : public eavlOperation
 };
 
 // helper function for type deduction
-template <class IS, class O, class F>
-eavlTopologyMapOp<IS,O,F> *new_eavlTopologyMapOp(eavlCellSet *c, eavlTopology t,
-                                                 IS is, O o, F f) 
+template <class IS, class ID, class O, class F>
+eavlCombinedTopologyMapOp<IS,ID,O,F> *new_eavlCombinedTopologyMapOp(eavlCellSet *c, eavlTopology t,
+                                                    IS is, ID id, O o, F f) 
 {
-    return new eavlTopologyMapOp<IS,O,F>(c,t,is,o,f);
+    return new eavlCombinedTopologyMapOp<IS,ID,O,F>(c,t,is,id,o,f);
 }
 
 
