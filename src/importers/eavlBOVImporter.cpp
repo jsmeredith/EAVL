@@ -174,6 +174,8 @@ eavlBOVImporter::GetField(const string &var, const string &mesh, int chunk)
         arr = CopyValues(var, (short *)buff, nTuples, numComponents);
     else if (dataT == BYTE)
         arr = CopyValues(var, (unsigned char *)buff, nTuples, numComponents);
+    else
+        THROW(eavlException, "Unknown data type in BOV file");
 
     eavlField *field = NULL;
     if (nodalCentering)

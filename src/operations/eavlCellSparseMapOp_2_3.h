@@ -4,6 +4,8 @@
 
 #include "eavlOperation.h"
 #include "eavlArray.h"
+#include "eavlCellSetExplicit.h"
+#include "eavlCellSetAllStructured.h"
 #include "eavlOpDispatch_2_3_int.h"
 #include "eavlException.h"
 

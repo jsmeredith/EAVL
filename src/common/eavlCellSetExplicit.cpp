@@ -93,6 +93,7 @@ void eavlCellSetExplicit::BuildEdgeConnectivity()
             break;
                 
           default:
+            edges = NULL;
             break;
         }
         cellEdgeConnectivity.shapetype.push_back(cellNodeConnectivity.shapetype[i]);
@@ -163,6 +164,7 @@ class eavlFace
         ids[0] = x;
         ids[1] = y;
         ids[2] = z;
+        ids[3] = 0;
         SetFromThree(x,y,z);
     }
     eavlFace(int w, int x, int y, int z)

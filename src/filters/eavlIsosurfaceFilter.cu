@@ -2,21 +2,20 @@
 #include "eavlIsosurfaceFilter.h"
 
 #include "eavlExecutor.h"
-#include "eavlCellMapOp_1_1.h"
 #include "eavlCellSetExplicit.h"
 #include "eavlCellSparseMapOp_2_3.h"
 #include "eavlConnectivityDereferenceOp_3.h"
 #include "eavlCoordinates.h"
 #include "eavlGatherOp_1.h"
-#include "eavlMapOp_1_1.h"
+#include "eavlMapOp.h"
 #include "eavlPrefixSumOp_1.h"
 #include "eavlReduceOp_1.h"
 #include "eavlReverseIndexOp.h"
 #include "eavlSimpleReverseIndexOp.h"
+#include "eavlTopologyMapOp.h"
+#include "eavlTopologyInfoMapOp.h"
 #include "eavlTopologyGatherMapOp_1_0_1.h"
 #include "eavlTopologyGatherMapOp_1_1_1.h"
-#include "eavlTopologyMapOp_1_0_1.h"
-#include "eavlTopologyMapOp_3_0_3.h"
 #include "eavlException.h"
 
 #include "eavlNewIsoTables.h"
@@ -25,14 +24,13 @@
 class HiLoToCaseFunctor
 {
   public:
-    ///\todo: hilo should be Int, not Float
-    /// but there's a chain of compile problems we need to fix
-    EAVL_FUNCTOR int operator()(int shapeType, int n,
-                                float hilo[])
+    template <class IN>
+    EAVL_FUNCTOR int operator()(int shapeType, int n, int ids[],
+                                IN hilo)
     {
-        int caseindex = hilo[n-1];
+        int caseindex = collect(ids[n-1], hilo);
         for (int i=n-2; i>=0; --i)
-            caseindex = 2*caseindex + hilo[i];
+            caseindex = 2*caseindex + collect(ids[i], hilo);
         return caseindex;
     }
 };
@@ -67,12 +65,11 @@ class LinterpFunctor
 class FirstTwoItemsDifferFunctor
 {
   public:
-    ///\todo: vals should be Int, not Float
-    /// but there's a chain of compile problems we need to fix
-    EAVL_FUNCTOR int operator()(int shapeType, int n,
-                                float vals[])
+    template <class IN>
+    EAVL_FUNCTOR int operator()(int shapeType, int n, int ids[],
+                                IN vals)
     {
-        return vals[0] != vals[1];
+        return collect(ids[0],vals) != collect(ids[1],vals);
     }
 };
 
@@ -179,6 +176,9 @@ class Iso3DLookupTris
             localedge1 = voxgeom[startindex+1];
             localedge2 = voxgeom[startindex+2];
             break;
+          default:
+            localedge0 = localedge1 = localedge2 = 0;
+            break;
         }
     }
 };
@@ -268,32 +268,33 @@ eavlIsosurfaceFilter::Execute()
 
     // map scalars to above/below (hi/lo) booleans
     eavlExecutor::AddOperation(
-        new eavlMapOp_1_1<eavlLessThanConstFunctor<float> >(
-                                      inField->GetArray(),
-                                      hiloArray,
-                                      eavlLessThanConstFunctor<float>(value)),
+        new_eavlMapOp(eavlOpArgs(inField->GetArray()),
+                      eavlOpArgs(hiloArray),
+                      eavlLessThanConstFunctor<float>(value)),
         "generate hi/lo boolean");
 
     // map the cell nodes' hi/lo as a bitfield, i.e. into a case index
     eavlExecutor::AddOperation(
-        new eavlTopologyMapOp_1_0_1<HiLoToCaseFunctor>(inCells,
-                                                    EAVL_NODES_OF_CELLS,
-                                                    hiloArray,
-                                                    caseArray,
-                                                       HiLoToCaseFunctor()),
+        new_eavlTopologyMapOp(inCells,
+                              EAVL_NODES_OF_CELLS,
+                              eavlOpArgs(hiloArray),
+                              eavlOpArgs(caseArray),
+                              HiLoToCaseFunctor()),
         "generate case index per cell");
 
     // look up case index in the table to get output counts
+    ///\todo: we need a "EAVL_CELLS" equivalent here; we don't care
+    /// what "from" topo type, just that we want the mapping for cells.
     eavlExecutor::AddOperation(
-        new eavlCellMapOp_1_1<Iso3DLookupCounts>
-            (inCells,
-             caseArray,
-             numoutArray,
-             Iso3DLookupCounts(eavlTetIsoTriCount,
-                               eavlPyrIsoTriCount,
-                               eavlWdgIsoTriCount,
-                               eavlHexIsoTriCount,
-                               eavlVoxIsoTriCount)),
+        new_eavlTopologyInfoMapOp(inCells,
+                                  EAVL_NODES_OF_CELLS,
+                                  eavlOpArgs(caseArray),
+                                  eavlOpArgs(numoutArray),
+                                  Iso3DLookupCounts(eavlTetIsoTriCount,
+                                                    eavlPyrIsoTriCount,
+                                                    eavlWdgIsoTriCount,
+                                                    eavlHexIsoTriCount,
+                                                    eavlVoxIsoTriCount)),
         "look up output tris per cell case");
 
     // exclusive scan output counts to get output index
@@ -317,12 +318,12 @@ eavlIsosurfaceFilter::Execute()
     ///\todo: if this int array is changed to a byte array, the prefix sum a little later fails.
     /// I would expect it to throw an error (array types don't match because we're putting
     /// the scan result into an int array), but I'm just getting a segfault?
-    eavlExecutor::AddOperation(new eavlTopologyMapOp_1_0_1<FirstTwoItemsDifferFunctor>
-        (inCells,
-         EAVL_NODES_OF_EDGES,
-         hiloArray,
-         edgeInclArray,
-         FirstTwoItemsDifferFunctor()),
+    eavlExecutor::AddOperation(
+        new_eavlTopologyMapOp(inCells,
+                              EAVL_NODES_OF_EDGES,
+                              eavlOpArgs(hiloArray),
+                              eavlOpArgs(edgeInclArray),
+                              FirstTwoItemsDifferFunctor()),
         "flag edges that have differing hi/lo as they will generate pts in output");
     //for (int i=0; i<inCells->GetNumEdges(); i++) {if (edgeInclArray->GetValue(i)) cerr << "USES EDGE: "<<i<<endl;}
 

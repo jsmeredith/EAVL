@@ -592,6 +592,16 @@ struct eavlRegularConnectivity
         : structure(rc.structure), connType(rc.connType)
     {
     }
+    EAVL_HOSTDEVICE int GetShapeType(int) const
+    {
+        switch (structure.dimension)
+        {
+          case 1: return EAVL_BEAM;
+          case 2: return EAVL_PIXEL;
+          case 3: return EAVL_VOXEL;
+        }
+        return EAVL_OTHER;
+    }
     EAVL_HOSTDEVICE int GetElementComponents(int index, int &npts, int *pts)
     {
         switch (connType)

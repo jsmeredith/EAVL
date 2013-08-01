@@ -90,7 +90,6 @@ struct eavlTopologyMapOp_GPU
 //
 // Modifications:
 // ****************************************************************************
-// specialization without destination-topology inputs
 template <class IS, class O, class F>
 class eavlTopologyMapOp : public eavlOperation
 {
