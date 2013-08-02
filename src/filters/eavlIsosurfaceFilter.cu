@@ -5,6 +5,7 @@
 #include "eavlCellSetExplicit.h"
 #include "eavlCellSparseMapOp_2_3.h"
 #include "eavlConnectivityDereferenceOp_3.h"
+#include "eavlCombinedTopologyGatherMapOp.h"
 #include "eavlCoordinates.h"
 #include "eavlGatherOp_1.h"
 #include "eavlMapOp.h"
@@ -15,7 +16,6 @@
 #include "eavlTopologyMapOp.h"
 #include "eavlTopologyInfoMapOp.h"
 #include "eavlTopologyGatherMapOp_1_0_1.h"
-#include "eavlTopologyGatherMapOp_1_1_1.h"
 #include "eavlException.h"
 
 #include "eavlNewIsoTables.h"
@@ -55,9 +55,22 @@ class CalcAlphaFunctor
 class LinterpFunctor
 {
   public:
+    template <class IN>
+    EAVL_FUNCTOR float operator()(int shapeType, int n, int ids[],
+                                  IN vals, float alpha)
+    {
+        float a = collect(ids[0], vals);
+        float b = collect(ids[1], vals);
+        cerr << "(1) calling LinterpFunctor(): ids[0]="<<ids[0]<<" ids[1]="<<ids[1]<<" a="<<a<<" b="<<b<<" alpha="<<alpha<<endl;
+        return a + alpha*(b-a);
+    }
+
     EAVL_FUNCTOR float operator()(int shapeType, int n, float vals[], float alpha)
     {
-        return vals[0] + alpha*(vals[1]-vals[0]);
+        float a = vals[0];
+        float b = vals[1];
+        cerr << "(2) calling LinterpFunctor(): a="<<a<<" b="<<b<<" alpha="<<alpha<<endl;
+        return a + alpha*(b-a);
     }
 };
 
@@ -470,9 +483,9 @@ eavlIsosurfaceFilter::Execute()
         THROW(eavlException,"eavlIsosurfaceFilter couldn't get coordinate arrays");
     }
 
-    eavlArrayWithLinearIndex ali0(arr0, axis0->GetComponent());
-    eavlArrayWithLinearIndex ali1(arr1, axis1->GetComponent());
-    eavlArrayWithLinearIndex ali2(arr2, axis2->GetComponent());
+    eavlIndexable<eavlArray> ali0(arr0, axis0->GetComponent());
+    eavlIndexable<eavlArray> ali1(arr1, axis1->GetComponent());
+    eavlIndexable<eavlArray> ali2(arr2, axis2->GetComponent());
     
     eavlLogicalStructureRegular *logReg = dynamic_cast<eavlLogicalStructureRegular*>(input->GetLogicalStructure());
     if (logReg)
@@ -480,11 +493,11 @@ eavlIsosurfaceFilter::Execute()
         eavlRegularStructure &reg = logReg->GetRegularStructure();
 
         if (field0->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            ali0 = eavlArrayWithLinearIndex(arr0, axis0->GetComponent(), reg, field0->GetAssocLogicalDim());
+            ali0 = eavlIndexable<eavlArray>(arr0, axis0->GetComponent(), reg, field0->GetAssocLogicalDim());
         if (field1->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            ali1 = eavlArrayWithLinearIndex(arr1, axis1->GetComponent(), reg, field1->GetAssocLogicalDim());
+            ali1 = eavlIndexable<eavlArray>(arr1, axis1->GetComponent(), reg, field1->GetAssocLogicalDim());
         if (field2->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            ali2 = eavlArrayWithLinearIndex(arr2, axis2->GetComponent(), reg, field2->GetAssocLogicalDim());
+            ali2 = eavlIndexable<eavlArray>(arr2, axis2->GetComponent(), reg, field2->GetAssocLogicalDim());
     }
 
     // generate alphas for each output 
@@ -501,34 +514,31 @@ eavlIsosurfaceFilter::Execute()
     // using the alphas, interpolate to create the new coordinate arrays
     ///\todo: better if this were eavlTopologyGatherMapOp_3_1_1.
     eavlExecutor::AddOperation(
-        new eavlTopologyGatherMapOp_1_1_1<LinterpFunctor>
-            (inCells,
-             EAVL_NODES_OF_EDGES,
-             ali0,
-             alpha,
-             newx,
-             revPtEdgeIndex,
-             LinterpFunctor()),
+        new_eavlCombinedTopologyGatherMapOp(inCells,
+                                            EAVL_NODES_OF_EDGES,
+                                            eavlOpArgs(ali0),
+                                            eavlOpArgs(alpha),
+                                            eavlOpArgs(newx),
+                                            eavlOpArgs(revPtEdgeIndex),
+                                            LinterpFunctor()),
         "generate x coords");
     eavlExecutor::AddOperation(
-        new eavlTopologyGatherMapOp_1_1_1<LinterpFunctor>
-            (inCells,
-             EAVL_NODES_OF_EDGES,
-             ali1,
-             alpha,
-             newy,
-             revPtEdgeIndex,
-             LinterpFunctor()),
+        new_eavlCombinedTopologyGatherMapOp(inCells,
+                                            EAVL_NODES_OF_EDGES,
+                                            eavlOpArgs(ali1),
+                                            eavlOpArgs(alpha),
+                                            eavlOpArgs(newy),
+                                            eavlOpArgs(revPtEdgeIndex),
+                                            LinterpFunctor()),
         "generate y coords");
     eavlExecutor::AddOperation(
-        new eavlTopologyGatherMapOp_1_1_1<LinterpFunctor>
-            (inCells,
-             EAVL_NODES_OF_EDGES,
-             ali2,
-             alpha,
-             newz,
-             revPtEdgeIndex,
-             LinterpFunctor()),
+        new_eavlCombinedTopologyGatherMapOp(inCells,
+                                            EAVL_NODES_OF_EDGES,
+                                            eavlOpArgs(ali2),
+                                            eavlOpArgs(alpha),
+                                            eavlOpArgs(newz),
+                                            eavlOpArgs(revPtEdgeIndex),
+                                            LinterpFunctor()),
         "generate z coords");
 
     /// interpolate the point vars and gather the cell vars
@@ -553,14 +563,13 @@ eavlIsosurfaceFilter::Execute()
         {
             eavlArray *outArr = a->Create(a->GetName(), 1, noutpts);
             eavlExecutor::AddOperation(
-              new eavlTopologyGatherMapOp_1_1_1<LinterpFunctor>
-                (inCells,
-                 EAVL_NODES_OF_EDGES,
-                 a,
-                 alpha,
-                 outArr,
-                 revPtEdgeIndex,
-                 LinterpFunctor()),
+                new_eavlCombinedTopologyGatherMapOp(inCells,
+                                                    EAVL_NODES_OF_EDGES,
+                                                    eavlOpArgs(a),
+                                                    eavlOpArgs(alpha),
+                                                    eavlOpArgs(outArr),
+                                                    eavlOpArgs(revPtEdgeIndex),
+                                                    LinterpFunctor()),
               "interpolate nodal field");
             output->AddField(new eavlField(1, outArr, eavlField::ASSOC_POINTS));
         }
