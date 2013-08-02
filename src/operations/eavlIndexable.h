@@ -1,6 +1,7 @@
 #ifndef EAVL_INDEXABLE_H
 #define EAVL_INDEXABLE_H
 
+#include "eavlRegularStructure.h"
 
 class eavlArrayIndexer
 {
@@ -29,6 +30,14 @@ class eavlIndexable
     eavlIndexable(T *arr) : array(arr) { }
     eavlIndexable(T *arr, eavlArrayIndexer ind) : array(arr), indexer(ind) { }
     eavlIndexable(T *arr, int comp) : array(arr), indexer(arr->GetNumberOfComponents(), comp) { }
+    eavlIndexable(T *arr, int comp, eavlRegularStructure &reg, int logicaldim)
+        : array(arr),
+          indexer(reg.CalculateNodeIndexDivForDimension(logicaldim),
+                  reg.CalculateNodeIndexModForDimension(logicaldim),
+                  arr->GetNumberOfComponents(),
+                  comp)
+    {
+    }
     virtual void Print(ostream &out)
     {
         out << "Indexable\n";
