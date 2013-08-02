@@ -36,6 +36,10 @@ class eavlExecutor
     {
         Instance()->executionMode = em;
     }
+    static ExecutionMode GetExecutionMode()
+    {
+        return Instance()->executionMode;
+    }
     static void Go()
     {
         Instance()->real_Go();

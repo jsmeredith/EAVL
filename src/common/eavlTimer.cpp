@@ -6,6 +6,7 @@
 
 #include "eavl.h"
 #include "eavlException.h"
+#include "eavlExecutor.h"
 #include "eavlCUDA.h"
 
 #ifdef HAVE_CUDA
@@ -204,8 +205,11 @@ int eavlTimer::real_Start()
         return -1;
 
 #ifdef HAVE_CUDA
-    cudaThreadSynchronize();
-    CUDA_CHECK_ERROR();
+    if (eavlExecutor::GetExecutionMode() != eavlExecutor::ForceCPU)
+    {
+        cudaThreadSynchronize();
+        CUDA_CHECK_ERROR();
+    }
 #endif
 
     int handle = startTimes.size();
@@ -238,8 +242,11 @@ double eavlTimer::real_Stop(int handle, const std::string &description)
         return 0;
 
 #ifdef HAVE_CUDA
-    cudaThreadSynchronize();
-    CUDA_CHECK_ERROR();
+    if (eavlExecutor::GetExecutionMode() != eavlExecutor::ForceCPU)
+    {
+        cudaThreadSynchronize();
+        CUDA_CHECK_ERROR();
+    }
 #endif
 
     if ((unsigned int)handle > startTimes.size())
