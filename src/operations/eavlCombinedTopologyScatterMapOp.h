@@ -46,8 +46,32 @@ struct eavlCombinedTopologyScatterMapOp_CPU
 
 #if defined __CUDACC__
 
+template <class CONN, class F, class IN0, class IN1, class OUT, class INDEX>
+__global__ void
+eavlCombinedTopologyPackedMapOp_kernel(int nitems, CONN conn,
+                                       const IN0 s_inputs, const IN1 d_inputs, OUT outputs,
+                                       INDEX indices, F functor)
+{
+    int *sparseindices = get<0>(indices).array;
+
+    const int numThreads = blockDim.x * gridDim.x;
+    const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
+    int ids[MAX_LOCAL_TOPOLOGY_IDS];
+    for (int denseindex = threadID; denseindex < nitems; denseindex += numThreads)
+    {
+        int sparseindex = sparseindices[denseindex];
+
+        int nids;
+        int shapeType = conn.GetElementComponents(sparseindex, nids, ids);
+
+        collect(sparseindex, outputs) = functor(shapeType, nids, ids, s_inputs,
+                                          collect(denseindex, d_inputs));
+    }
+}
+
+
 template <class CONN>
-struct eavlCombinedTopologyScatterMapOp_GPU
+struct eavlCombinedTopologyPackedMapOp_GPU
 {
     static inline eavlArray::Location location() { return eavlArray::DEVICE; }
     template <class F, class IN0, class IN1, class OUT, class INDEX>
@@ -55,11 +79,15 @@ struct eavlCombinedTopologyScatterMapOp_GPU
                      const IN0 s_inputs, const IN1 d_inputs, OUT outputs,
                      INDEX indices, F &functor)
     {
-        cerr << "IMPLEMENT ME!\n";
-        ///\todo: implement!
+        int numThreads = 256;
+        dim3 threads(numThreads,   1, 1);
+        dim3 blocks (32,           1, 1);
+        eavlCombinedTopologyPackedMapOp_kernel<<< blocks, threads >>>(nitems, conn,
+                                                                      s_inputs, d_inputs, outputs,
+                                                                      indices, functor);
+        CUDA_CHECK_ERROR();
     }
 };
-
 
 #endif
 
@@ -70,8 +98,11 @@ struct eavlCombinedTopologyScatterMapOp_GPU
 //
 // Purpose:
 ///   Map from one topological element in a mesh to another, with input
-///   arrays on the source topology (at sparsely indexed locations) or the
+///   arrays on the source topology (at sparsely indexed locations) and the
 ///   destination topology, and with outputs on the destination topology.
+///   In this scatter version of the operation, the inputs on the destination
+///   topology are densely indexed (0 to n-1), and the outputs are
+///   sparsely indexed by the index array.
 //
 // Programmer:  Jeremy Meredith
 // Creation:    August  2, 2013

@@ -40,8 +40,8 @@ struct eavlSimpleTopologyMapOp_CPU
 
 template <class CONN, class F, class IN, class OUT>
 __global__ void
-topologyMapKernel(int nitems, CONN conn,
-                  const IN s_inputs, OUT outputs, F functor)
+eavlSimpleTopologyMapOp_kernel(int nitems, CONN conn,
+                               const IN s_inputs, OUT outputs, F functor)
 {
     const int numThreads = blockDim.x * gridDim.x;
     const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
@@ -66,8 +66,8 @@ struct eavlSimpleTopologyMapOp_GPU
         int numThreads = 256;
         dim3 threads(numThreads,   1, 1);
         dim3 blocks (32,           1, 1);
-        topologyMapKernel<<< blocks, threads >>>(nitems, conn,
-                                                 s_inputs, outputs, functor);
+        eavlSimpleTopologyMapOp_kernel<<< blocks, threads >>>(nitems, conn,
+                                                              s_inputs, outputs, functor);
         CUDA_CHECK_ERROR();
     }
 };

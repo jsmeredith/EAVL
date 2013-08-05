@@ -41,6 +41,24 @@ struct eavlCombinedTopologyMapOp_CPU
 
 #if defined __CUDACC__
 
+template <class F, class IN0, class IN1, class OUT>
+__global__ void
+eavlCombinedTopologyMapOp_kernel(int nitems, CONN &conn,
+                     const IN0 s_inputs, const IN1 d_inputs, OUT outputs, F functor)
+{
+    const int numThreads = blockDim.x * gridDim.x;
+    const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
+    int ids[MAX_LOCAL_TOPOLOGY_IDS];
+    for (int index = threadID; index < nitems; index += numThreads)
+    {
+        int nids;
+        int shapeType = conn.GetElementComponents(index, nids, ids);
+
+        collect(index, outputs) = functor(shapeType, nids, ids, s_inputs,
+                                          collect(index, d_inputs));
+    }
+}
+
 template <class CONN>
 struct eavlCombinedTopologyMapOp_GPU
 {
@@ -49,8 +67,13 @@ struct eavlCombinedTopologyMapOp_GPU
     static void call(int nitems, CONN &conn,
                      const IN0 s_inputs, const IN1 d_inputs, OUT outputs, F &functor)
     {
-        cerr << "IMPLEMENT ME!\n";
-        ///\todo: implement!
+        int numThreads = 256;
+        dim3 threads(numThreads,   1, 1);
+        dim3 blocks (32,           1, 1);
+        eavlCombinedTopologyMapOp_kernel<<< blocks, threads >>>(nitems, conn,
+                                                                s_inputs, d_inputs,
+                                                                outputs, functor);
+        CUDA_CHECK_ERROR();
     }
 };
 

@@ -45,17 +45,45 @@ struct eavlSimpleTopologySparseMapOp_CPU
 
 #if defined __CUDACC__
 
+template <class CONN, class F, class IN, class OUT, class INDEX>
+__global__ void
+eavlSimpleTopologyGatherMapOp_kernel(int nitems, CONN conn,
+                                     const IN s_inputs, OUT outputs,
+                                     INDEX indices, F functor)
+{
+    int *sparseindices = get<0>(indices).array;
+
+    const int numThreads = blockDim.x * gridDim.x;
+    const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
+    int ids[MAX_LOCAL_TOPOLOGY_IDS];
+    for (int denseindex = threadID; denseindex < nitems; denseindex += numThreads)
+    {
+        int sparseindex = sparseindices[denseindex];
+
+        int nids;
+        int shapeType = conn.GetElementComponents(sparseindex, nids, ids);
+
+        collect(sparseindex, outputs) = functor(shapeType, nids, ids, s_inputs);
+    }
+}
+
+
 template <class CONN>
-struct eavlSimpleTopologySparseMapOp_GPU
+struct eavlSimpleTopologyGatherMapOp_GPU
 {
     static inline eavlArray::Location location() { return eavlArray::DEVICE; }
     template <class F, class IN, class OUT, class INDEX>
     static void call(int nitems, CONN &conn,
-                     const IN0 s_inputs, OUT outputs,
+                     const IN s_inputs, OUT outputs,
                      INDEX indices, F &functor)
     {
-        cerr << "IMPLEMENT ME!\n";
-        ///\todo: implement!
+        int numThreads = 256;
+        dim3 threads(numThreads,   1, 1);
+        dim3 blocks (32,           1, 1);
+        eavlSimpleTopologyGatherMapOp_kernel<<< blocks, threads >>>(nitems, conn,
+                                                                    s_inputs, outputs,
+                                                                    indices, functor);
+        CUDA_CHECK_ERROR();
     }
 };
 
@@ -69,8 +97,9 @@ struct eavlSimpleTopologySparseMapOp_GPU
 //
 // Purpose:
 ///   Map from one topological element in a mesh to another, with
-///   input arrays on the source topology (at sparsely indexed locations)
-///   and with outputs on the destination topology.
+///   input arrays on the source topology and with outputs on the destination
+///   topology.  All input and output arrays are indexed sparsely as
+///   specified by the index array.
 //
 // Programmer:  Jeremy Meredith
 // Creation:    August  1, 2013

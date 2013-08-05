@@ -39,17 +39,41 @@ struct eavlInfoTopologyGatherMapOp_CPU
 
 #if defined __CUDACC__
 
+template <class CONN, class F, class IN, class OUT, class INDEX>
+__global__ void
+eavlInfoTopologyGatherMapOp_kernel(int nitems, CONN conn,
+                                   const IN inputs, OUT outputs,
+                                   INDEX indices, F functor)
+{
+    int *sparseindices = get<0>(indices).array;
+
+    const int numThreads = blockDim.x * gridDim.x;
+    const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
+    for (int denseindex = threadID; denseindex < nitems; denseindex += numThreads)
+    {
+        int sparseindex = sparseindices[denseindex];
+        int shapeType = conn.GetShapeType(sparseindex);
+        collect(denseindex, outputs) = functor(shapeType, collect(sparseindex, inputs));
+    }
+}
+
+
 template <class CONN>
 struct eavlInfoTopologyGatherMapOp_GPU
 {
     static inline eavlArray::Location location() { return eavlArray::DEVICE; }
     template <class F, class IN, class OUT, class INDEX>
     static void call(int nitems, CONN &conn,
-                     const IN0 inputs, OUT outputs,
+                     const IN inputs, OUT outputs,
                      INDEX indices, F &functor)
     {
-        cerr << "IMPLEMENT ME!\n";
-        ///\todo: implement!
+        int numThreads = 256;
+        dim3 threads(numThreads,   1, 1);
+        dim3 blocks (32,           1, 1);
+        eavlInfoTopologyGatherMapOp_kernel<<< blocks, threads >>>(nitems, conn,
+                                                                  inputs, outputs,
+                                                                  indices, functor);
+        CUDA_CHECK_ERROR();
     }
 };
 
@@ -62,9 +86,11 @@ struct eavlInfoTopologyGatherMapOp_GPU
 // Class:  eavlInfoTopologyGatherMapOp
 //
 // Purpose:
-///   Map from one topological element in a mesh to another, with
-///   input arrays on the source topology (at sparsely indexed locations)
-///   and with outputs on the destination topology.
+///   Map from one element in a mesh to the same element, with
+///   topological information passed along to the functor.
+///   In this gather version of the operation, the inputs (on the destination)
+///   topology are sparsely indexed and the outputs are compacted, i.e. 
+///   the outputs are densely indexed 0 to n-1.
 //
 // Programmer:  Jeremy Meredith
 // Creation:    August  1, 2013
