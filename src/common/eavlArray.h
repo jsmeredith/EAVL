@@ -16,6 +16,7 @@
 #include <cfloat>
 #include <cmath>
 
+//#define DEBUG_ARRAY_TRANSFERS
 
 // ****************************************************************************
 // Class:  eavlArray
@@ -67,6 +68,10 @@ class eavlArray
     virtual void *GetCUDAArray() {THROW(eavlException,"CUDA not available");}
 #endif
     virtual void *GetHostArray() = 0;
+    ///\todo: Refresh is a little odd; we're using it for CUDA-based
+    /// in situ where we need some way of forcing it to assume the 
+    /// device data has been updated and force new data back to the host.
+    virtual void MarkAsDirty(Location) = 0;
     void *GetRawPointer(Location loc)
     {
         if (loc == HOST)
@@ -221,6 +226,10 @@ class eavlArray
 //   Jeremy Meredith, Tue Feb 26 14:23:48 EST 2013
 //   Allow externally-provided host arrays, e.g. for tightly-coupled in situ.
 //
+//   Jeremy Meredith, Mon Jul 29 16:39:37 EDT 2013
+//   Allow externally-provided device arrays, for tightly-coupled in situ for
+//   CUDA-based codes.  Changed method signature to specify the location.
+//
 // ****************************************************************************
 template<class T>
 class eavlConcreteArray : public eavlArray
@@ -230,11 +239,12 @@ class eavlConcreteArray : public eavlArray
   protected:
     vector<T> host_values_self;
     T *host_values_external;
-    int host_ntuples_external;
-    bool    host_provided; ///< we don't own the host array, it was given to us, and we cannot write to it
+    int provided_ntuples;
+    bool host_provided; ///< we don't own the host array, it was given to us, and we cannot write to it
 #ifdef HAVE_CUDA
-    bool    host_dirty;
-    bool    device_dirty;
+    bool device_provided; ///< we don't own the dev array, it was given to us, and we cannot write to it
+    bool host_dirty;
+    bool device_dirty;
     T *device_values;
     void NeedToUseOnHost()
     {
@@ -245,6 +255,16 @@ class eavlConcreteArray : public eavlArray
         }
         if (device_dirty)
         {
+            CUDA_CHECK_ERROR();
+            if (device_provided && host_values_self.size() == 0)
+            {
+                // first time we need the device-provided array on the
+                // host, we need to allocate the host array spacee.
+                host_values_self.resize(ncomponents * provided_ntuples);
+            }
+#ifdef DEBUG_ARRAY_TRANSFERS
+            cerr << "Transferring "<<name<<" array to host\n";
+#endif
             int nbytes = host_values_self.size() * sizeof(T);
             cudaMemcpy(&(host_values_self[0]), device_values,
                        nbytes, cudaMemcpyDeviceToHost);
@@ -255,15 +275,25 @@ class eavlConcreteArray : public eavlArray
     }
     void NeedToUseOnDevice()
     {
+        if (device_provided)
+        {
+            // nothing to do
+            return;
+        }
         int nbytes = host_values_self.size() * sizeof(T);
         if (device_values == NULL)
         {
+            CUDA_CHECK_ERROR();
             cudaMalloc((void**)&device_values, nbytes);
             CUDA_CHECK_ERROR();
             //cudaMemset((void**)&device_values, 0, nbytes);
         }
         if (host_dirty)
         {
+            CUDA_CHECK_ERROR();
+#ifdef DEBUG_ARRAY_TRANSFERS
+            cerr << "Transferring "<<name<<" array to device\n";
+#endif
             cudaMemcpy(device_values, &(host_values_self[0]),
                        nbytes, cudaMemcpyHostToDevice);
             CUDA_CHECK_ERROR();
@@ -271,19 +301,36 @@ class eavlConcreteArray : public eavlArray
         host_dirty = false;
         device_dirty = true;
     }
+    void MarkAsDirty(eavlArray::Location loc)
+    {
+        if (loc == eavlArray::DEVICE)
+        {
+            device_dirty = true;
+            //NeedToUseOnHost();
+        }
+        else  // loc == eavlArray::HOST
+        {
+            host_dirty = true;
+            //NeedToUseOnDevice();
+        }
+    }
+
 #else
-    void NeedToUseOnHost() const {};
-    void NeedToUseOnDevice() const {};
+    void NeedToUseOnHost() const {}
+    void NeedToUseOnDevice() const {}
+    void MarkAsDirty(eavlArray::Location) {}
 #endif
   public:
     eavlConcreteArray(const string &n, int nc = 1, int nt = 0) : eavlArray(n,nc)
     {
         host_values_external = NULL;
-        host_ntuples_external = -1;
+        provided_ntuples = -1;
         host_provided = false;
 #ifdef HAVE_CUDA
+        device_provided = false;
         // the _dirty values are initialized to false because
-        // the user might start writing on host or device memory
+        // the user might start writing on either host or
+        // device memory; either one is a valid option.
         host_dirty = false;
         device_dirty = false;
         device_values = NULL;
@@ -291,18 +338,37 @@ class eavlConcreteArray : public eavlArray
         if (nt > 0)
             host_values_self.resize(ncomponents * nt);
     }
-    eavlConcreteArray(T *extarray,
-                      const string &n, int nc = 1, int nt = 0) : eavlArray(n,nc)
+    eavlConcreteArray(eavlArray::Location loc, T *extarray,
+                      const string &n, int nc, int nt) : eavlArray(n,nc)
     {
-        host_values_external = extarray;
-        host_provided = true;
-        host_ntuples_external = nt;
+        provided_ntuples = nt;
+
+        if (loc == eavlArray::HOST)
+        {
+            host_values_external = extarray;
+            host_provided = true;
 #ifdef HAVE_CUDA
-        // assume host array is filled with valid data; set its _dirty flag to true
-        host_dirty = true;
-        device_dirty = false;
-        device_values = NULL;
+            device_provided = false;
+            // assume host array is filled with valid data; set its _dirty flag to true
+            host_dirty = true;
+            device_dirty = false;
+            device_values = NULL;
 #endif
+        }
+        else // loc == eavlArray::DEVICE
+        {
+#ifdef HAVE_CUDA
+            device_values = extarray;
+            host_provided = false;
+            device_provided = true;
+            // assume device array is filled with valid data; set its _dirty flag to true
+            host_dirty = false;
+            device_dirty = true;
+            host_values_external = NULL;
+#else
+            THROW(eavlException, "Cannot provide device values without CUDA support.");
+#endif
+        }
     }
     virtual ~eavlConcreteArray()
     {
@@ -336,8 +402,12 @@ class eavlConcreteArray : public eavlArray
         //NeedToUseOnHost();
         if (ncomponents == 0)
             return 0;
-        if (host_provided)
-            return host_ntuples_external;
+        if (host_provided
+#ifdef HAVE_CUDA
+            || device_provided
+#endif
+            )
+            return provided_ntuples;
         else
             return host_values_self.size() / ncomponents;
     }
@@ -400,6 +470,8 @@ class eavlConcreteArray : public eavlArray
         GetTupleWritable(i)[c] = v;
     }
 #ifdef HAVE_CUDA
+    ///\todo: can we make this return const? we kind of want that
+    /// if we were handed the device memory pointer.
     virtual void *GetCUDAArray()
     {
         NeedToUseOnDevice();
