@@ -41,20 +41,6 @@ class CalcAlphaFunctor
     float target;
   public:
     CalcAlphaFunctor(float tgt) : target(tgt) { }
-    ///\todo: delete me, I'm old
-    EAVL_FUNCTOR float operator()(int shapeType, int n, float vals[])
-
-
-    {
-        // we're assuming vals[0] != vals[1] here, but note
-        // that we only call this routine for edges which will
-        // be present in the final output, which only happens
-        // if one edge node was > tgt and one was <= tgt, so 
-        // they must be different in the way we call it.
-        return (target - vals[0]) / (vals[1] - vals[0]);
-
-
-    }
     template <class IN>
     EAVL_FUNCTOR float operator()(int shapeType, int n, int ids[],
                                   IN vals)
@@ -178,54 +164,6 @@ class Iso3DLookupTris
           voxstart(*voxstart_), voxgeom(*voxgeom_)
     {
     }
-    ///\todo: delete me, I'm old
-    EAVL_FUNCTOR void operator()(int shapeType,
-                                 int caseindex, int subindex,
-                                 float &localedge0, float &localedge1, float &localedge2)
-    {
-
-
-
-        int startindex;
-
-        switch (shapeType)
-        {
-          case EAVL_TET:
-            startindex = tetstart[caseindex] + 3*subindex;
-            localedge0 = tetgeom[startindex+0];
-            localedge1 = tetgeom[startindex+1];
-            localedge2 = tetgeom[startindex+2];
-            break;
-          case EAVL_PYRAMID:
-            startindex = pyrstart[caseindex] + 3*subindex;
-            localedge0 = pyrgeom[startindex+0];
-            localedge1 = pyrgeom[startindex+1];
-            localedge2 = pyrgeom[startindex+2];
-            break;
-          case EAVL_WEDGE:
-            startindex = wdgstart[caseindex] + 3*subindex;
-            localedge0 = wdggeom[startindex+0];
-            localedge1 = wdggeom[startindex+1];
-            localedge2 = wdggeom[startindex+2];
-            break;
-          case EAVL_HEX:
-            startindex = hexstart[caseindex] + 3*subindex;
-            localedge0 = hexgeom[startindex+0];
-            localedge1 = hexgeom[startindex+1];
-            localedge2 = hexgeom[startindex+2];
-            break;
-          case EAVL_VOXEL:
-            startindex = voxstart[caseindex] + 3*subindex;
-            localedge0 = voxgeom[startindex+0];
-            localedge1 = voxgeom[startindex+1];
-            localedge2 = voxgeom[startindex+2];
-            break;
-          default:
-            localedge0 = localedge1 = localedge2 = 0;
-            break;
-        }
-
-    }
     EAVL_FUNCTOR tuple<int,int,int> operator()(int shapeType, tuple<int,int> index)
     {
         int caseindex = get<0>(index);
@@ -309,7 +247,7 @@ eavlIsosurfaceFilter::~eavlIsosurfaceFilter()
 void
 eavlIsosurfaceFilter::Execute()
 {
-    //eavlTimer::Suspend();
+    eavlTimer::Suspend();
 
     int th_init = eavlTimer::Start();
     eavlInitializeIsoTables();
@@ -486,6 +424,11 @@ eavlIsosurfaceFilter::Execute()
 
     // look up case+subindex in the table using input cell to get output geom
     ///\todo: is this operation plus the gatherop prior to it not just a combined topology gather map?
+    /// No, the problem is that the caseArray is sparsely indexed through the indices array,
+    /// while the revInputSubIndex array is densely indexed (i.e. directly), but both are
+    /// arrays on the output topology.  We don't have an InfoTopologyMap with two separate
+    /// inputs, one sparse and one dense.  (It might make a useful addition, I suppose, but
+    /// not necessarily.)
     ///\todo: need EAVL_CELLS instead of nodes-of-cells.
     eavlExecutor::AddOperation(
         new_eavlInfoTopologyPackedMapOp(inCells,
@@ -730,5 +673,5 @@ eavlIsosurfaceFilter::Execute()
     output->AddField(new eavlField(1, newx, eavlField::ASSOC_POINTS));
     output->AddField(new eavlField(1, newy, eavlField::ASSOC_POINTS));
     output->AddField(new eavlField(1, newz, eavlField::ASSOC_POINTS));
-    //eavlTimer::Resume();
+    eavlTimer::Resume();
 }

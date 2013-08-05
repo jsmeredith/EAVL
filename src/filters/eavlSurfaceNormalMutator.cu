@@ -7,6 +7,7 @@
 #include "eavlField.h"
 #include "eavlDataSet.h"
 #include "eavlTopologyMapOp_3_0_3.h"
+#include "eavlSimpleTopologyMapOp.h"
 #include "eavlField.h"
 #include "eavlVector3.h"
 #include "eavlException.h"
@@ -15,22 +16,22 @@
 class FaceNormalFunctor
 {
   public:
-    EAVL_FUNCTOR void operator()(int shapeType, int n,
-                                 float x[], float y[], float z[],
-                                 float &ox, float &oy, float &oz)
+    template <class IN>
+    EAVL_FUNCTOR tuple<float,float,float> operator()(int shapeType, int n, int ids[],
+                                                     const IN coords)
     {
         // should we treat EAVL_PIXEL differently here?
-        eavlPoint3 p0(x[0], y[0], z[0]);
-        eavlPoint3 p1(x[1], y[1], z[1]);
-        eavlPoint3 p2(x[2], y[2], z[2]);
+        typename collecttype<IN>::const_type pt0 = collect(ids[0], coords);
+        typename collecttype<IN>::const_type pt1 = collect(ids[1], coords);
+        typename collecttype<IN>::const_type pt2 = collect(ids[2], coords);
+        eavlPoint3 p0(get<0>(pt0), get<1>(pt0), get<2>(pt0));
+        eavlPoint3 p1(get<0>(pt1), get<1>(pt1), get<2>(pt1));
+        eavlPoint3 p2(get<0>(pt2), get<1>(pt2), get<2>(pt2));
         eavlVector3 v01 = p1 - p0;
         eavlVector3 v12 = p2 - p1;
         eavlVector3 norm = v01 % v12;
         norm.normalize();
-	    
-        ox = norm.x;
-        oy = norm.y;
-        oz = norm.z;
+        return tuple<float,float,float>(norm.x, norm.y, norm.z);
     }
 };
 
@@ -68,15 +69,15 @@ eavlSurfaceNormalMutator::Execute()
         THROW(eavlException,"eavlNodeToCellOp assumes single-precision float arrays");
     }
 
-    eavlArrayWithLinearIndex i0(arr0, axis0->GetComponent());
-    eavlArrayWithLinearIndex i1(arr1, axis1->GetComponent());
-    eavlArrayWithLinearIndex i2(arr2, axis2->GetComponent());
+    eavlIndexable<eavlArray> i0(arr0, axis0->GetComponent());
+    eavlIndexable<eavlArray> i1(arr1, axis1->GetComponent());
+    eavlIndexable<eavlArray> i2(arr2, axis2->GetComponent());
     if (field0->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-        i0.mul = 0;
+        i0.indexer.mul = 0;
     if (field1->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-        i1.mul = 0;
+        i1.indexer.mul = 0;
     if (field2->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-        i2.mul = 0;
+        i2.indexer.mul = 0;
     
     eavlLogicalStructureRegular *logReg = dynamic_cast<eavlLogicalStructureRegular*>(dataset->GetLogicalStructure());
     if (logReg)
@@ -84,22 +85,22 @@ eavlSurfaceNormalMutator::Execute()
         eavlRegularStructure &reg = logReg->GetRegularStructure();
 
         if (field0->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            i0 = eavlArrayWithLinearIndex(arr0, axis0->GetComponent(), reg, field0->GetAssocLogicalDim());
+            i0 = eavlIndexable<eavlArray>(arr0, axis0->GetComponent(), reg, field0->GetAssocLogicalDim());
         if (field1->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            i1 = eavlArrayWithLinearIndex(arr1, axis1->GetComponent(), reg, field1->GetAssocLogicalDim());
+            i1 = eavlIndexable<eavlArray>(arr1, axis1->GetComponent(), reg, field1->GetAssocLogicalDim());
         if (field2->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            i2 = eavlArrayWithLinearIndex(arr2, axis2->GetComponent(), reg, field2->GetAssocLogicalDim());
+            i2 = eavlIndexable<eavlArray>(arr2, axis2->GetComponent(), reg, field2->GetAssocLogicalDim());
     }
 
     eavlFloatArray *out = new eavlFloatArray("surface_normals", 3,
                                              inCells->GetNumCells());
 
-    eavlExecutor::AddOperation(new eavlTopologyMapOp_3_0_3<FaceNormalFunctor>(
+    eavlExecutor::AddOperation(new_eavlSimpleTopologyMapOp(
                                       inCells, EAVL_NODES_OF_CELLS,
-                                      i0, i1, i2,
-                                      eavlArrayWithLinearIndex(out, 0),
-                                      eavlArrayWithLinearIndex(out, 1),
-                                      eavlArrayWithLinearIndex(out, 2),
+                                      eavlOpArgs(i0, i1, i2),
+                                      eavlOpArgs(eavlIndexable<eavlFloatArray>(out,0),
+                                                 eavlIndexable<eavlFloatArray>(out,1),
+                                                 eavlIndexable<eavlFloatArray>(out,2)),
                                       FaceNormalFunctor()),
                                "surface normal");
     eavlExecutor::Go();
