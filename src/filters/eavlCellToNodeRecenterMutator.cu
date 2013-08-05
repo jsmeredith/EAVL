@@ -3,7 +3,7 @@
 #include "eavlDataSet.h"
 #include "eavlException.h"
 #include "eavlExecutor.h"
-#include "eavlTopologyMapOp.h"
+#include "eavlSimpleTopologyMapOp.h"
 
 ///\todo: I think we could replace these with a 1-size-fits-all version.
 struct AverageFunctor1
@@ -67,26 +67,26 @@ void eavlCellToNodeRecenterMutator::Execute()
     if (ncomp == 1)
     {
         eavlOperation *op = 
-            new_eavlTopologyMapOp(cellSet,
-                                  EAVL_CELLS_OF_NODES,
-                                  eavlOpArgs(array),
-                                  eavlOpArgs(result),
-                                  AverageFunctor1());
+            new_eavlSimpleTopologyMapOp(cellSet,
+                                        EAVL_CELLS_OF_NODES,
+                                        eavlOpArgs(array),
+                                        eavlOpArgs(result),
+                                        AverageFunctor1());
         eavlExecutor::AddOperation(op, "1-comp recenter to the nodes");
         eavlExecutor::Go();
     }
     else if (ncomp == 3)
     {
         eavlOperation *op = 
-            new_eavlTopologyMapOp(cellSet,
-                                  EAVL_CELLS_OF_NODES,
-                                  eavlOpArgs(make_indexable(array,0),
-                                             make_indexable(array,1), 
-                                             make_indexable(array,2)),
-                                  eavlOpArgs(make_indexable(result,0),
-                                             make_indexable(result,1), 
-                                             make_indexable(result,2)),
-                                  AverageFunctor3());
+            new_eavlSimpleTopologyMapOp(cellSet,
+                                        EAVL_CELLS_OF_NODES,
+                                        eavlOpArgs(make_indexable(array,0),
+                                                   make_indexable(array,1), 
+                                                   make_indexable(array,2)),
+                                        eavlOpArgs(make_indexable(result,0),
+                                                   make_indexable(result,1), 
+                                                   make_indexable(result,2)),
+                                        AverageFunctor3());
         eavlExecutor::AddOperation(op, "3-comp recenter to the nodes");
         eavlExecutor::Go();
     }

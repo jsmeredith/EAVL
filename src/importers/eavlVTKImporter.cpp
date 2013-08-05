@@ -1049,6 +1049,10 @@ eavlVTKImporter::Parse_Polydata()
             st = EAVL_TRISTRIP;
             index = 3;
         }
+        else
+        {
+            THROW(eavlException, "Unknown cell set in vtk polydata");
+        }
 
         int nnew;
         int nvals;

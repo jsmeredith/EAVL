@@ -3,9 +3,8 @@
 
 #include "eavlExecutor.h"
 #include "eavlCellSetExplicit.h"
-#include "eavlCellSparseMapOp_2_3.h"
 #include "eavlConnectivityDereferenceOp_3.h"
-#include "eavlCombinedTopologyGatherMapOp.h"
+#include "eavlCombinedTopologyPackedMapOp.h"
 #include "eavlCoordinates.h"
 #include "eavlGatherOp_1.h"
 #include "eavlMapOp.h"
@@ -13,9 +12,10 @@
 #include "eavlReduceOp_1.h"
 #include "eavlReverseIndexOp.h"
 #include "eavlSimpleReverseIndexOp.h"
-#include "eavlTopologyMapOp.h"
-#include "eavlTopologyInfoMapOp.h"
-#include "eavlTopologyGatherMapOp_1_0_1.h"
+#include "eavlSimpleTopologyMapOp.h"
+#include "eavlInfoTopologyMapOp.h"
+#include "eavlInfoTopologyPackedMapOp.h"
+#include "eavlSimpleTopologyGatherMapOp.h"
 #include "eavlException.h"
 
 #include "eavlNewIsoTables.h"
@@ -41,7 +41,10 @@ class CalcAlphaFunctor
     float target;
   public:
     CalcAlphaFunctor(float tgt) : target(tgt) { }
+    ///\todo: delete me, I'm old
     EAVL_FUNCTOR float operator()(int shapeType, int n, float vals[])
+
+
     {
         // we're assuming vals[0] != vals[1] here, but note
         // that we only call this routine for edges which will
@@ -49,6 +52,21 @@ class CalcAlphaFunctor
         // if one edge node was > tgt and one was <= tgt, so 
         // they must be different in the way we call it.
         return (target - vals[0]) / (vals[1] - vals[0]);
+
+
+    }
+    template <class IN>
+    EAVL_FUNCTOR float operator()(int shapeType, int n, int ids[],
+                                  IN vals)
+    {
+        // we're assuming vals[0] != vals[1] here, but note
+        // that we only call this routine for edges which will
+        // be present in the final output, which only happens
+        // if one edge node was > tgt and one was <= tgt, so 
+        // they must be different in the way we call it.
+        float a = collect(ids[0], vals);
+        float b = collect(ids[1], vals);
+        return (target - a) / (b - a);
     }
 };
 
@@ -61,16 +79,24 @@ class LinterpFunctor
     {
         float a = collect(ids[0], vals);
         float b = collect(ids[1], vals);
-        cerr << "(1) calling LinterpFunctor(): ids[0]="<<ids[0]<<" ids[1]="<<ids[1]<<" a="<<a<<" b="<<b<<" alpha="<<alpha<<endl;
         return a + alpha*(b-a);
     }
+};
 
-    EAVL_FUNCTOR float operator()(int shapeType, int n, float vals[], float alpha)
+class LinterpFunctor3
+{
+  public:
+    ///\todo: this makes a good spot to test whether to use collecttypes for speed
+    /// or if tuples are just as fast (and more convenient).
+    template <class IN>
+    EAVL_FUNCTOR tuple<float,float,float> operator()(int shapeType, int n, int ids[],
+                                                     IN vals, float alpha)
     {
-        float a = vals[0];
-        float b = vals[1];
-        cerr << "(2) calling LinterpFunctor(): a="<<a<<" b="<<b<<" alpha="<<alpha<<endl;
-        return a + alpha*(b-a);
+        tuple<float,float,float> a = collect(ids[0], vals);
+        tuple<float,float,float> b = collect(ids[1], vals);
+        return tuple<float,float,float>(get<0>(a) + alpha*(get<0>(b)-get<0>(a)),
+                                        get<1>(a) + alpha*(get<1>(b)-get<1>(a)),
+                                        get<2>(a) + alpha*(get<2>(b)-get<2>(a)));
     }
 };
 
@@ -152,11 +178,16 @@ class Iso3DLookupTris
           voxstart(*voxstart_), voxgeom(*voxgeom_)
     {
     }
+    ///\todo: delete me, I'm old
     EAVL_FUNCTOR void operator()(int shapeType,
                                  int caseindex, int subindex,
                                  float &localedge0, float &localedge1, float &localedge2)
     {
+
+
+
         int startindex;
+
         switch (shapeType)
         {
           case EAVL_TET:
@@ -193,6 +224,52 @@ class Iso3DLookupTris
             localedge0 = localedge1 = localedge2 = 0;
             break;
         }
+
+    }
+    EAVL_FUNCTOR tuple<int,int,int> operator()(int shapeType, tuple<int,int> index)
+    {
+        int caseindex = get<0>(index);
+        int subindex = get<1>(index);
+                                                   
+        int startindex;
+        int localedge0, localedge1, localedge2;
+        switch (shapeType)
+        {
+          case EAVL_TET:
+            startindex = tetstart[caseindex] + 3*subindex;
+            localedge0 = tetgeom[startindex+0];
+            localedge1 = tetgeom[startindex+1];
+            localedge2 = tetgeom[startindex+2];
+            break;
+          case EAVL_PYRAMID:
+            startindex = pyrstart[caseindex] + 3*subindex;
+            localedge0 = pyrgeom[startindex+0];
+            localedge1 = pyrgeom[startindex+1];
+            localedge2 = pyrgeom[startindex+2];
+            break;
+          case EAVL_WEDGE:
+            startindex = wdgstart[caseindex] + 3*subindex;
+            localedge0 = wdggeom[startindex+0];
+            localedge1 = wdggeom[startindex+1];
+            localedge2 = wdggeom[startindex+2];
+            break;
+          case EAVL_HEX:
+            startindex = hexstart[caseindex] + 3*subindex;
+            localedge0 = hexgeom[startindex+0];
+            localedge1 = hexgeom[startindex+1];
+            localedge2 = hexgeom[startindex+2];
+            break;
+          case EAVL_VOXEL:
+            startindex = voxstart[caseindex] + 3*subindex;
+            localedge0 = voxgeom[startindex+0];
+            localedge1 = voxgeom[startindex+1];
+            localedge2 = voxgeom[startindex+2];
+            break;
+          default:
+            localedge0 = localedge1 = localedge2 = 0;
+            break;
+        }
+        return tuple<int,int,int>(localedge0,localedge1,localedge2);
     }
 };
 
@@ -232,7 +309,7 @@ eavlIsosurfaceFilter::~eavlIsosurfaceFilter()
 void
 eavlIsosurfaceFilter::Execute()
 {
-    eavlTimer::Suspend();
+    //eavlTimer::Suspend();
 
     int th_init = eavlTimer::Start();
     eavlInitializeIsoTables();
@@ -288,7 +365,7 @@ eavlIsosurfaceFilter::Execute()
 
     // map the cell nodes' hi/lo as a bitfield, i.e. into a case index
     eavlExecutor::AddOperation(
-        new_eavlTopologyMapOp(inCells,
+        new_eavlSimpleTopologyMapOp(inCells,
                               EAVL_NODES_OF_CELLS,
                               eavlOpArgs(hiloArray),
                               eavlOpArgs(caseArray),
@@ -299,7 +376,7 @@ eavlIsosurfaceFilter::Execute()
     ///\todo: we need a "EAVL_CELLS" equivalent here; we don't care
     /// what "from" topo type, just that we want the mapping for cells.
     eavlExecutor::AddOperation(
-        new_eavlTopologyInfoMapOp(inCells,
+        new_eavlInfoTopologyMapOp(inCells,
                                   EAVL_NODES_OF_CELLS,
                                   eavlOpArgs(caseArray),
                                   eavlOpArgs(numoutArray),
@@ -332,7 +409,7 @@ eavlIsosurfaceFilter::Execute()
     /// I would expect it to throw an error (array types don't match because we're putting
     /// the scan result into an int array), but I'm just getting a segfault?
     eavlExecutor::AddOperation(
-        new_eavlTopologyMapOp(inCells,
+        new_eavlSimpleTopologyMapOp(inCells,
                               EAVL_NODES_OF_EDGES,
                               eavlOpArgs(hiloArray),
                               eavlOpArgs(edgeInclArray),
@@ -408,23 +485,23 @@ eavlIsosurfaceFilter::Execute()
         "copy input case from cells to output array for each generated triangle");
 
     // look up case+subindex in the table using input cell to get output geom
-    ///\todo: is this operation plus the gatherop prior to it not just a combined eavlTopologyGatherMapOp??
+    ///\todo: is this operation plus the gatherop prior to it not just a combined topology gather map?
+    ///\todo: need EAVL_CELLS instead of nodes-of-cells.
     eavlExecutor::AddOperation(
-        new eavlCellSparseMapOp_2_3<Iso3DLookupTris>
-            (inCells,
-             outcaseArray,
-             revInputSubindex,
-             eavlArrayWithLinearIndex(localouttriArray, 0),
-             eavlArrayWithLinearIndex(localouttriArray, 1),
-             eavlArrayWithLinearIndex(localouttriArray, 2),
-             revInputIndex,
-             Iso3DLookupTris(eavlTetIsoTriStart, eavlTetIsoTriGeom,
-                             eavlPyrIsoTriStart, eavlPyrIsoTriGeom,
-                             eavlWdgIsoTriStart, eavlWdgIsoTriGeom,
-                             eavlHexIsoTriStart, eavlHexIsoTriGeom,
-                             eavlVoxIsoTriStart, eavlVoxIsoTriGeom)),
+        new_eavlInfoTopologyPackedMapOp(inCells,
+                                        EAVL_NODES_OF_CELLS,
+                                        eavlOpArgs(outcaseArray,
+                                                   revInputSubindex),
+                                        eavlOpArgs(eavlIndexable<eavlIntArray>(localouttriArray,0),
+                                                   eavlIndexable<eavlIntArray>(localouttriArray,1),
+                                                   eavlIndexable<eavlIntArray>(localouttriArray,2)),
+                                        eavlOpArgs(revInputIndex),
+                                        Iso3DLookupTris(eavlTetIsoTriStart, eavlTetIsoTriGeom,
+                                                        eavlPyrIsoTriStart, eavlPyrIsoTriGeom,
+                                                        eavlWdgIsoTriStart, eavlWdgIsoTriGeom,
+                                                        eavlHexIsoTriStart, eavlHexIsoTriGeom,
+                                                        eavlVoxIsoTriStart, eavlVoxIsoTriGeom)),
         "generate cell-local output triangle edge indices");
-
 
     // map local cell edges to global ones from input mesh
     eavlExecutor::AddOperation(
@@ -502,44 +579,24 @@ eavlIsosurfaceFilter::Execute()
 
     // generate alphas for each output 
     eavlExecutor::AddOperation(
-        new eavlTopologyGatherMapOp_1_0_1<CalcAlphaFunctor>
-            (inCells,
-             EAVL_NODES_OF_EDGES,
-             inField->GetArray(),
-             alpha,
-             revPtEdgeIndex,
-             CalcAlphaFunctor(value)),
+        new_eavlSimpleTopologyGatherMapOp(inCells,
+                                          EAVL_NODES_OF_EDGES,
+                                          eavlOpArgs(inField->GetArray()),
+                                          eavlOpArgs(alpha),
+                                          eavlOpArgs(revPtEdgeIndex),
+                                          CalcAlphaFunctor(value)),
         "generate alphas");
 
     // using the alphas, interpolate to create the new coordinate arrays
-    ///\todo: better if this were eavlTopologyGatherMapOp_3_1_1.
     eavlExecutor::AddOperation(
-        new_eavlCombinedTopologyGatherMapOp(inCells,
+        new_eavlCombinedTopologyPackedMapOp(inCells,
                                             EAVL_NODES_OF_EDGES,
-                                            eavlOpArgs(ali0),
+                                            eavlOpArgs(ali0,ali1,ali2),
                                             eavlOpArgs(alpha),
-                                            eavlOpArgs(newx),
+                                            eavlOpArgs(newx,newy,newz),
                                             eavlOpArgs(revPtEdgeIndex),
-                                            LinterpFunctor()),
-        "generate x coords");
-    eavlExecutor::AddOperation(
-        new_eavlCombinedTopologyGatherMapOp(inCells,
-                                            EAVL_NODES_OF_EDGES,
-                                            eavlOpArgs(ali1),
-                                            eavlOpArgs(alpha),
-                                            eavlOpArgs(newy),
-                                            eavlOpArgs(revPtEdgeIndex),
-                                            LinterpFunctor()),
-        "generate y coords");
-    eavlExecutor::AddOperation(
-        new_eavlCombinedTopologyGatherMapOp(inCells,
-                                            EAVL_NODES_OF_EDGES,
-                                            eavlOpArgs(ali2),
-                                            eavlOpArgs(alpha),
-                                            eavlOpArgs(newz),
-                                            eavlOpArgs(revPtEdgeIndex),
-                                            LinterpFunctor()),
-        "generate z coords");
+                                            LinterpFunctor3()),
+        "generate xyz coords");
 
     /// interpolate the point vars and gather the cell vars
     for (int i=0; i<input->GetNumFields(); i++)
@@ -563,7 +620,7 @@ eavlIsosurfaceFilter::Execute()
         {
             eavlArray *outArr = a->Create(a->GetName(), 1, noutpts);
             eavlExecutor::AddOperation(
-                new_eavlCombinedTopologyGatherMapOp(inCells,
+                new_eavlCombinedTopologyPackedMapOp(inCells,
                                                     EAVL_NODES_OF_EDGES,
                                                     eavlOpArgs(a),
                                                     eavlOpArgs(alpha),
@@ -673,5 +730,5 @@ eavlIsosurfaceFilter::Execute()
     output->AddField(new eavlField(1, newx, eavlField::ASSOC_POINTS));
     output->AddField(new eavlField(1, newy, eavlField::ASSOC_POINTS));
     output->AddField(new eavlField(1, newz, eavlField::ASSOC_POINTS));
-    eavlTimer::Resume();
+    //eavlTimer::Resume();
 }

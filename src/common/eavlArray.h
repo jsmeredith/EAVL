@@ -175,21 +175,23 @@ class eavlArray
             <<"["<< GetNumberOfComponents()<<"] = ";
         if (n == 0)
             out << "(empty)";
+        const int NV=11;
         for (int i=0; i<n; i++)
         {
-            if (n <= 11)
+            if (n <= NV)
                 out << GetComponentAsDouble(i/ncomponents,i%ncomponents) << "  ";
             else
             {
                 out << GetComponentAsDouble(i/ncomponents,i%ncomponents);
-                if (i==0 || i==1 || i==2 || i==3 || i==n-5 || i==n-4 || i==n-3 || i==n-2)
+                if ((i>=0 && i<int(NV/2)-1) ||
+                    (i>=n-int(NV/2) && i<=n-2))
                 {
                     out << "  ";
                 }
-                else if (i == 4)
+                else if (i == int(NV/2)-1)
                 {
                     out << " ... ";
-                    i = n-6;
+                    i = n-int(NV/2+1);
                 }
             }
         }

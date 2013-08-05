@@ -5,6 +5,9 @@
 #include "eavlOperation.h"
 #include "eavlArray.h"
 #include "eavlException.h"
+#include "eavlCellSet.h"
+#include "eavlCellSetExplicit.h"
+#include "eavlCellSetAllStructured.h"
 
 void eavlConnectivityDereferenceOp_3_CPU_regular(int n,
                             eavlRegularConnectivity reg,
