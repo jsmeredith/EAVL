@@ -6,7 +6,6 @@
 #include "eavlCellSet.h"
 #include "eavlField.h"
 #include "eavlDataSet.h"
-#include "eavlTopologyMapOp_3_0_3.h"
 #include "eavlSimpleTopologyMapOp.h"
 #include "eavlField.h"
 #include "eavlVector3.h"

@@ -4,6 +4,9 @@
 
 #include "eavl.h"
 #include "eavlTuple.h"
+#include "eavlIndexable.h"
+#include "eavlTupleTraits.h"
+
 // ****************************************************************************
 // Function:  eavlOpDispatch
 //
