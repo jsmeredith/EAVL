@@ -12,10 +12,10 @@
 #include "eavlReduceOp_1.h"
 #include "eavlReverseIndexOp.h"
 #include "eavlSimpleReverseIndexOp.h"
-#include "eavlSimpleTopologyMapOp.h"
+#include "eavlSourceTopologyMapOp.h"
 #include "eavlInfoTopologyMapOp.h"
 #include "eavlInfoTopologyPackedMapOp.h"
-#include "eavlSimpleTopologyGatherMapOp.h"
+#include "eavlSourceTopologyGatherMapOp.h"
 #include "eavlException.h"
 
 #include "eavlNewIsoTables.h"
@@ -313,7 +313,7 @@ eavlIsosurfaceFilter::Execute()
 
     // map the cell nodes' hi/lo as a bitfield, i.e. into a case index
     eavlExecutor::AddOperation(
-        new_eavlSimpleTopologyMapOp(inCells,
+        new_eavlSourceTopologyMapOp(inCells,
                               EAVL_NODES_OF_CELLS,
                               eavlOpArgs(hiloArray),
                               eavlOpArgs(caseArray),
@@ -357,7 +357,7 @@ eavlIsosurfaceFilter::Execute()
     /// I would expect it to throw an error (array types don't match because we're putting
     /// the scan result into an int array), but I'm just getting a segfault?
     eavlExecutor::AddOperation(
-        new_eavlSimpleTopologyMapOp(inCells,
+        new_eavlSourceTopologyMapOp(inCells,
                               EAVL_NODES_OF_EDGES,
                               eavlOpArgs(hiloArray),
                               eavlOpArgs(edgeInclArray),
@@ -532,7 +532,7 @@ eavlIsosurfaceFilter::Execute()
 
     // generate alphas for each output 
     eavlExecutor::AddOperation(
-        new_eavlSimpleTopologyGatherMapOp(inCells,
+        new_eavlSourceTopologyGatherMapOp(inCells,
                                           EAVL_NODES_OF_EDGES,
                                           eavlOpArgs(inField->GetArray()),
                                           eavlOpArgs(alpha),

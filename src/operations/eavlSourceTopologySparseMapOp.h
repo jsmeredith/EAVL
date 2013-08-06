@@ -1,6 +1,6 @@
 // Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
-#ifndef EAVL_SIMPLE_TOPOLOGY_SPARSE_MAP_OP_H
-#define EAVL_SIMPLE_TOPOLOGY_SPARSE_MAP_OP_H
+#ifndef EAVL_SOURCE_TOPOLOGY_SPARSE_MAP_OP_H
+#define EAVL_SOURCE_TOPOLOGY_SPARSE_MAP_OP_H
 
 #include "eavlCUDA.h"
 #include "eavlCellSet.h"
@@ -18,7 +18,7 @@
 #ifndef DOXYGEN
 
 template <class CONN>
-struct eavlSimpleTopologySparseMapOp_CPU
+struct eavlSourceTopologySparseMapOp_CPU
 {
     static inline eavlArray::Location location() { return eavlArray::HOST; }
     template <class F, class IN, class OUT, class INDEX>
@@ -47,7 +47,7 @@ struct eavlSimpleTopologySparseMapOp_CPU
 
 template <class CONN, class F, class IN, class OUT, class INDEX>
 __global__ void
-eavlSimpleTopologyGatherMapOp_kernel(int nitems, CONN conn,
+eavlSourceTopologyGatherMapOp_kernel(int nitems, CONN conn,
                                      const IN s_inputs, OUT outputs,
                                      INDEX indices, F functor)
 {
@@ -69,7 +69,7 @@ eavlSimpleTopologyGatherMapOp_kernel(int nitems, CONN conn,
 
 
 template <class CONN>
-struct eavlSimpleTopologyGatherMapOp_GPU
+struct eavlSourceTopologyGatherMapOp_GPU
 {
     static inline eavlArray::Location location() { return eavlArray::DEVICE; }
     template <class F, class IN, class OUT, class INDEX>
@@ -80,7 +80,7 @@ struct eavlSimpleTopologyGatherMapOp_GPU
         int numThreads = 256;
         dim3 threads(numThreads,   1, 1);
         dim3 blocks (32,           1, 1);
-        eavlSimpleTopologyGatherMapOp_kernel<<< blocks, threads >>>(nitems, conn,
+        eavlSourceTopologyGatherMapOp_kernel<<< blocks, threads >>>(nitems, conn,
                                                                     s_inputs, outputs,
                                                                     indices, functor);
         CUDA_CHECK_ERROR();
@@ -93,7 +93,7 @@ struct eavlSimpleTopologyGatherMapOp_GPU
 #endif
 
 // ****************************************************************************
-// Class:  eavlSimpleTopologySparseMapOp
+// Class:  eavlSourceTopologySparseMapOp
 //
 // Purpose:
 ///   Map from one topological element in a mesh to another, with
@@ -107,7 +107,7 @@ struct eavlSimpleTopologyGatherMapOp_GPU
 // Modifications:
 // ****************************************************************************
 template <class IS, class O, class INDEX, class F>
-class eavlSimpleTopologySparseMapOp : public eavlOperation
+class eavlSourceTopologySparseMapOp : public eavlOperation
 {
   protected:
     eavlCellSet *cells;
@@ -117,7 +117,7 @@ class eavlSimpleTopologySparseMapOp : public eavlOperation
     INDEX        indices;
     F            functor;
   public:
-    eavlSimpleTopologySparseMapOp(eavlCellSet *c, eavlTopology t,
+    eavlSourceTopologySparseMapOp(eavlCellSet *c, eavlTopology t,
                             IS is, O o, INDEX ind, F f)
         : cells(c), topology(t), s_inputs(is), outputs(o), indices(ind), functor(f)
     {
@@ -130,12 +130,12 @@ class eavlSimpleTopologySparseMapOp : public eavlOperation
         if (elExp)
         {
             eavlExplicitConnectivity &conn = elExp->GetConnectivity(topology);
-            eavlOpDispatch<eavlSimpleTopologySparseMapOp_CPU<eavlExplicitConnectivity> >(n, conn, s_inputs, outputs, indices, functor);
+            eavlOpDispatch<eavlSourceTopologySparseMapOp_CPU<eavlExplicitConnectivity> >(n, conn, s_inputs, outputs, indices, functor);
         }
         else if (elStr)
         {
             eavlRegularConnectivity conn = eavlRegularConnectivity(elStr->GetRegularStructure(),topology);
-            eavlOpDispatch<eavlSimpleTopologySparseMapOp_CPU<eavlRegularConnectivity> >(n, conn, s_inputs, outputs, indices, functor);
+            eavlOpDispatch<eavlSourceTopologySparseMapOp_CPU<eavlRegularConnectivity> >(n, conn, s_inputs, outputs, indices, functor);
         }
     }
     virtual void GoGPU()
@@ -152,7 +152,7 @@ class eavlSimpleTopologySparseMapOp : public eavlOperation
             conn.connectivity.NeedOnDevice();
             conn.mapCellToIndex.NeedOnDevice();
 
-            eavlOpDispatch<eavlSimpleTopologySparseMapOp_GPU<eavlExplicitConnectivity> >(n, conn, s_inputs, outputs, indices, functor);
+            eavlOpDispatch<eavlSourceTopologySparseMapOp_GPU<eavlExplicitConnectivity> >(n, conn, s_inputs, outputs, indices, functor);
 
             conn.shapetype.NeedOnHost();
             conn.connectivity.NeedOnHost();
@@ -161,7 +161,7 @@ class eavlSimpleTopologySparseMapOp : public eavlOperation
         else if (elStr)
         {
             eavlRegularConnectivity conn = eavlRegularConnectivity(elStr->GetRegularStructure(),topology);
-            eavlOpDispatch<eavlSimpleTopologySparseMapOp_GPU<eavlRegularConnectivity> >(n, conn, s_inputs, outputs, indices, functor);
+            eavlOpDispatch<eavlSourceTopologySparseMapOp_GPU<eavlRegularConnectivity> >(n, conn, s_inputs, outputs, indices, functor);
         }
 #else
         THROW(eavlException,"Executing GPU code without compiling under CUDA compiler.");
@@ -171,10 +171,10 @@ class eavlSimpleTopologySparseMapOp : public eavlOperation
 
 // helper function for type deduction
 template <class IS, class O, class INDEX, class F>
-eavlSimpleTopologySparseMapOp<IS,O,INDEX,F> *new_eavlSimpleTopologySparseMapOp(eavlCellSet *c, eavlTopology t,
+eavlSourceTopologySparseMapOp<IS,O,INDEX,F> *new_eavlSourceTopologySparseMapOp(eavlCellSet *c, eavlTopology t,
                                                                    IS is, O o, INDEX indices, F f) 
 {
-    return new eavlSimpleTopologySparseMapOp<IS,O,INDEX,F>(c,t,is,o,indices,f);
+    return new eavlSourceTopologySparseMapOp<IS,O,INDEX,F>(c,t,is,o,indices,f);
 }
 
 

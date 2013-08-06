@@ -6,7 +6,7 @@
 #include "eavlCellSet.h"
 #include "eavlField.h"
 #include "eavlDataSet.h"
-#include "eavlSimpleTopologyMapOp.h"
+#include "eavlSourceTopologyMapOp.h"
 #include "eavlField.h"
 #include "eavlVector3.h"
 #include "eavlException.h"
@@ -94,7 +94,7 @@ eavlSurfaceNormalMutator::Execute()
     eavlFloatArray *out = new eavlFloatArray("surface_normals", 3,
                                              inCells->GetNumCells());
 
-    eavlExecutor::AddOperation(new_eavlSimpleTopologyMapOp(
+    eavlExecutor::AddOperation(new_eavlSourceTopologyMapOp(
                                       inCells, EAVL_NODES_OF_CELLS,
                                       eavlOpArgs(i0, i1, i2),
                                       eavlOpArgs(eavlIndexable<eavlFloatArray>(out,0),

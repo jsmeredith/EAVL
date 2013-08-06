@@ -3,7 +3,7 @@
 #include "eavlDataSet.h"
 #include "eavlException.h"
 #include "eavlExecutor.h"
-#include "eavlSimpleTopologyMapOp.h"
+#include "eavlSourceTopologyMapOp.h"
 
 ///\todo: I think we could replace these with a 1-size-fits-all version.
 struct AverageFunctor1
@@ -67,7 +67,7 @@ void eavlCellToNodeRecenterMutator::Execute()
     if (ncomp == 1)
     {
         eavlOperation *op = 
-            new_eavlSimpleTopologyMapOp(cellSet,
+            new_eavlSourceTopologyMapOp(cellSet,
                                         EAVL_CELLS_OF_NODES,
                                         eavlOpArgs(array),
                                         eavlOpArgs(result),
@@ -78,7 +78,7 @@ void eavlCellToNodeRecenterMutator::Execute()
     else if (ncomp == 3)
     {
         eavlOperation *op = 
-            new_eavlSimpleTopologyMapOp(cellSet,
+            new_eavlSourceTopologyMapOp(cellSet,
                                         EAVL_CELLS_OF_NODES,
                                         eavlOpArgs(make_indexable(array,0),
                                                    make_indexable(array,1), 
