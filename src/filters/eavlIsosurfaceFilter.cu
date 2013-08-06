@@ -3,7 +3,7 @@
 
 #include "eavlExecutor.h"
 #include "eavlCellSetExplicit.h"
-#include "eavlConnectivityDereferenceOp_3.h"
+#include "eavlDestinationTopologyPackedMapOp.h"
 #include "eavlCombinedTopologyPackedMapOp.h"
 #include "eavlCoordinates.h"
 #include "eavlGatherOp_1.h"
@@ -83,6 +83,16 @@ class LinterpFunctor3
         return tuple<float,float,float>(get<0>(a) + alpha*(get<0>(b)-get<0>(a)),
                                         get<1>(a) + alpha*(get<1>(b)-get<1>(a)),
                                         get<2>(a) + alpha*(get<2>(b)-get<2>(a)));
+    }
+};
+
+struct ConnectivityDererenceFunctor3
+{
+    EAVL_FUNCTOR tuple<int,int,int> operator()(int shapeType, int n, int ids[], tuple<int,int,int> localids)
+    {
+        return tuple<int,int,int>(ids[get<0>(localids)],
+                                  ids[get<1>(localids)],
+                                  ids[get<2>(localids)]);
     }
 };
 
@@ -448,16 +458,16 @@ eavlIsosurfaceFilter::Execute()
 
     // map local cell edges to global ones from input mesh
     eavlExecutor::AddOperation(
-        new eavlConnectivityDereferenceOp_3
-            (inCells,
-             EAVL_EDGES_OF_CELLS,
-             eavlArrayWithLinearIndex(localouttriArray, 0),
-             eavlArrayWithLinearIndex(localouttriArray, 1),
-             eavlArrayWithLinearIndex(localouttriArray, 2),
-             eavlArrayWithLinearIndex(outtriArray, 0),
-             eavlArrayWithLinearIndex(outtriArray, 1),
-             eavlArrayWithLinearIndex(outtriArray, 2),
-             revInputIndex),
+        new_eavlDestinationTopologyPackedMapOp(inCells,
+                                               EAVL_EDGES_OF_CELLS,
+                                               eavlOpArgs(eavlIndexable<eavlIntArray>(localouttriArray, 0),
+                                                          eavlIndexable<eavlIntArray>(localouttriArray, 1),
+                                                          eavlIndexable<eavlIntArray>(localouttriArray, 2)),
+                                               eavlOpArgs(eavlIndexable<eavlIntArray>(outtriArray, 0),
+                                                          eavlIndexable<eavlIntArray>(outtriArray, 1),
+                                                          eavlIndexable<eavlIntArray>(outtriArray, 2)),
+                                               eavlOpArgs(revInputIndex),
+                                               ConnectivityDererenceFunctor3()),
         "dereference cell-local edges to global edge ids");
 
     // map global edge indices for triangles to output point index
