@@ -31,7 +31,7 @@ struct eavlCombinedTopologySparseMapOp_CPU
         int ids[MAX_LOCAL_TOPOLOGY_IDS]; // these are effectively our src indices
         for (int denseindex = 0; denseindex < nitems; ++denseindex)
         {
-            int sparseindex = sparseindices[denseindex];
+            int sparseindex = sparseindices[get<0>(indices).indexer.index(denseindex)];
 
             int nids;
             int shapeType = conn.GetElementComponents(sparseindex, nids, ids);
@@ -59,7 +59,7 @@ eavlCombinedTopologyPackedMapOp_kernel(int nitems, CONN conn,
     int ids[MAX_LOCAL_TOPOLOGY_IDS];
     for (int denseindex = threadID; denseindex < nitems; denseindex += numThreads)
     {
-        int sparseindex = sparseindices[denseindex];
+        int sparseindex = sparseindices[get<0>(indices).indexer.index(denseindex)];
 
         int nids;
         int shapeType = conn.GetElementComponents(sparseindex, nids, ids);

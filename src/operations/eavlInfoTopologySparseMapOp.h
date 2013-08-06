@@ -30,7 +30,7 @@ struct eavlInfoTopologySparseMapOp_CPU
 
         for (int denseindex = 0; denseindex < nitems; ++denseindex)
         {
-            int sparseindex = sparseindices[denseindex];
+            int sparseindex = sparseindices[get<0>(indices).indexer.index(denseindex)];
             int shapeType = conn.GetShapeType(sparseindex);
             collect(sparseindex, outputs) = functor(shapeType, collect(sparseindex, inputs));
         }
@@ -51,7 +51,7 @@ eavlInfoTopologySparseMapOp_kernel(int nitems, CONN conn,
     const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
     for (int denseindex = threadID; denseindex < nitems; denseindex += numThreads)
     {
-        int sparseindex = sparseindices[denseindex];
+        int sparseindex = sparseindices[get<0>(indices).indexer.index(denseindex)];
         int shapeType = conn.GetShapeType(sparseindex);
         collect(sparseindex, outputs) = functor(shapeType, collect(sparseindex, inputs));
     }

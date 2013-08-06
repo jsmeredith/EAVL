@@ -48,7 +48,7 @@ eavlGatherOp_kernel(int nitems,
     const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
     for (int denseindex = threadID; denseindex < nitems; denseindex += numThreads)
     {
-        int sparseindex = sparseindices[denseindex];
+        int sparseindex = sparseindices[get<0>(indices).indexer.index(denseindex)];
         // can't use operator= because it's ambiguous when only
         // one input and one output array (without a functor that
         // would force a cast to a known type situation).
