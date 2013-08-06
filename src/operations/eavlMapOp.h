@@ -88,14 +88,14 @@ class eavlMapOp : public eavlOperation
     virtual void GoCPU()
     {
         int dummy;
-        int n = outputs.first.array->GetNumberOfTuples();
+        int n = outputs.first.length();
         eavlOpDispatch<eavlMapOp_CPU>(n, dummy, inputs, outputs, functor);
     }
     virtual void GoGPU()
     {
 #ifdef HAVE_CUDA
         int dummy;
-        int n = outputs.first.array->GetNumberOfTuples();
+        int n = outputs.first.length();
         eavlOpDispatch<eavlMapOp_GPU>(n, dummy, inputs, outputs, functor);
 #else
         THROW(eavlException,"Executing GPU code without compiling under CUDA compiler.");

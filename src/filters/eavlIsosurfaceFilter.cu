@@ -7,7 +7,6 @@
 #include "eavlCombinedTopologyPackedMapOp.h"
 #include "eavlCoordinates.h"
 #include "eavlGatherOp.h"
-#include "eavlGatherOp_1.h"
 #include "eavlMapOp.h"
 #include "eavlPrefixSumOp_1.h"
 #include "eavlReduceOp_1.h"
@@ -472,21 +471,16 @@ eavlIsosurfaceFilter::Execute()
         "dereference cell-local edges to global edge ids");
 
     // map global edge indices for triangles to output point index
-    ///\todo: this would be better with a gatherop_3, but even better
-    /// if we had an easy way to flatten the 3-component array into a
-    /// single-component array, since all components are treated identically.
+
+    // NOTE: By not creating an eavlIndexable with an array component
+    // we're interested in for outconn and outtriArray, even though
+    // they are three component arrays, we are treating them as if
+    // they were single-component arrays here.  (If we didn't, then
+    // we'd have to make three gather calls here.)
     eavlExecutor::AddOperation(new_eavlGatherOp(eavlOpArgs(outpointindexArray),
-                                                eavlOpArgs(eavlIndexable<eavlIntArray>(outconn,0)),
-                                                eavlOpArgs(eavlIndexable<eavlIntArray>(outtriArray,0))),
-                               "(a) turn input edge ids (for output triangles) into output point ids");
-    eavlExecutor::AddOperation(new_eavlGatherOp(eavlOpArgs(outpointindexArray),
-                                                eavlOpArgs(eavlIndexable<eavlIntArray>(outconn,1)),
-                                                eavlOpArgs(eavlIndexable<eavlIntArray>(outtriArray,1))),
-                               "(b) turn input edge ids (for output triangles) into output point ids");
-    eavlExecutor::AddOperation(new_eavlGatherOp(eavlOpArgs(outpointindexArray),
-                                                eavlOpArgs(eavlIndexable<eavlIntArray>(outconn,2)),
-                                                eavlOpArgs(eavlIndexable<eavlIntArray>(outtriArray,2))),
-                               "(c) turn input edge ids (for output triangles) into output point ids");
+                                                eavlOpArgs(outconn),
+                                                eavlOpArgs(outtriArray)),
+                               "turn input edge ids (for output triangles) into output point ids");
                                                     
     //
     // get the original coordinate arrays

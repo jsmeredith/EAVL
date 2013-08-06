@@ -116,7 +116,7 @@ class eavlInfoTopologySparseMapOp : public eavlOperation
     {
         eavlCellSetExplicit *elExp = dynamic_cast<eavlCellSetExplicit*>(cells);
         eavlCellSetAllStructured *elStr = dynamic_cast<eavlCellSetAllStructured*>(cells);
-        int n = outputs.first.array->GetNumberOfTuples();
+        int n = outputs.first.length();
         if (elExp)
         {
             eavlExplicitConnectivity &conn = elExp->GetConnectivity(topology);
@@ -133,7 +133,7 @@ class eavlInfoTopologySparseMapOp : public eavlOperation
 #ifdef HAVE_CUDA
         eavlCellSetExplicit *elExp = dynamic_cast<eavlCellSetExplicit*>(cells);
         eavlCellSetAllStructured *elStr = dynamic_cast<eavlCellSetAllStructured*>(cells);
-        int n = outputs.first.array->GetNumberOfTuples();
+        int n = outputs.first.length();
         if (elExp)
         {
             eavlExplicitConnectivity &conn = elExp->GetConnectivity(topology);

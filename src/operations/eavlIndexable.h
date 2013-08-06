@@ -12,9 +12,6 @@ class eavlArrayIndexer
     eavlArrayIndexer() : div(1), mod(1e9), mul(1), add(0)
     {
     }
-    eavlArrayIndexer(const eavlArrayIndexer &ind) : div(ind.div), mod(ind.mod), mul(ind.mul), add(ind.add)
-    {
-    }
     eavlArrayIndexer(int mul, int add) : div(1), mod(1e9), mul(mul), add(add)
     {
     }
@@ -51,6 +48,16 @@ class eavlIndexable
                   arr->GetNumberOfComponents(),
                   comp)
     {
+    }
+    int length() const
+    {
+        // We don't need to account for div/mod here because
+        // we're only using this to determine how many
+        // output values we have, and output values don't have
+        // div/mod.  (I'm not sure we could do it accurately
+        // even if we wanted to....)
+        int nvalues = array->GetNumberOfTuples() * array->GetNumberOfComponents();
+        return int((nvalues - indexer.add) / indexer.mul);
     }
     virtual void Print(ostream &out)
     {
