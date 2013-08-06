@@ -9,7 +9,7 @@
 struct AverageFunctor1
 {
     template <class IN>
-    EAVL_FUNCTOR float operator()(int shapeType, int n, int ids[], IN inputs)
+    EAVL_FUNCTOR float operator()(int shapeType, int n, int ids[], const IN inputs)
     {
         float result = 0.f;
         for (int i=0; i<n; i++)

@@ -44,7 +44,7 @@ def AddResult(category, exitcode, coutfn, cerrfn):
             if diff:
                 logfile.write("%s: Different result; regression possibly introduced.\n" % coutfn)
                 difffile.write("echo; echo \"------------ %s ------------\"\n" % coutfn)
-                difffile.write("diff %s %s\n" % (basefile, currfile))
+                difffile.write("tkdiff %s %s\n" % (basefile, currfile))
                 rebasefile.write("cp %s %s\n" % (currfile, basefile))
             else:
                 successcounts[category] += 1

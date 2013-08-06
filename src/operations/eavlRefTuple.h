@@ -38,6 +38,12 @@ struct refcons
     {
     }
 
+    EAVL_HOSTDEVICE void CopyFrom(const refcons &rc)
+    {
+        first = rc.first;
+        rest.CopyFrom(rc.rest);
+    }
+
     template <class FT2,class RT2>
     EAVL_HOSTDEVICE void operator=(const cons<FT2,RT2> &c);
 
@@ -90,6 +96,14 @@ struct refcons<FT, nulltype>
     {
         return first;
     }
+
+    EAVL_HOSTDEVICE void CopyFrom(const FT &v)
+    {
+        first = v;
+    }
+
+  private:
+    EAVL_HOSTDEVICE void operator=(const refcons &rc); // = delete
 };
 
 // recursive (first+rest) typing structure

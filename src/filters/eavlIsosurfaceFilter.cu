@@ -6,6 +6,7 @@
 #include "eavlDestinationTopologyPackedMapOp.h"
 #include "eavlCombinedTopologyPackedMapOp.h"
 #include "eavlCoordinates.h"
+#include "eavlGatherOp.h"
 #include "eavlGatherOp_1.h"
 #include "eavlMapOp.h"
 #include "eavlPrefixSumOp_1.h"
@@ -26,7 +27,7 @@ class HiLoToCaseFunctor
   public:
     template <class IN>
     EAVL_FUNCTOR int operator()(int shapeType, int n, int ids[],
-                                IN hilo)
+                                const IN hilo)
     {
         int caseindex = collect(ids[n-1], hilo);
         for (int i=n-2; i>=0; --i)
@@ -43,7 +44,7 @@ class CalcAlphaFunctor
     CalcAlphaFunctor(float tgt) : target(tgt) { }
     template <class IN>
     EAVL_FUNCTOR float operator()(int shapeType, int n, int ids[],
-                                  IN vals)
+                                  const IN vals)
     {
         // we're assuming vals[0] != vals[1] here, but note
         // that we only call this routine for edges which will
@@ -61,7 +62,7 @@ class LinterpFunctor
   public:
     template <class IN>
     EAVL_FUNCTOR float operator()(int shapeType, int n, int ids[],
-                                  IN vals, float alpha)
+                                  const IN vals, float alpha)
     {
         float a = collect(ids[0], vals);
         float b = collect(ids[1], vals);
@@ -76,7 +77,7 @@ class LinterpFunctor3
     /// or if tuples are just as fast (and more convenient).
     template <class IN>
     EAVL_FUNCTOR tuple<float,float,float> operator()(int shapeType, int n, int ids[],
-                                                     IN vals, float alpha)
+                                                     const IN vals, float alpha)
     {
         tuple<float,float,float> a = collect(ids[0], vals);
         tuple<float,float,float> b = collect(ids[1], vals);
@@ -102,7 +103,7 @@ class FirstTwoItemsDifferFunctor
   public:
     template <class IN>
     EAVL_FUNCTOR int operator()(int shapeType, int n, int ids[],
-                                IN vals)
+                                const IN vals)
     {
         return collect(ids[0],vals) != collect(ids[1],vals);
     }
@@ -427,9 +428,9 @@ eavlIsosurfaceFilter::Execute()
 
     // gather input cell lookup to output-length array
     eavlExecutor::AddOperation(
-        new eavlGatherOp_1(caseArray,
-                           outcaseArray,
-                           revInputIndex),
+        new_eavlGatherOp(eavlOpArgs(caseArray),
+                         eavlOpArgs(outcaseArray),
+                         eavlOpArgs(revInputIndex)),
         "copy input case from cells to output array for each generated triangle");
 
     // look up case+subindex in the table using input cell to get output geom
@@ -474,19 +475,18 @@ eavlIsosurfaceFilter::Execute()
     ///\todo: this would be better with a gatherop_3, but even better
     /// if we had an easy way to flatten the 3-component array into a
     /// single-component array, since all components are treated identically.
-    eavlExecutor::AddOperation(new eavlGatherOp_1(outpointindexArray,
-                                                  eavlArrayWithLinearIndex(outconn,0),
-                                                  eavlArrayWithLinearIndex(outtriArray,0)),
+    eavlExecutor::AddOperation(new_eavlGatherOp(eavlOpArgs(outpointindexArray),
+                                                eavlOpArgs(eavlIndexable<eavlIntArray>(outconn,0)),
+                                                eavlOpArgs(eavlIndexable<eavlIntArray>(outtriArray,0))),
                                "(a) turn input edge ids (for output triangles) into output point ids");
-    eavlExecutor::AddOperation(new eavlGatherOp_1(outpointindexArray,
-                                                  eavlArrayWithLinearIndex(outconn,1),
-                                                  eavlArrayWithLinearIndex(outtriArray,1)),
+    eavlExecutor::AddOperation(new_eavlGatherOp(eavlOpArgs(outpointindexArray),
+                                                eavlOpArgs(eavlIndexable<eavlIntArray>(outconn,1)),
+                                                eavlOpArgs(eavlIndexable<eavlIntArray>(outtriArray,1))),
                                "(b) turn input edge ids (for output triangles) into output point ids");
-    eavlExecutor::AddOperation(new eavlGatherOp_1(outpointindexArray,
-                                                  eavlArrayWithLinearIndex(outconn,2),
-                                                  eavlArrayWithLinearIndex(outtriArray,2)),
+    eavlExecutor::AddOperation(new_eavlGatherOp(eavlOpArgs(outpointindexArray),
+                                                eavlOpArgs(eavlIndexable<eavlIntArray>(outconn,2)),
+                                                eavlOpArgs(eavlIndexable<eavlIntArray>(outtriArray,2))),
                                "(c) turn input edge ids (for output triangles) into output point ids");
-    
                                                     
     //
     // get the original coordinate arrays
@@ -587,9 +587,9 @@ eavlIsosurfaceFilter::Execute()
                  f->GetAssocCellSet() == inCellSetIndex)
         {
             eavlArray *outArr = a->Create(a->GetName(), 1, noutgeom);
-            eavlExecutor::AddOperation(new eavlGatherOp_1(a,
-                                                          outArr,
-                                                          revInputIndex),
+            eavlExecutor::AddOperation(new_eavlGatherOp(eavlOpArgs(a),
+                                                        eavlOpArgs(outArr),
+                                                        eavlOpArgs(revInputIndex)),
                                        "gather cell field");
             output->AddField(
                 new eavlField(1, outArr, eavlField::ASSOC_CELL_SET, 0));

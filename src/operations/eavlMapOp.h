@@ -21,6 +21,9 @@ struct eavlMapOp_CPU
             typename collecttype<IN>::const_type in(collect(index, inputs));
             typename collecttype<OUT>::type out(collect(index, outputs));
             out = functor(in);
+
+        // or more simply:
+            //collect(index, outputs) = functor(collect(index, inputs));
         }
     }
 };
@@ -36,12 +39,6 @@ mapKernel(int nitems, const IN inputs, OUT outputs, F functor)
     const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
     for (int index = threadID; index < nitems; index += numThreads)
     {
-        // if we want to be explicit:
-        //typename collecttype<IN>::type in(collect(index, inputs));
-        //typename collecttype<OUT>::type out(collect(index, outputs));
-        //out = functor( cons<float,cons<float,nulltype> >(in) );
-
-        // or more simply:
         collect(index, outputs) = functor(collect(index, inputs));
     }
 }
