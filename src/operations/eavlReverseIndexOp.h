@@ -79,7 +79,8 @@ void eavlReverseIndexOp_GPU(int nInputVals,
 ///   Given an input array of output counts, and an input array of output
 ///   starting indices (usually created by the caller using an exclusive scan
 ///   of the first array), generate an output array containing a map back to
-///   the input index and and output array indicating which 
+///   the input index, and item within that input index, where the inputs
+///   should be written. 
 ///
 ///   For example, if inOutputCount is [0 1 2 0 1 0 0 0 3 1]
 ///   and inOutputIndex is thus        [0 0 1 3 3 4 4 4 4 7]

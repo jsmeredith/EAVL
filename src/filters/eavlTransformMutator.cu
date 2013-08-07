@@ -3,8 +3,7 @@
 #include "eavlException.h"
 #include "eavlExecutor.h"
 
-#include "eavlMapOp_1_1.h"
-#include "eavlMapOp_3_3.h"
+#include "eavlMapOp.h"
 
 #include "eavlMatrix4x4.h"
 #include "eavlVector3.h"
@@ -58,11 +57,11 @@ struct TransformFunctor1
   public:
     TransformFunctor1(const eavlMatrix4x4 &M) : transform(M) { }
 
-    EAVL_FUNCTOR void operator()(float x, float &ox)
+    EAVL_FUNCTOR float operator()(float x)
     {
         eavlVector3 pt(x,0.,0.);
         eavlVector3 result = transform * pt;
-        ox = result.x;
+        return result.x;
     }
 };
 
@@ -73,14 +72,11 @@ struct TransformFunctor2
   public:
     TransformFunctor2(const eavlMatrix4x4 &M) : transform(M) { }
 
-    EAVL_FUNCTOR void operator()(float x, float y, float z,
-                                 float &ox, float &oy, float &oz)
+    EAVL_FUNCTOR tuple<float,float> operator()(tuple<float,float> c)
     {
-        eavlVector3 pt(x,y,0.);
+        eavlVector3 pt(get<0>(c), get<1>(c), 0.);
         eavlVector3 result = transform * pt;
-        ox = result.x;
-        oy = result.y;
-        oz = 0.;
+        return tuple<float,float>(result.x, result.y);
     }
 };
 
@@ -91,14 +87,11 @@ struct TransformFunctor3
   public:
     TransformFunctor3(const eavlMatrix4x4 &M) : transform(M) { }
 
-    EAVL_FUNCTOR void operator()(float x, float y, float z,
-                                 float &ox, float &oy, float &oz)
+    EAVL_FUNCTOR tuple<float,float,float> operator()(tuple<float,float,float> c)
     {
-        eavlVector3 pt(x,y,z);
+        eavlVector3 pt(get<0>(c), get<1>(c), get<2>(c));
         eavlVector3 result = transform * pt;
-        ox = result.x;
-        oy = result.y;
-        oz = result.z;
+        return tuple<float,float,float>(result.x, result.y, result.z);
     }
 };
 
@@ -151,20 +144,17 @@ Transform1D(eavlDataSet *dataset, eavlCoordinates *cs, const eavlMatrix4x4 trans
 
 template <typename Functor>
 void
-Transform3D(Functor func, eavlDataSet *dataset, eavlCoordinates *cs, 
-    eavlCoordinateAxisField *axis0, eavlCoordinateAxisField *axis1, eavlCoordinateAxisField *axis2,
-    eavlField *field0, eavlField *field1, eavlField *field2,
-    eavlArray *arr0, eavlArray *arr1, eavlArray *arr2)
+Transform2D(Functor func, eavlDataSet *dataset, eavlCoordinates *cs, 
+    eavlCoordinateAxisField *axis0, eavlCoordinateAxisField *axis1,
+    eavlField *field0, eavlField *field1,
+    eavlArray *arr0, eavlArray *arr1)
 {
-    eavlArrayWithLinearIndex i0(arr0, axis0->GetComponent());
-    eavlArrayWithLinearIndex i1(arr1, axis1->GetComponent());
-    eavlArrayWithLinearIndex i2(arr2, axis2->GetComponent());
+    eavlIndexable<eavlArray> i0(arr0, axis0->GetComponent());
+    eavlIndexable<eavlArray> i1(arr1, axis1->GetComponent());
     if (field0->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-        i0.mul = 0;
+        i0.indexer.mul = 0;
     if (field1->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-        i1.mul = 0;
-    if (field2->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-        i2.mul = 0;
+        i1.indexer.mul = 0;
     
     eavlLogicalStructureRegular *logReg = dynamic_cast<eavlLogicalStructureRegular*>(dataset->GetLogicalStructure());
     if (logReg)
@@ -172,23 +162,68 @@ Transform3D(Functor func, eavlDataSet *dataset, eavlCoordinates *cs,
         eavlRegularStructure &reg = logReg->GetRegularStructure();
 
         if (field0->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            i0 = eavlArrayWithLinearIndex(arr0, axis0->GetComponent(), reg, field0->GetAssocLogicalDim());
+            i0 = eavlIndexable<eavlArray>(arr0, axis0->GetComponent(), reg, field0->GetAssocLogicalDim());
         if (field1->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            i1 = eavlArrayWithLinearIndex(arr1, axis1->GetComponent(), reg, field1->GetAssocLogicalDim());
+            i1 = eavlIndexable<eavlArray>(arr1, axis1->GetComponent(), reg, field1->GetAssocLogicalDim());
+    }
+
+    const char *transformName = "transformed_coords";
+    eavlFloatArray *out = new eavlFloatArray(transformName, 2,
+                                             dataset->GetNumPoints());
+
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(i0, i1),
+                                             eavlOpArgs(eavlIndexable<eavlFloatArray>(out, 0),
+                                                        eavlIndexable<eavlFloatArray>(out, 1)),
+                                             func),
+                               "transforming coordinates");
+    eavlExecutor::Go();
+
+    eavlField *coordField = new eavlField(1, out, eavlField::ASSOC_POINTS);
+    dataset->AddField(coordField);
+
+    cs->SetAxis(0, new eavlCoordinateAxisField(transformName, 0));
+    cs->SetAxis(1, new eavlCoordinateAxisField(transformName, 1));
+}
+
+template <typename Functor>
+void
+Transform3D(Functor func, eavlDataSet *dataset, eavlCoordinates *cs, 
+    eavlCoordinateAxisField *axis0, eavlCoordinateAxisField *axis1, eavlCoordinateAxisField *axis2,
+    eavlField *field0, eavlField *field1, eavlField *field2,
+    eavlArray *arr0, eavlArray *arr1, eavlArray *arr2)
+{
+    eavlIndexable<eavlArray> i0(arr0, axis0->GetComponent());
+    eavlIndexable<eavlArray> i1(arr1, axis1->GetComponent());
+    eavlIndexable<eavlArray> i2(arr2, axis2->GetComponent());
+    if (field0->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
+        i0.indexer.mul = 0;
+    if (field1->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
+        i1.indexer.mul = 0;
+    if (field2->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
+        i2.indexer.mul = 0;
+    
+    eavlLogicalStructureRegular *logReg = dynamic_cast<eavlLogicalStructureRegular*>(dataset->GetLogicalStructure());
+    if (logReg)
+    {
+        eavlRegularStructure &reg = logReg->GetRegularStructure();
+
+        if (field0->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
+            i0 = eavlIndexable<eavlArray>(arr0, axis0->GetComponent(), reg, field0->GetAssocLogicalDim());
+        if (field1->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
+            i1 = eavlIndexable<eavlArray>(arr1, axis1->GetComponent(), reg, field1->GetAssocLogicalDim());
         if (field2->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            i2 = eavlArrayWithLinearIndex(arr2, axis2->GetComponent(), reg, field2->GetAssocLogicalDim());
+            i2 = eavlIndexable<eavlArray>(arr2, axis2->GetComponent(), reg, field2->GetAssocLogicalDim());
     }
 
     const char *transformName = "transformed_coords";
     eavlFloatArray *out = new eavlFloatArray(transformName, 3,
                                              dataset->GetNumPoints());
 
-    eavlExecutor::AddOperation(new eavlMapOp_3_3<Functor>(
-                                      i0, i1, i2,
-                                      eavlArrayWithLinearIndex(out, 0),
-                                      eavlArrayWithLinearIndex(out, 1),
-                                      eavlArrayWithLinearIndex(out, 2),
-                                      func),
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(i0, i1, i2),
+                                             eavlOpArgs(eavlIndexable<eavlFloatArray>(out, 0),
+                                                        eavlIndexable<eavlFloatArray>(out, 1),
+                                                        eavlIndexable<eavlFloatArray>(out, 2)),
+                                             func),
                                "transforming coordinates");
     eavlExecutor::Go();
 
@@ -235,10 +270,10 @@ eavlTransformMutator::Execute()
                 THROW(eavlException,"Transform3D assumes single-precision float arrays");
             }
 
-            Transform3D(TransformFunctor2(transform), dataset, cs,
-                        axis0, axis1, axis0,
-                        field0, field1, field0,
-                        arr0, arr1, arr0);
+            Transform2D(TransformFunctor2(transform), dataset, cs,
+                        axis0, axis1,
+                        field0, field1,
+                        arr0, arr1);
         }
         else if(cs->GetDimension() == 3)
         {

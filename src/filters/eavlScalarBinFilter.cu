@@ -5,7 +5,7 @@
 #include "eavlExecutor.h"
 #include "eavlCellSetAllStructured.h"
 #include "eavlReduceOp_1.h"
-#include "eavlMapOp_1_1.h"
+#include "eavlMapOp.h"
 
 struct InRange
 {
@@ -64,8 +64,10 @@ void eavlScalarBinFilter::Execute()
         float hi = cutoffs->GetValue(bin+1);
         if (bin == nbins-1)
             hi = FLT_MAX;
-        eavlExecutor::AddOperation(new eavlMapOp_1_1<InRange>
-               (array, inrange, InRange(lo, hi)), "test if in range");
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(array),
+                                                 eavlOpArgs(inrange),
+                                                 InRange(lo, hi)),
+                                   "test if in range");
         eavlExecutor::AddOperation(new eavlReduceOp_1<eavlAddFunctor<int> >
                (inrange, tmpcount, eavlAddFunctor<int>()), "count in range");
         eavlExecutor::Go();
