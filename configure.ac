@@ -154,20 +154,24 @@ MPI Options:
         if test -z "$MPI"; then MPI="no"; fi)
 
 detect_mpi_flags="no"
-if test "$MPI" = "yes"; then
+if test "$MPI" != "no"; then
    if test -n "$MPI_CPPFLAGS" -o -n "$MPI_LDFLAGS" -o -n "$MPI_LIBS"; then
       MPI="manually configured"
    else
       detect_mpi_flags="yes"
-      MPI=""
-      for mpicompiler in mpic++ mpicxx; do
+      if test "$MPI" = "yes"; then
+         # search for mpi compiler, too
+         MPI=""
+         for mpicompiler in mpic++ mpicxx; do
+            if test -z "$MPI"; then
+               AC_PATH_PROG([MPI], [$mpicompiler], [], [])
+            fi
+         done
          if test -z "$MPI"; then
-             AC_PATH_PROG([MPI], [$mpicompiler], [], [])
+            AC_MSG_WARN(could not find MPI C++ compiler; disabling MPI)
+            detect_mpi_flags="no"
+            MPI="no"
          fi
-      done
-      if test -z "$MPI"; then
-         AC_MSG_WARN(could not find MPI C++ compiler; disabling MPI)
-         MPI="no"
       fi
    fi
 fi
@@ -231,6 +235,13 @@ if test "$MPI" != "no"; then
    CPPFLAGS=$old_cppflags
    LDFLAGS=$old_ldflags
    LIBS=$old_libs
+
+   AC_MSG_CHECKING(for MPI CPPFLAGS)
+   AC_MSG_RESULT($MPI_CPPFLAGS)
+   AC_MSG_CHECKING(for MPI LDFLAGS)
+   AC_MSG_RESULT($MPI_LDFLAGS)
+   AC_MSG_CHECKING(for MPI LIBS)
+   AC_MSG_RESULT($MPI_LIBS)
 fi
 
 # set preprocessor definition
@@ -603,7 +614,7 @@ VTK Options:
         if test -z "$VTK"; then VTK="no"; fi)
 if test "$VTK" != "yes" -a "$VTK" != "no"; then
    # specified path
-   VTK_CPPFLAGS="-I""$VTK""/include/vtk-5.0 -I""$VTK""/include"
+   VTK_CPPFLAGS="-I""$VTK""/include/vtk-6.0 -I""$VTK""/include"
    VTK_LDFLAGS="-L""$VTK""/lib"
    rpathize(VTK_LDFLAGS, $VTK/lib)
    VTK_LIBS=""
