@@ -9,7 +9,9 @@
 #include "eavlOperation.h"
 #include "eavlException.h"
 #include <time.h>
+#ifdef HAVE_OPENMP
 #include <omp.h>
+#endif
 
 #ifndef DOXYGEN
 

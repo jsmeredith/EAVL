@@ -11,7 +11,9 @@
 #include "eavlOpDispatch_1_1.h"
 #include "eavlException.h"
 #include <time.h>
+#ifdef HAVE_OPENMP
 #include <omp.h>
+#endif
 
 #if defined __CUDACC__
 
