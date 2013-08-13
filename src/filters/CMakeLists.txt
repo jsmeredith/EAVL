@@ -34,7 +34,9 @@ IF (HAVE_CUDA)
 
 ELSE (HAVE_CUDA)
   set_source_files_properties(${EAVL_FILTERS_CUDA_SRCS} PROPERTIES LANGUAGE CXX)
-  set_source_files_properties(${EAVL_FILTERS_CUDA_SRCS} PROPERTIES COMPILE_FLAGS "-x c++")
+  IF (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
+    set_source_files_properties(${EAVL_FILTERS_CUDA_SRCS} PROPERTIES COMPILE_FLAGS "-x c++")
+  ENDIF (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
   add_library(eavl_filters 
     ${EAVL_FILTERS_SRCS}
     ${EAVL_FILTERS_CUDA_SRCS}
