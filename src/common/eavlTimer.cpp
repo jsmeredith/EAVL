@@ -204,6 +204,7 @@ int eavlTimer::real_Start()
     if (suspended)
         return -1;
 
+#pragma omp barrier
 #ifdef HAVE_CUDA
     if (eavlExecutor::GetExecutionMode() != eavlExecutor::ForceCPU)
     {
@@ -241,6 +242,7 @@ double eavlTimer::real_Stop(int handle, const std::string &description)
     if (suspended || handle<0)
         return 0;
 
+#pragma omp barrier
 #ifdef HAVE_CUDA
     if (eavlExecutor::GetExecutionMode() != eavlExecutor::ForceCPU)
     {

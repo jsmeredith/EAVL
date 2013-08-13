@@ -6,9 +6,60 @@
 #include "eavlArray.h"
 #include "eavlOpDispatch_io1.h"
 #include "eavlTimer.h"
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 #ifndef DOXYGEN
 
+#ifdef HAVE_OPENMP
+template <class F,
+          class IO0>
+struct cpuReduceOp_1_function
+{
+    static void call(int n, int &dummy,
+                     IO0 *i0, int i0div, int i0mod, int i0mul, int i0add,
+                     IO0 *o0, int o0mul, int o0add,
+                     F &functor)
+    {
+        IO0 *tmp = NULL;
+#pragma omp parallel default(none) shared(cerr,tmp,n,i0,i0div,i0mod,i0mul,i0add,o0,o0mul,o0add,functor)
+        {
+            int nthreads = omp_get_num_threads();
+            int threadid = omp_get_thread_num();
+#pragma omp single
+            {
+                tmp = new IO0[nthreads];
+                for (int i=0; i<nthreads; i++)
+                {
+                    int index_i0 = ((i / i0div) % i0mod) * i0mul + i0add;
+                    tmp[i] = i0[index_i0];
+                }
+            }
+#pragma omp barrier
+
+            // we might be able to change this to use a omp for directive,
+            // but if so, just do nthreads to n, not strided
+            for (int i=nthreads+threadid; i<n; i+=nthreads)
+            {
+                int index_i0 = ((i / i0div) % i0mod) * i0mul + i0add;
+                tmp[threadid] = functor(i0[index_i0], tmp[threadid]);
+            }
+#pragma omp barrier
+
+#pragma omp single
+            {
+                *o0 = tmp[0];
+                for (int i=1; i<nthreads; i++)
+                {
+                    *o0 = functor(tmp[i],*o0);
+                }
+            }
+        }
+        delete[] tmp;
+    }
+};
+#else
 template <class F,
           class IO0>
 struct cpuReduceOp_1_function
@@ -26,7 +77,7 @@ struct cpuReduceOp_1_function
         }
     }
 };
-
+#endif
 
 #if defined __CUDACC__
 // Reduction Kernel

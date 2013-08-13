@@ -28,6 +28,7 @@ struct eavlSourceTopologyMapOp_CPU
                      const IN s_inputs, OUT outputs, F &functor)
     {
         int ids[MAX_LOCAL_TOPOLOGY_IDS];
+#pragma omp parallel for private(ids)
         for (int index = 0; index < nitems; ++index)
         {
             int nids;

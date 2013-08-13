@@ -31,6 +31,7 @@ struct eavlDestinationTopologyPackedMapOp_CPU
         int *sparseindices = get<0>(indices).array;
 
         int ids[MAX_LOCAL_TOPOLOGY_IDS];
+#pragma omp parallel for private(ids)
         for (int denseindex = 0; denseindex < nitems; ++denseindex)
         {
             int sparseindex = sparseindices[get<0>(indices).indexer.index(denseindex)];

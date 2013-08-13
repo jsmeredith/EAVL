@@ -16,6 +16,7 @@ void eavlSimpleReverseIndexOp_CPU(int nInputVals,
                             int *inOI, int inOIdiv, int inOImod, int inOImul, int inOIadd,
                             int *outII, int outIImul, int outIIadd)
 {
+#pragma omp parallel for
     for (int i=0; i<nInputVals; i++)
     {
         int outflag  = inOF[((i/inOFdiv)%inOFmod)*inOFmul+inOFadd];

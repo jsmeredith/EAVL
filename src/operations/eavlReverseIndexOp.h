@@ -14,6 +14,7 @@ void eavlReverseIndexOp_CPU(int nInputVals,
                             int *outIS, int outISmul, int outISadd,
                             int maxPerInput)
 {
+#pragma omp parallel for
     for (int i=0; i<nInputVals; i++)
     {
         int outcount = inOC[((i/inOCdiv)%inOCmod)*inOCmul+inOCadd];
