@@ -147,7 +147,7 @@ AC_SUBST(DEPMODE)
 MPICC=""
 AC_ARG_WITH(mpi,[
 MPI Options:
-  --with-mpi              search for mpi
+  --with-mpi              search for MPI
   --with-mpi=mpicc        specify MPI compiler to extract flags from
   --without-mpi           (DEFAULT) disable MPI],
         MPI="$withval",
@@ -255,6 +255,69 @@ AC_SUBST(MPI_LIBS)
 
 
 ## ---------------------------------------------------------------------------
+## OpenMP check.
+## ---------------------------------------------------------------------------
+
+
+OPENMP=""
+AC_ARG_WITH(openmp,[
+OpenMP Options:
+  --with-openmp           enable OpenMP
+  --with-openmp=flags     specify flags needed to enable OpenMP
+  --without-openmp        (DEFAULT) disable OpenMP],
+        OPENMP="$withval",
+        if test -z "$OPENMP"; then OPENMP="no"; fi)
+
+if test "$OPENMP" = "yes"; then
+   OPENMP=""
+   for ompflags in "-fopenmp" "-openmp"; do
+      old_cxxflags=$CXXFLAGS
+      # We usually get a warning if there's an unrecognized
+      # pragma; with icc and gcc, forcing warnings to errors
+      # actually ensures we're compiling with OpenMP.
+      CXXFLAGS="$CXXFLAGS -Werror $ompflags";
+      if test -z "$OPENMP"; then
+         AC_MSG_CHECKING(if OpenMP support is enabled by $ompflags)
+         AC_TRY_LINK([#include <omp.h>],
+                     [int *x=new int[1024], *y=new int[1024];
+                      #pragma omp parallel for
+                      for (int i=0; i<1024; ++i) {x[i]=y[i]*2;}
+                     ],
+                     AC_MSG_RESULT(yes);OPENMP="$ompflags",
+                     AC_MSG_RESULT(no))
+      fi
+      CXXFLAGS=$old_cxxflags
+   done
+   if test -z "$OPENMP"; then
+      AC_MSG_WARN(attempts to enable OpenMP failed; disabling);
+      OPENMP="no";
+   fi
+elif test "$OPENMP" != "no"; then
+   old_cxxflags=$CXXFLAGS
+   # Again, add -Werror to make check successful (see above).
+   CXXFLAGS="$CXXFLAGS -Werror $OPENMP"
+   AC_MSG_CHECKING(if OpenMP support is enabled by $OPENMP)
+   AC_TRY_LINK([#include <omp.h>],
+               [int *x=new int[1024], *y=new int[1024];
+                #pragma omp parallel for
+                for (int i=0; i<1024; ++i) {x[i]=y[i]*2;}
+               ],
+               AC_MSG_RESULT(yes),
+               AC_MSG_RESULT(no);OPENMP="no";AC_MSG_WARN(given flags did not enable OpenMP; disabling))
+   CXXFLAGS=$old_cxxflags
+fi
+
+# We're going to use CXXFLAGS for the OpenMP flags
+if test "$OPENMP" != "no"; then
+   AC_DEFINE(HAVE_OPENMP,[1])
+   CXXFLAGS="$CXXFLAGS $OPENMP"
+fi
+
+AC_MSG_CHECKING(for OpenMP)
+AC_MSG_RESULT($OPENMP)
+
+
+## ---------------------------------------------------------------------------
 ## Boost check.
 ## ---------------------------------------------------------------------------
 AC_MSG_CHECKING(for Boost)
@@ -277,88 +340,93 @@ AC_MSG_RESULT($BOOST)
 #if test "$BOOST" = "no"; then
 #   AC_MSG_ERROR(Boost is required)
 #fi
-
-old_cppflags=$CPPFLAGS
-old_ldflags=$LDFLAGS
-old_libs=$LIBS
-
-# cppflags and basic headers
-BOOST_CPPFLAGS=""
-if test "$BOOST" != "yes"; then
-   BOOST_CPPFLAGS="-I${BOOST}/include"
-fi
-
-AC_MSG_CHECKING(if Boost basic headers work)
-CPPFLAGS="$old_cppflags $BOOST_CPPFLAGS"
-AC_TRY_COMPILE([#include <boost/logic/tribool.hpp>],
-               [boost::tribool tb(false);],
-               AC_MSG_RESULT(yes),
-               AC_MSG_RESULT(no))
-## \TODO: We have removed all boost from EAVL for now.
-## Remove the preceeding line and replace it with this next
-## line when we do need it (i.e. add the fatal error back in).
-#              AC_MSG_RESULT(no);AC_MSG_ERROR(Boost is required))
-
-# ldflags and some libraries
-BOOST_LDFLAGS=""
-if test "$BOOST" != "yes"; then
-   BOOST_LDFLAGS="-L${BOOST}/lib"
-   rpathize(BOOST_LDFLAGS, ${BOOST}/lib)
-fi
-LDFLAGS="$old_ldflags $BOOST_LDFLAGS"
-
-BOOST_LIBS=""
-
-AC_MSG_CHECKING(if Boost regex library works)
-tmplib="-lboost_regex"
-LIBS="$old_libs $tmplib"
-AC_TRY_LINK([#include <boost/regex.hpp>],
-            [static const boost::regex re("\\\\d{4}");
-             return boost::regex_match("foo1234",re);],
-            AC_MSG_RESULT(yes);BOOST_LIBS="$BOOST_LIBS $tmplib",
-            AC_MSG_RESULT(no))
-## \TODO: We have removed all boost from EAVL for now.
-## Remove the preceeding line and replace it with this next
-## line when we do need it (i.e. add the fatal error back in).
-#            AC_MSG_RESULT(no);AC_MSG_ERROR(Boost is required))
-
-# MPI requires serialization; if we're not
-# using MPI, just check serialization explicitly
-if test "$MPI" = "no"; then
-   AC_MSG_CHECKING(if Boost serialization library works)
-   tmplib="-lboost_serialization"
+# Also, this entire section of code can have
+# the "if boost != no" check removed if we
+# require boost again, because we already
+# know boost != no if we enabled the above check:
+if test "$BOOST" != "no"; then
+   old_cppflags=$CPPFLAGS
+   old_ldflags=$LDFLAGS
+   old_libs=$LIBS
+   
+   # cppflags and basic headers
+   BOOST_CPPFLAGS=""
+   if test "$BOOST" != "yes"; then
+      BOOST_CPPFLAGS="-I${BOOST}/include"
+   fi
+   
+   AC_MSG_CHECKING(if Boost basic headers work)
+   CPPFLAGS="$old_cppflags $BOOST_CPPFLAGS"
+   AC_TRY_COMPILE([#include <boost/logic/tribool.hpp>],
+                  [boost::tribool tb(false);],
+                  AC_MSG_RESULT(yes),
+                  AC_MSG_RESULT(no))
+   ## \TODO: We have removed all boost from EAVL for now.
+   ## Remove the preceeding line and replace it with this next
+   ## line when we do need it (i.e. add the fatal error back in).
+   #              AC_MSG_RESULT(no);AC_MSG_ERROR(Boost is required))
+   
+   # ldflags and some libraries
+   BOOST_LDFLAGS=""
+   if test "$BOOST" != "yes"; then
+      BOOST_LDFLAGS="-L${BOOST}/lib"
+      rpathize(BOOST_LDFLAGS, ${BOOST}/lib)
+   fi
+   LDFLAGS="$old_ldflags $BOOST_LDFLAGS"
+   
+   BOOST_LIBS=""
+   
+   AC_MSG_CHECKING(if Boost regex library works)
+   tmplib="-lboost_regex"
    LIBS="$old_libs $tmplib"
-   AC_TRY_LINK([#include <boost/archive/text_oarchive.hpp>
-                #include <fstream>],
-               [std::ofstream out("tmp.txt");
-                boost::archive::text_oarchive ar(out);
-                int i=105; ar & i;],
+   AC_TRY_LINK([#include <boost/regex.hpp>],
+               [static const boost::regex re("\\\\d{4}");
+                return boost::regex_match("foo1234",re);],
                AC_MSG_RESULT(yes);BOOST_LIBS="$BOOST_LIBS $tmplib",
                AC_MSG_RESULT(no))
-    ## \TODO: We have removed all boost from EAVL for now.
-    ## Remove the preceeding line and replace it with this next
-    ## line when we do need it (i.e. add the fatal error back in).
-    #          AC_MSG_RESULT(no);AC_MSG_ERROR(Boost is required))
-else
-   AC_MSG_CHECKING(if Boost MPI and serialization libraries work)
-   tmplib="-lboost_mpi -lboost_serialization"
-   CPPFLAGS="$CPPFLAGS $MPI_CPPFLAGS";
-   LDFLAGS="$LDFLAGS $MPI_LDFLAGS";
-   LIBS="$old_libs $tmplib $MPI_LIBS"
-   AC_TRY_LINK([#include <boost/mpi.hpp>],
-               [boost::mpi::communicator world;],
-               AC_MSG_RESULT(yes);BOOST_LIBS="$BOOST_LIBS $tmplib",
-               AC_MSG_RESULT(no))
-    ## \TODO: We have removed all boost from EAVL for now.
-    ## Remove the preceeding line and replace it with this next
-    ## line when we do need it (i.e. add the fatal error back in).
-    #          AC_MSG_RESULT(no);AC_MSG_ERROR(Boost is required))
+   ## \TODO: We have removed all boost from EAVL for now.
+   ## Remove the preceeding line and replace it with this next
+   ## line when we do need it (i.e. add the fatal error back in).
+   #            AC_MSG_RESULT(no);AC_MSG_ERROR(Boost is required))
+   
+   # MPI requires serialization; if we're not
+   # using MPI, just check serialization explicitly
+   if test "$MPI" = "no"; then
+      AC_MSG_CHECKING(if Boost serialization library works)
+      tmplib="-lboost_serialization"
+      LIBS="$old_libs $tmplib"
+      AC_TRY_LINK([#include <boost/archive/text_oarchive.hpp>
+                   #include <fstream>],
+                  [std::ofstream out("tmp.txt");
+                   boost::archive::text_oarchive ar(out);
+                   int i=105; ar & i;],
+                  AC_MSG_RESULT(yes);BOOST_LIBS="$BOOST_LIBS $tmplib",
+                  AC_MSG_RESULT(no))
+       ## \TODO: We have removed all boost from EAVL for now.
+       ## Remove the preceeding line and replace it with this next
+       ## line when we do need it (i.e. add the fatal error back in).
+       #          AC_MSG_RESULT(no);AC_MSG_ERROR(Boost is required))
+   else
+      AC_MSG_CHECKING(if Boost MPI and serialization libraries work)
+      tmplib="-lboost_mpi -lboost_serialization"
+      CPPFLAGS="$CPPFLAGS $MPI_CPPFLAGS";
+      LDFLAGS="$LDFLAGS $MPI_LDFLAGS";
+      LIBS="$old_libs $tmplib $MPI_LIBS"
+      AC_TRY_LINK([#include <boost/mpi.hpp>],
+                  [boost::mpi::communicator world;],
+                  AC_MSG_RESULT(yes);BOOST_LIBS="$BOOST_LIBS $tmplib",
+                  AC_MSG_RESULT(no))
+       ## \TODO: We have removed all boost from EAVL for now.
+       ## Remove the preceeding line and replace it with this next
+       ## line when we do need it (i.e. add the fatal error back in).
+       #          AC_MSG_RESULT(no);AC_MSG_ERROR(Boost is required))
+   fi
+   
+   CPPFLAGS=$old_cppflags
+   LDFLAGS=$old_ldflags
+   LIBS=$old_libs
 fi
-
-CPPFLAGS=$old_cppflags
-LDFLAGS=$old_ldflags
-LIBS=$old_libs
-
+   
 AC_SUBST(BOOST)
 AC_SUBST(BOOST_CPPFLAGS)
 AC_SUBST(BOOST_LDFLAGS)
