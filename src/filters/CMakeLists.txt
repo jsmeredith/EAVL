@@ -14,7 +14,7 @@ SET(EAVL_FILTERS_CUDA_SRCS
   eavlBinaryMathMutator.cu
   eavlCellToNodeRecenterMutator.cu
   eavlScalarBinFilter.cu
-#  eavlUnaryMathMutator.cu
+  eavlUnaryMathMutator.cu
 )
 
 IF (HAVE_CUDA) 
