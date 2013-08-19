@@ -145,7 +145,8 @@ __global__ void prefixSumBlockwiseKernel_1(int n,
 {
     __shared__ T temp[512]; // enough for 256 threads
     int vals_per_block = 2*blockDim.x;
-    int blockstart = blockIdx.x * vals_per_block;
+    int bid = blockIdx.y*gridDim.x + blockIdx.x;
+    int blockstart = bid * vals_per_block;
     int tid = threadIdx.x;
     int offset = 1;
 
@@ -185,7 +186,7 @@ __global__ void prefixSumBlockwiseKernel_1(int n,
     }
 
     if (2*tid+1 == vals_per_block-1)
-        blockends[blockIdx.x] = outB + inB;
+        blockends[bid] = outB + inB;
 }  
 
 template <class T> 
@@ -193,8 +194,8 @@ __global__ void inplace_add_by_block(int n,
                                      T *o0, int o0mul, int o0add,
                                      T *blockvals)
 {
-    int blockstart = blockIdx.x * 2*blockDim.x;
-    int bid = blockIdx.x;
+    int bid = blockIdx.y*gridDim.x + blockIdx.x;
+    int blockstart = bid * 2*blockDim.x;
     int tid = threadIdx.x;
 
     // this indexing matches the scan indexing, but it's likely slower here
@@ -238,14 +239,23 @@ struct gpuPrefixSumOp_1_function
         // fixing at 256 threads
         int numThreads = 256;
         int valsPerBlock = numThreads * 2;
-        int numBlocks = (n + valsPerBlock-1) / valsPerBlock;
+        int numBlocksTotal = (n + valsPerBlock-1) / valsPerBlock;
 
-        if (PrefixSum_Temp_Storage<IO0>::nvals < numBlocks)
+        int numBlocksX = numBlocksTotal;
+        int numBlocksY = 1;
+        if (numBlocksTotal >= 32768)
+        {
+            numBlocksY = numBlocksTotal / 32768;
+            numBlocksX = numBlocksTotal % 32768;
+        }
+
+        if (PrefixSum_Temp_Storage<IO0>::nvals < numBlocksTotal)
         {
             if (PrefixSum_Temp_Storage<IO0>::device)
                 cudaFree(PrefixSum_Temp_Storage<IO0>::device);
+            CUDA_CHECK_ERROR();
             // allocate at least 4k
-            PrefixSum_Temp_Storage<IO0>::nvals = (numBlocks < 4096) ? 4096 : numBlocks;
+            PrefixSum_Temp_Storage<IO0>::nvals = (numBlocksTotal < 4096) ? 4096 : numBlocksTotal;
             cudaMalloc((void**)&PrefixSum_Temp_Storage<IO0>::device,
                        PrefixSum_Temp_Storage<IO0>::nvals * sizeof(IO0));
             PrefixSum_Temp_Storage<IO0>::host = new IO0[PrefixSum_Temp_Storage<IO0>::nvals];
@@ -254,9 +264,13 @@ struct gpuPrefixSumOp_1_function
 
         // scan each block.
         // collect per-block sums as you go.
+        dim3 threads(numThreads,1,1);
+        dim3 blocks(numBlocksX,numBlocksY,1);
+        dim3 oneblock(1,1,1);
+        CUDA_CHECK_ERROR();
         if (inclusive)
         {
-            prefixSumBlockwiseKernel_1<true><<<numBlocks, numThreads>>>
+            prefixSumBlockwiseKernel_1<true><<<blocks, threads>>>
                 (n,
                  i0, i0div, i0mod, i0mul, i0add,
                  o0, o0mul, o0add,
@@ -264,7 +278,7 @@ struct gpuPrefixSumOp_1_function
         }
         else
         {
-            prefixSumBlockwiseKernel_1<false><<<numBlocks, numThreads>>>
+            prefixSumBlockwiseKernel_1<false><<<blocks, threads>>>
                 (n,
                  i0, i0div, i0mod, i0mul, i0add,
                  o0, o0mul, o0add,
@@ -273,14 +287,14 @@ struct gpuPrefixSumOp_1_function
         CUDA_CHECK_ERROR();
 
         // exclusive scan on the per-block sums
-        singleBlockSimplePrefixSumKernel<false><<<1,numThreads>>>
-            (numBlocks,
+        singleBlockSimplePrefixSumKernel<false><<<oneblock, threads>>>
+            (numBlocksTotal,
              PrefixSum_Temp_Storage<IO0>::device,
              PrefixSum_Temp_Storage<IO0>::device); // safe to do it in-place
         CUDA_CHECK_ERROR();
 
         // do the offset for each block to give final results
-        inplace_add_by_block<<<numBlocks, numThreads>>>
+        inplace_add_by_block<<<blocks, threads>>>
             (n,
              o0, o0mul, o0add,
              PrefixSum_Temp_Storage<IO0>::device);
