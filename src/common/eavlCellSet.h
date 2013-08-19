@@ -26,8 +26,10 @@ class eavlCellSet
   protected:
     string              name;           ///< e.g. atoms, cells, nodes, faces
     int                 dimensionality; ///< e.g. 0, 1, 2, 3, (more?)
+
+    int                 dataset_numpoints; ///< the number of points in the container data set
   public:
-    eavlCellSet(const string &n, int d) : name(n), dimensionality(d) { }
+    eavlCellSet(const string &n, int d) : name(n), dimensionality(d), dataset_numpoints(0) { }
     virtual string GetName() { return name; }
     virtual int GetDimensionality() { return dimensionality; }
     virtual int GetNumCells() = 0;
@@ -63,6 +65,31 @@ class eavlCellSet
         mem += sizeof(int); // dimensionality
         mem += sizeof(int); // nCells;
         return mem;
+    }
+    /// Hack.  A cell set doesn't know about the parent (i.e. containing)
+    /// data set.  Turns out this is normally not a problem, with one exception:
+    /// if you are trying to create call-to-node connectivity 
+    /// (e.g. reverse of the normal node-to-cell connectivity),
+    /// for a cell set that does not touch every point in the
+    /// original data set, how do you know how many untouched
+    /// points should be added to the end?  (Concrete example:
+    /// Data set has 4 points.  Cell set is a single triangle
+    /// referencing points 0, 1, and 2.  When you create the
+    /// reverse connectivity, you know pt 0 touches cell 0,
+    /// pt 1 touches cell 0, and pt 2 touches cell 0.  But 
+    /// you don't even know that there's a pt 3, because it's 
+    /// not referenced by your original connectivity.  One
+    /// could argue you simply shouldn't try to access pt 3,
+    /// but what happens if you're trying to recenter a cell
+    /// array to the nodes: step one is create a node-length
+    /// output array, which in this case is correctly created
+    /// of length 4, not of length 3, so I think the right thing
+    /// is to create an empty entry for that extra point (as we
+    /// have to do for other missing points already if they don't
+    /// happen to be at the tail end of the list).
+    virtual void SetDSNumPoints(int n)
+    {
+        dataset_numpoints = n;
     }
 };
 

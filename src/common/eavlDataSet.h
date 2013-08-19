@@ -94,6 +94,10 @@ class eavlDataSet
     void SetNumPoints(int n)
     {
         npoints = n;
+        for (unsigned int i=0; i<cellsets.size(); i++)
+        {
+            cellsets[i]->SetDSNumPoints(npoints);
+        }
     }
 
     double GetPoint(int i, int c, int whichCoordSystem=0)
@@ -216,6 +220,7 @@ class eavlDataSet
     void AddCellSet(eavlCellSet *c)
     {
         cellsets.push_back(c);
+        c->SetDSNumPoints(npoints);
     }
 
     virtual int GetNumFields()

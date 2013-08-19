@@ -362,15 +362,18 @@ void eavlCellSetExplicit::BuildNodeCellConnectivity()
         }
     }
 
-    int last_node = -1;
+    int filled_array_to_node = 0;
     int cur_node_connstart = 0;
     for (multimap<int,int>::iterator iter = cells_of_nodes.begin();
          iter != cells_of_nodes.end(); iter++)
     {
         int node = iter->first;
-        while (last_node < node)
+        while (filled_array_to_node <= node)
         {
-            ++last_node;
+            // add empty spots to skip nodes not referenced by our cells
+            // but also create an empty one that we can start adding
+            // connectivity items to for ones that are referenced.
+            ++filled_array_to_node;
             nodeCellConnectivity.shapetype.push_back(EAVL_POINT);
             cur_node_connstart = nodeCellConnectivity.connectivity.size();
             nodeCellConnectivity.connectivity.push_back(0);
@@ -378,6 +381,14 @@ void eavlCellSetExplicit::BuildNodeCellConnectivity()
         int cell = iter->second;
         nodeCellConnectivity.connectivity.push_back(cell);
         ++nodeCellConnectivity.connectivity[cur_node_connstart];
+    }
+    while (filled_array_to_node < dataset_numpoints)
+    {
+        // add empty spots for tail nodes not referenced by our cells
+        ++filled_array_to_node;
+        nodeCellConnectivity.shapetype.push_back(EAVL_POINT);
+        cur_node_connstart = nodeCellConnectivity.connectivity.size();
+        nodeCellConnectivity.connectivity.push_back(0);
     }
 
     nodeCellConnectivity.CreateReverseIndex();

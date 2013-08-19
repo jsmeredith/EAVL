@@ -59,5 +59,5 @@ eavlDataSet:
       array name = nodecentered_surface_normals
       order = 0
       association = POINTS
-      array = float nodecentered_surface_normals[100][3] = -nan  -nan  -nan  -0.113133  -0.0150215 ... 0.589555  -0.478993  0.227119  0.371102  0.629027
+      array = float nodecentered_surface_normals[100][3] = -nan  -nan  -nan  -0.113133  -0.0150215 ... 0.589555  -0.478993  -nan  -nan  -nan
 
