@@ -22,10 +22,6 @@ struct refcons
     EAVL_HOSTDEVICE refcons(const refcons &rc) : first(rc.first), rest(rc.rest)
     {
     }
-    EAVL_HOSTDEVICE refcons(refcons &rc) : first(rc.first), rest(rc.rest)
-    {
-    }
-
     
     template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7>
     EAVL_HOSTDEVICE refcons(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5, T6 &t6, T7 &t7)
@@ -64,9 +60,6 @@ struct refcons<FT, nulltype>
     //}
 
     EAVL_HOSTDEVICE refcons(const refcons &rc) : first(rc.first)
-    {
-    }
-    EAVL_HOSTDEVICE refcons(refcons &rc) : first(rc.first)
     {
     }
 

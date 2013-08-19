@@ -57,6 +57,11 @@ struct cons<FT, nulltype>
     {
     }
 
+    EAVL_HOSTDEVICE operator FT() const
+    {
+        return first;
+    }
+
     template <class FT2>
     EAVL_HOSTDEVICE cons(const refcons<FT2,nulltype> &rc);
 };

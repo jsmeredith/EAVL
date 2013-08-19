@@ -7,6 +7,9 @@
 #include "eavlArray.h"
 #include "eavlOpDispatch.h"
 #include "eavlException.h"
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 #ifndef DOXYGEN
 
@@ -16,13 +19,14 @@ struct eavlMapOp_CPU
     template <class F, class IN, class OUT>
     static void call(int nitems, int, const IN inputs, OUT outputs, F &functor)
     {
+#pragma omp parallel for
         for (int index = 0; index < nitems; ++index)
         {
             typename collecttype<IN>::const_type in(collect(index, inputs));
             typename collecttype<OUT>::type out(collect(index, outputs));
             out = functor(in);
 
-        // or more simply:
+            // or more simply:
             //collect(index, outputs) = functor(collect(index, inputs));
         }
     }

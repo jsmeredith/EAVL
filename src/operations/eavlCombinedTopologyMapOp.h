@@ -13,7 +13,9 @@
 #include "eavlTopology.h"
 #include "eavlException.h"
 #include <time.h>
+#ifdef HAVE_OPENMP
 #include <omp.h>
+#endif
 
 #ifndef DOXYGEN
 
@@ -26,6 +28,7 @@ struct eavlCombinedTopologyMapOp_CPU
                      const IN0 s_inputs, const IN1 d_inputs, OUT outputs, F &functor)
     {
         int ids[MAX_LOCAL_TOPOLOGY_IDS];
+#pragma omp parallel for private(ids)
         for (int index = 0; index < nitems; ++index)
         {
             int nids;

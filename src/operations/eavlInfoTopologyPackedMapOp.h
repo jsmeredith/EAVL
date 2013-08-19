@@ -13,7 +13,9 @@
 #include "eavlTopology.h"
 #include "eavlException.h"
 #include <time.h>
+#ifdef HAVE_OPENMP
 #include <omp.h>
+#endif
 
 #ifndef DOXYGEN
 
@@ -28,6 +30,7 @@ struct eavlInfoTopologyPackedMapOp_CPU
     {
         int *sparseindices = get<0>(indices).array;
 
+#pragma omp parallel for
         for (int denseindex = 0; denseindex < nitems; ++denseindex)
         {
             int sparseindex = sparseindices[get<0>(indices).indexer.index(denseindex)];

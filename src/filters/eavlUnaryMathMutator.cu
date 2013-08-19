@@ -10,6 +10,42 @@ struct eavlNegateFunctor
     EAVL_FUNCTOR T operator()(T value) { return -value; }
 };
 
+template<class T>
+struct eavlSquareFunctor
+{
+    EAVL_FUNCTOR T operator()(T value) { return value*value; }
+};
+
+template<class T>
+struct eavlSquareRootFunctor
+{
+    EAVL_FUNCTOR T operator()(T value) { return sqrt(value); }
+};
+
+template<class T>
+struct eavlCubeFunctor
+{
+    EAVL_FUNCTOR T operator()(T value) { return value*value*value; }
+};
+
+template<class T>
+struct eavlLog10Functor
+{
+    EAVL_FUNCTOR T operator()(T value) { return log10(value); }
+};
+
+template<class T>
+struct eavlLog2Functor
+{
+    EAVL_FUNCTOR T operator()(T value) { return log2(value); }
+};
+
+template<class T>
+struct eavlLnFunctor
+{
+    EAVL_FUNCTOR T operator()(T value) { return log(value); }
+};
+
 eavlUnaryMathMutator::eavlUnaryMathMutator()
 {
 }
@@ -40,47 +76,55 @@ eavlUnaryMathMutator::Execute()
            "negate");
         break;
 
-        /*
+
       case Square:
         eavlExecutor::AddOperation(
-	   new eavlMapOp_1_1<eavlSquareFunctor<float> >(field->GetArray(),
-						     result,
-						     eavlSquareFunctor<float>()),
-	   "square");
+           new_eavlMapOp(eavlOpArgs(field->GetArray()),
+                         eavlOpArgs(result),
+                         eavlSquareFunctor<float>()),
+           "square");
+        break;
+
+      case SquareRoot:
+        eavlExecutor::AddOperation(
+           new_eavlMapOp(eavlOpArgs(field->GetArray()),
+                         eavlOpArgs(result),
+                         eavlSquareRootFunctor<float>()),
+           "square_root");
         break;
 
       case Cube:
         eavlExecutor::AddOperation(
-	   new eavlMapOp_1_1<eavlCubeFunctor<float> >(field->GetArray(),
-						     result,
-						     eavlCubeFunctor<float>()),
-	   "cube");
+           new_eavlMapOp(eavlOpArgs(field->GetArray()),
+                         eavlOpArgs(result),
+                         eavlCubeFunctor<float>()),
+           "cube");
         break;
 
       case Log_10:
         eavlExecutor::AddOperation(
-	   new eavlMapOp_1_1<eavlLog10Functor<float> >(field->GetArray(),
-						     result,
-						     eavlLog10Functor<float>()),
-	   "Log10");
+           new_eavlMapOp(eavlOpArgs(field->GetArray()),
+                         eavlOpArgs(result),
+                         eavlLog10Functor<float>()),
+           "log10");
         break;
 
       case Log_2:
         eavlExecutor::AddOperation(
-	   new eavlMapOp_1_1<eavlLog2Functor<float> >(field->GetArray(),
-						     result,
-						     eavlLog2Functor<float>()),
-	   "Log2");
+           new_eavlMapOp(eavlOpArgs(field->GetArray()),
+                         eavlOpArgs(result),
+                         eavlLog2Functor<float>()),
+           "log2");
         break;
 
       case Ln:
         eavlExecutor::AddOperation(
-	   new eavlMapOp_1_1<eavlLnFunctor<float> >(field->GetArray(),
-						     result,
-						     eavlLnFunctor<float>()),
-	   "Ln");
+           new_eavlMapOp(eavlOpArgs(field->GetArray()),
+                         eavlOpArgs(result),
+                         eavlLnFunctor<float>()),
+           "ln");
         break;
-        */
+
         ///\todo: implement the other functors and remove the default:throw
       default:
         THROW(eavlException, "Unimplemented");

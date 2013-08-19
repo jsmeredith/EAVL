@@ -13,7 +13,9 @@
 #include "eavlTopology.h"
 #include "eavlException.h"
 #include <time.h>
+#ifdef HAVE_OPENMP
 #include <omp.h>
+#endif
 
 #ifndef DOXYGEN
 
@@ -25,6 +27,7 @@ struct eavlInfoTopologyMapOp_CPU
     static void call(int nitems, CONN &conn,
                      const IN inputs, OUT outputs, F &functor)
     {
+#pragma omp parallel for
         for (int index = 0; index < nitems; ++index)
         {
             int shapeType = conn.GetShapeType(index);
