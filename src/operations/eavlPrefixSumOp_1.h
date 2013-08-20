@@ -246,8 +246,10 @@ struct gpuPrefixSumOp_1_function
         if (numBlocksTotal >= 32768)
         {
             numBlocksY = numBlocksTotal / 32768;
-            numBlocksX = numBlocksTotal % 32768;
+            numBlocksX = (numBlocksTotal + numBlocksY-1) / numBlocksY;
         }
+        if (numBlocksX*numBlocksY < numBlocksTotal)
+            THROW(eavlException, "Internal error, miscalculated grid in prefix sum");
 
         if (PrefixSum_Temp_Storage<IO0>::nvals < numBlocksTotal)
         {
@@ -285,6 +287,18 @@ struct gpuPrefixSumOp_1_function
                  PrefixSum_Temp_Storage<IO0>::device);
         }
         CUDA_CHECK_ERROR();
+
+        // this is just debug output
+        if (false)
+        {
+            cudaMemcpy(PrefixSum_Temp_Storage<IO0>::host,
+                       PrefixSum_Temp_Storage<IO0>::device,
+                       numBlocksTotal * sizeof(IO0),
+                       cudaMemcpyDeviceToHost);
+            for (int i=0; i<numBlocksTotal; i++)
+                cout << "host["<<i<<"] = "<<PrefixSum_Temp_Storage<IO0>::host[i]<<endl;
+        }
+
 
         // exclusive scan on the per-block sums
         singleBlockSimplePrefixSumKernel<false><<<oneblock, threads>>>

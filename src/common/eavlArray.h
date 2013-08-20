@@ -284,9 +284,16 @@ class eavlConcreteArray : public eavlArray
         if (device_values == NULL)
         {
             CUDA_CHECK_ERROR();
+#ifdef DEBUG_ARRAY_TRANSFERS
+            cerr << "Allocating "<<nbytes<<" device bytes ("<<host_values_self.size()<<" vals) for array "<<name<<endl;
+#endif
             cudaMalloc((void**)&device_values, nbytes);
+            //cudaThreadSynchronize();
             CUDA_CHECK_ERROR();
-            //cudaMemset((void**)&device_values, 0, nbytes);
+            // Set to zero for debugging purposes:
+            //cudaMemset((void*)device_values, 0, nbytes);
+            //cudaThreadSynchronize();
+            //CUDA_CHECK_ERROR();
         }
         if (host_dirty)
         {
