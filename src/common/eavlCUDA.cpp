@@ -94,6 +94,8 @@ void eavlInitializeGPU()
         }
     }
 
+    // Sort them in preferred order: 
+    // Tesla models first, then sort by compute capability
     vector<int> deviceOrder;
     for (int device=0; device<deviceCount; ++device)
         deviceOrder.push_back(device);
@@ -132,26 +134,20 @@ void eavlInitializeGPU()
              <<" ("<<devs[actualDevice].name<<")\n";
     }
 
-    // we got an actual device; enable GPU execution (when possible)
-    eavlExecutor::SetExecutionMode(eavlExecutor::PreferGPU);
-
+    // if we wound up with an unsupported GPU, bail out and go CPU-only
     if (devs[actualDevice].major < 2)
     {
-#ifndef HAVE_OLD_GPU
-        cerr << "WARNING: You did not compile in support for old GPUs, "
-             << "but you're about to use one with compute capability < 2.0.  "
-             << "If you attempt to use any GPU functions, things will likely "
-             << "fail spectacularly.  Therefore, we're forcing CPU "
-             << "execution for you." << endl;
+        cerr << endl
+             << "WARNING: EAVL requires compute capability 2.0 or newer.  If\n"
+             << "you attempt to use any GPU functions, things will likely fail\n"
+             << "spectacularly.  Therefore, we're forcing CPU execution for you."
+             << endl << endl;
         eavlExecutor::SetExecutionMode(eavlExecutor::ForceCPU);
         return;
-#else
-        cerr << "WARNING: You are using an old GPU with compute capability "
-             << "< 2.0.  Some important operations are not supported with "
-             << "old GPUs and you may have some operations listed as "
-             << "unimplemented for GPUs." << endl;
-#endif
     }
+
+    // we got a usable device; enable GPU execution (when possible)
+    eavlExecutor::SetExecutionMode(eavlExecutor::PreferGPU);
 #else
 
     // CUDA not enabled; force CPU execution
