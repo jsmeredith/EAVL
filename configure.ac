@@ -547,16 +547,6 @@ fi
 # set up flags for nvcc
 if test "$CUDA" != "no"; then
 
-   AC_ARG_ENABLE(oldgpu,[
-GPU Support:
-  --enable-oldgpu         support compute capability pre-2.0 GPUs
-                          NOTE: this forces CPU paths for some iterators even
-                          when run on newer compute capability devices.
-  --disable-oldgpu        (DEFAULT) support only compute capability
-                          2.0 cards (Fermi) and newer],
-        OLDGPU="$enableval",
-        if test -z "$OLDGPU"; then OLDGPU="no"; fi)
-
    # We don't want to interpret the CXXFLAGS value right now, so we
    # need to have it pass the CXXFLAGS variable to be interpolated at
    # the last minute.
@@ -568,51 +558,27 @@ GPU Support:
    # at the last minute.
    NVCXXFLAGS="$NVCXXFLAGS -Xcompiler \`echo \"$""(CXXFLAGS)\" | tr ' ' ','\`"
 
-   # see if we can use compute model 2.0
+   # find the latest compute model
    AC_MSG_CHECKING(for latest compute model supported)
    echo "__global__ void testfunc() { }" > conftest.cu
    if $NVCC -gencode=arch=compute_35,code=sm_35 -c conftest.cu 2>&AS_MESSAGE_LOG_FD ; then
       AC_MSG_RESULT(3.5)
-      if test "$OLDGPU" = "yes"; then
-         AC_DEFINE(HAVE_OLD_GPU,[1])
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_10,code=sm_10 "
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_11,code=sm_11"
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_13,code=sm_13"
-      fi
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_20,code=sm_20"
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_30,code=sm_30"
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_35,code=sm_35"
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_35,code=compute_35"
    elif $NVCC -gencode=arch=compute_30,code=sm_30 -c conftest.cu 2>&AS_MESSAGE_LOG_FD ; then
       AC_MSG_RESULT(3.0)
-      if test "$OLDGPU" = "yes"; then
-         AC_DEFINE(HAVE_OLD_GPU,[1])
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_10,code=sm_10 "
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_11,code=sm_11"
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_13,code=sm_13"
-      fi
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_20,code=sm_20"
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_30,code=sm_30"
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_30,code=compute_30"
    elif $NVCC -gencode=arch=compute_20,code=sm_20 -c conftest.cu 2>&AS_MESSAGE_LOG_FD ; then
       AC_MSG_RESULT(2.0)
-      if test "$OLDGPU" = "yes"; then
-         AC_DEFINE(HAVE_OLD_GPU,[1])
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_10,code=sm_10 "
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_11,code=sm_11"
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_13,code=sm_13"
-      fi
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_20,code=sm_20"
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_20,code=compute_20"
    else
-      AC_MSG_RESULT(older than 2.0; assuming 1.3)
-      if test "$OLDGPU" = "no"; then
-         AC_MSG_ERROR([Your nvcc does not support capability 2.0+, but pre-2.0 support was disabled; try --enable-oldgpu or upgrade your CUDA version.])
-      fi
-      NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_10,code=sm_10 "
-      NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_11,code=sm_11"
-      NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_13,code=sm_13"
-      NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_13,code=compute_13"
+      AC_MSG_RESULT(older than 2.0)
+      AC_MSG_ERROR([EAVL requires compute capability 2.0 or later.  Please upgrade your CUDA version.])
    fi
 fi
 
@@ -631,44 +597,10 @@ AC_SUBST(CUDA_LIBS)
 ## VTK check.
 ## ---------------------------------------------------------------------------
 
-#VTK_ALL_LIBS="
-#    vtkCommon
-#    vtkDICOMParser
-#    vtkFiltering
-#    vtkGenericFiltering
-#    vtkGraphics
-#    vtkHybrid
-#    vtkIO
-#    vtkImaging
-#    vtkMPEG2Encode
-#    vtkRendering
-#    vtkVolumeRendering
-#    vtkexpat
-#    vtkfreetype
-#    vtkftgl
-#    vtkjpeg
-#    vtkpng
-#    vtksys
-#    vtktiff
-#    vtkzlib"
-
-# don't use everything; we're skipping the rendering stuff
+# don't use everything -- we only need enough to do data set conversion.
 VTK_ALL_LIBS="
-    vtkCommon
-    vtkDICOMParser
-    vtkFiltering
-    vtkGenericFiltering
-    vtkGraphics
-    vtkIO
-    vtkImaging
-    vtkMPEG2Encode
-    vtkexpat
-    vtkfreetype
-    vtkjpeg
-    vtkpng
-    vtksys
-    vtktiff
-    vtkzlib"
+    vtkCommonDataModel-6.0
+    "
 
 VTK_CPPFLAGS=""
 VTK_LDFLAGS=""

@@ -709,7 +709,6 @@ with_mpi
 with_openmp
 with_boost
 with_cuda
-enable_oldgpu
 with_vtk
 with_szip
 with_zlib
@@ -1335,18 +1334,6 @@ fi
 if test -n "$ac_init_help"; then
 
   cat <<\_ACEOF
-
-Optional Features:
-  --disable-option-checking  ignore unrecognized --enable/--with options
-  --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
-  --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
-
-GPU Support:
-  --enable-oldgpu         support compute capability pre-2.0 GPUs
-                          NOTE: this forces CPU paths for some iterators even
-                          when run on newer compute capability devices.
-  --disable-oldgpu        (DEFAULT) support only compute capability
-                          2.0 cards (Fermi) and newer
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -4357,14 +4344,6 @@ fi
 # set up flags for nvcc
 if test "$CUDA" != "no"; then
 
-   # Check whether --enable-oldgpu was given.
-if test "${enable_oldgpu+set}" = set; then :
-  enableval=$enable_oldgpu; OLDGPU="$enableval"
-else
-  if test -z "$OLDGPU"; then OLDGPU="no"; fi
-fi
-
-
    # We don't want to interpret the CXXFLAGS value right now, so we
    # need to have it pass the CXXFLAGS variable to be interpolated at
    # the last minute.
@@ -4376,20 +4355,13 @@ fi
    # at the last minute.
    NVCXXFLAGS="$NVCXXFLAGS -Xcompiler \`echo \"$""(CXXFLAGS)\" | tr ' ' ','\`"
 
-   # see if we can use compute model 2.0
+   # find the latest compute model
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for latest compute model supported" >&5
 $as_echo_n "checking for latest compute model supported... " >&6; }
    echo "__global__ void testfunc() { }" > conftest.cu
    if $NVCC -gencode=arch=compute_35,code=sm_35 -c conftest.cu 2>&5 ; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: 3.5" >&5
 $as_echo "3.5" >&6; }
-      if test "$OLDGPU" = "yes"; then
-         $as_echo "#define HAVE_OLD_GPU 1" >>confdefs.h
-
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_10,code=sm_10 "
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_11,code=sm_11"
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_13,code=sm_13"
-      fi
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_20,code=sm_20"
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_30,code=sm_30"
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_35,code=sm_35"
@@ -4397,38 +4369,18 @@ $as_echo "3.5" >&6; }
    elif $NVCC -gencode=arch=compute_30,code=sm_30 -c conftest.cu 2>&5 ; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: 3.0" >&5
 $as_echo "3.0" >&6; }
-      if test "$OLDGPU" = "yes"; then
-         $as_echo "#define HAVE_OLD_GPU 1" >>confdefs.h
-
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_10,code=sm_10 "
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_11,code=sm_11"
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_13,code=sm_13"
-      fi
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_20,code=sm_20"
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_30,code=sm_30"
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_30,code=compute_30"
    elif $NVCC -gencode=arch=compute_20,code=sm_20 -c conftest.cu 2>&5 ; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: 2.0" >&5
 $as_echo "2.0" >&6; }
-      if test "$OLDGPU" = "yes"; then
-         $as_echo "#define HAVE_OLD_GPU 1" >>confdefs.h
-
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_10,code=sm_10 "
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_11,code=sm_11"
-         NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_13,code=sm_13"
-      fi
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_20,code=sm_20"
       NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_20,code=compute_20"
    else
-      { $as_echo "$as_me:${as_lineno-$LINENO}: result: older than 2.0; assuming 1.3" >&5
-$as_echo "older than 2.0; assuming 1.3" >&6; }
-      if test "$OLDGPU" = "no"; then
-         as_fn_error $? "Your nvcc does not support capability 2.0+, but pre-2.0 support was disabled; try --enable-oldgpu or upgrade your CUDA version." "$LINENO" 5
-      fi
-      NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_10,code=sm_10 "
-      NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_11,code=sm_11"
-      NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_13,code=sm_13"
-      NVCXXFLAGS="$NVCXXFLAGS -gencode=arch=compute_13,code=compute_13"
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: older than 2.0" >&5
+$as_echo "older than 2.0" >&6; }
+      as_fn_error $? "EAVL requires compute capability 2.0 or later.  Please upgrade your CUDA version." "$LINENO" 5
    fi
 fi
 
@@ -4472,21 +4424,8 @@ $as_echo "$CUDA" >&6; }
 
 # don't use everything; we're skipping the rendering stuff
 VTK_ALL_LIBS="
-    vtkCommon
-    vtkDICOMParser
-    vtkFiltering
-    vtkGenericFiltering
-    vtkGraphics
-    vtkIO
-    vtkImaging
-    vtkMPEG2Encode
-    vtkexpat
-    vtkfreetype
-    vtkjpeg
-    vtkpng
-    vtksys
-    vtktiff
-    vtkzlib"
+    vtkCommonDataModel-6.0
+    "
 
 VTK_CPPFLAGS=""
 VTK_LDFLAGS=""

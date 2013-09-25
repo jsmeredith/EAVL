@@ -48,10 +48,6 @@
 /* Define to 1 if you have CUDA */
 #undef HAVE_CUDA
 
-/* Define to 1 if you are building with support for
-   CUDA compute capabilities prior to 2.0 */
-#undef HAVE_OLD_GPU
-
 /* Define to 1 if you have the HDF5 library */
 #undef HAVE_HDF5
 

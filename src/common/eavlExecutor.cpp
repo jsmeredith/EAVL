@@ -20,6 +20,7 @@ eavlExecutor::real_Go()
             }
             catch (eavlException &e)
             {
+                cerr << "Warning: failed GPU, trying CPU, error was "<<e.GetErrorText()<<"\n";
                 try {
                     plan[i]->GoCPU();
                 }
