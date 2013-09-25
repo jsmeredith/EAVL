@@ -631,44 +631,10 @@ AC_SUBST(CUDA_LIBS)
 ## VTK check.
 ## ---------------------------------------------------------------------------
 
-#VTK_ALL_LIBS="
-#    vtkCommon
-#    vtkDICOMParser
-#    vtkFiltering
-#    vtkGenericFiltering
-#    vtkGraphics
-#    vtkHybrid
-#    vtkIO
-#    vtkImaging
-#    vtkMPEG2Encode
-#    vtkRendering
-#    vtkVolumeRendering
-#    vtkexpat
-#    vtkfreetype
-#    vtkftgl
-#    vtkjpeg
-#    vtkpng
-#    vtksys
-#    vtktiff
-#    vtkzlib"
-
-# don't use everything; we're skipping the rendering stuff
+# don't use everything -- we only need enough to do data set conversion.
 VTK_ALL_LIBS="
-    vtkCommon
-    vtkDICOMParser
-    vtkFiltering
-    vtkGenericFiltering
-    vtkGraphics
-    vtkIO
-    vtkImaging
-    vtkMPEG2Encode
-    vtkexpat
-    vtkfreetype
-    vtkjpeg
-    vtkpng
-    vtksys
-    vtktiff
-    vtkzlib"
+    vtkCommonDataModel-6.0
+    "
 
 VTK_CPPFLAGS=""
 VTK_LDFLAGS=""
