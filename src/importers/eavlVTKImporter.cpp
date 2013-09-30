@@ -13,6 +13,11 @@ template <int T>
 inline void byte_swap_element(char *p);
 
 template <>
+inline void byte_swap_element<1>(char *)
+{
+}
+
+template <>
 inline void byte_swap_element<2>(char *p)
 {
     char val;
@@ -219,6 +224,26 @@ bool eavlVTKImporter::GetNextLine()
     return true;
 }
 
+template <class IT, class OT>
+inline void BinaryReadThenCopyToVector(istream *is, int n, vector<OT> &v)
+{
+    vector<IT> t(n);
+    is->read(reinterpret_cast<char*>(&t[0]), sizeof(IT) * n);
+    byte_swap(t); // meaningless for size 1 types, of course
+    for (int i=0; i<n; i++) v[i] = OT(t[i]);
+}
+
+template <class IT>
+inline void BinaryReadThenCopyToArray(istream *is, int nt, int nc, eavlArray *arr)
+{
+    vector<IT> t(nt*nc);
+    is->read(reinterpret_cast<char*>(&t[0]), sizeof(IT) * nt*nc);
+    byte_swap(t);
+    for(int i = 0; i < nt; i++)
+        for (int j = 0; j < nc; j++)
+            arr->SetComponentFromDouble(i, j, t[i]);
+}
+
 void
 eavlVTKImporter::ReadIntoArray(DataType dt, eavlArray *arr)
 {
@@ -229,26 +254,47 @@ eavlVTKImporter::ReadIntoArray(DataType dt, eavlArray *arr)
     {
         switch (dt)
         {
+          case dt_bit:
+            THROW(eavlException,"don't know how to support bits in binary files");
+
+          case dt_unsigned_char:
+            BinaryReadThenCopyToArray<unsigned char>(is, nt, nc, arr);
+            break;
+
+          case dt_char:
+            BinaryReadThenCopyToArray<char>(is, nt, nc, arr);
+            break;
+
+          case dt_unsigned_short:
+            BinaryReadThenCopyToArray<unsigned short>(is, nt, nc, arr);
+            break;
+
+          case dt_short:
+            BinaryReadThenCopyToArray<signed short>(is, nt, nc, arr);
+            break;
+
+          case dt_unsigned_int:
+            BinaryReadThenCopyToArray<unsigned int>(is, nt, nc, arr);
+            break;
+
+          case dt_int:
+            BinaryReadThenCopyToArray<signed int>(is, nt, nc, arr);
+            break;
+
+          case dt_unsigned_long:
+            BinaryReadThenCopyToArray<unsigned long>(is, nt, nc, arr);
+            break;
+
+          case dt_long:
+            BinaryReadThenCopyToArray<signed long>(is, nt, nc, arr);
+            break;
+
           case dt_float:
-            {
-              vector<float> t(nt*nc);
-              is->read(reinterpret_cast<char*>(&t[0]), sizeof(float) * nt*nc);
-              byte_swap(t);
-              for(int i = 0; i < nt; i++)
-                  for (int j = 0; j < nc; j++)
-                      arr->SetComponentFromDouble(i, j, t[i]);
-            }
+            BinaryReadThenCopyToArray<float>(is, nt, nc, arr);
             break;
 
           case dt_double:
-            {
-              vector<double> t(nt*nc);
-              is->read(reinterpret_cast<char*>(&t[0]), sizeof(double) * nt*nc);
-              byte_swap(t);
-              for(int i = 0; i < nt; i++)
-                  for (int j = 0; j < nc; j++)
-                      arr->SetComponentFromDouble(i, j, t[i]);
-            }
+            BinaryReadThenCopyToArray<double>(is, nt, nc, arr);
             break;
 
           default:
@@ -283,93 +329,43 @@ eavlVTKImporter::ReadIntoVector(int n,DataType dt,vector<T> &v)
             THROW(eavlException,"don't know how to support bits in binary files");
 
           case dt_unsigned_char:
-            {
-              vector<unsigned char> t(n);
-              is->read(reinterpret_cast<char*>(&t[0]), sizeof(char) * n);
-              // byte_swap(t); // meaningless
-              for (int i=0; i<n; i++) v[i] = T(t[i]);
-            }
+            BinaryReadThenCopyToVector<unsigned char>(is, n, v);
             break;
 
           case dt_char:
-            {
-              vector<signed char> t(n);
-              is->read(reinterpret_cast<char*>(&t[0]), sizeof(char) * n);
-              // byte_swap(t); // meaningless
-              for (int i=0; i<n; i++) v[i] = T(t[i]);
-            }
+            BinaryReadThenCopyToVector<char>(is, n, v);
             break;
 
           case dt_unsigned_short:
-            {
-              vector<unsigned short> t(n);
-              is->read(reinterpret_cast<char*>(&t[0]), sizeof(short) * n);
-              byte_swap(t);
-              for (int i=0; i<n; i++) v[i] = T(t[i]);
-            }
+            BinaryReadThenCopyToVector<unsigned short>(is, n, v);
             break;
 
           case dt_short:
-            {
-              vector<signed short> t(n);
-              is->read(reinterpret_cast<char*>(&t[0]), sizeof(short) * n);
-              byte_swap(t);
-              for (int i=0; i<n; i++) v[i] = T(t[i]);
-            }
+            BinaryReadThenCopyToVector<signed short>(is, n, v);
             break;
 
           case dt_unsigned_int:
-            {
-              vector<unsigned int> t(n);
-              is->read(reinterpret_cast<char*>(&t[0]), sizeof(int) * n);
-              byte_swap(t);
-              for (int i=0; i<n; i++) v[i] = T(t[i]);
-            }
+            BinaryReadThenCopyToVector<unsigned int>(is, n, v);
             break;
 
           case dt_int:
-            {
-              vector<signed int> t(n);
-              is->read(reinterpret_cast<char*>(&t[0]), sizeof(int) * n);
-              byte_swap(t);
-              for (int i=0; i<n; i++) v[i] = T(t[i]);
-            }
+            BinaryReadThenCopyToVector<signed int>(is, n, v);
             break;
 
           case dt_unsigned_long:
-            {
-              vector<unsigned long> t(n);
-              is->read(reinterpret_cast<char*>(&t[0]), sizeof(long) * n);
-              byte_swap(t);
-              for (int i=0; i<n; i++) v[i] = T(t[i]);
-            }
+            BinaryReadThenCopyToVector<unsigned long>(is, n, v);
             break;
 
           case dt_long:
-            {
-              vector<signed long> t(n);
-              is->read(reinterpret_cast<char*>(&t[0]), sizeof(long) * n);
-              byte_swap(t);
-              for (int i=0; i<n; i++) v[i] = T(t[i]);
-            }
+            BinaryReadThenCopyToVector<signed long>(is, n, v);
             break;
 
           case dt_float:
-            {
-              vector<float> t(n);
-              is->read(reinterpret_cast<char*>(&t[0]), sizeof(float) * n);
-              byte_swap(t);
-              for (int i=0; i<n; i++) v[i] = T(t[i]);
-            }
+            BinaryReadThenCopyToVector<float>(is, n, v);
             break;
 
           case dt_double:
-            {
-              vector<double> t(n);
-              is->read(reinterpret_cast<char*>(&t[0]), sizeof(double) * n);
-              byte_swap(t);
-              for (int i=0; i<n; i++) v[i] = T(t[i]);
-            }
+            BinaryReadThenCopyToVector<double>(is, n, v);
             break;
 
         }       
