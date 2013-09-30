@@ -30,6 +30,7 @@ class eavlVTKExporter : public eavlExporter
     void ExportPoints(ostream &out);
     void ExportCells(ostream &out);
     void ExportFields(ostream &out);
+    void ExportGlobalFields(ostream &out);
 
     int  CellTypeToVTK(eavlCellShape &type);
     

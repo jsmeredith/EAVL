@@ -17,6 +17,7 @@ void
 eavlVTKExporter::ExportUnstructured(ostream &out)
 {
     out<<"DATASET UNSTRUCTURED_GRID"<<endl;
+    ExportGlobalFields(out);
     ExportPoints(out);
 
     ExportCells(out);
@@ -53,6 +54,39 @@ eavlVTKExporter::ExportCells(ostream &out)
     {
         eavlCell cell = data->GetCellSet(cellSetIndex)->GetCellNodes(i);
         out<<CellTypeToVTK(cell.type)<<endl;
+    }
+}
+
+void
+eavlVTKExporter::ExportGlobalFields(ostream &out)
+{
+    int count = 0;
+    for (int f = 0; f < data->GetNumFields(); f++)
+    {
+        if (data->GetField(f)->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
+            ++count;
+    }
+    bool wrote_global_field_header = false;
+    for (int f = 0; f < data->GetNumFields(); f++)
+    {
+        int ntuples = data->GetField(f)->GetArray()->GetNumberOfTuples();
+        int ncomp = data->GetField(f)->GetArray()->GetNumberOfComponents();
+        
+        if (ncomp > 4)
+            continue;
+
+        if (data->GetField(f)->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
+        {
+            if (!wrote_global_field_header)
+                out<<"FIELD FieldData "<<count<<endl;
+            wrote_global_field_header = true;
+            out<<data->GetField(f)->GetArray()->GetName()<<" "<<ncomp<<" "<<ntuples<<" float"<<endl;
+            for (int i = 0; i < ntuples; i++)
+            {
+                for (int j = 0; j < ncomp; j++)
+                    out<<data->GetField(f)->GetArray()->GetComponentAsDouble(i,j)<<endl;
+            }
+        }
     }
 }
 
