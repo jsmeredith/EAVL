@@ -56,7 +56,8 @@ OBJ=\
  math/eavlMatrix4x4.o \
  math/eavlPoint3.o \
  math/eavlVector3.o \
- rendering/eavlColor.o
+ rendering/eavlColor.o \
+ vtk/eavlVTKDataSet.o
 
 ifneq (@NETCDF@, no)
  OBJ+=importers/eavlNetCDFImporter.o
@@ -74,8 +75,8 @@ ifneq (@ADIOS@, no)
  OBJ+=importers/eavlPixieImporter.o
 endif
 
-CPPFLAGS+=-I../config -Icommon/ -Ifonts/ -Iimporters/ -Imath/ -Irendering/ -Iexecutor/ -Ifunctors/ -Ioperations/ -Ifilters/
-CPPFLAGS+=$(MPI_CPPFLAGS) $(BOOST_CPPFLAGS) $(NETCDF_CPPFLAGS) $(SILO_CPPFLAGS) $(CUDA_CPPFLAGS) $(ADIOS_CPPFLAGS)
+CPPFLAGS+=-I../config -Icommon/ -Ifonts/ -Iimporters/ -Imath/ -Irendering/ -Iexecutor/ -Ifunctors/ -Ioperations/ -Ifilters/ -Iexporters/ -Ivtk/
+CPPFLAGS+=$(MPI_CPPFLAGS) $(BOOST_CPPFLAGS) $(NETCDF_CPPFLAGS) $(SILO_CPPFLAGS) $(CUDA_CPPFLAGS) $(ADIOS_CPPFLAGS) $(VTK_CPPFLAGS)
 
 LIBS=-lm
 

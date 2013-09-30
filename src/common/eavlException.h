@@ -82,4 +82,6 @@ class eavlException
 # define EAVL_CURRENT_FUNCTION "(unknown)"
 #endif
 
+#include "eavlPlatform.h"
+
 #endif
