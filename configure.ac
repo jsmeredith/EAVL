@@ -599,7 +599,10 @@ AC_SUBST(CUDA_LIBS)
 
 # don't use everything -- we only need enough to do data set conversion.
 VTK_ALL_LIBS="
+    vtkIOLegacy-6.0
+    vtkIOCore-6.0
     vtkCommonDataModel-6.0
+    vtkCommonCore-6.0
     "
 
 VTK_CPPFLAGS=""
