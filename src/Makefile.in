@@ -56,8 +56,11 @@ OBJ=\
  math/eavlMatrix4x4.o \
  math/eavlPoint3.o \
  math/eavlVector3.o \
- rendering/eavlColor.o \
- vtk/eavlVTKDataSet.o
+ rendering/eavlColor.o
+
+ifneq (@VTK@, no)
+ OBJ+=vtk/eavlVTKDataSet.o
+endif
 
 ifneq (@NETCDF@, no)
  OBJ+=importers/eavlNetCDFImporter.o
