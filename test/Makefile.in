@@ -15,7 +15,7 @@ ifneq (@VTK@, no)
 VTKTESTS=testvtk
 endif
 
-TESTS = testimport testiso testnormal testrecenter testmath testdatamodel testxform testbin testgraphlayout $(VTKTESTS)
+TESTS = testimport testiso testnormal testrecenter testmath testdatamodel testxform testbin testdistancefield testgraphlayout $(VTKTESTS)
 OBJ = $(TESTS:=.o)
 LIBDEP=$(TOPDIR)/lib/libeavl.a
 
@@ -54,6 +54,9 @@ testxform: $(LIBDEP) testxform.o
 	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
 
 testbin: $(LIBDEP) testbin.o
+	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
+
+testdistancefield: $(LIBDEP) testdistancefield.o
 	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
 
 testgraphlayout: $(LIBDEP) testgraphlayout.o

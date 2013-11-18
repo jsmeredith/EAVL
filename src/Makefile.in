@@ -35,6 +35,7 @@ OBJ=\
  filters/eavlElevateMutator.o \
  filters/eavlExternalFaceMutator.o \
  filters/eavlIsosurfaceFilter.o \
+ filters/eavlPointDistanceFieldFilter.o \
  filters/eavlScalarBinFilter.o \
  filters/eavlSurfaceNormalMutator.o \
  filters/eavlTesselate2DFilter.o \
