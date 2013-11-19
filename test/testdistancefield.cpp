@@ -39,13 +39,20 @@ int main(int argc, char *argv[])
         df->SetInput(input);
         //df->SetRange1D(20,
         //               -10,10);
-        //df->SetRange2D(20,20,
-        //               -10,10,
-        //               -10,10);
-        df->SetRange3D(40,40,40,
-                       20,40,
-                       -70,-40,
-                       0,25);
+        //df->SetRange2D(40,40,
+        //               15,50,
+        //               -75,-35);
+
+        //df->SetRange1D(666,
+        //               -2,6);
+        
+        df->SetRange3D(128,128,128,
+                       15, 50,
+                       -75, -35,
+                       -5, 32);
+                       //20,40,
+                       //-70,-40,
+                       //0,25);
         df->Execute();
 
         eavlDataSet *result = df->GetOutput();

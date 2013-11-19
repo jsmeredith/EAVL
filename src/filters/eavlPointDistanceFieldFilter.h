@@ -55,8 +55,19 @@ class eavlPointDistanceFieldFilter : public eavlFilter
         zmin = zn;
         zmax = zx;
     }
+    void SetDoExact()
+    {
+        exact = true;
+    }
+    void SetDoApproximateIter(int n)
+    {
+        exact = false;
+        niter = n;
+    }
     virtual void Execute();
   protected:
+    bool exact;
+    int niter;
     int dim;
     int ni, nj, nk;
     float xmin, xmax;

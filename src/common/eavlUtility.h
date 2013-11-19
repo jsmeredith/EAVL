@@ -11,12 +11,12 @@ void CalculateTicks(double lower, double upper, bool minor,
                     int modifyTickQuantity=0); ///< -1 for less, +1 for more
 
 template <class T>
-string VecPrint(T *const v, int n, int nmax, int group=1e9)
+string VecPrint(T *const v, unsigned int n, unsigned int nmax, unsigned int group=1e9)
 {
     ostringstream out;
     if (n <= nmax)
     {
-        for (int i=0 ; i<n; i++)
+        for (unsigned int i=0 ; i<n; i++)
         {
             out << v[i];
             if (i<n-1)
@@ -29,8 +29,8 @@ string VecPrint(T *const v, int n, int nmax, int group=1e9)
         return out.str();
     }
 
-    int num = nmax/2;
-    int i=0;
+    unsigned int num = nmax/2;
+    unsigned int i=0;
     for ( ; i<num; i++)
     {
         out << v[i];
@@ -52,7 +52,7 @@ string VecPrint(T *const v, int n, int nmax, int group=1e9)
 
 
 template <class T>
-string VecPrint(const T &v, int nmax, int group=1e9)
+string VecPrint(const T &v, unsigned int nmax, unsigned int group=1e9)
 {
     return VecPrint(&(v[0]), v.size(), nmax, group);
 }
