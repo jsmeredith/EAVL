@@ -1,0 +1,47 @@
+eavlDataSet:
+   npoints = 8000
+   eavlLogicalStructureRegular:
+     logicalDimension = 3
+     logicalDims[3] = 20 20 20 
+   coordinateSystems[1]:
+   eavlCoordinatesCartesian, ndims=3: 
+       logdim 0: div=1,mod=20
+       logdim 1: div=20,mod=20
+       logdim 2: div=400,mod=20
+       axis 0 (type=X):
+          eavlCoordinateAxisField='x',component #0
+       axis 1 (type=Y):
+          eavlCoordinateAxisField='y',component #0
+       axis 2 (type=Z):
+          eavlCoordinateAxisField='z',component #0
+  discreteCoordinates[0]:
+  cellsets[1]:
+    eavlCellSetAllStructured:
+        name = cells
+        dimensionality = 3
+        nCells = 6859
+        zdims[] = 19 19 19
+  fields[4]:
+      array name = x
+      order = 1
+      association = LOGICALDIM
+      assoc_logicaldim = 0
+      array = float x[20][1] = -2  -1.52632  -1.05263  -0.578947  -0.105263 ... 5.10526  5.57895  6.05263  6.52632  7
+
+      array name = y
+      order = 1
+      association = LOGICALDIM
+      assoc_logicaldim = 1
+      array = float y[20][1] = -2  -1.52632  -1.05263  -0.578947  -0.105263 ... 5.10526  5.57895  6.05263  6.52632  7
+
+      array name = z
+      order = 1
+      association = LOGICALDIM
+      assoc_logicaldim = 2
+      array = float z[20][1] = -2  -1.52632  -1.05263  -0.578947  -0.105263 ... 5.10526  5.57895  6.05263  6.52632  7
+
+      array name = dist
+      order = 1
+      association = POINTS
+      array = float dist[8000][1] = 4.13401  3.90258  3.7174  3.58563  3.51329 ... 7.8935  8.17312  8.47002  8.78244  9.10879
+

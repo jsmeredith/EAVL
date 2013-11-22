@@ -23,7 +23,50 @@ int main(int argc, char *argv[])
         eavlExecutor::SetExecutionMode(eavlExecutor::ForceGPU);
         eavlInitializeGPU();
 
-        if (argc != 2 && argc != 3)
+        // usage
+        // testdistancefield infile nx min maxx [outfile]
+        // testdistancefield infile nx ny min maxx miny maxy [outfile]
+        // testdistancefield infile nx ny nz min maxx miny maxy minz maxz [outfile]
+
+        int nx=1, ny=1, nz=1;
+        double minx=-1, miny=-1, minz=-1;
+        double maxx=+1, maxy=+1, maxz=+1;
+        string outfile = "";
+
+        if (argc == 5 || argc == 6)
+        {
+            nx = strtol(argv[2],NULL,10);
+            minx = strtod(argv[3],NULL);
+            maxx = strtod(argv[4],NULL);
+            if (argc==6)
+                outfile = argv[5];
+        }
+        else if (argc == 8 || argc == 9)
+        {
+            nx = strtol(argv[2],NULL,10);
+            ny = strtol(argv[3],NULL,10);
+            minx = strtod(argv[4],NULL);
+            maxx = strtod(argv[5],NULL);
+            miny = strtod(argv[6],NULL);
+            maxy = strtod(argv[7],NULL);
+            if (argc==9)
+                outfile = argv[8];
+        }
+        else if (argc == 11 || argc == 12)
+        {
+            nx = strtol(argv[2],NULL,10);
+            ny = strtol(argv[3],NULL,10);
+            nz = strtol(argv[4],NULL,10);
+            minx = strtod(argv[5],NULL);
+            maxx = strtod(argv[6],NULL);
+            miny = strtod(argv[7],NULL);
+            maxy = strtod(argv[8],NULL);
+            minz = strtod(argv[9],NULL);
+            maxz = strtod(argv[10],NULL);
+            if (argc==12)
+                outfile = argv[11];
+        }
+        else
             THROW(eavlException,"Incorrect number of arguments");
 
         // assume first mesh, single (or first) domain
@@ -35,32 +78,36 @@ int main(int argc, char *argv[])
         string meshname = importer->GetMeshList()[meshindex];
         eavlDataSet *input = importer->GetMesh(meshname, domainindex);
 
+        cerr << "Finished reading input file.\n";
+
         eavlPointDistanceFieldFilter *df = new eavlPointDistanceFieldFilter();
         df->SetInput(input);
-        //df->SetRange1D(20,
-        //               -10,10);
-        //df->SetRange2D(40,40,
-        //               15,50,
-        //               -75,-35);
-
-        //df->SetRange1D(666,
-        //               -2,6);
-        
-        df->SetRange3D(128,128,128,
-                       15, 50,
-                       -75, -35,
-                       -5, 32);
-                       //20,40,
-                       //-70,-40,
-                       //0,25);
+        if (nz > 1)
+        {
+            df->SetRange3D(nx, ny, nz,
+                           minx, maxx,
+                           miny, maxy,
+                           minz, maxz);
+        }
+        else if (ny > 1)
+        {
+            df->SetRange2D(nx, ny,
+                           minx, maxx,
+                           miny, maxy);
+        }
+        else
+        {
+            df->SetRange1D(nx,
+                           minx, maxx);
+        }
         df->Execute();
 
         eavlDataSet *result = df->GetOutput();
 
-        if (argc == 3)
+        if (outfile != "")
         {
             cerr << "\n\n-- done with distance field, writing to file --\n";	
-            WriteToVTKFile(result, argv[2], 0);
+            WriteToVTKFile(result, outfile, 0);
         }
         else
         {
@@ -73,7 +120,9 @@ int main(int argc, char *argv[])
     catch (const eavlException &e)
     {
         cerr << e.GetErrorText() << endl;
-        cerr << "\nUsage: "<<argv[0]<<" <file> <field> [numbins]\n";
+        cerr << "\nUsage: "<<argv[0]<<" infile nx min maxx [outfile]\n";
+        cerr << "\nUsage: "<<argv[0]<<" infile nx ny min maxx miny maxy [outfile]\n";
+        cerr << "\nUsage: "<<argv[0]<<" infile nx ny nz min maxx miny maxy minz maxz [outfile]\n";
         return 1;
     }
 

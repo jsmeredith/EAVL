@@ -1,0 +1,29 @@
+eavlDataSet:
+   npoints = 20
+   eavlLogicalStructureRegular:
+     logicalDimension = 1
+     logicalDims[1] = 20 
+   coordinateSystems[1]:
+   eavlCoordinatesCartesian, ndims=1: 
+       logdim 0: div=1,mod=20
+       axis 0 (type=X):
+          eavlCoordinateAxisField='x',component #0
+  discreteCoordinates[0]:
+  cellsets[1]:
+    eavlCellSetAllStructured:
+        name = cells
+        dimensionality = 1
+        nCells = 19
+        zdims[] = 19
+  fields[2]:
+      array name = x
+      order = 1
+      association = LOGICALDIM
+      assoc_logicaldim = 0
+      array = float x[20][1] = -2  -1.52632  -1.05263  -0.578947  -0.105263 ... 5.10526  5.57895  6.05263  6.52632  7
+
+      array name = dist
+      order = 1
+      association = POINTS
+      array = float dist[20][1] = 1.7  1.22632  0.752632  0.278947  0.194737 ... 3.10526  3.57895  4.05263  4.52632  5
+
