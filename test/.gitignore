@@ -11,3 +11,5 @@ testbin
 testgraphlayout
 testrecenter
 testdistancefield
+testvtk
+testthreshold

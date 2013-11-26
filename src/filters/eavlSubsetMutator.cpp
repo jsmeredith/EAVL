@@ -1,56 +1,46 @@
 // Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
-#include "eavlThresholdMutator.h"
-#include "eavlCellSetExplicit.h"
+#include "eavlSubsetMutator.h"
+#include "eavlCellSetSubset.h"
 #include "eavlException.h"
 
 
-eavlThresholdMutator::eavlThresholdMutator()
+eavlSubsetMutator::eavlSubsetMutator()
 {
 }
 
 
 void
-eavlThresholdMutator::Execute()
+eavlSubsetMutator::Execute()
 {
     int inCellSetIndex = dataset->GetCellSetIndex(cellsetname);
     eavlCellSet *inCells = dataset->GetCellSet(cellsetname);
 
     eavlField   *inField = dataset->GetField(fieldname);
 
-    ///\todo: add nodal threshold capability
     if (inField->GetAssociation() != eavlField::ASSOC_CELL_SET ||
         inField->GetAssocCellSet() != inCellSetIndex)
     {
-        THROW(eavlException,"Field for threshold didn't match cell set.");
+        THROW(eavlException,"Field for subset didn't match cell set.");
     }
 
 
     eavlArray *inArray = inField->GetArray();
 
-    vector<int> newcells;
+    // create the subset
+    eavlCellSetSubset *subset = new eavlCellSetSubset(inCells);
+
+    subset->subset.clear();
     int in_ncells = inCells->GetNumCells();
     for (int i=0; i<in_ncells; i++)
     {
         if (inArray->GetComponentAsDouble(i,0) >= minval &&
             inArray->GetComponentAsDouble(i,0) <= maxval)
         {
-            newcells.push_back(i);
+            subset->subset.push_back(i);
         }            
     }
-    unsigned int numnewcells = newcells.size();
 
-    eavlExplicitConnectivity conn;
-    for (unsigned int i=0; i<numnewcells; ++i)
-    {
-        eavlCell cell = inCells->GetCellNodes(newcells[i]);
-        conn.AddElement(cell.type, cell.numIndices, cell.indices);
-    }
-
-    eavlCellSetExplicit *subset = new eavlCellSetExplicit(string("threshold_of_")+inCells->GetName(),
-                                                          inCells->GetDimensionality());
-    subset->SetCellNodeConnectivity(conn);
-
-    int new_cellset_index = dataset->GetNumCellSets();
+    int new_cell_index = dataset->GetNumCellSets();
     dataset->AddCellSet(subset);
 
     for (int i=0; i<dataset->GetNumFields(); i++)
@@ -59,20 +49,20 @@ eavlThresholdMutator::Execute()
         if (f->GetAssociation() == eavlField::ASSOC_CELL_SET &&
             f->GetAssocCellSet() == inCellSetIndex)
         {
-            int numcomp = f->GetArray()->GetNumberOfComponents();
             eavlFloatArray *a = new eavlFloatArray(
                                  string("subset_of_")+f->GetArray()->GetName(),
-                                 numcomp, numnewcells);
-            for (unsigned int j=0; j < numnewcells; j++)
+                                 f->GetArray()->GetNumberOfComponents());
+            int sub_ncells = subset->GetNumCells();
+            a->SetNumberOfTuples(sub_ncells);
+            for (int j=0; j < sub_ncells; j++)
             {
-                int e = newcells[j];
-                for (int k=0; k<numcomp; ++k)
-                    a->SetComponentFromDouble(j,k, f->GetArray()->GetComponentAsDouble(e,k));
+                int e = subset->subset[j];
+                a->SetComponentFromDouble(j,0, f->GetArray()->GetComponentAsDouble(e,0));
             }
 
             eavlField *newfield = new eavlField(f->GetOrder(), a,
                                                 eavlField::ASSOC_CELL_SET,
-                                                new_cellset_index);
+                                                new_cell_index);
             dataset->AddField(newfield);
         }
     }

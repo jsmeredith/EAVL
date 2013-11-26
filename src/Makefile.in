@@ -37,6 +37,7 @@ OBJ=\
  filters/eavlIsosurfaceFilter.o \
  filters/eavlPointDistanceFieldFilter.o \
  filters/eavlScalarBinFilter.o \
+ filters/eavlSubsetMutator.o \
  filters/eavlSurfaceNormalMutator.o \
  filters/eavlTesselate2DFilter.o \
  filters/eavlThresholdMutator.o \
