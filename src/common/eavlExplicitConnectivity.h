@@ -84,6 +84,13 @@ struct eavlExplicitConnectivity
             connectivity.push_back(conn[i]);
         shapetype.push_back(int(shape));
     }
+    void AddElement(const eavlCell &cell)
+    {
+        connectivity.push_back(cell.numIndices);
+        for (int i=0; i<cell.numIndices; i++)
+            connectivity.push_back(cell.indices[i]);
+        shapetype.push_back(int(cell.type));
+    }
     /// \todo: surface normal only needs 3 nodes; can we improve its
     /// performance by only having it return three values in that case?
     EAVL_HOSTDEVICE int GetShapeType(int index) const

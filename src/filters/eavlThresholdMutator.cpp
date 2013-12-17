@@ -43,7 +43,7 @@ eavlThresholdMutator::Execute()
     for (unsigned int i=0; i<numnewcells; ++i)
     {
         eavlCell cell = inCells->GetCellNodes(newcells[i]);
-        conn.AddElement(cell.type, cell.numIndices, cell.indices);
+        conn.AddElement(cell);
     }
 
     eavlCellSetExplicit *subset = new eavlCellSetExplicit(string("threshold_of_")+inCells->GetName(),
