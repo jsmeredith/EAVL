@@ -31,6 +31,7 @@ OBJ=\
  filters/eavl2DGraphLayoutForceMutator.o \
  filters/eavl3X3AverageMutator.o \
  filters/eavlBinaryMathMutator.o \
+ filters/eavlBoxMutator.o \
  filters/eavlCellToNodeRecenterMutator.o \
  filters/eavlElevateMutator.o \
  filters/eavlExternalFaceMutator.o \
