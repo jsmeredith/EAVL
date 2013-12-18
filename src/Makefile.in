@@ -52,6 +52,7 @@ OBJ=\
  importers/eavlBOVImporter.o \
  importers/eavlCurveImporter.o \
  importers/eavlImporterFactory.o \
+ importers/eavlLAMMPSDumpImporter.o \
  importers/eavlMADNESSImporter.o \
  importers/eavlPDBImporter.o \
  importers/eavlPNGImporter.o \
