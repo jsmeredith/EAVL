@@ -7,6 +7,7 @@
 #include "eavlException.h"
 
 #include "eavlImporterFactory.h"
+#include "eavlLAMMPSDumpImporter.h"
 #include "eavlVTKExporter.h"
 
 #include "eavlIsosurfaceFilter.h"
@@ -21,7 +22,7 @@
 // if you're reading from a lammps file, you need to tell
 // the helper function which species type you're working with.
 // Use zero-oriign.  I.e., it's either 0 (W) or 1 (He).
-int matchtype = 0;
+int matchtype = 1;
 
 void WriteToVTKFile(eavlDataSet *data, const string &filename,
         int cellSetIndex = 0)
@@ -36,7 +37,8 @@ void WriteToVTKFile(eavlDataSet *data, const string &filename,
 
 eavlDataSet *ReadMeshFromFile(const string &filename, int meshindex)
 {
-    eavlImporter *importer = eavlImporterFactory::GetImporterForFile(filename);
+    //eavlImporter *importer = eavlImporterFactory::GetImporterForFile(filename);
+    eavlImporter *importer = new eavlLAMMPSDumpImporter(filename);
     
     if (!importer)
         THROW(eavlException,"Didn't determine proper file reader to use");
@@ -76,6 +78,9 @@ void FillXYZArraysFromFile(const std::string &filename)
         }
     }
     delete data;
+
+    cerr << "USING " << x.size() << " ATOMS OUT OF "<<npts<<" IN THE FILE\n";
+
 }
 
 eavlDataSet *CreatePointDataSet(const vector<double> &x,
@@ -140,7 +145,7 @@ void DoIt(const vector<double> &x,
 
     // settings for step 4: should we restrict the result
     //                      only to triangles within some spatial range?
-    bool apply_box = true;
+    bool apply_box = false;
     double box_xmin =  20, box_xmax = 490;
     double box_ymin =  20, box_ymax = 490;
     double box_zmin =  15, box_zmax = 145;
@@ -221,8 +226,6 @@ int main(int argc, char *argv[])
         // Fill the global x, y, and z arrays with atom positions
         FillXYZArraysFromFile(argv[1]);
         
-        cout << "Got " << x.size() << " atoms.\n";
-
         DoIt(x, y, z);
     }
     catch (const eavlException &e)
