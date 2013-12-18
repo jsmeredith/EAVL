@@ -10,6 +10,9 @@
 class eavlCoordinateAxis
 {
   public:
+    virtual ~eavlCoordinateAxis()
+    {
+    };
     virtual double GetValue(int pointIndex,
                             vector<int> &indexDivs,
                             vector<int> &indexMods,
@@ -34,6 +37,9 @@ class eavlCoordinateAxisField : public eavlCoordinateAxis
   public:
     eavlCoordinateAxisField(const string &fn, int comp=0) :
         fieldName(fn), component(comp), fieldIndex(-1), fieldPointer(NULL) { }
+    virtual ~eavlCoordinateAxisField()
+    {
+    }
     virtual void PrintSummary(ostream &out)
     {
         out << "          eavlCoordinateAxisField='"<<fieldName<<"',component #"<<component<<endl;
@@ -110,6 +116,9 @@ class eavlCoordinateAxisRegular : public eavlCoordinateAxis
         : logicaldim(logicaldim_), origin(origin_), delta(delta_)
     {
     }
+    virtual ~eavlCoordinateAxisRegular()
+    {
+    }
     virtual void PrintSummary(ostream &out)
     {
         out << "          eavlCoordinateAxisRegular origin='"<<origin<<"' delta="<<delta<<endl;
@@ -150,6 +159,7 @@ class eavlCoordinates
   public:
     eavlCoordinates(int ndims, eavlLogicalStructure *log) : axes(ndims)
     {
+        axes.resize(ndims, NULL);
         eavlLogicalStructureRegular *l =
             dynamic_cast<eavlLogicalStructureRegular*>(log);
         if (l)
@@ -163,8 +173,15 @@ class eavlCoordinates
             }
         }
     }
+    virtual ~eavlCoordinates()
+    {
+        for (unsigned int i=0; i<axes.size(); ++i)
+            delete axes[i];
+    }
     void SetAxis(int i, eavlCoordinateAxis *a)
     {
+        if (axes[i])
+            delete axes[i];
         axes[i] = a;
     }
     eavlCoordinateAxis *GetAxis(int i)
@@ -253,6 +270,9 @@ class eavlCoordinatesCartesian : public eavlCoordinates
         axisMap[int(second)] = 1;
         axisMap[int(third)]  = 2;
     }
+    virtual ~eavlCoordinatesCartesian()
+    {
+    }
     virtual double GetCartesianPoint(int i, int c,
                                      eavlLogicalStructure *,
                                      vector<eavlField*>&fd)
@@ -303,6 +323,9 @@ class eavlCoordinatesCartesianWithTransform : public eavlCoordinatesCartesian
                              CartesianAxisType second,
                              CartesianAxisType third)
         : eavlCoordinatesCartesian(log, first, second, third), transform()
+    {
+    }
+    virtual ~eavlCoordinatesCartesianWithTransform()
     {
     }
 
