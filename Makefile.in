@@ -26,4 +26,7 @@ test: src
 check: $(SUBDIRS)
 	(cd test && $(MAKE) check)
 
+package:
+	sh package.sh
+
 @TARGETS@
