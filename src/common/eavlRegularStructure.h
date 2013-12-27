@@ -244,9 +244,8 @@ struct eavlRegularStructure
 
     EAVL_HOSTDEVICE int GetCellNodes(int index, int &npts, int *pts)
     {
-        ///\todo: make sure the node ordering here matches the
-        /// VTK ordering.  (I believe it DOES, but if e.g. isosurface
-        /// is wrong, then this is one likely culprit.)
+        // note: if isosurface is wrong, this (and getcelledges)
+        // are likely culprits.
         if (dimension == 1)
         {
             npts = 2;
@@ -337,11 +336,6 @@ struct eavlRegularStructure
 
     EAVL_HOSTDEVICE int GetCellEdges(int index, int &nedges, int *edges)
     {
-        ///\todo: make sure the edge ordering here matches the
-        /// ordering used in the iso tables (eavlCellComponents edge ordering).
-        /// I believe the 3D case is now correct given that I'm getting
-        /// the right answer for isosurface, and I believe I've also
-        /// fixed the 2D case, but I haven't double-checked 2D yet.
         if (dimension == 2)
         {
             int xc = cellDims[0];

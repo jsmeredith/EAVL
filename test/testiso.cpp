@@ -64,17 +64,19 @@ int main(int argc, char *argv[])
         int cellsetindex = -1;
         for (int i=0; i<data->GetNumCellSets(); i++)
         {
-            if (data->GetCellSet(i)->GetDimensionality() == 3)
+            if (data->GetCellSet(i)->GetDimensionality() == 2 ||
+                data->GetCellSet(i)->GetDimensionality() == 3)
             {
                 cellsetindex = i;
-                cerr << "Found 3D topo dim cell set name '"
+                cerr << "Found 2D or 3D topo dim cell set name '"
                      << data->GetCellSet(i)->GetName()
                      << "' index " << cellsetindex << endl;
                 break;
             }
         }
         if (cellsetindex < 0)
-            THROW(eavlException,"Couldn't find a 3D cell set.  Aborting.");
+            THROW(eavlException,"Couldn't find a 2D or 3D cell set.  Aborting.");
+
 
         if (data->GetCoordinateSystem(0)->GetDimension() != 3)
             THROW(eavlException,"Not 3D coords.  Want 3D coords for now.\n");

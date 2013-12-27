@@ -96,6 +96,15 @@ struct ConnectivityDererenceFunctor3
     }
 };
 
+struct ConnectivityDererenceFunctor2
+{
+    EAVL_FUNCTOR tuple<int,int> operator()(int shapeType, int n, int ids[], tuple<int,int> localids)
+    {
+        return tuple<int,int>(ids[get<0>(localids)],
+                              ids[get<1>(localids)]);
+    }
+};
+
 
 class FirstTwoItemsDifferFunctor
 {
@@ -221,6 +230,85 @@ class Iso3DLookupTris
     }
 };
 
+class Iso2DLookupCounts
+{
+    eavlConstArray<byte> tricount;
+    eavlConstArray<byte> quacount;
+    eavlConstArray<byte> pixcount;
+  public:
+    Iso2DLookupCounts(eavlConstArray<byte> *tricount_,
+                      eavlConstArray<byte> *quacount_,
+                      eavlConstArray<byte> *pixcount_)
+        : tricount(*tricount_),
+          quacount(*quacount_),
+          pixcount(*pixcount_)
+    {
+    }
+    EAVL_FUNCTOR int operator()(int shapeType, int caseindex)
+    {
+        switch (shapeType)
+        {
+          case EAVL_TRI:    return tricount[caseindex];
+          case EAVL_QUAD:   return quacount[caseindex];
+          case EAVL_PIXEL:  return pixcount[caseindex];
+        }
+        return 0;
+    }
+};
+
+
+class Iso2DLookupLines
+{
+    eavlConstArray<int>  tristart;
+    eavlConstArray<byte> trigeom;
+    eavlConstArray<int>  quastart;
+    eavlConstArray<byte> quageom;
+    eavlConstArray<int>  pixstart;
+    eavlConstArray<byte> pixgeom;
+  public:
+    Iso2DLookupLines(eavlConstArray<int>  *tristart_,
+                     eavlConstArray<byte> *trigeom_,
+                     eavlConstArray<int>  *quastart_,
+                     eavlConstArray<byte> *quageom_,
+                     eavlConstArray<int>  *pixstart_,
+                     eavlConstArray<byte> *pixgeom_)
+        : tristart(*tristart_), trigeom(*trigeom_),
+          quastart(*quastart_), quageom(*quageom_),
+          pixstart(*pixstart_), pixgeom(*pixgeom_)
+    {
+    }
+    EAVL_FUNCTOR tuple<int,int> operator()(int shapeType, tuple<int,int> index)
+    {
+        int caseindex = get<0>(index);
+        int subindex = get<1>(index);
+                                                   
+        int startindex;
+        int localedge0, localedge1;
+        switch (shapeType)
+        {
+          case EAVL_TRI:
+            startindex = tristart[caseindex] + 2*subindex;
+            localedge0 = trigeom[startindex+0];
+            localedge1 = trigeom[startindex+1];
+            break;
+          case EAVL_QUAD:
+            startindex = quastart[caseindex] + 2*subindex;
+            localedge0 = quageom[startindex+0];
+            localedge1 = quageom[startindex+1];
+            break;
+          case EAVL_PIXEL:
+            startindex = pixstart[caseindex] + 2*subindex;
+            localedge0 = pixgeom[startindex+0];
+            localedge1 = pixgeom[startindex+1];
+            break;
+          default:
+            localedge0 = localedge1 = 0;
+            break;
+        }
+        return tuple<int,int>(localedge0,localedge1);
+    }
+};
+
 
 eavlIsosurfaceFilter::eavlIsosurfaceFilter()
 {
@@ -264,6 +352,7 @@ eavlIsosurfaceFilter::Execute()
 
     int inCellSetIndex = input->GetCellSetIndex(cellsetname);
     eavlCellSet *inCells = input->GetCellSet(cellsetname);
+    int dimension = inCells->GetDimensionality();
 
     eavlField   *inField = input->GetField(fieldname);
     if (inField->GetAssociation() != eavlField::ASSOC_POINTS)
@@ -296,7 +385,7 @@ eavlIsosurfaceFilter::Execute()
     //
     // set up output mesh
     //
-    eavlCellSetExplicit *outCellSet = new eavlCellSetExplicit("iso",2);
+    eavlCellSetExplicit *outCellSet = new eavlCellSetExplicit("iso", dimension-1);
     output->AddCellSet(outCellSet);
     eavlTimer::Stop(th_init, "initialization");
 
@@ -323,8 +412,10 @@ eavlIsosurfaceFilter::Execute()
     // look up case index in the table to get output counts
     ///\todo: we need a "EAVL_CELLS" equivalent here; we don't care
     /// what "from" topo type, just that we want the mapping for cells.
-    eavlExecutor::AddOperation(
-        new_eavlInfoTopologyMapOp(inCells,
+    if (dimension == 3)
+    {
+        eavlExecutor::AddOperation(
+            new_eavlInfoTopologyMapOp(inCells,
                                   EAVL_NODES_OF_CELLS,
                                   eavlOpArgs(caseArray),
                                   eavlOpArgs(numoutArray),
@@ -334,6 +425,19 @@ eavlIsosurfaceFilter::Execute()
                                                     eavlHexIsoTriCount,
                                                     eavlVoxIsoTriCount)),
         "look up output tris per cell case");
+    }
+    else // dimension == 2
+    {
+        eavlExecutor::AddOperation(
+             new_eavlInfoTopologyMapOp(inCells,
+                                  EAVL_NODES_OF_CELLS,
+                                  eavlOpArgs(caseArray),
+                                  eavlOpArgs(numoutArray),
+                                  Iso2DLookupCounts(eavlTriIsoLineCount,
+                                                    eavlQuadIsoLineCount,
+                                                    eavlPixelIsoLineCount)),
+        "look up output lines per cell case");
+    }
 
     // exclusive scan output counts to get output index
     eavlExecutor::AddOperation(
@@ -396,13 +500,14 @@ eavlIsosurfaceFilter::Execute()
 
     ///\todo: some of these are temporary and should be deleted eventually
     /// (though right now we put them all in the output for debugging)
+    int each_outgeom_count = dimension;
     eavlIntArray *revPtEdgeIndex = new eavlIntArray("revPtEdgeIndex",1,noutpts);
     eavlIntArray *revInputIndex = new eavlIntArray("revInputIndex", 1, noutgeom);
     eavlIntArray *revInputSubindex = new eavlIntArray("revInputSubindex", 1, noutgeom);
     eavlByteArray *outcaseArray = new eavlByteArray("outcase", 1, noutgeom);
-    eavlIntArray *localouttriArray = new eavlIntArray("localouttri", 3, noutgeom);
-    eavlIntArray *outtriArray = new eavlIntArray("outtri", 3, noutgeom);
-    eavlIntArray *outconn = new eavlIntArray("outconn", 3, noutgeom);
+    eavlIntArray *localouttriArray = new eavlIntArray("localouttri", each_outgeom_count, noutgeom);
+    eavlIntArray *outtriArray = new eavlIntArray("outtri", each_outgeom_count, noutgeom);
+    eavlIntArray *outconn = new eavlIntArray("outconn", each_outgeom_count, noutgeom);
     eavlFloatArray *alpha = new eavlFloatArray("alpha", 1, noutpts);
     eavlFloatArray *newx = new eavlFloatArray("newx", 1, noutpts);
     eavlFloatArray *newy = new eavlFloatArray("newy", 1, noutpts);
@@ -422,7 +527,7 @@ eavlIsosurfaceFilter::Execute()
                                outindexArray,
                                revInputIndex,
                                revInputSubindex,
-                               5),
+                               5), ///<\todo: is this right (or even needed)?
         "generate reverse lookup: output triangle to input cell");
 
     // gather input cell lookup to output-length array
@@ -440,8 +545,10 @@ eavlIsosurfaceFilter::Execute()
     /// inputs, one sparse and one dense.  (It might make a useful addition, I suppose, but
     /// not necessarily.)
     ///\todo: need EAVL_CELLS instead of nodes-of-cells.
-    eavlExecutor::AddOperation(
-        new_eavlInfoTopologyPackedMapOp(inCells,
+    if (dimension == 3)
+    {
+        eavlExecutor::AddOperation(
+            new_eavlInfoTopologyPackedMapOp(inCells,
                                         EAVL_NODES_OF_CELLS,
                                         eavlOpArgs(outcaseArray,
                                                    revInputSubindex),
@@ -454,11 +561,11 @@ eavlIsosurfaceFilter::Execute()
                                                         eavlWdgIsoTriStart, eavlWdgIsoTriGeom,
                                                         eavlHexIsoTriStart, eavlHexIsoTriGeom,
                                                         eavlVoxIsoTriStart, eavlVoxIsoTriGeom)),
-        "generate cell-local output triangle edge indices");
+            "generate cell-local output triangle edge indices");
 
-    // map local cell edges to global ones from input mesh
-    eavlExecutor::AddOperation(
-        new_eavlDestinationTopologyPackedMapOp(inCells,
+        // map local cell edges to global ones from input mesh
+        eavlExecutor::AddOperation(
+            new_eavlDestinationTopologyPackedMapOp(inCells,
                                                EAVL_EDGES_OF_CELLS,
                                                eavlOpArgs(eavlIndexable<eavlIntArray>(localouttriArray, 0),
                                                           eavlIndexable<eavlIntArray>(localouttriArray, 1),
@@ -468,7 +575,35 @@ eavlIsosurfaceFilter::Execute()
                                                           eavlIndexable<eavlIntArray>(outtriArray, 2)),
                                                eavlOpArgs(revInputIndex),
                                                ConnectivityDererenceFunctor3()),
-        "dereference cell-local edges to global edge ids");
+            "dereference cell-local edges to global edge ids");
+    }
+    else // dimension == 2
+    {
+        eavlExecutor::AddOperation(
+            new_eavlInfoTopologyPackedMapOp(inCells,
+                                        EAVL_NODES_OF_CELLS,
+                                        eavlOpArgs(outcaseArray,
+                                                   revInputSubindex),
+                                        eavlOpArgs(eavlIndexable<eavlIntArray>(localouttriArray,0),
+                                                   eavlIndexable<eavlIntArray>(localouttriArray,1)),
+                                        eavlOpArgs(revInputIndex),
+                                        Iso2DLookupLines(eavlTriIsoLineStart, eavlTriIsoLineGeom,
+                                                         eavlQuadIsoLineStart, eavlQuadIsoLineGeom,
+                                                         eavlPixelIsoLineStart, eavlPixelIsoLineGeom)),
+           "generate cell-local output triangle edge indices");
+
+        // map local cell edges to global ones from input mesh
+        eavlExecutor::AddOperation(
+            new_eavlDestinationTopologyPackedMapOp(inCells,
+                                               EAVL_EDGES_OF_CELLS,
+                                               eavlOpArgs(eavlIndexable<eavlIntArray>(localouttriArray, 0),
+                                                          eavlIndexable<eavlIntArray>(localouttriArray, 1)),
+                                               eavlOpArgs(eavlIndexable<eavlIntArray>(outtriArray, 0),
+                                                          eavlIndexable<eavlIntArray>(outtriArray, 1)),
+                                               eavlOpArgs(revInputIndex),
+                                               ConnectivityDererenceFunctor2()),
+            "dereference cell-local edges to global edge ids");
+    }
 
     // map global edge indices for triangles to output point index
 
@@ -522,6 +657,16 @@ eavlIsosurfaceFilter::Execute()
             ali1 = eavlIndexable<eavlArray>(arr1, axis1->GetComponent(), reg, field1->GetAssocLogicalDim());
         if (field2->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
             ali2 = eavlIndexable<eavlArray>(arr2, axis2->GetComponent(), reg, field2->GetAssocLogicalDim());
+
+        ///\todo: this 'wholemesh' variant needs to propagate to other
+        /// instances of this logic (or really the whole thing needs
+        /// to be pulled into one common spot).
+        if (field0->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
+            ali0 = eavlIndexable<eavlArray>(arr0, eavlArrayIndexer(1,1,1,0));
+        if (field1->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
+            ali1 = eavlIndexable<eavlArray>(arr1, eavlArrayIndexer(1,1,1,0));
+        if (field2->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
+            ali2 = eavlIndexable<eavlArray>(arr2, eavlArrayIndexer(1,1,1,0));
     }
 
     // generate alphas for each output 
@@ -559,7 +704,7 @@ eavlIsosurfaceFilter::Execute()
         }
         if (f->GetArray()->GetNumberOfComponents() != 1)
         {
-            ///\todo: currently only handle point and cell fields
+            ///\todo: currently only handle point and cell scalar fields
             continue;
         }
 
@@ -622,17 +767,34 @@ eavlIsosurfaceFilter::Execute()
 
     eavlExplicitConnectivity conn;
     int th_create_final_cell_set = eavlTimer::Start();
-    conn.shapetype.resize(noutgeom);
-    conn.connectivity.resize(4*noutgeom);
-    for (int i=0; i<noutgeom; i++)
-        conn.shapetype[i] = EAVL_TRI;
-    for (int i=0; i<noutgeom; i++)
+    if (dimension == 3)
     {
-        const int *o = outconn->GetTuple(i);
-        conn.connectivity[i*4+0] = 3;
-        conn.connectivity[i*4+1] = o[0];
-        conn.connectivity[i*4+2] = o[1];
-        conn.connectivity[i*4+3] = o[2];
+        conn.shapetype.resize(noutgeom);
+        conn.connectivity.resize(4*noutgeom);
+        for (int i=0; i<noutgeom; i++)
+            conn.shapetype[i] = EAVL_TRI;
+        for (int i=0; i<noutgeom; i++)
+        {
+            const int *o = outconn->GetTuple(i);
+            conn.connectivity[i*4+0] = 3;
+            conn.connectivity[i*4+1] = o[0];
+            conn.connectivity[i*4+2] = o[1];
+            conn.connectivity[i*4+3] = o[2];
+        }
+    }
+    else // (dimension == 2)
+    {
+        conn.shapetype.resize(noutgeom);
+        conn.connectivity.resize(3*noutgeom);
+        for (int i=0; i<noutgeom; i++)
+            conn.shapetype[i] = EAVL_BEAM;
+        for (int i=0; i<noutgeom; i++)
+        {
+            const int *o = outconn->GetTuple(i);
+            conn.connectivity[i*3+0] = 2;
+            conn.connectivity[i*3+1] = o[0];
+            conn.connectivity[i*3+2] = o[1];
+        }
     }
     eavlTimer::Stop(th_create_final_cell_set, "create final connectivity for cell set");
     int th_create_revindex = eavlTimer::Start();
