@@ -61,6 +61,22 @@ extern eavlConstArray<int>  *eavlPyrIsoTriStart;
 extern eavlConstArray<byte> *eavlPyrIsoTriCount;
 extern eavlConstArray<byte> *eavlPyrIsoTriGeom;
 
+extern eavlConstArray<int>  *eavlPyrIsoTriStart;
+extern eavlConstArray<byte> *eavlPyrIsoTriCount;
+extern eavlConstArray<byte> *eavlPyrIsoTriGeom;
+
+extern eavlConstArray<int>  *eavlTriIsoLineStart;
+extern eavlConstArray<byte> *eavlTriIsoLineCount;
+extern eavlConstArray<byte> *eavlTriIsoLineGeom;
+
+extern eavlConstArray<int>  *eavlQuadIsoLineStart;
+extern eavlConstArray<byte> *eavlQuadIsoLineCount;
+extern eavlConstArray<byte> *eavlQuadIsoLineGeom;
+
+extern eavlConstArray<int>  *eavlPixelIsoLineStart;
+extern eavlConstArray<byte> *eavlPixelIsoLineCount;
+extern eavlConstArray<byte> *eavlPixelIsoLineGeom;
+
 
 void eavlInitializeIsoTables();
 

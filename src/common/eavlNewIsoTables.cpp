@@ -1919,6 +1919,154 @@ byte eavlPyrIsoTriGeom_raw[192] = {
 };
 
 
+int eavlTriIsoLineStart_raw[8] = {
+  0, // 0
+  0, // 1
+  2, // 2
+  4, // 3
+  6, // 4
+  8, // 5
+  10, // 6
+  12  // 7
+};
+
+byte eavlTriIsoLineCount_raw[8] = {
+  0, // 0
+  1, // 1
+  1, // 2
+  1, // 3
+  1, // 4
+  1, // 5
+  1, // 6
+  0  // 7
+};
+
+byte eavlTriIsoLineGeom_raw[12] = {
+         // 0
+  0,2,   // 1
+  0,1,   // 2
+  1,2,   // 3
+  1,2,   // 4
+  0,1,   // 5
+  0,2    // 6
+         // 7
+};
+
+int eavlQuadIsoLineStart_raw[16] = {
+  0, // 0
+  0, // 1
+  2, // 2
+  4, // 3
+  6, // 4
+  8, // 5
+  12, // 6
+  14, // 7
+  16, // 8
+  18, // 9
+  20, // 10
+  24, // 11
+  26, // 12
+  28, // 13
+  30, // 14
+  32  // 15
+};
+
+byte eavlQuadIsoLineCount_raw[16] = {
+  0, // 0
+  1, // 1
+  1, // 2
+  1, // 3
+  1, // 4
+  2, // 5
+  1, // 6
+  1, // 7
+  1, // 8
+  1, // 9
+  2, // 10
+  1, // 11
+  1, // 12
+  1, // 13
+  1, // 14
+  0  // 15
+};
+
+byte eavlQuadIsoLineGeom_raw[32] = {
+               // 0
+  0,3,         // 1
+  0,1,         // 2
+  1,3,         // 3
+  1,2,         // 4
+  0,1,  2,3,   // 5
+  0,2,         // 6
+  2,3,         // 7
+  2,3,         // 8
+  0,2,         // 9
+  1,2,  3,0,   // 10
+  1,2,         // 11
+  1,3,         // 12
+  0,1,         // 13
+  0,3          // 14
+               // 15
+};
+
+int eavlPixelIsoLineStart_raw[16] = {
+  0, // 0
+  0, // 1
+  2, // 2
+  4, // 3
+  6, // 4
+  8, // 5
+  10, // 6
+  14, // 7
+  16, // 8
+  18, // 9
+  22, // 10
+  24, // 11
+  26, // 12
+  28, // 13
+  30, // 14
+  32  // 15
+};
+
+byte eavlPixelIsoLineCount_raw[16] = {
+  0, // 0
+  1, // 1
+  1, // 2
+  1, // 3
+  1, // 4
+  1, // 5
+  2, // 6
+  1, // 7
+  1, // 8
+  2, // 9
+  1, // 10
+  1, // 11
+  1, // 12
+  1, // 13
+  1, // 14
+  0  // 15
+};
+
+byte eavlPixelIsoLineGeom_raw[32] = {
+               // 0
+  0,3,         // 1
+  0,1,         // 2
+  1,3,         // 3
+  2,3,         // 4
+  0,2,         // 5
+  1,2,  3,0,   // 6
+  1,2,         // 7
+  1,2,         // 8
+  0,1,  2,3,   // 9
+  0,2,         // 10
+  2,3,         // 11
+  1,3,         // 12
+  0,1,         // 13
+  0,3          // 14
+               // 15
+};
+
+
 eavlConstArray<int>  *eavlTetIsoTriStart = NULL;
 eavlConstArray<byte> *eavlTetIsoTriCount = NULL;
 eavlConstArray<byte> *eavlTetIsoTriGeom  = NULL;
@@ -1938,6 +2086,18 @@ eavlConstArray<byte> *eavlWdgIsoTriGeom  = NULL;
 eavlConstArray<int>  *eavlPyrIsoTriStart = NULL;
 eavlConstArray<byte> *eavlPyrIsoTriCount = NULL;
 eavlConstArray<byte> *eavlPyrIsoTriGeom  = NULL;
+
+eavlConstArray<int>  *eavlTriIsoLineStart = NULL;
+eavlConstArray<byte> *eavlTriIsoLineCount = NULL;
+eavlConstArray<byte> *eavlTriIsoLineGeom  = NULL;
+
+eavlConstArray<int>  *eavlQuadIsoLineStart = NULL;
+eavlConstArray<byte> *eavlQuadIsoLineCount = NULL;
+eavlConstArray<byte> *eavlQuadIsoLineGeom  = NULL;
+
+eavlConstArray<int>  *eavlPixelIsoLineStart = NULL;
+eavlConstArray<byte> *eavlPixelIsoLineCount = NULL;
+eavlConstArray<byte> *eavlPixelIsoLineGeom  = NULL;
 
 #define INIT(TYPE, TABLE, COUNT)                \
     {                                           \
@@ -1968,4 +2128,17 @@ void eavlInitializeIsoTables()
     INIT(eavlConstArray<int>,  eavlPyrIsoTriStart,  32);
     INIT(eavlConstArray<byte>, eavlPyrIsoTriCount,  32);
     INIT(eavlConstArray<byte>, eavlPyrIsoTriGeom,   192);
+
+    INIT(eavlConstArray<int>,  eavlTriIsoLineStart,  8);
+    INIT(eavlConstArray<byte>, eavlTriIsoLineCount,  8);
+    INIT(eavlConstArray<byte>, eavlTriIsoLineGeom,   12);
+
+    INIT(eavlConstArray<int>,  eavlQuadIsoLineStart,  16);
+    INIT(eavlConstArray<byte>, eavlQuadIsoLineCount,  16);
+    INIT(eavlConstArray<byte>, eavlQuadIsoLineGeom,   32);
+
+    INIT(eavlConstArray<int>,  eavlPixelIsoLineStart,  16);
+    INIT(eavlConstArray<byte>, eavlPixelIsoLineCount,  16);
+    INIT(eavlConstArray<byte>, eavlPixelIsoLineGeom,   32);
+
 }

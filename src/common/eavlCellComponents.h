@@ -2,6 +2,8 @@
 #ifndef EAVL_TRIANGULATION_TABLES_H
 #define EAVL_TRIANGULATION_TABLES_H
 
+// Note: isosurface tables have moved into the 'new' (gpu-friendly) flavor
+
 extern signed char eavlTetEdges[6][2];
 extern signed char eavlTetTriangleFaces[4][3];
 
@@ -19,13 +21,10 @@ extern signed char eavlHexQuadFaces[6][4];
 extern signed char eavlVoxEdges[12][2];
 extern signed char eavlVoxQuadFaces[6][4];
 
-extern signed char eavlTriIsolineEdges[8][3];
 extern signed char eavlTriEdges[3][2];
 
-extern signed char eavlQuadIsolineEdges[16][5];
 extern signed char eavlQuadEdges[4][2];
 
-extern signed char eavlPixelIsolineEdges[16][5];
 extern signed char eavlPixelEdges[4][2];
 
 extern signed char eavlLineEdges[1][2];
