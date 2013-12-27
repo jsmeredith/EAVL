@@ -356,9 +356,9 @@ struct eavlRegularStructure
 
             nedges = 4;
             edges[0] = (j+0)*xc + i;
-            edges[3] = numX + j*xn + (i+1);
-            edges[1] = (j+1)*xc + i;
-            edges[2] = numX + j*xn + (i+0);
+            edges[1] = numX + j*xn + (i+1);
+            edges[2] = (j+1)*xc + i;
+            edges[3] = numX + j*xn + (i+0);
             return EAVL_PIXEL;
         }
         else if (dimension == 3)
