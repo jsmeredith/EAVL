@@ -349,6 +349,8 @@ class eavlPrefixSumOp_1 : public eavlOperation
     virtual void GoCPU()
     {
         int n = inArray0.array->GetNumberOfTuples();
+        if (n == 0)
+            return;
 
         eavlDispatch_io1<cpuPrefixSumOp_1_function>(n, eavlArray::HOST, inclusive,
                      inArray0.array, inArray0.div, inArray0.mod, inArray0.mul, inArray0.add,
@@ -359,6 +361,8 @@ class eavlPrefixSumOp_1 : public eavlOperation
     {
 #if defined __CUDACC__
         int n = inArray0.array->GetNumberOfTuples();
+        if (n == 0)
+            return;
 
         eavlDispatch_io1<gpuPrefixSumOp_1_function>(n, eavlArray::DEVICE, inclusive,
                      inArray0.array, inArray0.div, inArray0.mod, inArray0.mul, inArray0.add,

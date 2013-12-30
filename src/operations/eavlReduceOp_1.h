@@ -22,6 +22,12 @@ struct cpuReduceOp_1_function
                      IO0 *o0, int o0mul, int o0add,
                      F &functor)
     {
+        if (n == 0)
+        {
+            *o0 = functor.identity();
+            return;
+        }
+
         IO0 *tmp = NULL;
 #pragma omp parallel default(none) shared(cerr,tmp,n,i0,i0div,i0mod,i0mul,i0add,o0,o0mul,o0add,functor)
         {
@@ -69,6 +75,12 @@ struct cpuReduceOp_1_function
                      IO0 *o0, int o0mul, int o0add,
                      F &functor)
     {
+        if (n == 0)
+        {
+            *o0 = functor.identity();
+            return;
+        }
+
         *o0 = *i0;
         for (int i=1; i<n; i++)
         {
