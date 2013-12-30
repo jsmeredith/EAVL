@@ -77,6 +77,13 @@ extern eavlConstArray<int>  *eavlPixelIsoLineStart;
 extern eavlConstArray<byte> *eavlPixelIsoLineCount;
 extern eavlConstArray<byte> *eavlPixelIsoLineGeom;
 
+// Don't need beam iso points; it's so trivial it's actually
+// easier (and obviously faster to execute) if we hardcode
+// it intead of using a lookup table.
+//extern eavlConstArray<int>  *eavlBeamIsoPointStart;
+//extern eavlConstArray<byte> *eavlBeamIsoPointCount;
+//extern eavlConstArray<byte> *eavlBeamIsoPointGeom;
+
 
 void eavlInitializeIsoTables();
 

@@ -226,6 +226,10 @@ struct eavlRegularStructure
     }
     EAVL_HOSTDEVICE int GetNumEdges()
     {
+        if (dimension == 1)
+        {
+            return cellDims[0];
+        }
         if (dimension == 2)
         {
             int numX = cellDims[0] * nodeDims[1];
@@ -336,7 +340,13 @@ struct eavlRegularStructure
 
     EAVL_HOSTDEVICE int GetCellEdges(int index, int &nedges, int *edges)
     {
-        if (dimension == 2)
+        if (dimension == 1)
+        {
+            nedges = 1;
+            edges[0] = index;
+            return EAVL_BEAM;
+        }
+        else if (dimension == 2)
         {
             int xc = cellDims[0];
             //int yc = cellDims[1];
@@ -490,7 +500,14 @@ struct eavlRegularStructure
     }
     EAVL_HOSTDEVICE int GetEdgeNodes(int edgeindex, int &npts, int *pts)
     {
-        if (dimension == 2)
+        if (dimension == 1)
+        {
+            npts = 2;
+            pts[0] = edgeindex;
+            pts[1] = edgeindex+1;
+            return EAVL_BEAM;
+        }
+        else if (dimension == 2)
         {
             int xc = cellDims[0];
             //int yc = cellDims[1];

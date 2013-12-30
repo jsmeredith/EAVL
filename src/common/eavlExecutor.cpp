@@ -10,6 +10,7 @@ eavlExecutor::real_Go()
 {
     for (unsigned int i=0; i<plan.size(); i++)
     {
+        //cerr << "Executing "<<opnames[i]<<endl;
         int th = eavlTimer::Start();
 #ifdef HAVE_CUDA
         switch (executionMode)

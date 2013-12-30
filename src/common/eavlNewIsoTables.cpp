@@ -2066,6 +2066,28 @@ byte eavlPixelIsoLineGeom_raw[32] = {
                // 15
 };
 
+// int eavlBeamIsoPointStart_raw[4] = {
+//   0, // 0
+//   0, // 1
+//   1, // 2
+//   2  // 3
+// };
+//
+// byte eavlBeamIsoPointCount_raw[4] = {
+//   0, // 0
+//   1, // 1
+//   1, // 2
+//   0  // 3
+// };
+//
+// byte eavlBeamIsoPointGeom_raw[2] = {
+//          // 0
+//   0,     // 1
+//   0      // 2
+//          // 3
+// };
+
+
 
 eavlConstArray<int>  *eavlTetIsoTriStart = NULL;
 eavlConstArray<byte> *eavlTetIsoTriCount = NULL;
@@ -2098,6 +2120,10 @@ eavlConstArray<byte> *eavlQuadIsoLineGeom  = NULL;
 eavlConstArray<int>  *eavlPixelIsoLineStart = NULL;
 eavlConstArray<byte> *eavlPixelIsoLineCount = NULL;
 eavlConstArray<byte> *eavlPixelIsoLineGeom  = NULL;
+
+//eavlConstArray<int>  *eavlBeamIsoPointStart = NULL;
+//eavlConstArray<byte> *eavlBeamIsoPointCount = NULL;
+//eavlConstArray<byte> *eavlBeamIsoPointGeom  = NULL;
 
 #define INIT(TYPE, TABLE, COUNT)                \
     {                                           \
@@ -2140,5 +2166,10 @@ void eavlInitializeIsoTables()
     INIT(eavlConstArray<int>,  eavlPixelIsoLineStart,  16);
     INIT(eavlConstArray<byte>, eavlPixelIsoLineCount,  16);
     INIT(eavlConstArray<byte>, eavlPixelIsoLineGeom,   32);
+
+    // not using this; it's faster and simpler to hardcode it
+    //INIT(eavlConstArray<int>,  eavlBeamIsoPointStart,  4);
+    //INIT(eavlConstArray<byte>, eavlBeamIsoPointCount,  4);
+    //INIT(eavlConstArray<byte>, eavlBeamIsoPointGeom,   2);
 
 }

@@ -64,18 +64,19 @@ int main(int argc, char *argv[])
         int cellsetindex = -1;
         for (int i=0; i<data->GetNumCellSets(); i++)
         {
-            if (data->GetCellSet(i)->GetDimensionality() == 2 ||
+            if (data->GetCellSet(i)->GetDimensionality() == 1 ||
+                data->GetCellSet(i)->GetDimensionality() == 2 ||
                 data->GetCellSet(i)->GetDimensionality() == 3)
             {
                 cellsetindex = i;
-                cerr << "Found 2D or 3D topo dim cell set name '"
+                cerr << "Found 1D, 2D or 3D topo dim cell set name '"
                      << data->GetCellSet(i)->GetName()
                      << "' index " << cellsetindex << endl;
                 break;
             }
         }
         if (cellsetindex < 0)
-            THROW(eavlException,"Couldn't find a 2D or 3D cell set.  Aborting.");
+            THROW(eavlException,"Couldn't find a 1D, 2D or 3D cell set.  Aborting.");
 
         cerr << "\n\n-- isosurfacing --\n";
         eavlIsosurfaceFilter *iso = new eavlIsosurfaceFilter;

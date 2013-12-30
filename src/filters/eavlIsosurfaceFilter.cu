@@ -119,6 +119,14 @@ struct ConnectivityDererenceFunctor2
     }
 };
 
+struct ConnectivityDererenceFunctor1
+{
+    EAVL_FUNCTOR int operator()(int shapeType, int n, int ids[], int localids)
+    {
+        return ids[localids];
+    }
+};
+
 
 class FirstTwoItemsDifferFunctor
 {
@@ -324,6 +332,35 @@ class Iso2DLookupLines
 };
 
 
+class Iso1DLookupCounts
+{
+  public:
+    Iso1DLookupCounts()
+    {
+    }
+    EAVL_FUNCTOR int operator()(int shapeType, int caseindex)
+    {
+        return (caseindex==1 || caseindex==2) ? 1 : 0;
+    }
+};
+
+
+class Iso1DLookupPoints
+{
+  public:
+    Iso1DLookupPoints()
+    {
+    }
+    EAVL_FUNCTOR int operator()(int shapeType, tuple<int,int> index)
+    {
+        // Assume shapeType == EAVL_BEAM, it's always a point
+        // intersecting the single edge composing the beam shape.
+        // in other words, always return edge index 0;
+        return 0;
+    }
+};
+
+
 eavlIsosurfaceFilter::eavlIsosurfaceFilter()
 {
     hiloArray = NULL;
@@ -421,10 +458,10 @@ eavlIsosurfaceFilter::Execute()
     // map the cell nodes' hi/lo as a bitfield, i.e. into a case index
     eavlExecutor::AddOperation(
         new_eavlSourceTopologyMapOp(inCells,
-                              EAVL_NODES_OF_CELLS,
-                              eavlOpArgs(hiloArray),
-                              eavlOpArgs(caseArray),
-                              HiLoToCaseFunctor()),
+                                    EAVL_NODES_OF_CELLS,
+                                    eavlOpArgs(hiloArray),
+                                    eavlOpArgs(caseArray),
+                                    HiLoToCaseFunctor()),
         "generate case index per cell");
 
     // look up case index in the table to get output counts
@@ -444,7 +481,7 @@ eavlIsosurfaceFilter::Execute()
                                                     eavlVoxIsoTriCount)),
         "look up output tris per cell case");
     }
-    else // dimension == 2
+    else if (dimension == 2)
     {
         eavlExecutor::AddOperation(
              new_eavlInfoTopologyMapOp(inCells,
@@ -455,6 +492,16 @@ eavlIsosurfaceFilter::Execute()
                                                     eavlQuadIsoLineCount,
                                                     eavlPixelIsoLineCount)),
         "look up output lines per cell case");
+    }
+    else // (dimension == 1)
+    {
+        eavlExecutor::AddOperation(
+             new_eavlInfoTopologyMapOp(inCells,
+                                  EAVL_NODES_OF_CELLS,
+                                  eavlOpArgs(caseArray),
+                                  eavlOpArgs(numoutArray),
+                                  Iso1DLookupCounts()),
+        "look up output points per cell case");
     }
 
     // exclusive scan output counts to get output index
@@ -539,6 +586,8 @@ eavlIsosurfaceFilter::Execute()
         "generate reverse lookup: output point to input edge");
 
 
+    //outpointindexArray->PrintSummary(cerr);
+
     // generate output(tri)-to-input(cell) map
     eavlExecutor::AddOperation(
         new eavlReverseIndexOp(numoutArray,
@@ -547,6 +596,9 @@ eavlIsosurfaceFilter::Execute()
                                revInputSubindex,
                                5), ///<\todo: is this right (or even needed)?
         "generate reverse lookup: output triangle to input cell");
+
+    //revInputIndex->PrintSummary(cerr);
+    //revInputSubindex->PrintSummary(cerr);
 
     // gather input cell lookup to output-length array
     eavlExecutor::AddOperation(
@@ -595,7 +647,7 @@ eavlIsosurfaceFilter::Execute()
                                                ConnectivityDererenceFunctor3()),
             "dereference cell-local edges to global edge ids");
     }
-    else // dimension == 2
+    else if (dimension == 2)
     {
         eavlExecutor::AddOperation(
             new_eavlInfoTopologyPackedMapOp(inCells,
@@ -608,7 +660,7 @@ eavlIsosurfaceFilter::Execute()
                                         Iso2DLookupLines(eavlTriIsoLineStart, eavlTriIsoLineGeom,
                                                          eavlQuadIsoLineStart, eavlQuadIsoLineGeom,
                                                          eavlPixelIsoLineStart, eavlPixelIsoLineGeom)),
-           "generate cell-local output triangle edge indices");
+           "generate cell-local output beam edge indices");
 
         // map local cell edges to global ones from input mesh
         eavlExecutor::AddOperation(
@@ -620,6 +672,28 @@ eavlIsosurfaceFilter::Execute()
                                                           eavlIndexable<eavlIntArray>(outtriArray, 1)),
                                                eavlOpArgs(revInputIndex),
                                                ConnectivityDererenceFunctor2()),
+            "dereference cell-local edges to global edge ids");
+    }
+    else // (dimension == 1)
+    {
+        eavlExecutor::AddOperation(
+            new_eavlInfoTopologyPackedMapOp(inCells,
+                                        EAVL_NODES_OF_CELLS,
+                                        eavlOpArgs(outcaseArray,
+                                                   revInputSubindex),
+                                        eavlOpArgs(eavlIndexable<eavlIntArray>(localouttriArray,0)),
+                                        eavlOpArgs(revInputIndex),
+                                        Iso1DLookupPoints()),
+           "generate cell-local output point edge indices");
+
+        // map local cell edges to global ones from input mesh
+        eavlExecutor::AddOperation(
+            new_eavlDestinationTopologyPackedMapOp(inCells,
+                                               EAVL_EDGES_OF_CELLS,
+                                               eavlOpArgs(eavlIndexable<eavlIntArray>(localouttriArray, 0)),
+                                               eavlOpArgs(eavlIndexable<eavlIntArray>(outtriArray, 0)),
+                                               eavlOpArgs(revInputIndex),
+                                               ConnectivityDererenceFunctor1()),
             "dereference cell-local edges to global edge ids");
     }
 
@@ -807,7 +881,7 @@ eavlIsosurfaceFilter::Execute()
             conn.connectivity[i*4+3] = o[2];
         }
     }
-    else // (dimension == 2)
+    else if (dimension == 2)
     {
         conn.shapetype.resize(noutgeom);
         conn.connectivity.resize(3*noutgeom);
@@ -819,6 +893,19 @@ eavlIsosurfaceFilter::Execute()
             conn.connectivity[i*3+0] = 2;
             conn.connectivity[i*3+1] = o[0];
             conn.connectivity[i*3+2] = o[1];
+        }
+    }
+    else // (dimension == 1)
+    {
+        conn.shapetype.resize(noutgeom);
+        conn.connectivity.resize(2*noutgeom);
+        for (int i=0; i<noutgeom; i++)
+            conn.shapetype[i] = EAVL_POINT;
+        for (int i=0; i<noutgeom; i++)
+        {
+            const int *o = outconn->GetTuple(i);
+            conn.connectivity[i*2+0] = 1;
+            conn.connectivity[i*2+1] = o[0];
         }
     }
     eavlTimer::Stop(th_create_final_cell_set, "create final connectivity for cell set");
