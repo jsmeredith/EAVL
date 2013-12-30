@@ -13,8 +13,6 @@
 #include "eavlExecutor.h"
 
 
-INSERTING ERROR HERE TO TEST REGRESSION TEST
-
 eavlDataSet *ReadWholeFile(const string &filename)
 {
     eavlImporter *importer = eavlImporterFactory::GetImporterForFile(filename);
