@@ -77,10 +77,6 @@ int main(int argc, char *argv[])
         if (cellsetindex < 0)
             THROW(eavlException,"Couldn't find a 2D or 3D cell set.  Aborting.");
 
-
-        if (data->GetCoordinateSystem(0)->GetDimension() != 3)
-            THROW(eavlException,"Not 3D coords.  Want 3D coords for now.\n");
-
         cerr << "\n\n-- isosurfacing --\n";
         eavlIsosurfaceFilter *iso = new eavlIsosurfaceFilter;
         iso->SetInput(data);

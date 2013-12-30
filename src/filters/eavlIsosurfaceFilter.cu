@@ -56,7 +56,7 @@ class CalcAlphaFunctor
     }
 };
 
-class LinterpFunctor
+class LinterpFunctor1
 {
   public:
     template <class IN>
@@ -66,6 +66,20 @@ class LinterpFunctor
         float a = collect(ids[0], vals);
         float b = collect(ids[1], vals);
         return a + alpha*(b-a);
+    }
+};
+
+class LinterpFunctor2
+{
+  public:
+    template <class IN>
+    EAVL_FUNCTOR tuple<float,float> operator()(int shapeType, int n, int ids[],
+                                               const IN vals, float alpha)
+    {
+        tuple<float,float> a = collect(ids[0], vals);
+        tuple<float,float> b = collect(ids[1], vals);
+        return tuple<float,float>(get<0>(a) + alpha*(get<0>(b)-get<0>(a)),
+                                  get<1>(a) + alpha*(get<1>(b)-get<1>(a)));
     }
 };
 
@@ -361,6 +375,10 @@ eavlIsosurfaceFilter::Execute()
     int npts = input->GetNumPoints();
     int ncells = inCells->GetNumCells();
 
+    ///\todo: assuming first coordinate system
+    eavlCoordinates *coordsys = input->GetCoordinateSystem(0);
+    int spatialdim = coordsys->GetDimension();
+
     //
     // allocate internal storage arrays
     //
@@ -509,9 +527,9 @@ eavlIsosurfaceFilter::Execute()
     eavlIntArray *outtriArray = new eavlIntArray("outtri", each_outgeom_count, noutgeom);
     eavlIntArray *outconn = new eavlIntArray("outconn", each_outgeom_count, noutgeom);
     eavlFloatArray *alpha = new eavlFloatArray("alpha", 1, noutpts);
-    eavlFloatArray *newx = new eavlFloatArray("newx", 1, noutpts);
-    eavlFloatArray *newy = new eavlFloatArray("newy", 1, noutpts);
-    eavlFloatArray *newz = new eavlFloatArray("newz", 1, noutpts);
+    eavlFloatArray *newx = spatialdim < 1 ? NULL : new eavlFloatArray("newx", 1, noutpts);
+    eavlFloatArray *newy = spatialdim < 2 ? NULL : new eavlFloatArray("newy", 1, noutpts);
+    eavlFloatArray *newz = spatialdim < 3 ? NULL : new eavlFloatArray("newz", 1, noutpts);
 
     // do reverse index for outpts to inedges
     eavlExecutor::AddOperation(
@@ -617,58 +635,6 @@ eavlIsosurfaceFilter::Execute()
                                                 eavlOpArgs(outtriArray)),
                                "turn input edge ids (for output triangles) into output point ids");
                                                     
-    //
-    // get the original coordinate arrays
-    //
-    eavlCoordinates *cs = input->GetCoordinateSystem(0);
-    if (cs->GetDimension() != 3)
-        THROW(eavlException,"eavlIsosurfaceFilter assumes 3D coordinates");
-
-    eavlCoordinateAxisField *axis0 = dynamic_cast<eavlCoordinateAxisField*>(cs->GetAxis(0));
-    eavlCoordinateAxisField *axis1 = dynamic_cast<eavlCoordinateAxisField*>(cs->GetAxis(1));
-    eavlCoordinateAxisField *axis2 = dynamic_cast<eavlCoordinateAxisField*>(cs->GetAxis(2));
-
-    if (!axis0 || !axis1 || !axis2)
-        THROW(eavlException,"eavlIsosurfaceFilter expects only field-based coordinate axes");
-
-    eavlField *field0 = input->GetField(axis0->GetFieldName());
-    eavlField *field1 = input->GetField(axis1->GetFieldName());
-    eavlField *field2 = input->GetField(axis2->GetFieldName());
-    eavlArray *arr0 = field0->GetArray();
-    eavlArray *arr1 = field1->GetArray();
-    eavlArray *arr2 = field2->GetArray();
-    if (!arr0 || !arr1 || !arr2)
-    {
-        THROW(eavlException,"eavlIsosurfaceFilter couldn't get coordinate arrays");
-    }
-
-    eavlIndexable<eavlArray> ali0(arr0, axis0->GetComponent());
-    eavlIndexable<eavlArray> ali1(arr1, axis1->GetComponent());
-    eavlIndexable<eavlArray> ali2(arr2, axis2->GetComponent());
-    
-    eavlLogicalStructureRegular *logReg = dynamic_cast<eavlLogicalStructureRegular*>(input->GetLogicalStructure());
-    if (logReg)
-    {
-        eavlRegularStructure &reg = logReg->GetRegularStructure();
-
-        if (field0->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            ali0 = eavlIndexable<eavlArray>(arr0, axis0->GetComponent(), reg, field0->GetAssocLogicalDim());
-        if (field1->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            ali1 = eavlIndexable<eavlArray>(arr1, axis1->GetComponent(), reg, field1->GetAssocLogicalDim());
-        if (field2->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            ali2 = eavlIndexable<eavlArray>(arr2, axis2->GetComponent(), reg, field2->GetAssocLogicalDim());
-
-        ///\todo: this 'wholemesh' variant needs to propagate to other
-        /// instances of this logic (or really the whole thing needs
-        /// to be pulled into one common spot).
-        if (field0->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-            ali0 = eavlIndexable<eavlArray>(arr0, eavlArrayIndexer(1,1,1,0));
-        if (field1->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-            ali1 = eavlIndexable<eavlArray>(arr1, eavlArrayIndexer(1,1,1,0));
-        if (field2->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-            ali2 = eavlIndexable<eavlArray>(arr2, eavlArrayIndexer(1,1,1,0));
-    }
-
     // generate alphas for each output 
     eavlExecutor::AddOperation(
         new_eavlSourceTopologyGatherMapOp(inCells,
@@ -679,29 +645,62 @@ eavlIsosurfaceFilter::Execute()
                                           CalcAlphaFunctor(value)),
         "generate alphas");
 
+
     // using the alphas, interpolate to create the new coordinate arrays
-    eavlExecutor::AddOperation(
-        new_eavlCombinedTopologyPackedMapOp(inCells,
-                                            EAVL_NODES_OF_EDGES,
-                                            eavlOpArgs(ali0,ali1,ali2),
-                                            eavlOpArgs(alpha),
-                                            eavlOpArgs(newx,newy,newz),
-                                            eavlOpArgs(revPtEdgeIndex),
-                                            LinterpFunctor3()),
-        "generate xyz coords");
+    if (spatialdim == 1)
+    {
+        eavlExecutor::AddOperation(
+            new_eavlCombinedTopologyPackedMapOp(inCells,
+                                                EAVL_NODES_OF_EDGES,
+                                                eavlOpArgs(input->GetIndexableAxis(0)),
+                                                eavlOpArgs(alpha),
+                                                eavlOpArgs(newx),
+                                                eavlOpArgs(revPtEdgeIndex),
+                                                LinterpFunctor1()),
+            "generate x coords");
+    }
+    else if (spatialdim == 2)
+    {
+        eavlExecutor::AddOperation(
+            new_eavlCombinedTopologyPackedMapOp(inCells,
+                                                EAVL_NODES_OF_EDGES,
+                                                eavlOpArgs(input->GetIndexableAxis(0),
+                                                           input->GetIndexableAxis(1)),
+                                                eavlOpArgs(alpha),
+                                                eavlOpArgs(newx,
+                                                           newy),
+                                                eavlOpArgs(revPtEdgeIndex),
+                                                LinterpFunctor2()),
+            "generate xy coords");
+    }
+    else if (spatialdim == 3)
+    {
+        eavlExecutor::AddOperation(
+            new_eavlCombinedTopologyPackedMapOp(inCells,
+                                                EAVL_NODES_OF_EDGES,
+                                                eavlOpArgs(input->GetIndexableAxis(0),
+                                                           input->GetIndexableAxis(1),
+                                                           input->GetIndexableAxis(2)),
+                                                eavlOpArgs(alpha),
+                                                eavlOpArgs(newx,
+                                                           newy,
+                                                           newz),
+                                                eavlOpArgs(revPtEdgeIndex),
+                                                LinterpFunctor3()),
+            "generate xyz coords");
+    }
+
 
     /// interpolate the point vars and gather the cell vars
     for (int i=0; i<input->GetNumFields(); i++)
     {
         eavlField *f = input->GetField(i);
         eavlArray *a = f->GetArray();
-        if (f == field0 ||
-            f == field1 ||
-            f == field2)
-        {
-            // we already did the coord fields
+
+        // we already did the coordinate fields
+        if (coordsys->IsCoordinateAxisField(a->GetName()))
             continue;
-        }
+
         if (f->GetArray()->GetNumberOfComponents() != 1)
         {
             ///\todo: currently only handle point and cell scalar fields
@@ -718,7 +717,7 @@ eavlIsosurfaceFilter::Execute()
                                                     eavlOpArgs(alpha),
                                                     eavlOpArgs(outArr),
                                                     eavlOpArgs(revPtEdgeIndex),
-                                                    LinterpFunctor()),
+                                                    LinterpFunctor1()),
               "interpolate nodal field");
             output->AddField(new eavlField(1, outArr, eavlField::ASSOC_POINTS));
         }
@@ -744,16 +743,42 @@ eavlIsosurfaceFilter::Execute()
     //
     output->SetNumPoints(noutpts);
 
-    eavlCoordinatesCartesian *coordsys =
-        new eavlCoordinatesCartesian(NULL,
-                                     eavlCoordinatesCartesian::X,
-                                     eavlCoordinatesCartesian::Y,
-                                     eavlCoordinatesCartesian::Z);
-    ///\todo: assuming 3D coords
-    coordsys->SetAxis(0, new eavlCoordinateAxisField("newx", 0));
-    coordsys->SetAxis(1, new eavlCoordinateAxisField("newy", 0));
-    coordsys->SetAxis(2, new eavlCoordinateAxisField("newz", 0));
-    output->AddCoordinateSystem(coordsys);
+    if (spatialdim == 1)
+    {
+        eavlCoordinatesCartesian *newcoordsys = 
+            new eavlCoordinatesCartesian(NULL,
+                                         eavlCoordinatesCartesian::X);
+        newcoordsys->SetAxis(0, new eavlCoordinateAxisField("newx", 0));
+        output->AddCoordinateSystem(newcoordsys);
+        output->AddField(new eavlField(1, newx, eavlField::ASSOC_POINTS));
+    }
+    else if (spatialdim == 2)
+    {
+        eavlCoordinatesCartesian *newcoordsys = 
+            new eavlCoordinatesCartesian(NULL,
+                                         eavlCoordinatesCartesian::X,
+                                         eavlCoordinatesCartesian::Y);
+        newcoordsys->SetAxis(0, new eavlCoordinateAxisField("newx", 0));
+        newcoordsys->SetAxis(1, new eavlCoordinateAxisField("newy", 0));
+        output->AddCoordinateSystem(newcoordsys);
+        output->AddField(new eavlField(1, newx, eavlField::ASSOC_POINTS));
+        output->AddField(new eavlField(1, newy, eavlField::ASSOC_POINTS));
+    }
+    else if (spatialdim == 3)
+    {
+        eavlCoordinatesCartesian *newcoordsys = 
+            new eavlCoordinatesCartesian(NULL,
+                                         eavlCoordinatesCartesian::X,
+                                         eavlCoordinatesCartesian::Y,
+                                         eavlCoordinatesCartesian::Z);
+        newcoordsys->SetAxis(0, new eavlCoordinateAxisField("newx", 0));
+        newcoordsys->SetAxis(1, new eavlCoordinateAxisField("newy", 0));
+        newcoordsys->SetAxis(2, new eavlCoordinateAxisField("newz", 0));
+        output->AddCoordinateSystem(newcoordsys);
+        output->AddField(new eavlField(1, newx, eavlField::ASSOC_POINTS));
+        output->AddField(new eavlField(1, newy, eavlField::ASSOC_POINTS));
+        output->AddField(new eavlField(1, newz, eavlField::ASSOC_POINTS));
+    }
 
     //
     // Finish it!
@@ -836,8 +861,5 @@ eavlIsosurfaceFilter::Execute()
         delete alpha;
     }
 
-    output->AddField(new eavlField(1, newx, eavlField::ASSOC_POINTS));
-    output->AddField(new eavlField(1, newy, eavlField::ASSOC_POINTS));
-    output->AddField(new eavlField(1, newz, eavlField::ASSOC_POINTS));
     eavlTimer::Resume();
 }

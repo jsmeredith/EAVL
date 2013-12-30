@@ -9,6 +9,7 @@
 #include "eavlField.h"
 #include "eavlPoint3.h"
 #include "eavlException.h"
+#include "eavlIndexable.h"
 
 // ****************************************************************************
 // Class:  eavlDataSet
@@ -47,6 +48,34 @@ class eavlDataSet
     ~eavlDataSet()
     {
         Clear();
+    }
+    eavlIndexable<eavlArray> GetIndexableAxis(int i)
+    {
+        ///\todo: assuming first coordinate system
+        eavlCoordinates *coordsys = GetCoordinateSystem(0);
+        if (coordsys->GetDimension() <= i)
+            THROW(eavlException, "Tried to get more axes than spatial dimensions");
+
+        eavlCoordinateAxisField *axis = dynamic_cast<eavlCoordinateAxisField*>(coordsys->GetAxis(i));
+        if (!axis)
+            THROW(eavlException,"Expected only field-based coordinate axes");
+
+        eavlField *field = GetField(axis->GetFieldName());
+        eavlArray *array = field->GetArray();
+        if (!array)
+            THROW(eavlException, "Problem obtaining coordinate array");
+
+        eavlLogicalStructureRegular *logReg = dynamic_cast<eavlLogicalStructureRegular*>(logicalStructure);
+        eavlIndexable<eavlArray> indexable(array, axis->GetComponent());
+        if (logReg)
+        {
+            eavlRegularStructure &reg = logReg->GetRegularStructure();
+            if (field->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
+                indexable = eavlIndexable<eavlArray>(array, axis->GetComponent(), reg, field->GetAssocLogicalDim());
+            if (field->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
+                indexable = eavlIndexable<eavlArray>(array, eavlArrayIndexer(1,1,1,0));
+        }
+        return indexable;
     }
     void Clear()
     {

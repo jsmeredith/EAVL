@@ -226,6 +226,16 @@ class eavlCoordinates
             mem += axes[i]->GetMemoryUsage();
         return mem;
     }
+    bool IsCoordinateAxisField(const std::string &n)
+    {
+        for (unsigned int i=0; i<axes.size(); ++i)
+        {
+            eavlCoordinateAxisField *f = dynamic_cast<eavlCoordinateAxisField*>(axes[i]);
+            if (f->GetFieldName() == n)
+                return true;
+        }
+        return false;
+    }
 };
 
 
