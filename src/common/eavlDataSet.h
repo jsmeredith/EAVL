@@ -49,10 +49,10 @@ class eavlDataSet
     {
         Clear();
     }
-    eavlIndexable<eavlArray> GetIndexableAxis(int i)
+    eavlIndexable<eavlArray> GetIndexableAxis(int i, eavlCoordinates *coordsys = NULL)
     {
-        ///\todo: assuming first coordinate system
-        eavlCoordinates *coordsys = GetCoordinateSystem(0);
+        if (!coordsys)
+            coordsys = GetCoordinateSystem(0);
         if (coordsys->GetDimension() <= i)
             THROW(eavlException, "Tried to get more axes than spatial dimensions");
 
@@ -67,13 +67,13 @@ class eavlDataSet
 
         eavlLogicalStructureRegular *logReg = dynamic_cast<eavlLogicalStructureRegular*>(logicalStructure);
         eavlIndexable<eavlArray> indexable(array, axis->GetComponent());
+        if (field->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
+            indexable.indexer.mul = 0;
         if (logReg)
         {
             eavlRegularStructure &reg = logReg->GetRegularStructure();
             if (field->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
                 indexable = eavlIndexable<eavlArray>(array, axis->GetComponent(), reg, field->GetAssocLogicalDim());
-            if (field->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-                indexable = eavlIndexable<eavlArray>(array, eavlArrayIndexer(1,1,1,0));
         }
         return indexable;
     }

@@ -38,7 +38,6 @@ eavlSurfaceNormalMutator::eavlSurfaceNormalMutator()
 {
 }
 
-
 void
 eavlSurfaceNormalMutator::Execute()
 {
@@ -50,46 +49,9 @@ eavlSurfaceNormalMutator::Execute()
     if (cs->GetDimension() != 3)
         THROW(eavlException,"eavlNodeToCellOp assumes 3D coordinates");
 
-    eavlCoordinateAxisField *axis0 = dynamic_cast<eavlCoordinateAxisField*>(cs->GetAxis(0));
-    eavlCoordinateAxisField *axis1 = dynamic_cast<eavlCoordinateAxisField*>(cs->GetAxis(1));
-    eavlCoordinateAxisField *axis2 = dynamic_cast<eavlCoordinateAxisField*>(cs->GetAxis(2));
-
-    if (!axis0 || !axis1 || !axis2)
-        THROW(eavlException,"eavlNodeToCellOp expects only field-based coordinate axes");
-
-    eavlField *field0 = dataset->GetField(axis0->GetFieldName());
-    eavlField *field1 = dataset->GetField(axis1->GetFieldName());
-    eavlField *field2 = dataset->GetField(axis2->GetFieldName());
-    eavlArray *arr0 = field0->GetArray();
-    eavlArray *arr1 = field1->GetArray();
-    eavlArray *arr2 = field2->GetArray();
-    if (!arr0 || !arr1 || !arr2)
-    {
-        THROW(eavlException,"eavlNodeToCellOp assumes single-precision float arrays");
-    }
-
-    eavlIndexable<eavlArray> i0(arr0, axis0->GetComponent());
-    eavlIndexable<eavlArray> i1(arr1, axis1->GetComponent());
-    eavlIndexable<eavlArray> i2(arr2, axis2->GetComponent());
-    if (field0->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-        i0.indexer.mul = 0;
-    if (field1->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-        i1.indexer.mul = 0;
-    if (field2->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-        i2.indexer.mul = 0;
-    
-    eavlLogicalStructureRegular *logReg = dynamic_cast<eavlLogicalStructureRegular*>(dataset->GetLogicalStructure());
-    if (logReg)
-    {
-        eavlRegularStructure &reg = logReg->GetRegularStructure();
-
-        if (field0->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            i0 = eavlIndexable<eavlArray>(arr0, axis0->GetComponent(), reg, field0->GetAssocLogicalDim());
-        if (field1->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            i1 = eavlIndexable<eavlArray>(arr1, axis1->GetComponent(), reg, field1->GetAssocLogicalDim());
-        if (field2->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            i2 = eavlIndexable<eavlArray>(arr2, axis2->GetComponent(), reg, field2->GetAssocLogicalDim());
-    }
+    eavlIndexable<eavlArray> i0 = dataset->GetIndexableAxis(0, cs);
+    eavlIndexable<eavlArray> i1 = dataset->GetIndexableAxis(1, cs);
+    eavlIndexable<eavlArray> i2 = dataset->GetIndexableAxis(2, cs);
 
     eavlFloatArray *out = new eavlFloatArray("surface_normals", 3,
                                              inCells->GetNumCells());

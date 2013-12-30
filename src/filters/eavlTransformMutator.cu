@@ -149,23 +149,8 @@ Transform2D(Functor func, eavlDataSet *dataset, eavlCoordinates *cs,
     eavlField *field0, eavlField *field1,
     eavlArray *arr0, eavlArray *arr1)
 {
-    eavlIndexable<eavlArray> i0(arr0, axis0->GetComponent());
-    eavlIndexable<eavlArray> i1(arr1, axis1->GetComponent());
-    if (field0->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-        i0.indexer.mul = 0;
-    if (field1->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-        i1.indexer.mul = 0;
-    
-    eavlLogicalStructureRegular *logReg = dynamic_cast<eavlLogicalStructureRegular*>(dataset->GetLogicalStructure());
-    if (logReg)
-    {
-        eavlRegularStructure &reg = logReg->GetRegularStructure();
-
-        if (field0->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            i0 = eavlIndexable<eavlArray>(arr0, axis0->GetComponent(), reg, field0->GetAssocLogicalDim());
-        if (field1->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            i1 = eavlIndexable<eavlArray>(arr1, axis1->GetComponent(), reg, field1->GetAssocLogicalDim());
-    }
+    eavlIndexable<eavlArray> i0 = dataset->GetIndexableAxis(0, cs);
+    eavlIndexable<eavlArray> i1 = dataset->GetIndexableAxis(1, cs);
 
     const char *transformName = "transformed_coords";
     eavlFloatArray *out = new eavlFloatArray(transformName, 2,
@@ -192,28 +177,9 @@ Transform3D(Functor func, eavlDataSet *dataset, eavlCoordinates *cs,
     eavlField *field0, eavlField *field1, eavlField *field2,
     eavlArray *arr0, eavlArray *arr1, eavlArray *arr2)
 {
-    eavlIndexable<eavlArray> i0(arr0, axis0->GetComponent());
-    eavlIndexable<eavlArray> i1(arr1, axis1->GetComponent());
-    eavlIndexable<eavlArray> i2(arr2, axis2->GetComponent());
-    if (field0->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-        i0.indexer.mul = 0;
-    if (field1->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-        i1.indexer.mul = 0;
-    if (field2->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
-        i2.indexer.mul = 0;
-    
-    eavlLogicalStructureRegular *logReg = dynamic_cast<eavlLogicalStructureRegular*>(dataset->GetLogicalStructure());
-    if (logReg)
-    {
-        eavlRegularStructure &reg = logReg->GetRegularStructure();
-
-        if (field0->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            i0 = eavlIndexable<eavlArray>(arr0, axis0->GetComponent(), reg, field0->GetAssocLogicalDim());
-        if (field1->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            i1 = eavlIndexable<eavlArray>(arr1, axis1->GetComponent(), reg, field1->GetAssocLogicalDim());
-        if (field2->GetAssociation() == eavlField::ASSOC_LOGICALDIM)
-            i2 = eavlIndexable<eavlArray>(arr2, axis2->GetComponent(), reg, field2->GetAssocLogicalDim());
-    }
+    eavlIndexable<eavlArray> i0 = dataset->GetIndexableAxis(0, cs);
+    eavlIndexable<eavlArray> i1 = dataset->GetIndexableAxis(1, cs);
+    eavlIndexable<eavlArray> i2 = dataset->GetIndexableAxis(2, cs);
 
     const char *transformName = "transformed_coords";
     eavlFloatArray *out = new eavlFloatArray(transformName, 3,
