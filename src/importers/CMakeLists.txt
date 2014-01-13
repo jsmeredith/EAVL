@@ -7,6 +7,7 @@ SET(EAVL_IMPORTERS_SRCS
   eavlVTKImporter.cpp
   eavlCurveImporter.cpp
   eavlPNGImporter.cpp
+  eavlLAMMPSDumpImporter.cpp
 )
 
 #-------------------------------

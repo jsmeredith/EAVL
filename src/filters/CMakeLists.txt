@@ -1,19 +1,22 @@
 SET(EAVL_FILTERS_SRCS
   eavl2DGraphLayoutForceMutator.cpp
+  eavlBoxMutator.cpp
   eavlElevateMutator.cpp
   eavlExternalFaceMutator.cpp
+  eavlSubsetMutator.cpp
   eavlTesselate2DFilter.cpp
   eavlThresholdMutator.cpp
 )
 
 SET(EAVL_FILTERS_CUDA_SRCS 
   eavl3X3AverageMutator.cu
-  eavlIsosurfaceFilter.cu
-  eavlSurfaceNormalMutator.cu
-  eavlTransformMutator.cu
   eavlBinaryMathMutator.cu
   eavlCellToNodeRecenterMutator.cu
+  eavlIsosurfaceFilter.cu
+  eavlPointDistanceFieldFilter.cu
   eavlScalarBinFilter.cu
+  eavlSurfaceNormalMutator.cu
+  eavlTransformMutator.cu
   eavlUnaryMathMutator.cu
 )
 
