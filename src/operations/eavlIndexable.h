@@ -18,7 +18,7 @@ class eavlArrayIndexer
     eavlArrayIndexer(int div, int mod, int mul, int add) : div(div), mod(mod), mul(mul), add(add)
     {
     }
-    virtual void Print(ostream &out) const
+    virtual void Print(ostream &) const
     {
     }
     EAVL_HOSTDEVICE int index(int i) const { return (((i/div)%mod)*mul)+add; }
@@ -59,7 +59,7 @@ class eavlIndexable
         int nvalues = array->GetNumberOfTuples() * array->GetNumberOfComponents();
         return int((nvalues - indexer.add) / indexer.mul);
     }
-    virtual void Print(ostream &out)
+    virtual void Print(ostream &)
     {
     }
 };
