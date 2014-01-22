@@ -23,8 +23,8 @@ struct refcons
     {
     }
     
-    template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7>
-    EAVL_HOSTDEVICE refcons(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5, T6 &t6, T7 &t7)
+    template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15>
+    EAVL_HOSTDEVICE refcons(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5, T6 &t6, T7 &t7, T8 &t8, T9 &t9, T10 &t10, T11 &t11, T12 &t12, T13 &t13, T14 &t14, T15 &t15)
         : first(t0), rest(t1,t2,t3,t4,t5,t6,t7, cnull())
     {
     }
@@ -69,7 +69,7 @@ struct refcons<FT, nulltype>
     }
 
     template <class T0>
-    EAVL_HOSTDEVICE refcons(T0 &t0, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&)
+    EAVL_HOSTDEVICE refcons(T0 &t0, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&,const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&)
         : first(t0)
     {
     }
@@ -100,55 +100,79 @@ struct refcons<FT, nulltype>
 };
 
 // recursive (first+rest) typing structure
-template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7>
+template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15>
 struct refconstype
 {
-    typedef refcons<T0, typename refconstype<T1,T2,T3,T4,T5,T6,T7,nulltype>::type> type;
+    typedef refcons<T0, typename refconstype<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15,nulltype>::type> type;
 };
 
 // base case for type recursion
 template <>
-struct refconstype<nulltype, nulltype, nulltype, nulltype, nulltype, nulltype, nulltype, nulltype>
+struct refconstype<nulltype, nulltype, nulltype, nulltype, nulltype, nulltype, nulltype, nulltype, nulltype,nulltype, nulltype, nulltype, nulltype, nulltype, nulltype, nulltype>
 {
     typedef nulltype type;
 };
 
-template <class T0=nulltype, class T1=nulltype, class T2=nulltype, class T3=nulltype, class T4=nulltype, class T5=nulltype, class T6=nulltype, class T7=nulltype>
+template <class T0=nulltype, class T1=nulltype, class T2=nulltype, class T3=nulltype, class T4=nulltype, class T5=nulltype, class T6=nulltype, class T7=nulltype, class T8=nulltype, class T9=nulltype, class T10=nulltype, class T11=nulltype, class T12=nulltype, class T13=nulltype, class T14=nulltype, class T15=nulltype>
 class reftuple;
 
-template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7>
-class reftuple : public refconstype<T0,T1,T2,T3,T4,T5,T6,T7>::type
+template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15>
+class reftuple : public refconstype<T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15>::type
 {
   public:
-    typedef typename refconstype<T0,T1,T2,T3,T4,T5,T6,T7>::type base;
+    typedef typename refconstype<T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15>::type base;
     typedef typename base::firsttype firsttype;
     typedef typename base::resttype resttype;
   public:
     EAVL_HOSTDEVICE reftuple() : base()
     {
     }
-    EAVL_HOSTDEVICE reftuple(T0 &t0) : base(t0, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
+    EAVL_HOSTDEVICE reftuple(T0 &t0) : base(t0, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
     {
     }
-    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1) : base(t0, t1, cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
+    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1) : base(t0, t1, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(),cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
     {
     }
-    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2) : base(t0, t1, t2, cnull(), cnull(), cnull(), cnull(), cnull())
+    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2) : base(t0, t1, t2, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
     {
     }
-    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3) : base(t0, t1, t2, t3, cnull(), cnull(), cnull(), cnull())
+    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3) : base(t0, t1, t2, t3, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
     {
     }
-    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4) : base(t0, t1, t2, t3, t4, cnull(), cnull(), cnull())
+    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4) : base(t0, t1, t2, t3, t4, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
     {
     }
-    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5) : base(t0, t1, t2, t3, t4, t5, cnull(), cnull())
+    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5) : base(t0, t1, t2, t3, t4, t5, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
     {
     }
-    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5, T6 &t6) : base(t0, t1, t2, t3, t4, t5, t6, cnull())
+    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5, T6 &t6) : base(t0, t1, t2, t3, t4, t5, t6, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
     {
     }
-    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5, T6 &t6, T7 &t7) : base(t0, t1, t2, t3, t4, t5, t6, t7)
+    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5, T6 &t6, T7 &t7) : base(t0, t1, t2, t3, t4, t5, t6, t7, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
+    {
+    }
+    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5, T6 &t6, T7 &t7, T8 &t8) : base(t0, t1, t2, t3, t4, t5, t6, t7, t8, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
+    {
+    }
+    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5, T6 &t6, T7 &t7, T8 &t8, T9 &t9) : base(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
+    {
+    }
+    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5, T6 &t6, T7 &t7, T8 &t8, T9 &t9, T10 &t10) : base(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, cnull(), cnull(), cnull(), cnull(), cnull())
+    {
+    }
+    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5, T6 &t6, T7 &t7, T8 &t8, T9 &t9, T10 &t10, T11 &t11) : base(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, cnull(), cnull(), cnull(), cnull())
+    {
+    }
+    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5, T6 &t6, T7 &t7, T8 &t8, T9 &t9, T10 &t10, T11 &t11, T12 &t12) : base(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, cnull(), cnull(), cnull())
+    {
+    }
+    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5, T6 &t6, T7 &t7, T8 &t8, T9 &t9, T10 &t10, T11 &t11, T12 &t12, T13 &t13) : base(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, cnull(), cnull())
+    {
+    }
+    EAVL_HOSTDEVICE reftuple(T0 &t0, T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5, T6 &t6, T7 &t7, T8 &t8, T9 &t9, T10 &t10, T11 &t11, T12 &t12, T13 &t13, T14 &t14) : base(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, cnull())
+    {
+    }
+    EAVL_HOSTDEVICE reftuple(T0 &t0,T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5, T6 &t6, T7 &t7, T8 &t8, T9 &t9, T10 &t10, T11 &t11, T12 &t12, T13 &t13, T14 &t14, T15 &t15) : base(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15)
     {
     }
     template <class FT, class RT>
@@ -256,3 +280,4 @@ EAVL_HOSTDEVICE const typename refelementtype<N, refcons<HT,TT> >::type &get(con
 }
 
 #endif
+

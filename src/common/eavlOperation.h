@@ -45,6 +45,30 @@ inline tuple<A,B,C,D,E,F,G> eavlOpArgs(const A &a, const B &b, const C &c, const
 template <class A, class B, class C, class D, class E, class F, class G, class H>
 inline tuple<A,B,C,D,E,F,G,H> eavlOpArgs(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h) { return tuple<A,B,C,D,E,F,G,H>(a,b,c,d,e,f,g,h); }
 
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I>
+inline tuple<A,B,C,D,E,F,G,H,I> eavlOpArgs(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h, const I &i) { return tuple<A,B,C,D,E,F,G,H,I>(a,b,c,d,e,f,g,h,i); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J>
+inline tuple<A,B,C,D,E,F,G,H,I,J> eavlOpArgs(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h, const I &i, const J &j) { return tuple<A,B,C,D,E,F,G,H,I,J>(a,b,c,d,e,f,g,h,i,j); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K>
+inline tuple<A,B,C,D,E,F,G,H,I,J,K> eavlOpArgs(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h, const I &i, const J &j, const K &k) { return tuple<A,B,C,D,E,F,G,H,I,J,K>(a,b,c,d,e,f,g,h,i,j,k); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K, class L>
+inline tuple<A,B,C,D,E,F,G,H,I,J,K,L> eavlOpArgs(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h, const I &i, const J &j, const K &k, const L &l) { return tuple<A,B,C,D,E,F,G,H,I,J,K,L>(a,b,c,d,e,f,g,h,i,j,k,l); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K, class L, class M>
+inline tuple<A,B,C,D,E,F,G,H,I,J,K,L,M> eavlOpArgs(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h, const I &i, const J &j, const K &k, const L &l, const M &m) { return tuple<A,B,C,D,E,F,G,H,I,J,K,L,M>(a,b,c,d,e,f,g,h,i,j,k,l,m); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K, class L, class M, class N>
+inline tuple<A,B,C,D,E,F,G,H,I,J,K,L,M,N> eavlOpArgs(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h, const I &i, const J &j, const K &k, const L &l, const M &m, const N &n) { return tuple<A,B,C,D,E,F,G,H,I,J,K,L,M,N>(a,b,c,d,e,f,g,h,i,j,k,l,m,n); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K, class L, class M, class N, class O>
+inline tuple<A,B,C,D,E,F,G,H,I,J,K,L,M,N,O> eavlOpArgs(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h, const I &i, const J &j, const K &k, const L &l, const M &m, const N &n, const O &o) { return tuple<A,B,C,D,E,F,G,H,I,J,K,L,M,N,O>(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K, class L, class M, class N, class O, class P>
+inline tuple<A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P> eavlOpArgs(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h, const I &i, const J &j, const K &k, const L &l, const M &m, const N &n, const O &o, const P &p) { return tuple<A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P>(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p); }
+
 
 // Create a tuple of indexable arrays.  This style is called if your inputs are all standard arrays; it will create linear indexes for them.
 template <class A>
@@ -71,7 +95,29 @@ inline tuple< eavlIndexable<A> , eavlIndexable<B> , eavlIndexable<C> , eavlIndex
 template <class A, class B, class C, class D, class E, class F, class G, class H>
 inline tuple< eavlIndexable<A> , eavlIndexable<B> , eavlIndexable<C> , eavlIndexable<D> , eavlIndexable<E> , eavlIndexable<F> , eavlIndexable<G> , eavlIndexable<H> > eavlOpArgs(A *a, B *b, C *c, D *d, E *e, F *f, G *g, H *h) { return make_tuple(eavlIndexable<A>(a), eavlIndexable<B>(b), eavlIndexable<C>(c), eavlIndexable<D>(d), eavlIndexable<E>(e), eavlIndexable<F>(f), eavlIndexable<G>(g), eavlIndexable<H>(h)); }
 
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I>
+inline tuple< eavlIndexable<A> , eavlIndexable<B> , eavlIndexable<C> , eavlIndexable<D> , eavlIndexable<E> , eavlIndexable<F> , eavlIndexable<G> , eavlIndexable<H>, eavlIndexable<I> > eavlOpArgs(A *a, B *b, C *c, D *d, E *e, F *f, G *g, H *h, I *i) { return make_tuple(eavlIndexable<A>(a), eavlIndexable<B>(b), eavlIndexable<C>(c), eavlIndexable<D>(d), eavlIndexable<E>(e), eavlIndexable<F>(f), eavlIndexable<G>(g), eavlIndexable<H>(h), eavlIndexable<I>(i)); }
 
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J>
+inline tuple< eavlIndexable<A> , eavlIndexable<B> , eavlIndexable<C> , eavlIndexable<D> , eavlIndexable<E> , eavlIndexable<F> , eavlIndexable<G> , eavlIndexable<H>, eavlIndexable<I>, eavlIndexable<J> > eavlOpArgs(A *a, B *b, C *c, D *d, E *e, F *f, G *g, H *h, I *i, J *j) { return make_tuple(eavlIndexable<A>(a), eavlIndexable<B>(b), eavlIndexable<C>(c), eavlIndexable<D>(d), eavlIndexable<E>(e), eavlIndexable<F>(f), eavlIndexable<G>(g), eavlIndexable<H>(h), eavlIndexable<I>(i), eavlIndexable<J>(j)); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K>
+inline tuple< eavlIndexable<A> , eavlIndexable<B> , eavlIndexable<C> , eavlIndexable<D> , eavlIndexable<E> , eavlIndexable<F> , eavlIndexable<G> , eavlIndexable<H>, eavlIndexable<I>, eavlIndexable<J>, eavlIndexable<K> > eavlOpArgs(A *a, B *b, C *c, D *d, E *e, F *f, G *g, H *h, I *i, J *j, K *k) { return make_tuple(eavlIndexable<A>(a), eavlIndexable<B>(b), eavlIndexable<C>(c), eavlIndexable<D>(d), eavlIndexable<E>(e), eavlIndexable<F>(f), eavlIndexable<G>(g), eavlIndexable<H>(h), eavlIndexable<I>(i), eavlIndexable<J>(j), eavlIndexable<K>(k)); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K, class L>
+inline tuple< eavlIndexable<A> , eavlIndexable<B> , eavlIndexable<C> , eavlIndexable<D> , eavlIndexable<E> , eavlIndexable<F> , eavlIndexable<G> , eavlIndexable<H>, eavlIndexable<I>, eavlIndexable<J>, eavlIndexable<K>, eavlIndexable<L> > eavlOpArgs(A *a, B *b, C *c, D *d, E *e, F *f, G *g, H *h, I *i, J *j, K *k, L *l) { return make_tuple(eavlIndexable<A>(a), eavlIndexable<B>(b), eavlIndexable<C>(c), eavlIndexable<D>(d), eavlIndexable<E>(e), eavlIndexable<F>(f), eavlIndexable<G>(g), eavlIndexable<H>(h), eavlIndexable<I>(i), eavlIndexable<J>(j), eavlIndexable<K>(k), eavlIndexable<L>(l)); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K, class L, class M>
+inline tuple< eavlIndexable<A> , eavlIndexable<B> , eavlIndexable<C> , eavlIndexable<D> , eavlIndexable<E> , eavlIndexable<F> , eavlIndexable<G> , eavlIndexable<H>, eavlIndexable<I>, eavlIndexable<J>, eavlIndexable<K>, eavlIndexable<L>, eavlIndexable<M> > eavlOpArgs(A *a, B *b, C *c, D *d, E *e, F *f, G *g, H *h, I *i, J *j, K *k, L *l, M *m) { return make_tuple(eavlIndexable<A>(a), eavlIndexable<B>(b), eavlIndexable<C>(c), eavlIndexable<D>(d), eavlIndexable<E>(e), eavlIndexable<F>(f), eavlIndexable<G>(g), eavlIndexable<H>(h), eavlIndexable<I>(i), eavlIndexable<J>(j), eavlIndexable<K>(k), eavlIndexable<L>(l), eavlIndexable<M>(m)); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K, class L, class M, class N>
+inline tuple< eavlIndexable<A> , eavlIndexable<B> , eavlIndexable<C> , eavlIndexable<D> , eavlIndexable<E> , eavlIndexable<F> , eavlIndexable<G> , eavlIndexable<H>, eavlIndexable<I>, eavlIndexable<J>, eavlIndexable<K>, eavlIndexable<L>, eavlIndexable<M>, eavlIndexable<N> > eavlOpArgs(A *a, B *b, C *c, D *d, E *e, F *f, G *g, H *h, I *i, J *j, K *k, L *l, M *m, N *n) { return make_tuple(eavlIndexable<A>(a), eavlIndexable<B>(b), eavlIndexable<C>(c), eavlIndexable<D>(d), eavlIndexable<E>(e), eavlIndexable<F>(f), eavlIndexable<G>(g), eavlIndexable<H>(h), eavlIndexable<I>(i), eavlIndexable<J>(j), eavlIndexable<K>(k), eavlIndexable<L>(l), eavlIndexable<M>(m), eavlIndexable<N>(n)); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K, class L, class M, class N, class O>
+inline tuple< eavlIndexable<A> , eavlIndexable<B> , eavlIndexable<C> , eavlIndexable<D> , eavlIndexable<E> , eavlIndexable<F> , eavlIndexable<G> , eavlIndexable<H>, eavlIndexable<I>, eavlIndexable<J>, eavlIndexable<K>, eavlIndexable<L>, eavlIndexable<M>, eavlIndexable<N>, eavlIndexable<O> > eavlOpArgs(A *a, B *b, C *c, D *d, E *e, F *f, G *g, H *h, I *i, J *j, K *k, L *l, M *m, N *n, O *o) { return make_tuple(eavlIndexable<A>(a), eavlIndexable<B>(b), eavlIndexable<C>(c), eavlIndexable<D>(d), eavlIndexable<E>(e), eavlIndexable<F>(f), eavlIndexable<G>(g), eavlIndexable<H>(h), eavlIndexable<I>(i), eavlIndexable<J>(j), eavlIndexable<K>(k), eavlIndexable<L>(l), eavlIndexable<M>(m), eavlIndexable<N>(n), eavlIndexable<O>(o)); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K, class L, class M, class N, class O, class P>
+inline tuple< eavlIndexable<A> , eavlIndexable<B> , eavlIndexable<C> , eavlIndexable<D> , eavlIndexable<E> , eavlIndexable<F> , eavlIndexable<G> , eavlIndexable<H>, eavlIndexable<I>, eavlIndexable<J>, eavlIndexable<K>, eavlIndexable<L>, eavlIndexable<M>, eavlIndexable<N>, eavlIndexable<O>, eavlIndexable<P> > eavlOpArgs(A *a, B *b, C *c, D *d, E *e, F *f, G *g, H *h, I *i, J *j, K *k, L *l, M *m, N *n, O *o, P *p) { return make_tuple(eavlIndexable<A>(a), eavlIndexable<B>(b), eavlIndexable<C>(c), eavlIndexable<D>(d), eavlIndexable<E>(e), eavlIndexable<F>(f), eavlIndexable<G>(g), eavlIndexable<H>(h), eavlIndexable<I>(i), eavlIndexable<J>(j), eavlIndexable<K>(k), eavlIndexable<L>(l), eavlIndexable<M>(m), eavlIndexable<N>(n), eavlIndexable<O>(o), eavlIndexable<P>(p)); }
 ///\todo: switch to the new eavlIndexable and remove this
 struct eavlArrayWithLinearIndex
 {
@@ -335,3 +381,4 @@ class eavlOperation
 };
 
 #endif
+
