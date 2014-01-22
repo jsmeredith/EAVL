@@ -19,9 +19,9 @@ struct cons
     {
     }
 
-    template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7>
-    EAVL_HOSTDEVICE cons(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4, const T5 &t5, const T6 &t6, const T7 &t7)
-        : first(t0), rest(t1,t2,t3,t4,t5,t6,t7, cnull())
+    template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15>
+    EAVL_HOSTDEVICE cons(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4, const T5 &t5, const T6 &t6, const T7 &t7, const T8 &t8, const T9 &t9, const T10 &t10, const T11 &t11, const T12 &t12, const T13 &t13, const T14 &t14, const T15 &t15)
+        : first(t0), rest(t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15, cnull())
     {
     }
 
@@ -52,7 +52,7 @@ struct cons<FT, nulltype>
     }
 
     template <class T0>
-    EAVL_HOSTDEVICE cons(const T0 &t0, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&)
+    EAVL_HOSTDEVICE cons(const T0 &t0, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&,const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&, const nulltype&)
         : first(t0)
     {
     }
@@ -67,27 +67,27 @@ struct cons<FT, nulltype>
 };
 
 // recursive (first+rest) typing structure
-template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7>
+template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15>
 struct constype
 {
-    typedef cons<T0, typename constype<T1,T2,T3,T4,T5,T6,T7,nulltype>::type> type;
+    typedef cons<T0, typename constype<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15,nulltype>::type> type;
 };
 
 // base case for type recursion
 template <>
-struct constype<nulltype, nulltype, nulltype, nulltype, nulltype, nulltype, nulltype, nulltype>
+struct constype<nulltype, nulltype, nulltype, nulltype, nulltype, nulltype, nulltype, nulltype, nulltype,nulltype, nulltype, nulltype, nulltype, nulltype, nulltype, nulltype>
 {
     typedef nulltype type;
 };
 
-template <class T0=nulltype, class T1=nulltype, class T2=nulltype, class T3=nulltype, class T4=nulltype, class T5=nulltype, class T6=nulltype, class T7=nulltype>
+template <class T0=nulltype, class T1=nulltype, class T2=nulltype, class T3=nulltype, class T4=nulltype, class T5=nulltype, class T6=nulltype, class T7=nulltype, class T8=nulltype, class T9=nulltype, class T10=nulltype, class T11=nulltype, class T12=nulltype, class T13=nulltype, class T14=nulltype, class T15=nulltype>
 class tuple;
 
-template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7>
-class tuple : public constype<T0,T1,T2,T3,T4,T5,T6,T7>::type
+template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15>
+class tuple : public constype<T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15>::type
 {
   public:
-    typedef typename constype<T0,T1,T2,T3,T4,T5,T6,T7>::type base;
+    typedef typename constype<T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15>::type base;
     typedef typename base::firsttype firsttype;
     typedef typename base::resttype resttype;
   public:
@@ -95,28 +95,52 @@ class tuple : public constype<T0,T1,T2,T3,T4,T5,T6,T7>::type
     {
     }
     // these are const so we can initialize from a temporary
-    EAVL_HOSTDEVICE tuple(const T0 &t0) : base(t0, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
+    EAVL_HOSTDEVICE tuple(const T0 &t0) : base(t0, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
     {
     }
-    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1) : base(t0, t1, cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
+    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1) : base(t0, t1, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(),cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
     {
     }
-    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2) : base(t0, t1, t2, cnull(), cnull(), cnull(), cnull(), cnull())
+    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2) : base(t0, t1, t2, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
     {
     }
-    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3) : base(t0, t1, t2, t3, cnull(), cnull(), cnull(), cnull())
+    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3) : base(t0, t1, t2, t3, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
     {
     }
-    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4) : base(t0, t1, t2, t3, t4, cnull(), cnull(), cnull())
+    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4) : base(t0, t1, t2, t3, t4, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
     {
     }
-    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4, const T5 &t5) : base(t0, t1, t2, t3, t4, t5, cnull(), cnull())
+    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4, const T5 &t5) : base(t0, t1, t2, t3, t4, t5, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
     {
     }
-    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4, const T5 &t5, const T6 &t6) : base(t0, t1, t2, t3, t4, t5, t6, cnull())
+    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4, const T5 &t5, const T6 &t6) : base(t0, t1, t2, t3, t4, t5, t6, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
     {
     }
-    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4, const T5 &t5, const T6 &t6, const T7 &t7) : base(t0, t1, t2, t3, t4, t5, t6, t7)
+    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4, const T5 &t5, const T6 &t6, const T7 &t7) : base(t0, t1, t2, t3, t4, t5, t6, t7, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
+    {
+    }
+    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4, const T5 &t5, const T6 &t6, const T7 &t7, const T8 &t8) : base(t0, t1, t2, t3, t4, t5, t6, t7, t8, cnull(), cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
+    {
+    }
+    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4, const T5 &t5, const T6 &t6, const T7 &t7, const T8 &t8, const T9 &t9) : base(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, cnull(), cnull(), cnull(), cnull(), cnull(), cnull())
+    {
+    }
+    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4, const T5 &t5, const T6 &t6, const T7 &t7, const T8 &t8, const T9 &t9, const T10 &t10) : base(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, cnull(), cnull(), cnull(), cnull(), cnull())
+    {
+    }
+    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4, const T5 &t5, const T6 &t6, const T7 &t7, const T8 &t8, const T9 &t9, const T10 &t10, const T11 &t11) : base(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, cnull(), cnull(), cnull(), cnull())
+    {
+    }
+    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4, const T5 &t5, const T6 &t6, const T7 &t7, const T8 &t8, const T9 &t9, const T10 &t10, const T11 &t11, const T12 &t12) : base(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, cnull(), cnull(), cnull())
+    {
+    }
+    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4, const T5 &t5, const T6 &t6, const T7 &t7, const T8 &t8, const T9 &t9, const T10 &t10, const T11 &t11, const T12 &t12, const T13 &t13) : base(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, cnull(), cnull())
+    {
+    }
+    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4, const T5 &t5, const T6 &t6, const T7 &t7, const T8 &t8, const T9 &t9, const T10 &t10, const T11 &t11, const T12 &t12, const T13 &t13, const T14 &t14) : base(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, cnull())
+    {
+    }
+    EAVL_HOSTDEVICE tuple(const T0 &t0, const T1 &t1, const T2 &t2, const T3 &t3, const T4 &t4, const T5 &t5, const T6 &t6, const T7 &t7, const T8 &t8, const T9 &t9, const T10 &t10, const T11 &t11, const T12 &t12, const T13 &t13, const T14 &t14, const T15 &t15) : base(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15)
     {
     }
     template <class FT, class RT>
@@ -152,6 +176,30 @@ inline tuple<A,B,C,D,E,F,G> make_tuple(const A &a, const B &b, const C &c, const
 template <class A, class B, class C, class D, class E, class F, class G, class H>
 inline tuple<A,B,C,D,E,F,G,H> make_tuple(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h) { return tuple<A,B,C,D,E,F,G,H>(a,b,c,d,e,f,g,h); }
 
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I>
+inline tuple<A,B,C,D,E,F,G,H,I> make_tuple(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h, const I &i) { return tuple<A,B,C,D,E,F,G,H,I>(a,b,c,d,e,f,g,h,i); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J>
+inline tuple<A,B,C,D,E,F,G,H,I,J> make_tuple(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h, const I &i, const J &j) { return tuple<A,B,C,D,E,F,G,H,I,J>(a,b,c,d,e,f,g,h,i,j); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K>
+inline tuple<A,B,C,D,E,F,G,H,I,J,K> make_tuple(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h, const I &i, const J &j, const K &k) { return tuple<A,B,C,D,E,F,G,H,I,J,K>(a,b,c,d,e,f,g,h,i,j,k); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K, class L>
+inline tuple<A,B,C,D,E,F,G,H,I,J,K,L> make_tuple(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h, const I &i, const J &j, const K &k, const L &l) { return tuple<A,B,C,D,E,F,G,H,I,J,K,L>(a,b,c,d,e,f,g,h,i,j,k,l); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K, class L, class M>
+inline tuple<A,B,C,D,E,F,G,H,I,J,K,L,M> make_tuple(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h, const I &i, const J &j, const K &k, const L &l, const M &m) { return tuple<A,B,C,D,E,F,G,H,I,J,K,L,M>(a,b,c,d,e,f,g,h,i,j,k,l,m); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K, class L, class M, class N>
+inline tuple<A,B,C,D,E,F,G,H,I,J,K,L,M,N> make_tuple(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h, const I &i,const J &j, const K &k, const L &l, const M &m, const N &n) { return tuple<A,B,C,D,E,F,G,H,I,J,K,L,M,N>(a,b,c,d,e,f,g,h,i,j,k,l,m,n); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K, class L, class M, class N, class O>
+inline tuple<A,B,C,D,E,F,G,H,I,J,K,L,M,N,O> make_tuple(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h, const I &i, const J &j, const K &k, const L &l, const M &m, const N &n, const O &o) { return tuple<A,B,C,D,E,F,G,H,I,J,K,L,M,N,O>(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o); }
+
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K, class L, class M, class N, class O, class P>
+inline tuple<A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P> make_tuple(const A &a, const B &b, const C &c, const D &d, const E &e, const F &f, const G &g, const H &h, const I &i, const J &j, const K &k, const L &l, const M &m, const N &n, const O &o, const P &p) { return tuple<A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P>(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p); }
+
 #include "eavlRefTuple.h"
 
 // create a standard cons from a refcons
@@ -170,9 +218,9 @@ cons<FT,nulltype>::cons(const refcons<FT2,nulltype> &rc) : first(rc.first)
 }
 
 // create a standard tuple from a refcons, too (pass the work off to the base class, though)
-template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7>
+template <class T0, class T1, class T2, class T3, class T4, class T5, class T6, class T7, class T8, class T9, class T10, class T11, class T12, class T13, class T14, class T15>
 template <class FT, class RT>
-tuple<T0,T1,T2,T3,T4,T5,T6,T7>::tuple(const refcons<FT,RT> &rc) : base(rc)
+tuple<T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15>::tuple(const refcons<FT,RT> &rc) : base(rc)
 {
 }
 
@@ -223,3 +271,4 @@ EAVL_HOSTDEVICE typename elementtype<N, cons<HT,TT> >::type &get(cons<HT,TT> &c)
 }
 
 #endif
+
