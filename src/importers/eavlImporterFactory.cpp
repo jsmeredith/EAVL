@@ -89,10 +89,12 @@ eavlImporterFactory::GetImporterForFile(const std::string &fn_orig)
     {
         importer = new eavlADIOSImporter(fn_orig);
     }
+    /*
     else if (flen>6 && filename.substr(flen-6) == ".pixie")
     {
         importer = new eavlPixieImporter(fn_orig);
     }
+    */
 #endif
 
     return importer;

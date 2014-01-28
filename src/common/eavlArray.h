@@ -507,6 +507,4 @@ typedef eavlConcreteArray<int> eavlIntArray;
 typedef eavlConcreteArray<byte> eavlByteArray;
 typedef eavlConcreteArray<float> eavlFloatArray;
 
-
-
 #endif

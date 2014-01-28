@@ -77,9 +77,7 @@ ifneq (@SILO@, no)
 endif
 
 ifneq (@ADIOS@, no)
- OBJ+=importers/ADIOSFileObject.o
  OBJ+=importers/eavlADIOSImporter.o
- OBJ+=importers/eavlPixieImporter.o
 endif
 
 CPPFLAGS+=-I../config -Icommon/ -Ifonts/ -Iimporters/ -Imath/ -Irendering/ -Iexecutor/ -Ifunctors/ -Ioperations/ -Ifilters/ -Iexporters/ -Ivtk/
