@@ -4,6 +4,7 @@
 
 #include "eavlADIOSImporter.h" //This must be before anything that includes mpi
 #include "eavlPixieImporter.h" //This must be before anything that includes mpi
+#include "eavlXGCImporter.h" //This must be before anything that includes mpi
 #include "eavlNetCDFImporter.h"
 #include "eavlNetCDFDecomposingImporter.h"
 #include "eavlVTKImporter.h"
@@ -87,7 +88,10 @@ eavlImporterFactory::GetImporterForFile(const std::string &fn_orig)
 #ifdef HAVE_ADIOS
     else if (flen>3 && filename.substr(flen-3) == ".bp")
     {
-        importer = new eavlADIOSImporter(fn_orig);
+	if (filename.find("xgc.3d") != string::npos)
+	    importer = new eavlXGCImporter(fn_orig);
+	else
+	    importer = new eavlADIOSImporter(fn_orig);
     }
     /*
     else if (flen>6 && filename.substr(flen-6) == ".pixie")

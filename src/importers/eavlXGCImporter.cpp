@@ -65,10 +65,7 @@ eavlXGCImporter::Initialize()
 	ADIOS_VARINFO *avi = adios_inq_var_byid(fp, i);
 	string varNm(&fp->var_namelist[i][1]);
 	if (Supported(avi))
-	{
 	    variables[varNm] = avi;
-	    cout<<"var: "<<i<<" "<<varNm<<" dim= "<<avi->ndim<<endl;
-	}
 	else
 	{
 	    //check for scalars....
@@ -222,7 +219,6 @@ eavlXGCImporter::GetMesh(const string &name, int chunk)
     }
     else if (name == "mesh3D")
     {
-	//nPlanes = 16;
 	int nPts = nNodes*nPlanes;
 	ds->SetNumPoints(nPts);
 	eavlCoordinatesCartesian *coords = new eavlCoordinatesCartesian(NULL,
@@ -282,7 +278,7 @@ eavlXGCImporter::GetMesh(const string &name, int chunk)
 	adios_selection_delete(sel);
 
 
-	int nodes[6], cellCnt = 0;
+	int nodes[6];
 	for (int i = 0; i < nPlanes; i++)
 	{
 	    int cellCnt = 0;
@@ -294,12 +290,10 @@ eavlXGCImporter::GetMesh(const string &name, int chunk)
 		nodes[2] = nodeList[j+2] + off;
 		
 		off = ((i==nPlanes-1) ? 0 : (i+1)*nNodes);
-		//off = (i+1)*nNodes;
 		nodes[3] = nodeList[j+0] + off;
 		nodes[4] = nodeList[j+1] + off;
 		nodes[5] = nodeList[j+2] + off;
 		conn.AddElement(EAVL_WEDGE, 6, nodes);
-		cellCnt++;
 	    }
 	}
 	delete [] nodeList;
@@ -308,14 +302,13 @@ eavlXGCImporter::GetMesh(const string &name, int chunk)
 	ds->AddCellSet(cellSet);
     }
 
-    ds->PrintSummary(cout);
+    //ds->PrintSummary(cout);
     return ds;
 }
 
 eavlField *
 eavlXGCImporter::GetField(const string &name, const string &mesh, int chunk)
 {
-    cout<<"GetField: "<<name<<" from "<<mesh<<endl;
     map<string, ADIOS_VARINFO*>::const_iterator it = variables.find(name);
     if (it == variables.end())
 	THROW(eavlException, string("Variable not found: ")+name);
@@ -337,7 +330,7 @@ eavlXGCImporter::GetField(const string &name, const string &mesh, int chunk)
     delete [] buff;
 
     eavlField *field = new eavlField(1, arr, eavlField::ASSOC_POINTS);
-    field->PrintSummary(cout);
+    //field->PrintSummary(cout);
     return field;
 }
 
