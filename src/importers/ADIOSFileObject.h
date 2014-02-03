@@ -2,6 +2,8 @@
 #ifndef ADIOS_FILE_OBJECT_H
 #define ADIOS_FILE_OBJECT_H
 
+#if 0
+
 #include <string>
 #include <vector>
 #include <map>
@@ -270,6 +272,6 @@ inline std::ostream& operator<<(std::ostream& out, const ADIOSAttr &s)
     out<<endl;
     return out;
 }
-
+#endif
 
 #endif
