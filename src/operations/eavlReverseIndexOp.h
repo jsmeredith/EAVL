@@ -7,7 +7,7 @@
 #include "eavlArray.h"
 #include "eavlException.h"
 
-void eavlReverseIndexOp_CPU(int nInputVals,
+static void eavlReverseIndexOp_CPU(int nInputVals,
                             int *inOC, int inOCdiv, int inOCmod, int inOCmul, int inOCadd,
                             int *inOI, int inOIdiv, int inOImod, int inOImul, int inOIadd,
                             int *outII, int outIImul, int outIIadd,
@@ -30,7 +30,7 @@ void eavlReverseIndexOp_CPU(int nInputVals,
 
 #if defined __CUDACC__
 
-__global__ void eavlReverseIndexOp_kernel(int nInputVals,
+__global__ static void eavlReverseIndexOp_kernel(int nInputVals,
                             int *inOC, int inOCdiv, int inOCmod, int inOCmul, int inOCadd,
                             int *inOI, int inOIdiv, int inOImod, int inOImul, int inOIadd,
                             int *outII, int outIImul, int outIIadd,
@@ -52,7 +52,7 @@ __global__ void eavlReverseIndexOp_kernel(int nInputVals,
     }
 }
 
-void eavlReverseIndexOp_GPU(int nInputVals,
+static void eavlReverseIndexOp_GPU(int nInputVals,
                             int *d_inOC, int inOCdiv, int inOCmod, int inOCmul, int inOCadd,
                             int *d_inOI, int inOIdiv, int inOImod, int inOImul, int inOIadd,
                             int *d_outII, int outIImul, int outIIadd,

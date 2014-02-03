@@ -11,7 +11,7 @@
 /// can only ever be "1", so we treat the output-count array 
 /// like a simple boolean flag, and we don't need to generate
 /// a reverse subindex array.
-void eavlSimpleReverseIndexOp_CPU(int nInputVals,
+static void eavlSimpleReverseIndexOp_CPU(int nInputVals,
                             int *inOF, int inOFdiv, int inOFmod, int inOFmul, int inOFadd,
                             int *inOI, int inOIdiv, int inOImod, int inOImul, int inOIadd,
                             int *outII, int outIImul, int outIIadd)
@@ -29,7 +29,7 @@ void eavlSimpleReverseIndexOp_CPU(int nInputVals,
 
 #if defined __CUDACC__
 
-__global__ void eavlSimpleReverseIndexOp_kernel(int nInputVals,
+__global__ static void eavlSimpleReverseIndexOp_kernel(int nInputVals,
                             int *inOF, int inOFdiv, int inOFmod, int inOFmul, int inOFadd,
                             int *inOI, int inOIdiv, int inOImod, int inOImul, int inOIadd,
                             int *outII, int outIImul, int outIIadd)
@@ -46,7 +46,7 @@ __global__ void eavlSimpleReverseIndexOp_kernel(int nInputVals,
     }
 }
 
-void eavlSimpleReverseIndexOp_GPU(int nInputVals,
+static void eavlSimpleReverseIndexOp_GPU(int nInputVals,
                             int *d_inOF, int inOFdiv, int inOFmod, int inOFmul, int inOFadd,
                             int *d_inOI, int inOIdiv, int inOImod, int inOImul, int inOIadd,
                             int *d_outII, int outIImul, int outIIadd)
