@@ -51,6 +51,10 @@ class eavlArray
     {
         return name;
     }
+    void SetName(const string &n)
+    {
+        name = n;
+    }
     virtual eavlArray *Create(const string &n, int nc = 1, int nt = 0) = 0;
     virtual const char *GetBasicType() = 0;
     virtual void   SetNumberOfTuples(int) = 0;
