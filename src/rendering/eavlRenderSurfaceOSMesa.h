@@ -8,6 +8,8 @@
 #include "GL/osmesa.h"
 #include "GL/gl.h"
 
+#include <climits>
+
 class eavlRenderSurfaceOSMesa : public eavlRenderSurface
 {
   protected:
