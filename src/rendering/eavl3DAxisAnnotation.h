@@ -153,8 +153,8 @@ class eavl3DAxisAnnotation : public eavlAnnotation
             char val[256];
             snprintf(val, 256, "%g", positions[i]);
             labels[i]->SetText(val);
-            if (fabs(positions[i]) < 1e-10)
-                labels[i]->SetText("0");
+            //if (fabs(positions[i]) < 1e-10)
+            //    labels[i]->SetText("0");
             labels[i]->SetPosition(xc - tx, yc - ty, zc - tz);
             labels[i]->SetAnchor(.5,.5);
         }

@@ -185,8 +185,8 @@ class eavl2DAxisAnnotation : public eavlAnnotation
             char val[256];
             snprintf(val, 256, "%g", maj_positions[i]);
             labels[i]->SetText(val);
-            if (fabs(maj_positions[i]) < 1e-10)
-                labels[i]->SetText("0");
+            //if (fabs(maj_positions[i]) < 1e-10)
+            //    labels[i]->SetText("0");
             if (worldSpace)
                 ((eavlBillboardTextAnnotation*)(labels[i]))->SetPosition(xs,ys,0);
             else
