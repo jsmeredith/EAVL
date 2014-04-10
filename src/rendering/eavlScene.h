@@ -385,6 +385,13 @@ class eavl1DGLScene : public eavlScene
             vmin = plots[0]->GetMinDataExtent();
             vmax = plots[0]->GetMaxDataExtent();
         }
+        for (unsigned int i=1; i<plots.size(); ++i)
+        {
+            if (vmin > plots[i]->GetMinDataExtent())
+                vmin = plots[i]->GetMinDataExtent();
+            if (vmax < plots[i]->GetMaxDataExtent())
+                vmax = plots[i]->GetMaxDataExtent();
+        }
 
         if (view.view2d.logy)
         {
