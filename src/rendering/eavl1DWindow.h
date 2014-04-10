@@ -49,6 +49,9 @@ class eavl1DWindow : public eavlWindow
         haxis->SetMoreOrLessTickAdjustment(fabs(view.viewportaspect) < .59 ? -1 : 0);
         vaxis->SetMoreOrLessTickAdjustment(fabs(view.viewportaspect) > 1.7 ? -1 : 0);
 
+        haxis->SetLogarithmic(view.view2d.logx);
+        vaxis->SetLogarithmic(view.view2d.logy);
+
         haxis->SetColor(eavlColor::black);
         haxis->SetScreenPosition(vl,vb, vr,vb);
         haxis->SetRangeForAutoTicks(view.view2d.l, view.view2d.r);

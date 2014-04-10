@@ -10,6 +10,11 @@ void CalculateTicks(double lower, double upper, bool minor,
                     vector<double> &proportions,
                     int modifyTickQuantity=0); ///< -1 for less, +1 for more
 
+void CalculateTicksLogarithmic(double lower, double upper, bool minor,
+                               vector<double> &positions,
+                               vector<double> &proportions,
+                               int modifyTickQuantity=0); ///< -1 for less, +1 for more
+
 template <class T>
 string VecPrint(T *const v, unsigned int n, unsigned int nmax, unsigned int group=1e9)
 {

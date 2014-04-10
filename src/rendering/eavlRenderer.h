@@ -1069,6 +1069,7 @@ class eavlCurveRenderer : public eavlRenderer
 {
   protected:
     eavlColor color;
+    bool      logarithmic;
   public:
     eavlCurveRenderer(eavlDataSet *ds,
                       void (*xform)(double c0, double c1, double c2,
@@ -1076,8 +1077,12 @@ class eavlCurveRenderer : public eavlRenderer
                       eavlColor c,
                       const string &csname,
                       const string &fieldname)
-        : eavlRenderer(ds, xform, csname, fieldname), color(c)
+        : eavlRenderer(ds, xform, csname, fieldname), color(c), logarithmic(false)
     {
+    }
+    void SetLogarithmic(bool l)
+    {
+        logarithmic = l;
     }
     virtual void RenderPoints()
     {
@@ -1089,6 +1094,8 @@ class eavlCurveRenderer : public eavlRenderer
         for (int j=0; j<npts; j++)
         {
             double value = field->GetArray()->GetComponentAsDouble(j,0);
+            if (logarithmic)
+                value = log10(value);
             glVertex2d(pts[j*3+0], value);
             if (j>0 && j<npts-1)
                 glVertex2d(pts[j*3+0], value);
@@ -1110,6 +1117,9 @@ class eavlCurveRenderer : public eavlRenderer
             for (int j=0; j<npts; j++)
             {
                 double value = field->GetArray()->GetComponentAsDouble(j,0);
+                if (logarithmic)
+                    value = log10(value);
+
                 glVertex2d(pts[j*3+0], value);
                 if (j>0 && j<npts-1)
                     glVertex2d(pts[j*3+0], value);
@@ -1125,6 +1135,8 @@ class eavlCurveRenderer : public eavlRenderer
                     continue;
 
                 double value = field->GetArray()->GetComponentAsDouble(j,0);
+                if (logarithmic)
+                    value = log10(value);
 
                 int i0 = cell.indices[0];
                 int i1 = cell.indices[1];

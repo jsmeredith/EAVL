@@ -26,6 +26,7 @@ class eavl2DAxisAnnotation : public eavlAnnotation
     double fontscale;
     int    linewidth;
     eavlColor color;
+    bool   logarithmic;
     vector<eavlTextAnnotation*> labels;
 
     vector<double> maj_positions;
@@ -45,8 +46,13 @@ class eavl2DAxisAnnotation : public eavlAnnotation
         fontscale = 0.05;
         linewidth = 1;
         color = eavlColor::white;
+        logarithmic = false;
         moreOrLessTickAdjustment = 0;
         worldSpace = false;
+    }
+    void SetLogarithmic(bool l)
+    {
+        logarithmic = l;
     }
     void SetWorldSpace(bool ws)
     {
@@ -105,8 +111,16 @@ class eavl2DAxisAnnotation : public eavlAnnotation
         lower = l;
         upper = u;
 
-        CalculateTicks(lower, upper, false, maj_positions, maj_proportions, moreOrLessTickAdjustment);
-        CalculateTicks(lower, upper, true,  min_positions, min_proportions, moreOrLessTickAdjustment);
+        if (logarithmic)
+        {
+            CalculateTicksLogarithmic(lower, upper, false, maj_positions, maj_proportions, moreOrLessTickAdjustment);
+            CalculateTicksLogarithmic(lower, upper, true,  min_positions, min_proportions, moreOrLessTickAdjustment);
+        }
+        else
+        {
+            CalculateTicks(lower, upper, false, maj_positions, maj_proportions, moreOrLessTickAdjustment);
+            CalculateTicks(lower, upper, true,  min_positions, min_proportions, moreOrLessTickAdjustment);
+        }
     }
     void SetMajorTicks(const vector<double> &pos, const vector<double> &prop)
     {

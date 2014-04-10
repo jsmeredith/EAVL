@@ -385,13 +385,34 @@ class eavl1DGLScene : public eavlScene
             vmin = plots[0]->GetMinDataExtent();
             vmax = plots[0]->GetMaxDataExtent();
         }
-        view.view2d.b = vmin;
-        view.view2d.t = vmax;
 
-        if (view.view2d.b == view.view2d.t)
+        if (view.view2d.logy)
         {
-            view.view2d.b -= .5;
-            view.view2d.t += .5;
+            if (vmin <= 0 || vmax <= 0)
+            {
+                view.view2d.b = 0;
+                view.view2d.t = 1;
+            }
+            else
+            {
+                view.view2d.b = log10(vmin);
+                view.view2d.t = log10(vmax);
+                if (view.view2d.b == view.view2d.t)
+                {
+                    view.view2d.b /= 10.;
+                    view.view2d.t *= 10.;
+                }
+            }
+        }
+        else
+        {
+            view.view2d.b = vmin;
+            view.view2d.t = vmax;
+            if (view.view2d.b == view.view2d.t)
+            {
+                view.view2d.b -= .5;
+                view.view2d.t += .5;
+            }
         }
 
         // we always want to start with a curve being full-frame
@@ -414,6 +435,13 @@ class eavl1DGLScene : public eavlScene
             eavlRenderer *r = plots[i];
             if (!r)
                 continue;
+
+            ///\todo: ugly hack to make the curve renderer do log scaling
+            eavlCurveRenderer* cr = dynamic_cast<eavlCurveRenderer*>(r);
+            if (cr)
+            {
+                cr->SetLogarithmic(view.view2d.logy);
+            }
 
             eavlTexture *tex = NULL;
             if (r->GetColorTableName() != "")

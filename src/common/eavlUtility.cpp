@@ -152,3 +152,84 @@ void CalculateTicks(double lower, double upper, bool minor,
         }
     }
 }
+
+
+void CalculateTicksLogarithmic(double lower, double upper, bool minor,
+                               vector<double> &positions,
+                               vector<double> &proportions,
+                               int modifyTickQuantity)
+{
+    positions.clear();
+    proportions.clear();
+
+    double sortedRange[2];
+    sortedRange[0] = lower < upper ? lower : upper;
+    sortedRange[1] = lower > upper ? lower : upper;
+
+    double range = sortedRange[1] - sortedRange[0];
+
+    double first_log = ceil(sortedRange[0]);
+    double last_log = floor(sortedRange[1]);
+    if (last_log <= first_log)
+        last_log = first_log+1;
+    double diff_log = last_log - first_log;
+    int step = (diff_log + 9) / 10;
+
+    if (minor)
+    {
+        first_log -= step;
+        last_log += step;
+    }
+
+    for (int i=first_log; i<=last_log; i += step)
+    {
+        double logpos = i;
+        double pos = pow(10, logpos);
+        if (minor)
+        {
+            // If we're showing major tickmarks for every power of 10,
+            // then show 2x10^n, 3x10^n, ..., 9x10^n for minor ticks.
+            // If we're skipping some powers of 10, then use the minor
+            // ticks to show where those skipped ones are.  (Beyond
+            // a range of 100 orders of magnitude, we get more than 10
+            // minor ticks per major tick, but that's awfully rare.)
+            if (step == 1)
+            {
+                for (int j=1; j<10; ++j)
+                {
+                    double minor_pos = double(j) * double(pos);
+                    double minor_logpos = log10(minor_pos);
+                    if (minor_logpos < sortedRange[0] ||
+                        minor_logpos > sortedRange[1])
+                    {
+                        continue;
+                    }
+                    positions.push_back(minor_pos);
+                    proportions.push_back((minor_logpos - sortedRange[0]) / (sortedRange[1]-sortedRange[0]));
+                }
+            }
+            else
+            {
+                for (int j=1; j<step; ++j)
+                {
+                    double minor_logpos = logpos + j;
+                    double minor_pos = pow(10., minor_logpos);
+                    if (minor_logpos < sortedRange[0] ||
+                        minor_logpos > sortedRange[1])
+                    {
+                        continue;
+                    }
+                    positions.push_back(minor_pos);
+                    proportions.push_back((minor_logpos - sortedRange[0]) / (sortedRange[1]-sortedRange[0]));
+                }
+            }
+        }
+        else
+        {
+            if (logpos > sortedRange[1])
+                break;
+            positions.push_back(pos);
+            proportions.push_back((logpos - sortedRange[0]) / (sortedRange[1]-sortedRange[0]));
+        }
+    }
+}
