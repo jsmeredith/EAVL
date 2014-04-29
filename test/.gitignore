@@ -13,3 +13,5 @@ testrecenter
 testdistancefield
 testvtk
 testthreshold
+testatompipeline
+testbox
