@@ -36,10 +36,7 @@ class eavlField
     Association  association;
 
     ///\todo: don't like these floating here like a union
-    ///       if assoc_cell_set and assoc_logicaldim are both the same
-    ///       type, they could just be a single value (assoc_index), right?
     string       assoc_cellset_name;  ///< only populate if assoc is cells
-    ///\todo: don't like these floating here like a union
     ///\todo: other question: do we even really need this?  it seems like
     ///       most often the reference would be from coordsys -> fielddata,
     ///       not from fielddata -> back to coord system
