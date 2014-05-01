@@ -97,7 +97,7 @@ eavlExternalFaceMutator::Execute()
     {
         eavlField *inField = dataset->GetField(i);
         if (inField->GetAssociation() == eavlField::ASSOC_CELL_SET &&
-            inField->GetAssocCellSet() == inCellSetIndex)
+            inField->GetAssocCellSet() == dataset->GetCellSet(inCellSetIndex)->GetName())
         {
             eavlArray *inArray = inField->GetArray();
             int n = n_ext;
@@ -123,7 +123,7 @@ eavlExternalFaceMutator::Execute()
             }
             eavlField *outField = new eavlField(0, outArray,
                                                 eavlField::ASSOC_CELL_SET,
-                                                dataset->GetNumCellSets()-1);            
+                                                outCells->GetName());            
             dataset->AddField(outField);
         }
     }

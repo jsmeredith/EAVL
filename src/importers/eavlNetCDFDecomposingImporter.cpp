@@ -609,7 +609,7 @@ eavlNetCDFDecomposingImporter::GetField(const string &name, const string &mesh, 
                 }
             }
         }
-        eavlField *field = new eavlField(0, arr, eavlField::ASSOC_CELL_SET, 0);
+        eavlField *field = new eavlField(0, arr, eavlField::ASSOC_CELL_SET, "RectilinearGridCells");
         return field;
     }
 

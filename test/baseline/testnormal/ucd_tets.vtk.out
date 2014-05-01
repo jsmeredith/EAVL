@@ -53,7 +53,7 @@ eavlDataSet:
       array name = surface_normals
       order = 0
       association = CELL_SET
-      assoc_cell_set (index) = 1
+      assoc_cellset_name = extface_of_UnstructuredGridCells3D
       array = float surface_normals[70][3] = 0.996716  0.078829  -0.0185472  0.96774  -0.211534 ... -0.0413317  -0.999124  -0.995715  -0.0853367  0.0356299
 
       array name = nodecentered_surface_normals

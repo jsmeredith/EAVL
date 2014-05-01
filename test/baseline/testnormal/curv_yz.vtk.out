@@ -47,13 +47,13 @@ eavlDataSet:
       array name = zonal
       order = 0
       association = CELL_SET
-      assoc_cell_set (index) = 0
+      assoc_cellset_name = StructuredGridCells
       array = float zonal[49][1] = 2.29363  2.65214  3.01935  3.5464  3.70934 ... 3.39323  3.62591  3.34755  3.32206  3.55842
 
       array name = surface_normals
       order = 0
       association = CELL_SET
-      assoc_cell_set (index) = 0
+      assoc_cellset_name = StructuredGridCells
       array = float surface_normals[49][3] = 0.999948  0.0102169  0.000177455  0.999493  0.0106623 ... 0.024769  0.030839  0.999355  0.00165634  0.0358767
 
       array name = nodecentered_surface_normals

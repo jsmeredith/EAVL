@@ -38,8 +38,7 @@ class eavlField
     ///\todo: don't like these floating here like a union
     ///       if assoc_cell_set and assoc_logicaldim are both the same
     ///       type, they could just be a single value (assoc_index), right?
-    ///\todo: assoc_cell_set could be a string, right?
-    int          assoc_cell_set;  ///< only populate if assoc is cells
+    string       assoc_cellset_name;  ///< only populate if assoc is cells
     ///\todo: don't like these floating here like a union
     ///\todo: other question: do we even really need this?  it seems like
     ///       most often the reference would be from coordsys -> fielddata,
@@ -57,20 +56,29 @@ class eavlField
               int assoc_value = -1)
         : order(order_),
           association(assoc),
-          assoc_cell_set(assoc_value),
           assoc_logicaldim(assoc_value),
           array(a)
     {
-        if (assoc == ASSOC_CELL_SET && assoc_value < 0)
-            THROW(eavlException,"Need a nonnegative cell set index for cell set association");
         if (assoc == ASSOC_LOGICALDIM && assoc_value < 0)
             THROW(eavlException,"Need a nonnegative dim index for logical dim association");
+        if (assoc == ASSOC_CELL_SET)
+            THROW(eavlException,"Must initialize cell set association with a string");
+    }
+    eavlField(int order_,
+              eavlArray *a,
+              Association assoc,
+              string assoc_value)
+        : order(order_),
+          association(assoc),
+          assoc_cellset_name(assoc_value),
+          array(a)
+    {
     }
     eavlField(eavlField *f,
               eavlArray *a)
         : order(f->order),
           association(f->association),
-          assoc_cell_set(f->assoc_cell_set),
+          assoc_cellset_name(f->assoc_cellset_name),
           assoc_logicaldim(f->assoc_logicaldim),
           array(a)
     {
@@ -82,7 +90,7 @@ class eavlField
     Association  GetAssociation()    {return association;}
     eavlArray   *GetArray()          {return array;}
     int          GetOrder()          {return order;}
-    int          GetAssocCellSet()   {return assoc_cell_set;}
+    string       GetAssocCellSet()   {return assoc_cellset_name;}
     int          GetAssocLogicalDim(){return assoc_logicaldim;}
 
     virtual void PrintSummary(ostream &out)
@@ -99,7 +107,7 @@ class eavlField
                   (association==ASSOC_CELL_SET?"CELL_SET":"<unknown>"))))
             << endl;
         if (association == ASSOC_CELL_SET)
-            out << "      assoc_cell_set (index) = " << assoc_cell_set << endl;
+            out << "      assoc_cellset_name = " << assoc_cellset_name << endl;
         if (association == ASSOC_LOGICALDIM)
             out << "      assoc_logicaldim = " << assoc_logicaldim << endl;
         out << "      array = ";

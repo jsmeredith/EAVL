@@ -93,5 +93,5 @@ void eavlScalarBinFilter::Execute()
     eavlCellSet *cellset = new eavlCellSetAllStructured("bins", reg);
     output->AddCellSet(cellset);
 
-    output->AddField(new eavlField(0, counts, eavlField::ASSOC_CELL_SET, 0));
+    output->AddField(new eavlField(0, counts, eavlField::ASSOC_CELL_SET, "bins"));
 }

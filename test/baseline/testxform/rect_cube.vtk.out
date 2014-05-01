@@ -66,7 +66,7 @@ eavlDataSet:
       array name = zonal
       order = 0
       association = CELL_SET
-      assoc_cell_set (index) = 0
+      assoc_cellset_name = RectilinearGridCells
       array = float zonal[125][1] = 2.12651  2.23655  2.30367  2.20607  2.21764 ... 3.18848  3.2106  3.40977  3.4471  3.35531
 
       array name = transformed_coords

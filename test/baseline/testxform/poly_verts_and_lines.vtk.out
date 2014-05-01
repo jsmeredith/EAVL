@@ -58,7 +58,7 @@ eavlDataSet:
       array name = id
       order = 0
       association = CELL_SET
-      assoc_cell_set (index) = 1
+      assoc_cellset_name = PolyDataLines
       array = float id[59][1] = 101  102  103  104  105 ... 155  156  157  158  159
 
       array name = transformed_coords

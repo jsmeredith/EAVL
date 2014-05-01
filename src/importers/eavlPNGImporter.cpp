@@ -100,7 +100,7 @@ eavlPNGImporter::GetField(const string &name, const string &mesh, int chunk)
         arr->SetValue(i, rgba[4*i + component]);
     }
 
-    return new eavlField(0, arr, eavlField::ASSOC_CELL_SET, 0);
+    return new eavlField(0, arr, eavlField::ASSOC_CELL_SET, "pixels");
 }
 
 

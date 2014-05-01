@@ -796,7 +796,7 @@ eavlIsosurfaceFilter::Execute()
             output->AddField(new eavlField(1, outArr, eavlField::ASSOC_POINTS));
         }
         else if (f->GetAssociation() == eavlField::ASSOC_CELL_SET &&
-                 f->GetAssocCellSet() == inCellSetIndex)
+                 f->GetAssocCellSet() == input->GetCellSet(inCellSetIndex)->GetName())
         {
             eavlArray *outArr = a->Create(a->GetName(), 1, noutgeom);
             eavlExecutor::AddOperation(new_eavlGatherOp(eavlOpArgs(a),
@@ -804,7 +804,7 @@ eavlIsosurfaceFilter::Execute()
                                                         eavlOpArgs(revInputIndex)),
                                        "gather cell field");
             output->AddField(
-                new eavlField(1, outArr, eavlField::ASSOC_CELL_SET, 0));
+                new eavlField(1, outArr, eavlField::ASSOC_CELL_SET, "iso"));
         }
         else
         {
@@ -920,20 +920,20 @@ eavlIsosurfaceFilter::Execute()
     {
         // note: if we do this, we can't delete them in the destructor
         input->AddField(new eavlField(0, hiloArray, eavlField::ASSOC_POINTS));
-        input->AddField(new eavlField(0, caseArray, eavlField::ASSOC_CELL_SET, 0));
-        input->AddField(new eavlField(0, numoutArray, eavlField::ASSOC_CELL_SET, 0));
-        input->AddField(new eavlField(0, outindexArray, eavlField::ASSOC_CELL_SET, 0));
+        input->AddField(new eavlField(0, caseArray, eavlField::ASSOC_CELL_SET, "iso"));
+        input->AddField(new eavlField(0, numoutArray, eavlField::ASSOC_CELL_SET, "iso"));
+        input->AddField(new eavlField(0, outindexArray, eavlField::ASSOC_CELL_SET, "iso"));
     }
 
     if (false)
     {
         output->AddField(new eavlField(0, revPtEdgeIndex, eavlField::ASSOC_POINTS));
-        output->AddField(new eavlField(0, revInputIndex, eavlField::ASSOC_CELL_SET, 0));
-        output->AddField(new eavlField(0, revInputSubindex, eavlField::ASSOC_CELL_SET, 0));
-        output->AddField(new eavlField(0, outcaseArray, eavlField::ASSOC_CELL_SET, 0));
-        output->AddField(new eavlField(0, localouttriArray, eavlField::ASSOC_CELL_SET, 0));
-        output->AddField(new eavlField(0, outtriArray, eavlField::ASSOC_CELL_SET, 0));    
-        output->AddField(new eavlField(0, outconn, eavlField::ASSOC_CELL_SET, 0));
+        output->AddField(new eavlField(0, revInputIndex, eavlField::ASSOC_CELL_SET, "iso"));
+        output->AddField(new eavlField(0, revInputSubindex, eavlField::ASSOC_CELL_SET, "iso"));
+        output->AddField(new eavlField(0, outcaseArray, eavlField::ASSOC_CELL_SET, "iso"));
+        output->AddField(new eavlField(0, localouttriArray, eavlField::ASSOC_CELL_SET, "iso"));
+        output->AddField(new eavlField(0, outtriArray, eavlField::ASSOC_CELL_SET, "iso"));    
+        output->AddField(new eavlField(0, outconn, eavlField::ASSOC_CELL_SET, "iso"));
         output->AddField(new eavlField(1, alpha, eavlField::ASSOC_POINTS));
     }
     else

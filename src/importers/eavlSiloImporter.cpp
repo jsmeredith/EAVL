@@ -612,7 +612,7 @@ eavlSiloImporter::GetField(const string &name, const string &meshname, int chunk
         for (int i=0; i<ghosts_for_latest_mesh->GetNumberOfTuples(); i++)
             ghost->SetComponentFromDouble(i,0,
                            ghosts_for_latest_mesh->GetComponentAsDouble(i,0));
-        field = new eavlField(0, ghost, eavlField::ASSOC_CELL_SET, 0);
+        field = new eavlField(0, ghost, eavlField::ASSOC_CELL_SET, meshname+"_Cells");
         return field;
     }
 
@@ -624,7 +624,7 @@ eavlSiloImporter::GetField(const string &name, const string &meshname, int chunk
         if (v->align[0] == 0.)
             field = new eavlField(1, arr, eavlField::ASSOC_POINTS);
         else
-            field = new eavlField(0, arr, eavlField::ASSOC_CELL_SET, 0);
+            field = new eavlField(0, arr, eavlField::ASSOC_CELL_SET, meshname+"_Cells");
         DBFreeQuadvar(v);
     }
     else if (varType == DB_UCDVAR)
@@ -634,7 +634,7 @@ eavlSiloImporter::GetField(const string &name, const string &meshname, int chunk
         if (v->centering == DB_NODECENT)
             field = new eavlField(1, arr, eavlField::ASSOC_POINTS);
         else
-            field = new eavlField(0, arr, eavlField::ASSOC_CELL_SET, 0);
+            field = new eavlField(0, arr, eavlField::ASSOC_CELL_SET, meshname+"_Cells");
         DBFreeUcdvar(v);
     }
     else if (varType == DB_POINTVAR)

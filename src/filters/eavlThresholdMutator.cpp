@@ -19,7 +19,7 @@ eavlThresholdMutator::Execute()
 
     ///\todo: add nodal threshold capability
     if (inField->GetAssociation() != eavlField::ASSOC_CELL_SET ||
-        inField->GetAssocCellSet() != inCellSetIndex)
+        inField->GetAssocCellSet() != dataset->GetCellSet(inCellSetIndex)->GetName())
     {
         THROW(eavlException,"Field for threshold didn't match cell set.");
     }
@@ -57,7 +57,7 @@ eavlThresholdMutator::Execute()
     {
         eavlField *f = dataset->GetField(i);
         if (f->GetAssociation() == eavlField::ASSOC_CELL_SET &&
-            f->GetAssocCellSet() == inCellSetIndex)
+            f->GetAssocCellSet() == dataset->GetCellSet(inCellSetIndex)->GetName())
         {
             int numcomp = f->GetArray()->GetNumberOfComponents();
             eavlFloatArray *a = new eavlFloatArray(
@@ -72,7 +72,7 @@ eavlThresholdMutator::Execute()
 
             eavlField *newfield = new eavlField(f->GetOrder(), a,
                                                 eavlField::ASSOC_CELL_SET,
-                                                new_cellset_index);
+                                                subset->GetName());
             dataset->AddField(newfield);
         }
     }

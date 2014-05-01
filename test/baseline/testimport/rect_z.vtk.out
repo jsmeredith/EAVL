@@ -44,6 +44,6 @@ eavlDataSet:
       array name = zonal
       order = 0
       association = CELL_SET
-      assoc_cell_set (index) = 0
+      assoc_cellset_name = RectilinearGridCells
       array = float zonal[3][1] = 0  1  2  
 

@@ -181,7 +181,7 @@ eavlBOVImporter::GetField(const string &var, const string &mesh, int chunk)
     if (nodalCentering)
         field = new eavlField(1, arr, eavlField::ASSOC_POINTS);
     else
-        field = new eavlField(1, arr, eavlField::ASSOC_CELL_SET, 0);
+        field = new eavlField(1, arr, eavlField::ASSOC_CELL_SET, "E");
 
 
     return field;

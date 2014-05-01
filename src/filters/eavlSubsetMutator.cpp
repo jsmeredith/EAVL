@@ -18,7 +18,7 @@ eavlSubsetMutator::Execute()
     eavlField   *inField = dataset->GetField(fieldname);
 
     if (inField->GetAssociation() != eavlField::ASSOC_CELL_SET ||
-        inField->GetAssocCellSet() != inCellSetIndex)
+        inField->GetAssocCellSet() != dataset->GetCellSet(inCellSetIndex)->GetName())
     {
         THROW(eavlException,"Field for subset didn't match cell set.");
     }
@@ -47,7 +47,7 @@ eavlSubsetMutator::Execute()
     {
         eavlField *f = dataset->GetField(i);
         if (f->GetAssociation() == eavlField::ASSOC_CELL_SET &&
-            f->GetAssocCellSet() == inCellSetIndex)
+            f->GetAssocCellSet() == dataset->GetCellSet(inCellSetIndex)->GetName())
         {
             eavlFloatArray *a = new eavlFloatArray(
                                  string("subset_of_")+f->GetArray()->GetName(),
@@ -62,7 +62,7 @@ eavlSubsetMutator::Execute()
 
             eavlField *newfield = new eavlField(f->GetOrder(), a,
                                                 eavlField::ASSOC_CELL_SET,
-                                                new_cell_index);
+                                                subset->GetName());
             dataset->AddField(newfield);
         }
     }

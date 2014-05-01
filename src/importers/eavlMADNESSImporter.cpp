@@ -329,7 +329,7 @@ eavlMADNESSImporter::GetField(const string &name, const string &mesh, int chunk)
             arr->SetComponentFromDouble(i, 0, n->lvl);
         }
      
-        eavlField *field = new eavlField(0, arr, eavlField::ASSOC_CELL_SET, 0);
+        eavlField *field = new eavlField(0, arr, eavlField::ASSOC_CELL_SET, "AllQuadTreeCells");
 
         return field;
     }
@@ -347,7 +347,7 @@ eavlMADNESSImporter::GetField(const string &name, const string &mesh, int chunk)
             arr->SetComponentFromDouble(i, 0, v);
         }
      
-        eavlField *field = new eavlField(0, arr, eavlField::ASSOC_CELL_SET, 0);
+        eavlField *field = new eavlField(0, arr, eavlField::ASSOC_CELL_SET, "AllQuadTreeCells");
         return field;
     }
     else if (name == "node_linear")
@@ -384,7 +384,7 @@ eavlMADNESSImporter::GetField(const string &name, const string &mesh, int chunk)
                 arr->SetComponentFromDouble(i, j, n->coeffs[j/3][j%3]);
         }
      
-        eavlField *field = new eavlField(2, arr, eavlField::ASSOC_CELL_SET, 0);
+        eavlField *field = new eavlField(2, arr, eavlField::ASSOC_CELL_SET, "AllQuadTreeCells");
         return field;
     }
 

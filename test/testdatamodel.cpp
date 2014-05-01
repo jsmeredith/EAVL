@@ -281,7 +281,7 @@ eavlDataSet *GenerateExplicit3DPyramidGrid(int ni, int nj)
     cells->SetCellNodeConnectivity(conn);
     data->AddCellSet(cells);
 
-    data->AddField(new eavlField(0, indexarray, eavlField::ASSOC_CELL_SET, 0));
+    data->AddField(new eavlField(0, indexarray, eavlField::ASSOC_CELL_SET, "cells"));
 
     return data;
 }
@@ -350,7 +350,7 @@ eavlDataSet *GenerateExplicitOnLogical(int ni, int nj)
     cells->SetCellNodeConnectivity(conn);
     data->AddCellSet(cells);
 
-    data->AddField(new eavlField(0, cellarray, eavlField::ASSOC_CELL_SET, 0));
+    data->AddField(new eavlField(0, cellarray, eavlField::ASSOC_CELL_SET, "cells"));
 
     return data;
 }
@@ -410,7 +410,7 @@ eavlDataSet *GenerateMoleculeTwoCellSets()
     eavlCellSetExplicit *atoms = new eavlCellSetExplicit("atoms", 0);
     atoms->SetCellNodeConnectivity(aconn);
     data->AddCellSet(atoms);
-    data->AddField(new eavlField(0, speciesarray, eavlField::ASSOC_CELL_SET, 0));
+    data->AddField(new eavlField(0, speciesarray, eavlField::ASSOC_CELL_SET, "atoms"));
 
     // create a topologically 1D cell set for the bonds
     eavlExplicitConnectivity bconn;
@@ -428,7 +428,7 @@ eavlDataSet *GenerateMoleculeTwoCellSets()
     eavlCellSetExplicit *bonds = new eavlCellSetExplicit("bonds", 1);
     bonds->SetCellNodeConnectivity(bconn);
     data->AddCellSet(bonds);
-    data->AddField(new eavlField(0, strengtharray, eavlField::ASSOC_CELL_SET, 1));
+    data->AddField(new eavlField(0, strengtharray, eavlField::ASSOC_CELL_SET, "bonds"));
 
     return data;
 }

@@ -57,6 +57,6 @@ eavlDataSet:
       array name = zonal
       order = 0
       association = CELL_SET
-      assoc_cell_set (index) = 0
+      assoc_cellset_name = PolyDataPolygons
       array = float zonal[90][1] = 3.56613  3.36329  3.36329  3.35377  3.20132 ... 3.32322  3.53237  3.34054  3.39691  3.42226
 

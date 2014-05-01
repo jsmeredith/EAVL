@@ -72,7 +72,7 @@ eavlBoxMutator::Execute()
     {
         eavlField *f = dataset->GetField(i);
         if (f->GetAssociation() == eavlField::ASSOC_CELL_SET &&
-            f->GetAssocCellSet() == inCellSetIndex)
+            f->GetAssocCellSet() == dataset->GetCellSet(inCellSetIndex)->GetName())
         {
             int numcomp = f->GetArray()->GetNumberOfComponents();
             eavlFloatArray *a = new eavlFloatArray(
@@ -87,7 +87,7 @@ eavlBoxMutator::Execute()
 
             eavlField *newfield = new eavlField(f->GetOrder(), a,
                                                 eavlField::ASSOC_CELL_SET,
-                                                new_cellset_index);
+                                                subset->GetName());
             dataset->AddField(newfield);
         }
     }

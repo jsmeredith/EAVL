@@ -129,7 +129,7 @@ eavlVTKExporter::ExportFields(ostream &out)
             continue;
 
         if (data->GetField(f)->GetAssociation() == eavlField::ASSOC_CELL_SET &&
-            data->GetField(f)->GetAssocCellSet() == cellSetIndex)
+            data->GetField(f)->GetAssocCellSet() == data->GetCellSet(cellSetIndex)->GetName())
         {
             if (!wrote_cell_header)
                 out<<"CELL_DATA "<<ntuples<<endl;

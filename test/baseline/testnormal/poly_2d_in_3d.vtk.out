@@ -45,13 +45,13 @@ eavlDataSet:
       array name = zonal
       order = 0
       association = CELL_SET
-      assoc_cell_set (index) = 0
+      assoc_cellset_name = PolyDataPolygons
       array = float zonal[49][1] = 2.93286  2.94926  2.6796  2.47013  2.81913 ... 2.23087  3.53692  4.29173  4.09175  3.26901
 
       array name = surface_normals
       order = 0
       association = CELL_SET
-      assoc_cell_set (index) = 0
+      assoc_cellset_name = PolyDataPolygons
       array = float surface_normals[49][3] = -7.81401e-07  0.0238022  0.999717  0.0487489  -0.0892755 ... -0.0528465  0.979605  -0.0744857  0.01475  0.997113
 
       array name = nodecentered_surface_normals

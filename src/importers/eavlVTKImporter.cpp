@@ -575,8 +575,9 @@ eavlVTKImporter::AddArray(eavlFloatArray *arr, eavlVTKImporter::Location loc)
                 }
             }
 
+            ///\todo: note: this assumes you add arrays after creating cell sets
             eavlField *field = new eavlField(0, a, eavlField::ASSOC_CELL_SET,
-                                             realCellIndex);
+                                             data->GetCellSet(realCellIndex)->GetName());
             vars[name] = field;
         }
     }
@@ -593,7 +594,7 @@ eavlVTKImporter::AddArray(eavlFloatArray *arr, eavlVTKImporter::Location loc)
             break;
           case LOC_CELLS:
             field = new eavlField(0, arr, eavlField::ASSOC_CELL_SET,
-                                  0); // if we're here, we only had one cell set
+                                  data->GetCellSet(0)->GetName()); // if we're here, we only had one cell set
             break;
         }
         vars[name] = field;

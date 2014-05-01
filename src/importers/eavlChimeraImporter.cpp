@@ -196,7 +196,7 @@ eavlChimeraImporter::Import()
         if (v0->align[0] == 0.)
             field = new eavlField(1, arr, eavlField::ASSOC_POINTS);
         else
-            field = new eavlField(0, arr, eavlField::ASSOC_CELL_SET, 0);
+            field = new eavlField(0, arr, eavlField::ASSOC_CELL_SET, "chimera_Cells");
         data->AddField(field);
 
         DBFreeQuadvar(v0);

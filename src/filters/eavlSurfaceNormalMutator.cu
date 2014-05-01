@@ -68,6 +68,6 @@ eavlSurfaceNormalMutator::Execute()
 
     eavlField *cellnormalfield = new eavlField(0, out,
                                                eavlField::ASSOC_CELL_SET,
-                                               inCellSetIndex);
+                                               cellsetname);
     dataset->AddField(cellnormalfield);
 };

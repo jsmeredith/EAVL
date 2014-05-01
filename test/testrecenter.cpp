@@ -57,7 +57,8 @@ int main(int argc, char *argv[])
         if (f->GetAssociation() != eavlField::ASSOC_CELL_SET)
             THROW(eavlException, "Wanted a cell-centered field.");
 
-        int cellsetindex = f->GetAssocCellSet();
+        string cellsetname = f->GetAssocCellSet();
+        int cellsetindex = data->GetCellSetIndex(cellsetname);
 
         eavlCellToNodeRecenterMutator *cell2node = new eavlCellToNodeRecenterMutator;
         cell2node->SetDataSet(data);
