@@ -83,6 +83,10 @@ class eavlColor
         b = GetComponentAsByte(2);
         a = GetComponentAsByte(3);
     }
+    double RawBrightness()
+    {
+        return (c[0]+c[1]+c[2])/3.;
+    }
     friend ostream &operator<<(ostream &out, const eavlColor &c)
     {
         out << "["<<c.c[0]<<","<<c.c[1]<<","<<c.c[2]<<","<<c.c[3]<<"]";

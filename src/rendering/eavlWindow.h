@@ -7,8 +7,10 @@
 #include "eavlColor.h"
 #include "eavlTexture.h"
 #include "eavlRenderSurface.h"
+#include "eavlAnnotation.h"
 
 class eavlScene;
+
 // ****************************************************************************
 // Class:  eavlWindow
 //
@@ -27,6 +29,8 @@ class eavlWindow
     eavlScene *scene;
     std::map<std::string,eavlTexture*> textures;
 
+    std::vector<eavlAnnotation*> annotations;
+
   public: /// todo: hack, should not be public
     eavlRenderSurface *surface;
     eavlView view;
@@ -44,6 +48,23 @@ class eavlWindow
             delete i->second;
         textures.clear();
     }
+
+    void ClearAnnotations()
+    {
+        annotations.clear();
+    }
+    inline void AddWindowAnnotation(const std::string &str,
+                             double ox, double oy,
+                             double ah, double av,
+                             double fontscale = 0.05,
+                             double angle = 0.0);
+
+    inline void AddViewportAnnotation(const std::string &str,
+                                      double vx, double vy,
+                                      double dx, double dy,
+                                      double ah, double av,
+                                      double fontscale = 0.05,
+                                      double angle = 0.0);
 
     /*
     virtual void ResetViewForCurrentExtents() { }
@@ -74,6 +95,9 @@ class eavlWindow
 
         // render the plots and annotations
         Render();
+
+        for (unsigned int i=0; i<annotations.size(); ++i)
+            annotations[i]->Render(view);
 
         glFinish();
 
@@ -114,6 +138,46 @@ class eavlWindow
         out.close();
     }
 };
+
+#include "eavlTextAnnotation.h"
+
+inline void eavlWindow::AddWindowAnnotation(const std::string &str,
+                                     double ox, double oy,
+                                     double ah, double av,
+                                     double fontscale,
+                                     double angle)
+{
+    eavlColor fg = bg.RawBrightness() < 0.5 ? eavlColor::white : eavlColor::black;
+    eavlScreenTextAnnotation *t = 
+        new eavlScreenTextAnnotation(this, str, fg,
+                                     fontscale,
+                                     ox, oy, angle);
+    t->SetAnchor(ah, av);
+    annotations.push_back(t);
+}
+
+inline void eavlWindow::AddViewportAnnotation(const std::string &str,
+                                     double vx, double vy,
+                                     double dx, double dy,
+                                     double ah, double av,
+                                     double fontscale,
+                                     double angle)
+{
+    double vl=view.vl, vr=view.vr, vb=view.vb, vt=view.vt;
+    if (view.viewtype == eavlView::EAVL_VIEW_2D)
+        view.GetRealViewport(vl,vr,vb,vt);
+
+    double ox = dx + (vl+vr)/2. + vx * (vr-vl)/2.;
+    double oy = dy + (vb+vt)/2. + vy * (vt-vb)/2.;
+
+    eavlColor fg = bg.RawBrightness() < 0.5 ? eavlColor::white : eavlColor::black;
+    eavlScreenTextAnnotation *t = 
+        new eavlScreenTextAnnotation(this, str, fg,
+                                     fontscale,
+                                     ox, oy, angle);
+    t->SetAnchor(ah, av);
+    annotations.push_back(t);
+}
 
 #endif
 
