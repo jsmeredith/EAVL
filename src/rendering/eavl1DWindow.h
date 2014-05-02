@@ -6,6 +6,7 @@
 #include <eavlTextAnnotation.h>
 #include <eavl2DAxisAnnotation.h>
 #include <eavl2DFrameAnnotation.h>
+#include <eavlColorLegendAnnotation.h>
 #include "eavlScene.h"
 
 class eavl1DWindow : public eavlWindow
@@ -13,6 +14,7 @@ class eavl1DWindow : public eavlWindow
   protected:
     eavl2DAxisAnnotation *haxis, *vaxis;
     eavl2DFrameAnnotation *frame;
+    eavlColorLegendAnnotation *legend;
   public:
     eavl1DWindow(eavlColor bg, eavlRenderSurface *surf, eavlScene *s = NULL)
         : eavlWindow(bg,surf,s)
@@ -25,6 +27,7 @@ class eavl1DWindow : public eavlWindow
         haxis = new eavl2DAxisAnnotation(this);
         vaxis = new eavl2DAxisAnnotation(this);
         frame = new eavl2DFrameAnnotation(this);
+        legend = new eavlColorLegendAnnotation(this);
     }
     ~eavl1DWindow()
     {
@@ -67,6 +70,15 @@ class eavl1DWindow : public eavlWindow
         vaxis->SetMinorTickSize(.02 / view.windowaspect, 0, 1.0);
         vaxis->SetLabelAnchor(1.0, 0.47);
         vaxis->Render(view);
+
+        legend->Clear();
+        for (unsigned int i=0; i<scene->plots.size(); ++i)
+        {
+            eavlCurveRenderer *cr = dynamic_cast<eavlCurveRenderer*>(scene->plots[i]);
+            if (cr)
+                legend->AddItem(cr->GetName(), cr->GetColor());
+        }
+        legend->Render(view);
 
         glFinish();
     }

@@ -590,6 +590,7 @@ class eavlRenderer
     eavlField   *field;
     bool         field_nodal;
     eavlField   *normals;
+    string       name;
 
     double min_coord_extents[3];
     double max_coord_extents[3];
@@ -604,6 +605,13 @@ class eavlRenderer
                  const string &fieldname = "")
         : dataset(ds), cellset(NULL), field(NULL), normals(NULL)
     {
+        if (fieldname != "")
+            name = fieldname;
+        else if (csname != "")
+            name = csname;
+        else
+            name = "points";
+
         //
         // extract the points and find coordinate extents
         //
@@ -740,6 +748,7 @@ class eavlRenderer
     {
         delete[] pts;
     }
+    string GetName() { return name; }
     eavlDataSet *GetDataSet() { return dataset; }
     double GetMinCoordExtent(int axis) { return min_coord_extents[axis]; }
     double GetMaxCoordExtent(int axis) { return max_coord_extents[axis]; }
@@ -1084,6 +1093,7 @@ class eavlCurveRenderer : public eavlRenderer
     {
         logarithmic = l;
     }
+    eavlColor GetColor() { return color; }
     virtual void RenderPoints()
     {
         glDisable(GL_LIGHTING);
