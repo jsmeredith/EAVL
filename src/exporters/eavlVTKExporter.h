@@ -26,13 +26,21 @@ class eavlVTKExporter : public eavlExporter
 
     int cellSetIndex;
 
+    void ExportStructured(ostream &out);
     void ExportUnstructured(ostream &out);
+
+    void ExportPointCells(ostream &out);
+    void ExportStructuredCells(ostream &out);
+    void ExportUnstructuredCells(ostream &out);
+
+    void ExportRectilinearCoords(ostream &out);
     void ExportPoints(ostream &out);
-    void ExportCells(ostream &out);
+
     void ExportFields(ostream &out);
+
     void ExportGlobalFields(ostream &out);
 
-    int  CellTypeToVTK(eavlCellShape &type);
+    int  CellTypeToVTK(eavlCellShape type);
     
 };
 
