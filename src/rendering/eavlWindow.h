@@ -167,7 +167,7 @@ inline void eavlWindow::AddViewportAnnotation(const std::string &str,
     if (view.viewtype == eavlView::EAVL_VIEW_2D)
         view.GetRealViewport(vl,vr,vb,vt);
 
-    double ox = dx + (vl+vr)/2. + vx * (vr-vl)/2.;
+    double ox = dx/view.windowaspect + (vl+vr)/2. + vx * (vr-vl)/2.;
     double oy = dy + (vb+vt)/2. + vy * (vt-vb)/2.;
 
     eavlColor fg = bg.RawBrightness() < 0.5 ? eavlColor::white : eavlColor::black;
