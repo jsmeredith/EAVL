@@ -14,6 +14,8 @@
 
 #include "eavlDataSet.h"
 
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 vtkDataSet *ConvertEAVLToVTK(eavlDataSet *in)
 {
     ostringstream stream;
@@ -40,6 +42,8 @@ vtkDataSet *ConvertEAVLToVTK(eavlDataSet *in)
     return out;
 }
 
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 eavlDataSet *ConvertVTKToEAVL(vtkDataSet *in)
 {
     vtkDataSetWriter *wrtr = vtkDataSetWriter::New();

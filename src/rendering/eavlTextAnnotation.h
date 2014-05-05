@@ -67,19 +67,25 @@ class eavlTextAnnotation : public eavlAnnotation
     {
         switch (h)
         {
-          case Left:    anchorx = 0.0; break;
-          case HCenter: anchorx = 0.5; break;
-          case Right:   anchorx = 1.0; break;
+          case Left:    anchorx = -1.0; break;
+          case HCenter: anchorx =  0.0; break;
+          case Right:   anchorx = +1.0; break;
         }
 
         // For vertical alignment, "center" is generally the center
         // of only the above-baseline contents of the font, so we
-        // use 0.47 instead of 0.5 for VCenter.
+        // use a value slightly off of zero for VCenter.
+        // (We don't use an offset value instead of -1.0 for the 
+        // bottom value, because generally we want a true minimum
+        // extent, e.g. to have text sitting at the bottom of a
+        // window, and in that case, we need to keep all the text,
+        // including parts that descend below the baseline, above
+        // the bottom of the window.
         switch (v)
         {
-          case Bottom:  anchory = 0.0;  break;
-          case VCenter: anchory = 0.47; break;
-          case Top:     anchory = 1.0;  break;
+          case Bottom:  anchory = -1.0;  break;
+          case VCenter: anchory = -0.06; break;
+          case Top:     anchory = +1.0;  break;
         }
     }
     void SetScale(double s)
@@ -143,7 +149,9 @@ class eavlTextAnnotation : public eavlAnnotation
 
         double textwidth = fnt->GetTextWidth(text);
 
-        double fx = -anchorx * textwidth, fy = -anchory, fz = 0;
+        double fx = -(.5 + .5*anchorx) * textwidth;
+        double fy = -(.5 + .5*anchory);
+        double fz = 0;
         for (unsigned int i=0; i<text.length(); ++i)
         {
             char c = text[i];
@@ -381,6 +389,21 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
     }
 };
 
+// ****************************************************************************
+// Class:  eavlViewportAnchoredScreenTextAnnotation
+//
+// Purpose:
+///   Screen text is anchored to a normalized viewport location instead of
+///   window location, then offset in (aspect-independent) window
+///   coordinates.  The aspect-independence means that (like font size
+///   making sense no matter the window aspect ratio and text rotation)
+///   the x and y offset units are both in terms of window height.
+//
+// Programmer:  Jeremy Meredith
+// Creation:    May  5, 2014
+//
+// Modifications:
+// ****************************************************************************
 class eavlViewportAnchoredScreenTextAnnotation : public eavlScreenTextAnnotation
 {
   protected:
