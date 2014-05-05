@@ -92,7 +92,8 @@ class eavlColorBarAnnotation : public eavlAnnotation
         axis->SetScreenPosition(l,b, r,b);
         axis->SetMajorTickSize(0, .02, 1.0);
         axis->SetMinorTickSize(0,0,0); // no minor ticks
-        axis->SetLabelAnchor(0.5, 1.0);
+        axis->SetLabelAlignment(eavlTextAnnotation::HCenter,
+                                eavlTextAnnotation::Top);
         axis->Render(view);
 
     }

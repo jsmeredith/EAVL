@@ -156,7 +156,8 @@ class eavl3DAxisAnnotation : public eavlAnnotation
             //if (fabs(positions[i]) < 1e-10)
             //    labels[i]->SetText("0");
             labels[i]->SetPosition(xc - tx, yc - ty, zc - tz);
-            labels[i]->SetAnchor(.5,.5);
+            labels[i]->SetAlignment(eavlTextAnnotation::HCenter,
+                                    eavlTextAnnotation::VCenter);
         }
 
         // minor ticks

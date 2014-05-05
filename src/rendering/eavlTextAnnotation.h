@@ -26,11 +26,27 @@
 // ****************************************************************************
 class eavlTextAnnotation : public eavlAnnotation
 {
+  public:
+    enum HorizontalAlignment
+    {
+        Left,
+        HCenter,
+        Right
+    };
+    enum VerticalAlignment
+    {
+        Bottom,
+        VCenter,
+        Top
+    };
+
   protected:
     string text;
     eavlColor color;
     double  scale;
+    ///\todo: change anchor range to [-1,+1] (center=0) instead of [0,1] (center=.5)
     double anchorx, anchory;
+
   public:
     eavlTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, double s)
         : eavlAnnotation(w), text(txt), color(c), scale(s)
@@ -42,10 +58,29 @@ class eavlTextAnnotation : public eavlAnnotation
     {
         text = txt;
     }
-    void SetAnchor(double h, double v)
+    void SetRawAnchor(double h, double v)
     {
         anchorx = h;
         anchory = v;
+    }
+    void SetAlignment(HorizontalAlignment h, VerticalAlignment v)
+    {
+        switch (h)
+        {
+          case Left:    anchorx = 0.0; break;
+          case HCenter: anchorx = 0.5; break;
+          case Right:   anchorx = 1.0; break;
+        }
+
+        // For vertical alignment, "center" is generally the center
+        // of only the above-baseline contents of the font, so we
+        // use 0.47 instead of 0.5 for VCenter.
+        switch (v)
+        {
+          case Bottom:  anchory = 0.0;  break;
+          case VCenter: anchory = 0.47; break;
+          case Top:     anchory = 1.0;  break;
+        }
     }
     void SetScale(double s)
     {
@@ -107,6 +142,7 @@ class eavlTextAnnotation : public eavlAnnotation
         glBegin(GL_QUADS);
 
         double textwidth = fnt->GetTextWidth(text);
+
         double fx = -anchorx * textwidth, fy = -anchory, fz = 0;
         for (unsigned int i=0; i<text.length(); ++i)
         {
@@ -342,6 +378,36 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
         }
 
         RenderText();
+    }
+};
+
+class eavlViewportAnchoredScreenTextAnnotation : public eavlScreenTextAnnotation
+{
+  protected:
+    double vx, vy; // normalized viewport coords
+    double dx, dy; // aspect-independent window coordinate offset
+  public:
+    eavlViewportAnchoredScreenTextAnnotation(eavlWindow *w, const string &txt,
+                                             eavlColor c, double s,
+                                             double vx, double vy,
+                                             double dx, double dy,
+                                             double angleDeg = 0.)
+        : eavlScreenTextAnnotation(w,txt,c,s,0,0,angleDeg),
+          vx(vx), vy(vy), dx(dx), dy(dy)
+    {
+    }
+    virtual void Render(eavlView &view)
+    {
+        view.SetupForScreenSpace();
+
+        double vl, vr, vb, vt;
+        view.GetRealViewport(vl,vr,vb,vt);
+
+        // SetPosition
+        x = dx/view.windowaspect + (vl+vr)/2. + vx * (vr-vl)/2.;
+        y = dy + (vb+vt)/2. + vy * (vt-vb)/2.;
+
+        eavlScreenTextAnnotation::Render(view);
     }
 };
 

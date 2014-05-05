@@ -88,7 +88,8 @@ class eavlColorLegendAnnotation : public eavlAnnotation
             eavlScreenTextAnnotation *txt = annot[i];
             txt->SetText(labels[i]);
             txt->SetPosition(r + .02, (b+t)/2.);
-            txt->SetAnchor(0.0, 0.5);
+            txt->SetAlignment(eavlTextAnnotation::Left,
+                              eavlTextAnnotation::VCenter);
             txt->Render(view);
         
             b -= .07;

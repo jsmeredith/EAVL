@@ -53,18 +53,11 @@ class eavlWindow
     {
         annotations.clear();
     }
-    inline void AddWindowAnnotation(const std::string &str,
-                             double ox, double oy,
-                             double ah, double av,
-                             double fontscale = 0.05,
-                             double angle = 0.0);
 
-    inline void AddViewportAnnotation(const std::string &str,
-                                      double vx, double vy,
-                                      double dx, double dy,
-                                      double ah, double av,
-                                      double fontscale = 0.05,
-                                      double angle = 0.0);
+    void AddAnnotation(eavlAnnotation *ann)
+    {
+        annotations.push_back(ann);
+    }
 
     /*
     virtual void ResetViewForCurrentExtents() { }
@@ -138,84 +131,6 @@ class eavlWindow
         out.close();
     }
 };
-
-#include "eavlTextAnnotation.h"
-
-
-// Some quick usage examples while this is in progress:
-
-// First, note that window (and I've decided viewport)
-// coordinates are -1 to +1 (l to r, b to t).
-// Text anchors are (currently) 0 to 1 (l to r, b to t).
-
-// Title text: centered at the top of the window
-//window->AddWindowAnnotation("title", 0,1, .5,1, 0.08);
-// So window coordinates are 0,1 (top hcenter)
-// Anchor is .5 1 (top hcenter)
-
-// X axis: centered below the x axis labels
-//window->AddViewportAnnotation("xaxis", 0,-1, 0,-.1, .5,1, 0.05);
-// viewport anchor is 0,-1 (start at hcenter bottom of viewport)
-// then move 0,-.1 (down about two font heights)
-// and anchor at .5,1 (hcenter top) to have the text go down from there
-
-// Y axis: vcentered to the left of the y axis labels
-//window->AddViewportAnnotation("yaxis", -1,0, -.1,0, .5,0, 0.05, 90);
-// viewport anchor is -1,0 (start at left vcenter of viewport)
-// then a WINDOW, ASPECT-INDEPENDENT offset of -.1,0
-//    (which should get it west of much yaxis tick labels)
-//    (this is the only set of coordinates I've found that
-//    kind of needs to have the x value modulated by the window aspect ratio)
-// then anchor the text against its (after rotation) right vcenter edge, BUT
-//   note that the text position values used for an anchor is BEFORE
-//   rotation; so we actually use the bottom hcenter as the anchor (.5 0)
-// and of course use a normal font size (0.05) and 90 degree (ccw) rotation
-
-// two lines in the bottom lower-right of viewport:
-//window->AddViewportAnnotation("line2", 1,-1, 0,0,   1,0, 0.05);
-//window->AddViewportAnnotation("line1", 1,-1, 0,.05, 1,0, 0.05);
-// These both start with a (1,-1) (bottom right) viewport anchor
-// For clarity, we add them from the bottom-up.
-// The first has a 0,0 offset and a lower-right (1,0) anchor.
-// The second has a 0,0.05 (one text height up) offset and the same (1,0) anchor.
-
-inline void eavlWindow::AddWindowAnnotation(const std::string &str,
-                                     double ox, double oy,
-                                     double ah, double av,
-                                     double fontscale,
-                                     double angle)
-{
-    eavlColor fg = bg.RawBrightness() < 0.5 ? eavlColor::white : eavlColor::black;
-    eavlScreenTextAnnotation *t = 
-        new eavlScreenTextAnnotation(this, str, fg,
-                                     fontscale,
-                                     ox, oy, angle);
-    t->SetAnchor(ah, av);
-    annotations.push_back(t);
-}
-
-inline void eavlWindow::AddViewportAnnotation(const std::string &str,
-                                     double vx, double vy,
-                                     double dx, double dy,
-                                     double ah, double av,
-                                     double fontscale,
-                                     double angle)
-{
-    double vl=view.vl, vr=view.vr, vb=view.vb, vt=view.vt;
-    if (view.viewtype == eavlView::EAVL_VIEW_2D)
-        view.GetRealViewport(vl,vr,vb,vt);
-
-    double ox = dx/view.windowaspect + (vl+vr)/2. + vx * (vr-vl)/2.;
-    double oy = dy + (vb+vt)/2. + vy * (vt-vb)/2.;
-
-    eavlColor fg = bg.RawBrightness() < 0.5 ? eavlColor::white : eavlColor::black;
-    eavlScreenTextAnnotation *t = 
-        new eavlScreenTextAnnotation(this, str, fg,
-                                     fontscale,
-                                     ox, oy, angle);
-    t->SetAnchor(ah, av);
-    annotations.push_back(t);
-}
 
 #endif
 

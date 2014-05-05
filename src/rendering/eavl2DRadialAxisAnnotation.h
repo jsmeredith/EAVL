@@ -191,7 +191,7 @@ class eavl2DRadialAxisAnnotation : public eavlAnnotation
             double dxsign = dx<0 ? -1 : +1;
             double dxmag  = fabs(dx);
             double newdx  = dxsign * sqrt(dxmag);
-            labels[i]->SetAnchor(.5 - newdx/2., .5 - dy/2.);
+            labels[i]->SetRawAnchor(.5 - newdx/2., .5 - dy/2.);
         }
 
         // minor ticks
