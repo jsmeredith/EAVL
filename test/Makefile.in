@@ -15,7 +15,7 @@ ifneq (@VTK@, no)
 VTKTESTS=testvtk
 endif
 
-TESTS = testimport testiso testnormal testrecenter testthreshold testbox testmath testdatamodel testxform testbin testdistancefield testgraphlayout testatompipeline $(VTKTESTS)
+TESTS = testimport testiso testnormal testrecenter testthreshold testbox testmath testdatamodel testxform testbin testdistancefield testgraphlayout testatompipeline testserialize $(VTKTESTS)
 OBJ = $(TESTS:=.o)
 LIBDEP=$(TOPDIR)/lib/libeavl.a
 
@@ -74,11 +74,14 @@ testatompipeline: $(LIBDEP) testatompipeline.o
 testvtk: $(LIBDEP) testvtk.o
 	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
 
+testserialize: $(LIBDEP) testserialize.o
+	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
+
 LIBS=-lm -L$(TOPDIR)/lib -leavl
 #LIBS=-lm -lrt -L$(TOPDIR)/lib -leavl
 
 CPPFLAGS+= -I$(TOPDIR)/config -I$(TOPDIR)/src/math/ -I$(TOPDIR)/src/common/ -I$(TOPDIR)/src/functors/ -I$(TOPDIR)/src/filters/ -I$(TOPDIR)/src/importers -I$(TOPDIR)/src/exporters -I$(TOPDIR)/src/executor -I$(TOPDIR)/src/operations -I$(TOPDIR)/src/vtk
-CPPFLAGS+=$(VTK_CPPFLAGS) $(SILO_CPPFLAGS) $(ADIOS_CPPFLAGS) $(NETCDF_CPPFLAGS) $(CUDA_CPPFLAGS)
+CPPFLAGS+=$(VTK_CPPFLAGS) $(SILO_CPPFLAGS) $(ADIOS_CPPFLAGS) $(NETCDF_CPPFLAGS) $(CUDA_CPPFLAGS) -g
 LDFLAGS+=$(VTK_LDFLAGS) $(SILO_LDFLAGS) $(ADIOS_LDFLAGS) $(NETCDF_LDFLAGS) $(HDF5_LDFLAGS) $(CUDA_LDFLAGS)
 LIBS+=$(VTK_LIBS) $(SILO_LIBS) $(ADIOS_LIBS) $(NETCDF_LIBS) $(HDF5_LIBS) $(ZLIB_LIBS) $(CUDA_LIBS)
 

@@ -5,7 +5,7 @@
 template<> const char *eavlFlatArray<int>::GetBasicType() const {return "int";}
 
 template <class T> eavlFlatArray<T> *
-eavlFlatArray<T>::Create(const string &nm)
+eavlFlatArray<T>::CreateObjFromName(const string &nm)
 {
     if (nm == "eavlFlatArray<int>")
 	return new eavlFlatArray<int>();

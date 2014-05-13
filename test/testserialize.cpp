@@ -49,87 +49,12 @@ int main(int argc, char *argv[])
 	cout<<"*******************"<<endl;
 	cout<<"READ BACK THE FILE:"<<endl;
 	cout<<"*******************"<<endl;
-#if 1
+
 	eavlDataSet *d2 = new eavlDataSet;
 	ifstream f2("dump.dat");
 	eavlStream s2(f2);
 	d2->deserialize(s2);
 	d2->PrintSummary(cout);
-#endif
-
-
-
-
-
-#if 0
-	ofstream f1("dump.dat");
-	eavlStream s1(f1);
-	string str;
-	int n;
-	bool b;
-	vector<int> a;
-
-	str = "abc";
-	n = 10;
-	a.push_back(2);
-	a.push_back(3);
-	b = false;
-	s1 <<str<<n<<a<<b;
-	f1.close();
-		
-	ifstream t("dump.dat");
-	eavlStream ss(t);
-
-	ss >> str;
-	ss >> n;
-	ss >> a;
-	ss >> b;
-	cout<<str<<" "<<n<<" "<<a.size()<<" "<<b<<endl;
-#endif
-
-#if 0
-
-	ifstream t("dump.dat");
-	eavlStream ss(t);
-	
-	//data->PrintSummary(cout);
-	cout<<"READ BACK THE FILE:"<<endl;
-	string str;
-	int n, n1, n2, n3;
-	bool b;
-	size_t sz;
-	vector<float> a;
-	ss >> str;
-	ss >> n;
-	ss >> sz;
-	ss >> sz;
-	ss >> str;
-	ss >> n >> n >> n;
-	ss >> str;
-	ss >> str;
-	ss >> n;
-	ss >> n;
-	ss >> b;
-	ss >> a;
-	/*
-	cout<<str<<endl; //eavlDataSet
-	cout<<n<<endl;   //npoints
-	cout<<sz<<endl;  // discreetcoords
-	*/
-	//ss >> str;  cout<<"field: "<<str<<endl;
-	//ss >> n >> n1 >> n2;
-#endif
-
-	/*
-        while (data)
-        {
-            data->PrintSummary(cout);
-            ++meshindex;
-            data = ReadMeshFromFile(argv[1], meshindex);
-            if (data)
-                cout << "\n\n";
-        }
-	*/
     }
     catch (const eavlException &e)
     {

@@ -3,6 +3,7 @@
 #define EAVL_LOGICAL_STRUCTURE_H
 
 #include "STL.h"
+#include "eavlSerialize.h"
 
 // ****************************************************************************
 // Class:  eavlLogicalStructure
@@ -22,8 +23,23 @@ class eavlLogicalStructure
     int logicalDimension;
   public:
     eavlLogicalStructure(int dim) : logicalDimension(dim) { }
+
+    virtual string className() const {return "eavlLogicalStructure";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << logicalDimension;
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	s >> logicalDimension;
+	return s;
+    }
+
     virtual void PrintSummary(ostream &out) = 0;
     int GetDimension() const { return logicalDimension; }
+
+    static eavlLogicalStructure* CreateObjFromName(const string &nm);
 };
 
 

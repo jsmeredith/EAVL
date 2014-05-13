@@ -4,6 +4,7 @@
 
 #include "eavlCellSet.h"
 #include "eavlException.h"
+#include "eavlSerialize.h"
 
 // ****************************************************************************
 // Class:  eavlField
@@ -47,6 +48,7 @@ class eavlField
     eavlArray   *array;
 
   public:
+    eavlField() : order(0), association(ASSOC_WHOLEMESH), assoc_logicaldim(0), array(NULL) {}
     eavlField(int order_,
               eavlArray *a,
               Association assoc,
@@ -84,6 +86,25 @@ class eavlField
     {
         delete array;
     }
+    virtual string className() const {return "eavlField";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << className() << order << association << assoc_logicaldim;
+	s << assoc_cellset_name << assoc_logicaldim;
+	array->serialize(s);
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	string nm;
+	s >> nm >> order >> association >> assoc_logicaldim;
+	s >> assoc_cellset_name >> assoc_logicaldim;
+	s >> nm;
+	array = eavlArray::CreateObjFromName(nm);
+	array->deserialize(s);
+	return s;
+    }
+    
     Association  GetAssociation()    {return association;}
     eavlArray   *GetArray()          {return array;}
     int          GetOrder()          {return order;}
@@ -111,6 +132,7 @@ class eavlField
         array->PrintSummary(out);
         out << endl;
     }
+
     virtual long long GetMemoryUsage()
     {
         long long mem = 0;

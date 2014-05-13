@@ -25,7 +25,7 @@ eavlImporter *
 eavlImporterFactory::GetImporterForFile(const std::string &fn_orig)
 {
     string filename(fn_orig);
-    std::transform(filename.begin(), filename.end(), filename.begin(), tolower);
+    std::transform(filename.begin(), filename.end(), filename.begin(), ::tolower);
 
     eavlImporter *importer = NULL;
 

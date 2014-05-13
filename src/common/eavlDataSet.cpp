@@ -3,13 +3,89 @@
 #include "eavlCellSetAllStructured.h"
 #include "eavlException.h"
 
+
+eavlStream& eavlDataSet::serialize(eavlStream &s) const
+{
+    s<<className();
+    s<<npoints;
+    size_t sz = discreteCoordinates.size();
+    s<<sz;
+    for (int i = 0; i < sz; i++)
+	discreteCoordinates[i].serialize(s);
+    sz = fields.size();
+    s << sz;
+    for (int i = 0; i < fields.size(); i++)
+    	fields[i]->serialize(s);
+    
+    sz = cellsets.size();
+    s << sz;
+    for (int i = 0; i < cellsets.size(); i++)
+	cellsets[i]->serialize(s);
+    sz = coordinateSystems.size();
+    s << sz;
+    for (int i = 0; i < coordinateSystems.size(); i++)
+	coordinateSystems[i]->serialize(s);
+    s << (logicalStructure ? true : false);
+    if (logicalStructure)
+	logicalStructure->serialize(s);
+    
+    return s;
+}
+
+eavlStream& eavlDataSet::deserialize(eavlStream &s)
+{
+    string nm;
+    size_t sz;
+    s >> nm;
+    s >> npoints;
+    s >> sz;
+    discreteCoordinates.resize(sz);
+    for (int i = 0; i < discreteCoordinates.size(); i++)
+	discreteCoordinates[i].deserialize(s);
+    s >> sz;
+    fields.resize(sz);
+    for (int i = 0; i < fields.size(); i++)
+    {
+	fields[i] = new eavlField;
+	fields[i]->deserialize(s);
+    }
+    s >> sz;
+    cellsets.resize(sz);
+    for (int i = 0; i < sz; i++)
+    {
+	s >> nm;
+	cellsets[i] = eavlCellSet::CreateObjFromName(nm);
+	cellsets[i]->deserialize(s);
+    }
+    s >> sz;
+    coordinateSystems.resize(sz);
+    for (int i = 0; i < coordinateSystems.size(); i++)
+    {
+	s >> nm;
+	coordinateSystems[i] = eavlCoordinates::CreateObjFromName(nm);
+	coordinateSystems[i]->deserialize(s);
+    }
+
+    bool p;
+    s >> p;
+    if (p)
+    {
+	s >> nm;
+	logicalStructure = eavlLogicalStructure::CreateObjFromName(nm);
+	logicalStructure->deserialize(s);
+    }
+	
+    
+    return s;
+}
+
 // ****************************************************************************
 // Function:  AddRectilinearMesh
 //
 // Purpose:
 ///  Add a rectilinear mesh, and optional cellsets to a data set.
 //
-// Programmer:  Dave Pugmire
+// Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern
 // Creation:    July 22, 2011
 //
 // Modifications:
@@ -124,7 +200,7 @@ AddRectilinearMesh(eavlDataSet *data,
 ///  Add a curvilinear mesh, and optional cellsets to a data set.
 ///  This version uses a single 3-component array for the coordinates.
 //
-// Programmer:  Dave Pugmire
+// Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern
 // Creation:    July 22, 2011
 //
 // Modifications:

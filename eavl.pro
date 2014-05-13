@@ -26,9 +26,13 @@ SOURCES += \
     src/common/eavlAtomicProperties.cpp \
     src/common/eavlCUDA.cpp \
     src/common/eavlCellComponents.cpp \
+    src/common/eavlCellSet.cpp \
     src/common/eavlCellSetExplicit.cpp \
+    src/common/eavlCoordinates.cpp \
     src/common/eavlDataSet.cpp \
     src/common/eavlExecutor.cpp \
+    src/common/eavlFlatArray.cpp \
+    src/common/eavlLogicalStructure.cpp \
     src/common/eavlNewIsoTables.cpp \
     src/common/eavlOperation.cpp \
     src/common/eavlTimer.cpp \

@@ -13,6 +13,12 @@ class eavlCoordinateAxis
     virtual ~eavlCoordinateAxis()
     {
     };
+    
+    virtual string className() const = 0;
+    virtual eavlStream& serialize(eavlStream &s) const = 0;
+    virtual eavlStream& deserialize(eavlStream &s) = 0;
+    static eavlCoordinateAxis* CreateObjFromName(const string &nm);
+
     virtual double GetValue(int pointIndex,
                             vector<int> &indexDivs,
                             vector<int> &indexMods,
@@ -35,11 +41,26 @@ class eavlCoordinateAxisField : public eavlCoordinateAxis
     /// cached, and for cache verification
     eavlField *fieldPointer;
   public:
+    eavlCoordinateAxisField() : fieldName(""), component(0), fieldIndex(-1), fieldPointer(NULL) {}
     eavlCoordinateAxisField(const string &fn, int comp=0) :
         fieldName(fn), component(comp), fieldIndex(-1), fieldPointer(NULL) { }
     virtual ~eavlCoordinateAxisField()
     {
     }
+    
+    virtual string className() const {return "eavlCoordinateAxisField";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << className();
+	s << fieldName << component << fieldIndex;
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	s >> fieldName >> component >> fieldIndex;
+	return s;
+    }
+
     virtual void PrintSummary(ostream &out)
     {
         out << "          eavlCoordinateAxisField='"<<fieldName<<"',component #"<<component<<endl;
@@ -112,6 +133,7 @@ class eavlCoordinateAxisRegular : public eavlCoordinateAxis
   public:
     ///\todo: obviously it's useless to pass field data down
     /// for a regular array
+    eavlCoordinateAxisRegular() : logicaldim(-1), origin(0.0), delta(0.0) {}
     eavlCoordinateAxisRegular(int logicaldim_, double origin_, double delta_)
         : logicaldim(logicaldim_), origin(origin_), delta(delta_)
     {
@@ -119,6 +141,20 @@ class eavlCoordinateAxisRegular : public eavlCoordinateAxis
     virtual ~eavlCoordinateAxisRegular()
     {
     }
+    
+    virtual string className() const {return "eavlCoordinateAxisRegular";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << className();
+	s << logicaldim << origin << delta;
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	s >> logicaldim >> origin >> delta;
+	return s;
+    }
+
     virtual void PrintSummary(ostream &out)
     {
         out << "          eavlCoordinateAxisRegular origin='"<<origin<<"' delta="<<delta<<endl;
@@ -157,6 +193,7 @@ class eavlCoordinates
     vector<int>                 indexMods; /// note: of length nLogDims, not nSpatDims
     vector<int>                 indexDivs; /// note: of length nLogDims, not nSpatDims
   public:
+    eavlCoordinates() {}
     eavlCoordinates(int ndims, eavlLogicalStructure *log) : axes(ndims)
     {
         axes.resize(ndims, NULL);
@@ -178,6 +215,35 @@ class eavlCoordinates
         for (unsigned int i=0; i<axes.size(); ++i)
             delete axes[i];
     }
+    
+    virtual string className() const {return "eavlCoordinates";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	size_t sz = axes.size();
+	s << sz;
+	for (int i = 0; i < sz; i++)
+	    axes[i]->serialize(s);
+	s << indexMods << indexDivs;
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	size_t sz;
+	s >> sz;
+	axes.resize(sz);
+	
+	string nm;
+	for (int i = 0; i < sz; i++)
+	{
+	    s >> nm;
+	    axes[i] = eavlCoordinateAxis::CreateObjFromName(nm);
+	    axes[i]->deserialize(s);
+	}
+	s >> indexMods >> indexDivs;
+	return s;
+    }
+    static eavlCoordinates* CreateObjFromName(const string &nm);
+
     void SetAxis(int i, eavlCoordinateAxis *a)
     {
         if (axes[i])
@@ -247,6 +313,7 @@ class eavlCoordinatesCartesian : public eavlCoordinates
     vector<CartesianAxisType> axisTypes;
     int axisMap[3];
   public:
+    eavlCoordinatesCartesian() : eavlCoordinates() {axisMap[0]=axisMap[1]=axisMap[2]=-1;}
     eavlCoordinatesCartesian(eavlLogicalStructure *log,
                              CartesianAxisType first)
         : eavlCoordinates(1, log)
@@ -283,6 +350,22 @@ class eavlCoordinatesCartesian : public eavlCoordinates
     virtual ~eavlCoordinatesCartesian()
     {
     }
+
+    virtual string className() const {return "eavlCoordinatesCartesian";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << className();
+	eavlCoordinates::serialize(s);
+	s << axisTypes << axisMap[0] << axisMap[1] << axisMap[2];
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	eavlCoordinates::deserialize(s);
+	s >> axisTypes >> axisMap[0] >> axisMap[1] >> axisMap[2];
+	return s;
+    }
+
     virtual double GetCartesianPoint(int i, int c,
                                      eavlLogicalStructure *,
                                      vector<eavlField*>&fd)
@@ -315,6 +398,7 @@ class eavlCoordinatesCartesianWithTransform : public eavlCoordinatesCartesian
   protected:
     eavlMatrix4x4 transform;
   public:
+    eavlCoordinatesCartesianWithTransform() {}
     eavlCoordinatesCartesianWithTransform(eavlLogicalStructure *log,
                              CartesianAxisType first)
         : eavlCoordinatesCartesian(log, first), transform()
@@ -337,6 +421,21 @@ class eavlCoordinatesCartesianWithTransform : public eavlCoordinatesCartesian
     }
     virtual ~eavlCoordinatesCartesianWithTransform()
     {
+    }
+
+    virtual string className() const {return "eavlCoordinatesCartesianWithTransform";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << className();
+	eavlCoordinatesCartesian::serialize(s);
+	s.write((const char *)transform.m, sizeof(float)*4*4);
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	eavlCoordinatesCartesian::deserialize(s);
+	s.read((char *)transform.m, sizeof(float)*4*4);
+	return s;
     }
 
     void SetTransform(const eavlMatrix4x4 &m) { transform = m; }

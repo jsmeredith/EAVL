@@ -25,6 +25,20 @@ class eavlCellSetAllQuadTree : public eavlCellSet
         : eavlCellSet(n, 2), log(l)
     {
     }
+    virtual string className() const {return "eavlCellSetAllQuadTree";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << className();
+	eavlCellSet::serialize(s);
+	log->serialize(s);
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	eavlCellSet::deserialize(s);
+	log->deserialize(s);
+	return s;
+    }
     virtual int GetNumCells()
     {
         return log->root.GetNumCells(true);

@@ -39,6 +39,23 @@ class eavlCellSetAllEdgesOfExplicit : public eavlCellSet
         if (parent->GetNumCells() <= 0)
             THROW(eavlException,"parent had no cells in eavlCellSetExplicit constructor");
     }
+
+    virtual string className() const {return "eavlCellSetAllEdgesOfExplicit";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	throw; //Need to figure out the parent serialization stuff...
+	s << className();
+	eavlCellSet::serialize(s);
+	parent->serialize(s);
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	throw; //Need to figure out the parent serialization stuff...
+	eavlCellSet::deserialize(s);
+	return s;
+    }
+
     virtual int GetNumCells()
     {
         return parent->GetNumEdges();

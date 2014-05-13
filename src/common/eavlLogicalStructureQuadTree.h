@@ -3,6 +3,8 @@
 #define EAVL_LOGICAL_STRUCTURE_QUADTREE_H
 
 #include "eavlException.h"
+#include "eavlCoordinates.h"
+#include "eavlSerialize.h"
 
 class eavlLogicalStructureQuadTree : public eavlLogicalStructure
 {
@@ -15,11 +17,34 @@ class eavlLogicalStructureQuadTree : public eavlLogicalStructure
         std::vector<QuadTreeCell> children;
 #define K 3
         float coeffs[K][K];
-        void Print(std::ostream&,int=0);
-        bool  HasValue(float x, float y);
-        float GetValue(float x, float y);
-        int GetNumCells(bool leafOnly);
-        QuadTreeCell *GetNthCell(int i);
+        inline void Print(std::ostream&,int=0);
+        inline bool  HasValue(float x, float y);
+        inline float GetValue(float x, float y);
+        inline int GetNumCells(bool leafOnly);
+        inline QuadTreeCell *GetNthCell(int i);
+
+	virtual eavlStream& serialize(eavlStream &s) const
+	{
+	    s << lvl << x << y << xmin << ymin << ymax;
+	    s.write((const char *)coeffs, K*K*sizeof(float));
+	    size_t sz = children.size();
+	    s << sz;
+	    for (int i = 0; i < children.size(); i++)
+		children[i].serialize(s);
+	    return s;
+	    
+	}
+	virtual eavlStream& deserialize(eavlStream &s)
+	{
+	    s >> lvl >> x >> y >> xmin >> ymin >> ymax;
+	    s.read((char *)coeffs, K*K*sizeof(float));
+	    size_t sz;
+	    s >> sz;
+	    children.resize(sz);
+	    for (int i = 0; i < children.size(); i++)
+		children[i].deserialize(s);
+	    return s;
+	}
     };
     QuadTreeCell root;
     vector<QuadTreeCell*> celllist;
@@ -34,6 +59,23 @@ class eavlLogicalStructureQuadTree : public eavlLogicalStructure
     }
 
     eavlLogicalStructureQuadTree() : eavlLogicalStructure(1) { }
+    virtual string className() const {return "eavlLogicalStructureQuadTree";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	eavlLogicalStructure::serialize(s);
+	s << className();
+	root.serialize(s);
+	s << celllist.size();
+	for (int i = 0; i < celllist.size(); i++)
+	    celllist[i]->serialize(s);
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	cout<<"FIX_THIS: "<<__FILE__<<" "<<__LINE__<<endl;
+	return s;
+    }
+
     virtual void PrintSummary(ostream &out)
     {
         out << "   eavlLogicalStructureQuadTree:"<<endl;
@@ -115,7 +157,7 @@ eavlLogicalStructureQuadTree::QuadTreeCell::GetNthCell(int i)
 }
 */
 
-eavlLogicalStructureQuadTree::QuadTreeCell*
+inline eavlLogicalStructureQuadTree::QuadTreeCell*
 eavlLogicalStructureQuadTree::QuadTreeCell::GetNthCell(int i)
 {
     //cerr << "  i="<<i<<endl;
@@ -139,7 +181,7 @@ eavlLogicalStructureQuadTree::QuadTreeCell::GetNthCell(int i)
     THROW(eavlException,"not enough cells in the mesh!");
 }
 
-void
+inline void
 eavlLogicalStructureQuadTree::QuadTreeCell::Print(std::ostream &out,int lvl)
 {
     out << string(lvl*3,' ');
@@ -165,7 +207,7 @@ eavlLogicalStructureQuadTree::QuadTreeCell::Print(std::ostream &out,int lvl)
     }
 }
 
-bool
+inline bool
 eavlLogicalStructureQuadTree::QuadTreeCell::HasValue(float x, float y)
 {
     bool val = (x>=xmin &&
@@ -176,7 +218,7 @@ eavlLogicalStructureQuadTree::QuadTreeCell::HasValue(float x, float y)
     return val;
 }
  
-float Legendre(int i, float x)
+inline float Legendre(int i, float x)
 {
     float scale = sqrt(2.0f * i + 1);
     switch (i)
@@ -188,7 +230,7 @@ float Legendre(int i, float x)
     return -99999999;
 }
 
-int
+inline int
 eavlLogicalStructureQuadTree::QuadTreeCell::GetNumCells(bool leafOnly)
 {
     int subTree = 0;
@@ -199,7 +241,7 @@ eavlLogicalStructureQuadTree::QuadTreeCell::GetNumCells(bool leafOnly)
     return subTree;
 }
 
-float
+inline float
 eavlLogicalStructureQuadTree::QuadTreeCell::GetValue(float X, float Y)
 {
     if (children.size() > 0)

@@ -15,13 +15,17 @@ ARCHIVE=../lib/libeavl.a
 
 OBJ=\
  common/eavlArray.o \
+ common/eavlFlatArray.o \
  common/eavlAtomicProperties.o \
  common/eavlCUDA.o \
+ common/eavlCellSet.o \
  common/eavlCellComponents.o \
  common/eavlCellSetExplicit.o \
+ common/eavlCoordinates.o \
  common/eavlCompositor.o \
  common/eavlDataSet.o \
  common/eavlExecutor.o \
+ common/eavlLogicalStructure.o \
  common/eavlNewIsoTables.o \
  common/eavlOperation.o \
  common/eavlTimer.o \

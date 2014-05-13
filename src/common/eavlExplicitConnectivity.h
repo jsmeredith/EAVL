@@ -52,6 +52,22 @@ struct eavlExplicitConnectivity
           mapCellToIndex(e.mapCellToIndex)
     {
     }
+    virtual string className() const {return "eavlExplicitConnectivity";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	shapetype.serialize(s);
+	connectivity.serialize(s);
+	mapCellToIndex.serialize(s);
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	shapetype.deserialize(s);
+	connectivity.deserialize(s);
+	mapCellToIndex.deserialize(s);
+	return s;
+    }
+    
     /*
     eavlExplicitConnectivity_device GetDeviceVersion()
     {
@@ -135,7 +151,7 @@ struct eavlExplicitConnectivity
 
         mapCellToIndex.clear();
     }
-    EAVL_HOSTONLY void PrintSummary(ostream &out)
+    EAVL_HOSTONLY void PrintSummary(ostream &out) const
     {
         out << "        shapetype["<<shapetype.size()<<"] = ";
         PrintVectorSummary(out, shapetype);

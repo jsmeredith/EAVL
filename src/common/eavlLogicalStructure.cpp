@@ -5,7 +5,7 @@
 #include "eavlLogicalStructureQuadTree.h"
 
 eavlLogicalStructure *
-eavlLogicalStructure::Create(const string &nm)
+eavlLogicalStructure::CreateObjFromName(const string &nm)
 {
     if (nm == "eavlLogicalStructureRegular")
 	return new eavlLogicalStructureRegular();

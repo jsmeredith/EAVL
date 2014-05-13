@@ -10,6 +10,7 @@
 #include "eavlPoint3.h"
 #include "eavlException.h"
 #include "eavlIndexable.h"
+#include "eavlSerialize.h"
 
 // ****************************************************************************
 // Class:  eavlDataSet
@@ -49,6 +50,10 @@ class eavlDataSet
     {
         Clear();
     }
+    virtual string className() const {return "eavlDataSet";}
+    virtual eavlStream& serialize(eavlStream &s) const;
+    virtual eavlStream& deserialize(eavlStream &s);
+
     eavlIndexable<eavlArray> GetIndexableAxis(int i, eavlCoordinates *coordsys = NULL)
     {
         if (!coordsys)
@@ -326,7 +331,6 @@ class eavlDataSet
         }
     }
 };
-
 
 //API
 

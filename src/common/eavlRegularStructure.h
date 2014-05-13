@@ -5,6 +5,7 @@
 #include "eavlCell.h"
 #include "eavlTopology.h"
 #include "eavlUtility.h"
+#include "eavlSerialize.h"
 
 // ****************************************************************************
 // Class:  eavlRegularStructure
@@ -27,6 +28,22 @@ struct eavlRegularStructure
     int cellDims[MAXDIM];
     int nodeDims[MAXDIM];
 #undef MAXDIM
+
+    virtual string className() const {return "eavlRegularStructure";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << dimension;
+	s << cellDims[0] << cellDims[1] << cellDims[2] << cellDims[3];
+	s << nodeDims[0] << nodeDims[1] << nodeDims[2] << nodeDims[3];
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	s >> dimension;
+	s >> cellDims[0] >> cellDims[1] >> cellDims[2] >> cellDims[3];
+	s >> nodeDims[0] >> nodeDims[1] >> nodeDims[2] >> nodeDims[3];
+	return s;
+    }
 
     EAVL_HOSTONLY void SetCellDimension(int dim, int *dims)
     {
@@ -602,6 +619,20 @@ struct eavlRegularConnectivity
     eavlRegularConnectivity(const eavlRegularConnectivity &rc)
         : structure(rc.structure), connType(rc.connType)
     {
+    }
+    
+    virtual string className() const {return "eavlRegularConnectivity";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << className();
+	structure.serialize(s);
+	s << connType;
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	cout<<"FIX_THIS: "<<__FILE__<<" "<<__LINE__<<endl;
+	return s;
     }
     EAVL_HOSTDEVICE int GetShapeType(int) const
     {

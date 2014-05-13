@@ -46,12 +46,16 @@ class eavlCellSetExplicit : public eavlCellSet
     void BuildFaceConnectivity();
     void BuildNodeCellConnectivity();
   public:
+    eavlCellSetExplicit() : eavlCellSet("", 0) {}
     eavlCellSetExplicit(const string &n, int d)
         : eavlCellSet(n,d),
           numEdges(-1),
           numFaces(-1)
     {
     }
+    virtual string className() const {return "eavlCellSetExplicit";}
+    virtual eavlStream& serialize(eavlStream &s) const;
+    virtual eavlStream& deserialize(eavlStream &s);
     virtual int GetNumCells() { return cellNodeConnectivity.shapetype.size(); }
     virtual int GetNumEdges() { BuildEdgeConnectivity(); return numEdges; }
     virtual int GetNumFaces() { BuildFaceConnectivity(); return numFaces; }
@@ -161,5 +165,32 @@ class eavlCellSetExplicit : public eavlCellSet
         return mem + eavlCellSet::GetMemoryUsage();
     }
 };
+
+inline eavlStream& eavlCellSetExplicit::serialize(eavlStream &s) const
+{
+    s << className();
+    eavlCellSet::serialize(s);
+    s << numEdges<<numFaces;
+    cellNodeConnectivity.serialize(s);
+    nodeCellConnectivity.serialize(s);
+    cellEdgeConnectivity.serialize(s);
+    edgeNodeConnectivity.serialize(s);
+    cellFaceConnectivity.serialize(s);
+    faceNodeConnectivity.serialize(s);
+    return s;
+}
+
+inline eavlStream& eavlCellSetExplicit::deserialize(eavlStream &s)
+{
+    eavlCellSet::deserialize(s);
+    s >> numEdges >> numFaces;
+    cellNodeConnectivity.deserialize(s);
+    nodeCellConnectivity.deserialize(s);
+    cellEdgeConnectivity.deserialize(s);
+    edgeNodeConnectivity.deserialize(s);
+    cellFaceConnectivity.deserialize(s);
+    faceNodeConnectivity.deserialize(s);
+    return s;
+}
 
 #endif

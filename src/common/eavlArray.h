@@ -6,6 +6,7 @@
 #include "eavl.h"
 #include "eavlException.h"
 #include "eavlCUDA.h"
+#include "eavlSerialize.h"
 
 #ifdef HAVE_CUDA
 #include <cuda.h>
@@ -47,7 +48,19 @@ class eavlArray
         SetNumberOfComponents(nc);
     }
     virtual ~eavlArray() { }
-    const string &GetName()
+    virtual string className() const {return "eavlArray";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << name << ncomponents;
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	s >> name >> ncomponents;
+	return s;
+    }
+
+    const string &GetName() const
     {
         return name;
     }
@@ -56,7 +69,7 @@ class eavlArray
         name = n;
     }
     virtual eavlArray *Create(const string &n, int nc = 1, int nt = 0) = 0;
-    virtual const char *GetBasicType() = 0;
+    virtual const char *GetBasicType() const = 0;
     virtual void   SetNumberOfTuples(int) = 0;
     virtual int    GetNumberOfTuples() const = 0;
     virtual double GetComponentAsDouble(
@@ -88,10 +101,7 @@ class eavlArray
     {
         return sizeof(string) + name.size()*sizeof(char) + sizeof(int);
     }
-    int GetNumberOfComponents()
-    {
-        return ncomponents;
-    }
+    int GetNumberOfComponents() const {return ncomponents;}
     double GetTupleMin(int index)
     {
         double mymin = +DBL_MAX;
@@ -206,13 +216,13 @@ class eavlArray
         }
         out << endl;
     }
+    static eavlArray * CreateObjFromName(const string &nm);
   private:
     void SetNumberOfComponents(int nc)
     {
         ncomponents = nc;
     }
 };
-
 
 // ****************************************************************************
 // Class:  eavlConcreteArray
@@ -392,7 +402,24 @@ class eavlConcreteArray : public eavlArray
     {
         return new eavlConcreteArray<T>(n, nc, nt);
     }
-    virtual const char *GetBasicType();
+    
+    virtual string className() const {return string("eavlConcreteArray<")+GetBasicType()+">";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << className();
+	eavlArray::serialize(s);
+	s << provided_ntuples << host_provided;
+	s << host_values_self;
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	eavlArray::deserialize(s);
+	s >> provided_ntuples >> host_provided;
+	s >> host_values_self;
+	return s;
+    }
+    virtual const char *GetBasicType() const;
     virtual void *GetHostArray() ///\todo: we might like to make this return const
     {
         NeedToUseOnHost();

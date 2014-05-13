@@ -2,6 +2,8 @@
 #ifndef EAVL_COORDINATE_VALUE_H
 #define EAVL_COORDINATE_VALUE_H
 
+#include "eavlSerialize.h"
+
 // ****************************************************************************
 // Class:  eavlCoordinateValue
 //
@@ -21,9 +23,22 @@ class eavlCoordinateValue
     {
         value      = inValue;
     }
-
+    virtual string className() const {return "eavlCoordinateValue";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s<<className()<<value;
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	string nm;
+	s >> nm;
+	s >> value;
+	return s;
+    }
+    
     void   SetValue(double inValue)        { value = inValue;   }
-    double GetValue()                      { return value;      }
+    double GetValue() const                { return value;      }
     
     virtual long long GetMemoryUsage()
     {

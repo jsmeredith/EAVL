@@ -37,6 +37,26 @@ class eavlCellSetSubset : public eavlCellSet
           parent(p)
     {
     }
+
+    virtual string className() const {return "eavlCellSetSubset";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << className();
+	eavlCellSet::serialize(s);
+	parent->serialize(s);
+	s << subset;
+	throw; //fix the parent serialization.
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	eavlCellSet::deserialize(s);
+	parent->deserialize(s);
+	s >> subset;
+	throw; //fix the parent deserialization.
+	return s;
+    }
+
     virtual void PrintSummary(ostream &out)
     {
         out << "    eavlCellSetSubset:\n";

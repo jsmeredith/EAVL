@@ -6,6 +6,7 @@
 #include "eavl.h"
 #include "eavlException.h"
 #include "eavlCUDA.h"
+#include "eavlSerialize.h"
 
 #ifdef HAVE_CUDA
 #include <cuda.h>
@@ -116,6 +117,27 @@ class eavlFlatArray
             device = NULL;
 #endif
         }
+    }
+    
+    virtual const char *GetBasicType() const;
+    virtual string className() const {return string("eavlFlatArray<")+GetBasicType() +">";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << className() << state << length;
+	s.write((const char *)host, sizeof(T)*length);
+	s << copied;
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	string nm;
+	s >> nm;
+	s >> state >> length;
+	if (host) delete [] host;
+	host = new T[length];
+	s.read((char *)host, sizeof(T)*length);
+	s >> copied;
+	return s;
     }
     EAVL_HOSTONLY void clear()
     {
@@ -260,7 +282,8 @@ class eavlFlatArray
     }
 #endif
 
-};
+    static eavlFlatArray<T> * CreateObjFromName(const string &nm);
 
+};
 
 #endif

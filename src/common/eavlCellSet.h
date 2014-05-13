@@ -30,6 +30,9 @@ class eavlCellSet
     int                 dataset_numpoints; ///< the number of points in the container data set
   public:
     eavlCellSet(const string &n, int d) : name(n), dimensionality(d), dataset_numpoints(0) { }
+    virtual string className() const {return "eavlCellSet";}
+    virtual eavlStream& serialize(eavlStream &s) const;
+    virtual eavlStream& deserialize(eavlStream &s);
     virtual string GetName() { return name; }
     virtual int GetDimensionality() { return dimensionality; }
     virtual int GetNumCells() = 0;
@@ -91,8 +94,22 @@ class eavlCellSet
     {
         dataset_numpoints = n;
     }
+
+    static eavlCellSet * CreateObjFromName(const string &nm);
 };
 
 
-#endif
+inline eavlStream& eavlCellSet::serialize(eavlStream &s) const
+{
+    s << name << dimensionality << dataset_numpoints;
+    return s;
+}
 
+inline eavlStream& eavlCellSet::deserialize(eavlStream &s)
+{
+    s >> name >> dimensionality >> dataset_numpoints;
+    return s;
+}
+
+
+#endif

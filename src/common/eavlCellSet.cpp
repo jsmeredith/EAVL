@@ -5,14 +5,10 @@
 #include "eavlCellSetExplicit.h"
 
 eavlCellSet *
-eavlCellSet::Create(const string &nm)
+eavlCellSet::CreateObjFromName(const string &nm)
 {
     if (nm == "eavlCellSetAllStructured")
-    {
 	return new eavlCellSetAllStructured();
-	//	eavlRegularStructure r;
-	//	return new eavlCellSetAllStructured("", r);
-    }
     else if (nm == "eavlCellSetExplicit")
 	return new eavlCellSetExplicit();
     else

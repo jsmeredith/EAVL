@@ -2,6 +2,7 @@
 #ifndef EAVL_CELL_SET_ALL_STRUCTURED_H
 #define EAVL_CELL_SET_ALL_STRUCTURED_H
 
+#include "eavlCellSet.h"
 #include "eavlRegularStructure.h"
 
 // ****************************************************************************
@@ -24,8 +25,25 @@ class eavlCellSetAllStructured : public eavlCellSet
   protected:
     eavlRegularStructure regularStructure;
   public:
+    eavlCellSetAllStructured() : eavlCellSet("", 0) {}
     eavlCellSetAllStructured(const string &n, eavlRegularStructure r)
         : eavlCellSet(n, r.dimension), regularStructure(r) { }
+    
+    virtual string className() const {return "eavlCellSetAllStructured";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << className();
+	eavlCellSet::serialize(s);
+	regularStructure.serialize(s);
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	eavlCellSet::deserialize(s);
+	regularStructure.deserialize(s);
+	return s;
+    }
+
     eavlRegularStructure &GetRegularStructure() { return regularStructure; }
     virtual void PrintSummary(ostream &out)
     {

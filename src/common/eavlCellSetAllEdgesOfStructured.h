@@ -25,7 +25,23 @@ class eavlCellSetAllEdgesOfStructured : public eavlCellSet
           regularStructure(p->GetRegularStructure())
     {
     }
-    virtual void PrintSummary(ostream &out)
+    
+    virtual string className() const {return "eavlCellSetAllEdgesOfStructured";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << className();
+	eavlCellSet::serialize(s);
+	regularStructure.serialize(s);
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	eavlCellSet::deserialize(s);
+	regularStructure.deserialize(s);
+	return s;
+    }
+
+    virtual void PrintSummary(ostream &out) const
     {
         out << "    eavlCellSetAllEdgesOfStructured:\n";
         out << "        name = "<<name<<endl;
@@ -36,7 +52,7 @@ class eavlCellSetAllEdgesOfStructured : public eavlCellSet
         PrintVectorSummary(out, regularStructure.cellDims, dimensionality);
         out << endl;
     }
-    virtual int GetNumCells()
+    virtual int GetNumCells() const
     {
         return regularStructure.GetNumEdges();
     }

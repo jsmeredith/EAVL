@@ -18,7 +18,21 @@ class eavlCellSetAllPoints : public eavlCellSet
 {
   public:
     eavlCellSetAllPoints(const string &n) : eavlCellSet(n, 0) { }
-    virtual void PrintSummary(ostream &out)
+    
+    virtual string className() const {return "eavlCellSetAllPoints";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << className();
+	eavlCellSet::serialize(s);
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	eavlCellSet::deserialize(s);
+	return s;
+    }
+    
+    virtual void PrintSummary(ostream &out) const
     {
         out << "    eavlCellSetAllPoints:\n";
         out << "        name = "<<name<<endl;

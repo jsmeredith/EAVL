@@ -42,6 +42,23 @@ class eavlCellSetAllFacesOfExplicit : public eavlCellSet
         if (parent->GetNumCells() <= 0)
             throw;
     }
+    virtual string className() const {return "eavlCellSetAllFacesOfExplicit";}
+    virtual eavlStream& serialize(eavlStream &s) const
+    {
+	s << className();
+	eavlCellSet::serialize(s);
+	parent->serialize(s);
+	throw; //Need to figure out the parent serialization.
+	return s;
+    }
+    virtual eavlStream& deserialize(eavlStream &s)
+    {
+	eavlCellSet::deserialize(s);
+	parent->deserialize(s);
+	throw; //Need to figure out the parent serialization.
+	return s;
+    }
+
     virtual int GetNumCells()
     {
         return parent->GetNumFaces();

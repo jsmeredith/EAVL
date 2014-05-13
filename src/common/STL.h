@@ -36,6 +36,7 @@ using std::filebuf;
 
 ///\todo: This file is lazy.  Get rid of this entire STL.h file.
 
+/*
 template<class T>
 inline ostream& operator<<(ostream& out,
                            const vector<T> &v)
@@ -54,6 +55,7 @@ inline ostream& operator<<(ostream& out,
     out<<"]";
     return out;
 }
+*/
 
 
 #endif

@@ -1,7 +1,7 @@
 #include "eavlCoordinates.h"
 
 eavlCoordinateAxis*
-eavlCoordinateAxis::Create(const string &nm)
+eavlCoordinateAxis::CreateObjFromName(const string &nm)
 {
     if (nm == "eavlCoordinateAxisField")
 	return new eavlCoordinateAxisField();
@@ -10,7 +10,7 @@ eavlCoordinateAxis::Create(const string &nm)
 }
 
 eavlCoordinates*
-eavlCoordinates::Create(const string &nm)
+eavlCoordinates::CreateObjFromName(const string &nm)
 {
     if (nm == "eavlCoordinatesCartesian")
 	return new eavlCoordinatesCartesian();
