@@ -60,7 +60,8 @@ class eavl2DWindow : public eavlWindow
         haxis->SetRangeForAutoTicks(view.view2d.l, view.view2d.r);
         haxis->SetMajorTickSize(0, .05, 1.0);
         haxis->SetMinorTickSize(0, .02, 1.0);
-        haxis->SetLabelAnchor(0.5, 1.0);
+        haxis->SetLabelAlignment(eavlTextAnnotation::HCenter,
+                                 eavlTextAnnotation::Top);
         haxis->Render(view);
 
         vaxis->SetColor(eavlColor::white);
@@ -68,7 +69,8 @@ class eavl2DWindow : public eavlWindow
         vaxis->SetRangeForAutoTicks(view.view2d.b, view.view2d.t);
         vaxis->SetMajorTickSize(.05 / view.windowaspect, 0, 1.0);
         vaxis->SetMinorTickSize(.02 / view.windowaspect, 0, 1.0);
-        vaxis->SetLabelAnchor(1.0, 0.47);
+        vaxis->SetLabelAlignment(eavlTextAnnotation::Right,
+                                 eavlTextAnnotation::VCenter);
         vaxis->Render(view);
 
         if (scene->plots.size() > 0)

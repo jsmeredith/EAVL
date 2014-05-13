@@ -64,7 +64,8 @@ class eavlPolarWindow : public eavlWindow
         raxis->SetRangeForAutoTicks(0, radius);
         raxis->SetMajorTickSize(0, radius*.05, 1.0);
         raxis->SetMinorTickSize(0, radius*.02, 1.0);
-        raxis->SetLabelAnchor(0.5, 1.0);
+        raxis->SetLabelAlignment(eavlTextAnnotation::HCenter,
+                                 eavlTextAnnotation::Top);
         raxis->Render(view);
 
         aaxis->SetColor(eavlColor::white);

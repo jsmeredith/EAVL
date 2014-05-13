@@ -7,8 +7,10 @@
 #include "eavlColor.h"
 #include "eavlTexture.h"
 #include "eavlRenderSurface.h"
+#include "eavlAnnotation.h"
 
 class eavlScene;
+
 // ****************************************************************************
 // Class:  eavlWindow
 //
@@ -27,6 +29,8 @@ class eavlWindow
     eavlScene *scene;
     std::map<std::string,eavlTexture*> textures;
 
+    std::vector<eavlAnnotation*> annotations;
+
   public: /// todo: hack, should not be public
     eavlRenderSurface *surface;
     eavlView view;
@@ -43,6 +47,16 @@ class eavlWindow
              i != textures.end() ; ++i)
             delete i->second;
         textures.clear();
+    }
+
+    void ClearAnnotations()
+    {
+        annotations.clear();
+    }
+
+    void AddAnnotation(eavlAnnotation *ann)
+    {
+        annotations.push_back(ann);
     }
 
     /*
@@ -74,6 +88,9 @@ class eavlWindow
 
         // render the plots and annotations
         Render();
+
+        for (unsigned int i=0; i<annotations.size(); ++i)
+            annotations[i]->Render(view);
 
         glFinish();
 

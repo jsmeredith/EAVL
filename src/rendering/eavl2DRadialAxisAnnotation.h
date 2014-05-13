@@ -174,6 +174,9 @@ class eavl2DRadialAxisAnnotation : public eavlAnnotation
                 labels[i]->SetText("0");
             labels[i]->SetPosition(xe,ye, 0);
             /*
+              // NOTE: THIS COMMENTED-OUT CODE IS OLD
+              // AND USED A [0,1] ANCHOR RANGE INSTEAD
+              // OF THE NEW [-1,1] ANCHOR RANGE.
             double anchorx = .5;
             double anchory = .5;
             if (p < 60 || p > 300)
@@ -191,7 +194,7 @@ class eavl2DRadialAxisAnnotation : public eavlAnnotation
             double dxsign = dx<0 ? -1 : +1;
             double dxmag  = fabs(dx);
             double newdx  = dxsign * sqrt(dxmag);
-            labels[i]->SetAnchor(.5 - newdx/2., .5 - dy/2.);
+            labels[i]->SetRawAnchor(-newdx, -dy);
         }
 
         // minor ticks

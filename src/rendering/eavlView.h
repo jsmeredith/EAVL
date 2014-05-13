@@ -67,6 +67,7 @@ struct eavlView
         windowaspect = w / h;
 
         double l=vl, r=vr, b=vb, t=vt;
+        ///\todo: urgent: this is wrong!  should be l,r,b,t!!!
         if (viewtype == EAVL_VIEW_2D)
             GetRealViewport(l,r,t,b);
 

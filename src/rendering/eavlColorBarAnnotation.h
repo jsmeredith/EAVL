@@ -74,7 +74,7 @@ class eavlColorBarAnnotation : public eavlAnnotation
         glBegin(GL_QUADS);
 
         float l = -0.88, r = +0.88;
-        float b = +0.90, t = +0.95;
+        float b = +0.87, t = +0.92;
 
         glTexCoord1f(0);
         glVertex3f(l, b, .99);
@@ -92,7 +92,8 @@ class eavlColorBarAnnotation : public eavlAnnotation
         axis->SetScreenPosition(l,b, r,b);
         axis->SetMajorTickSize(0, .02, 1.0);
         axis->SetMinorTickSize(0,0,0); // no minor ticks
-        axis->SetLabelAnchor(0.5, 1.0);
+        axis->SetLabelAlignment(eavlTextAnnotation::HCenter,
+                                eavlTextAnnotation::Top);
         axis->Render(view);
 
     }

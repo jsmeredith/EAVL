@@ -1,5 +1,8 @@
 // Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #include "eavlVTKExporter.h"
+#include "eavlCellSetAllStructured.h"
+#include "eavlCoordinates.h"
+
 #include <iostream>
 
 void
@@ -9,9 +12,123 @@ eavlVTKExporter::Export(ostream &out)
     out<<"vtk output"<<endl;
     out<<"ASCII"<<endl;
 
-    ExportUnstructured(out);
+    eavlCellSet *cs = NULL;
+    if (cellSetIndex >= 0 && cellSetIndex < data->GetNumCellSets())
+        cs = data->GetCellSet(cellSetIndex);
+    if (dynamic_cast<eavlCellSetAllStructured*>(cs))
+    {
+        ExportStructured(out);
+    }
+    else
+    {
+        ExportUnstructured(out);
+    }
 }
 
+
+void
+eavlVTKExporter::ExportStructured(ostream &out)
+{
+    eavlCoordinates *coords = data->GetCoordinateSystem(0);
+    int ndims = coords->GetDimension();
+    bool rectilinear = true;
+    for (int axis=0; axis<ndims; ++axis)
+    {
+        eavlCoordinateAxis *ax = coords->GetAxis(axis);
+        eavlCoordinateAxisField *axf = dynamic_cast<eavlCoordinateAxisField*>(ax);
+        if (!axf)
+        {
+            ///\todo: not true, this would be rectilinear, but 
+            /// instead of implementing this, we're going to
+            /// be removing the rectilinear axis class soon
+            /// (instead using implicit arrays with normal field axes)
+            rectilinear = false;
+            break;
+        }
+        string fn = axf->GetFieldName();
+        eavlField *f = data->GetField(fn);
+        if (f->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
+            continue;
+
+        ///\todo: this check is probably too strict:
+        if (f->GetAssociation() == eavlField::ASSOC_LOGICALDIM &&
+            f->GetAssocLogicalDim() == axis)
+            continue;
+
+        // nope, not easily convertable to vtk rectilinear
+        rectilinear = false;
+        break;
+    }
+
+
+    if (rectilinear)
+    {
+        out<<"DATASET RECTILINEAR_GRID"<<endl;
+    }
+    else
+    {
+        out<<"DATASET STRUCTURED_GRID"<<endl;
+    }
+
+    ExportGlobalFields(out);
+
+    ExportStructuredCells(out);
+
+    if (rectilinear)
+        ExportRectilinearCoords(out);
+    else
+        ExportPoints(out);
+
+    ExportFields(out);
+}
+
+void
+eavlVTKExporter::ExportRectilinearCoords(ostream &out)
+{
+    eavlCellSetAllStructured *cs =
+        dynamic_cast<eavlCellSetAllStructured*>(data->GetCellSet(cellSetIndex));
+    if (!cs)
+        return;
+
+    eavlRegularStructure &reg = cs->GetRegularStructure();
+
+    eavlCoordinates *coords = data->GetCoordinateSystem(0);
+    int ndims = coords->GetDimension();
+    const char *axnames[3] = {"X_COORDINATES", "Y_COORDINATES", "Z_COORDINATES"};
+    for (int axis=0; axis<3; ++axis)
+    {
+        if (axis >= ndims)
+        {
+            out << axnames[axis] << " 1 float" << endl;
+            out << "0" << endl;
+            continue;
+        }
+
+        eavlCoordinateAxis *ax = coords->GetAxis(axis);
+        eavlCoordinateAxisField *axf = dynamic_cast<eavlCoordinateAxisField*>(ax);
+        // assert axf!=NULL
+        string fn = axf->GetFieldName();
+        eavlField *f = data->GetField(fn);
+        eavlArray *arr = f->GetArray();
+
+        int n = (axis >= reg.dimension) ? 1 : reg.nodeDims[axis];
+        out << axnames[axis] << " " << n << " " << "float" << endl;
+        if (f->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
+        {
+            for (int i=0; i<n; ++i)
+                out << arr->GetComponentAsDouble(0, 0) << " ";
+            out << endl;
+        }
+        else if (f->GetAssociation() == eavlField::ASSOC_LOGICALDIM &&
+                 f->GetAssocLogicalDim() == axis)
+        {
+            for (int i=0; i<n; ++i)
+                out << arr->GetComponentAsDouble(i, 0) << " ";
+            out << endl;
+        }
+    }
+
+}
 
 void
 eavlVTKExporter::ExportUnstructured(ostream &out)
@@ -20,16 +137,50 @@ eavlVTKExporter::ExportUnstructured(ostream &out)
     ExportGlobalFields(out);
     ExportPoints(out);
 
-    ExportCells(out);
+    if (cellSetIndex >= 0 && cellSetIndex < data->GetNumCellSets())
+        ExportUnstructuredCells(out);
+    else
+        ExportPointCells(out);
     ExportFields(out);
 }
 
 void
-eavlVTKExporter::ExportCells(ostream &out)
+eavlVTKExporter::ExportPointCells(ostream &out)
 {
-    if (data->GetNumCellSets() == 0)
+    int nCells = data->GetNumPoints();
+
+    out<<"CELLS "<<nCells<<" "<<nCells*2<<endl;
+    for (int i = 0; i < nCells; i++)
+    {
+        out << "1 " << i << endl;
+    }
+    out<<"CELL_TYPES "<<nCells<<endl;
+    for (int i = 0; i < nCells; i++)
+    {
+        out<<CellTypeToVTK(EAVL_POINT)<<endl;
+    }
+}
+
+void
+eavlVTKExporter::ExportStructuredCells(ostream &out)
+{
+    eavlCellSetAllStructured *cs =
+        dynamic_cast<eavlCellSetAllStructured*>(data->GetCellSet(cellSetIndex));
+    if (!cs)
         return;
 
+    eavlRegularStructure &reg = cs->GetRegularStructure();
+    out << "DIMENSIONS ";
+    out << reg.nodeDims[0] << " ";
+    out << ((reg.dimension > 1) ? reg.nodeDims[1] : 1) << " ";
+    out << ((reg.dimension > 2) ? reg.nodeDims[2] : 1) << " ";
+    out << endl;
+}
+
+
+void
+eavlVTKExporter::ExportUnstructuredCells(ostream &out)
+{
     int nCells = data->GetCellSet(cellSetIndex)->GetNumCells();
 
     int sz = 0;
@@ -119,6 +270,9 @@ eavlVTKExporter::ExportFields(ostream &out)
     }
 
     // do cell data
+    if (cellSetIndex < 0 || cellSetIndex >= data->GetNumCellSets())
+        return;
+
     bool wrote_cell_header = false;
     for (int f = 0; f < data->GetNumFields(); f++)
     {
@@ -179,7 +333,7 @@ eavlVTKExporter::ExportPoints(ostream &out)
 #define VTK_HEXAGONAL_PRISM  16
 
 int
-eavlVTKExporter::CellTypeToVTK(eavlCellShape &type)
+eavlVTKExporter::CellTypeToVTK(eavlCellShape type)
 {
     int vtkType = -1;
     switch(type)
