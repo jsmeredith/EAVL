@@ -44,11 +44,8 @@ int main(int argc, char *argv[])
 	eavlStream s1(f1);
 	data->serialize(s1);
 	f1.close();
-	data->PrintSummary(cout);
-
-	cout<<"*******************"<<endl;
-	cout<<"READ BACK THE FILE:"<<endl;
-	cout<<"*******************"<<endl;
+	//To create the baseline...
+	//data->PrintSummary(cout);
 
 	eavlDataSet *d2 = new eavlDataSet;
 	ifstream f2("dump.dat");

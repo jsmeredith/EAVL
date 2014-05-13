@@ -7,6 +7,8 @@ eavlCoordinateAxis::CreateObjFromName(const string &nm)
 	return new eavlCoordinateAxisField();
     else if (nm == "eavlCoordinateAxisRegular")
 	return new eavlCoordinateAxisRegular();
+    else
+	throw;
 }
 
 eavlCoordinates*

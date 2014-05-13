@@ -221,7 +221,7 @@ class eavlCoordinates
     {
 	size_t sz = axes.size();
 	s << sz;
-	for (int i = 0; i < sz; i++)
+	for (size_t i = 0; i < sz; i++)
 	    axes[i]->serialize(s);
 	s << indexMods << indexDivs;
 	return s;
@@ -233,7 +233,7 @@ class eavlCoordinates
 	axes.resize(sz);
 	
 	string nm;
-	for (int i = 0; i < sz; i++)
+	for (size_t i = 0; i < sz; i++)
 	{
 	    s >> nm;
 	    axes[i] = eavlCoordinateAxis::CreateObjFromName(nm);

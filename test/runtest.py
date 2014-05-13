@@ -164,6 +164,12 @@ def TestDistanceField(fn, dims, min, max):
                 ["./testdistancefield", fn, "%d"%dims[0], "%d"%dims[1], "%d"%dims[2], "%f"%min[0], "%f"%max[0], "%f"%min[1], "%f"%max[1], "%f"%min[2], "%f"%max[2]])
     # an optional final argument specifies an output file for hand-verification
 
+#
+# Serialization tests
+#
+def TestSerialization(fn):
+    RunTest("testserialize", fn, ["./testserialize", fn])
+
 
 # -----------------------------------------------------------------------------
 #                               Run Tests
@@ -178,6 +184,41 @@ if __name__ == "__main__":
     difffile = open("diffs.sh", "w")
     tkdifffile = open("tkdiffs.sh", "w")
     rebasefile = open("rebaseline.sh", "w")
+
+
+    StartSection("testserialize")
+    TestSerialization("../data/curv_cube.vtk")
+    TestSerialization("../data/curv_x.vtk")
+    TestSerialization("../data/curv_xy.vtk")
+    TestSerialization("../data/curv_xz.vtk")        
+    TestSerialization("../data/curv_y.vtk")
+    TestSerialization("../data/curv_yz.vtk")    
+    TestSerialization("../data/curv_z.vtk")
+    TestSerialization("../data/poly_1d_in_3d.vtk")
+    TestSerialization("../data/poly_2d_in_3d.vtk")
+    TestSerialization("../data/poly_sphere.vtk")
+    TestSerialization("../data/poly_verts.vtk")
+    TestSerialization("../data/poly_verts_and_lines.vtk")
+    TestSerialization("../data/rect_cube.vtk")
+    TestSerialization("../data/rect_x.vtk")
+    TestSerialization("../data/rect_xy.vtk")
+    TestSerialization("../data/rect_xz.vtk")
+    TestSerialization("../data/rect_y.vtk")
+    TestSerialization("../data/rect_yz.vtk")
+    TestSerialization("../data/rect_z.vtk")
+    TestSerialization("../data/ucd_1d_in_3d.vtk")
+    TestSerialization("../data/ucd_2d_xy.vtk")
+    TestSerialization("../data/ucd_cube.vtk")
+    TestSerialization("../data/ucd_sphere.vtk")
+    TestSerialization("../data/ucd_tets.vtk")
+
+    errors = PrintResults()
+    logfile.close()
+    difffile.close()
+    tkdifffile.close()
+    rebasefile.close()
+    sys.exit()
+
 
     StartSection("testimport")
     TestImport("../data/curv_cube.vtk")
