@@ -1,0 +1,62 @@
+eavlDataSet:
+   npoints = 104
+   coordinateSystems[1]:
+   eavlCoordinatesCartesian, ndims=3: 
+       axis 0 (type=X):
+          eavlCoordinateAxisField='xcoord',component #0
+       axis 1 (type=Y):
+          eavlCoordinateAxisField='ycoord',component #0
+       axis 2 (type=Z):
+          eavlCoordinateAxisField='zcoord',component #0
+  discreteCoordinates[0]:
+  cellsets[1]:
+    eavlCellSetExplicit:
+        name = UnstructuredGridCells3D
+        dimensionality = 3
+        nCells = 125
+        cellNodeConnectivity =
+        shapetype[125] = 5 5 5 5 5 5 5 5 5 5 ... 8 8 8 8 8 8 8 8 8 8
+        connectivity[829] = 4 32 33 34 0 4 36 37 35 1 ... 97 8 19 21 31 27 100 101 103 102
+        mapCellToIndex[125] = 0 5 10 15 20 25 30 35 40 45 ... 739 748 757 766 775 784 793 802 811 820
+  fields[8]:
+      array name = xcoord
+      order = 1
+      association = POINTS
+      array = float xcoord[104][1] = -1.42857  1.42857  -1.42857  1.42857  -1.42857 ... 1.42857  -1.42857  1.42857  -1.42857  1.42857
+
+      array name = ycoord
+      order = 1
+      association = POINTS
+      array = float ycoord[104][1] = -1.42857  -1.42857  1.42857  1.42857  -4.28571 ... 4.28572  -1.42857  -1.42857  1.42857  1.42857
+
+      array name = zcoord
+      order = 1
+      association = POINTS
+      array = float zcoord[104][1] = -4.28571  -4.28571  -4.28571  -4.28571  -1.42857 ... 3.8  5.47143  5.47143  5.47143  5.47143
+
+      array name = avtOriginalBounds
+      order = 0
+      association = WHOLEMESH
+      array = float avtOriginalBounds[6][1] = -10  10  -10  10  -10  10  
+
+      array name = base_index
+      order = 0
+      association = WHOLEMESH
+      array = float base_index[3][1] = 0  0  0  
+
+      array name = group_id
+      order = 0
+      association = WHOLEMESH
+      array = float group_id[1][1] = 0  
+
+      array name = nodal
+      order = 1
+      association = POINTS
+      array = float nodal[104][1] = 3.51926  3.60442  3.89548  3.644  3.11058 ... 3.70719  3.5336  3.6851  3.51565  3.55611
+
+      array name = zonal
+      order = 0
+      association = CELL_SET
+      assoc_cellset_name = UnstructuredGridCells3D
+      array = float zonal[125][1] = 3.56613  2.80571  3.86304  4.33463  3.13634 ... 2.79341  3.17281  3.55641  3.39691  3.42226
+

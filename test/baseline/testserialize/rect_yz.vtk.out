@@ -1,0 +1,66 @@
+eavlDataSet:
+   npoints = 64
+   eavlLogicalStructureRegular:
+     logicalDimension = 2
+     logicalDims[2] = 8 8 
+   coordinateSystems[1]:
+   eavlCoordinatesCartesian, ndims=3: 
+       logdim 0: div=1,mod=8
+       logdim 1: div=8,mod=8
+       axis 0 (type=X):
+          eavlCoordinateAxisField='xcoord',component #0
+       axis 1 (type=Y):
+          eavlCoordinateAxisField='ycoord',component #0
+       axis 2 (type=Z):
+          eavlCoordinateAxisField='zcoord',component #0
+  discreteCoordinates[0]:
+  cellsets[1]:
+    eavlCellSetAllStructured:
+        name = RectilinearGridCells
+        dimensionality = 2
+        nCells = 49
+        zdims[] = 7 7
+  fields[8]:
+      array name = xcoord
+      order = 1
+      association = WHOLEMESH
+      array = float xcoord[1][1] = 1.332  
+
+      array name = ycoord
+      order = 1
+      association = LOGICALDIM
+      assoc_logicaldim = 0
+      array = float ycoord[8][1] = -10  -7.14286  -4.28571  -1.42857  1.42857  4.28572  7.14286  10  
+
+      array name = zcoord
+      order = 1
+      association = LOGICALDIM
+      assoc_logicaldim = 1
+      array = float zcoord[8][1] = -10  -7.14286  -4.28571  -1.42857  1.42857  4.28572  7.14286  10  
+
+      array name = avtOriginalBounds
+      order = 0
+      association = WHOLEMESH
+      array = float avtOriginalBounds[6][1] = -10  10  -10  10  -10  10  
+
+      array name = base_index
+      order = 0
+      association = WHOLEMESH
+      array = float base_index[3][1] = 0  0  0  
+
+      array name = group_id
+      order = 0
+      association = WHOLEMESH
+      array = float group_id[1][1] = 0  
+
+      array name = nodal
+      order = 1
+      association = POINTS
+      array = float nodal[64][1] = 3.42189  3.4667  3.56669  3.72235  3.80443 ... 3.74858  3.66647  3.67055  3.72268  3.68869
+
+      array name = zonal
+      order = 0
+      association = CELL_SET
+      assoc_cellset_name = RectilinearGridCells
+      array = float zonal[49][1] = 2.29363  2.65214  3.01935  3.5464  3.70934 ... 3.39323  3.62591  3.34755  3.32206  3.55842
+

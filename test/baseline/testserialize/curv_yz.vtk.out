@@ -1,0 +1,49 @@
+eavlDataSet:
+   npoints = 64
+   eavlLogicalStructureRegular:
+     logicalDimension = 2
+     logicalDims[2] = 8 8 
+   coordinateSystems[1]:
+   eavlCoordinatesCartesian, ndims=3: 
+       logdim 0: div=1,mod=8
+       logdim 1: div=8,mod=8
+       axis 0 (type=X):
+          eavlCoordinateAxisField='xcoord',component #0
+       axis 1 (type=Y):
+          eavlCoordinateAxisField='ycoord',component #0
+       axis 2 (type=Z):
+          eavlCoordinateAxisField='zcoord',component #0
+  discreteCoordinates[0]:
+  cellsets[1]:
+    eavlCellSetAllStructured:
+        name = StructuredGridCells
+        dimensionality = 2
+        nCells = 49
+        zdims[] = 7 7
+  fields[5]:
+      array name = xcoord
+      order = 1
+      association = POINTS
+      array = float xcoord[64][1] = 1.31054  1.28117  1.24956  1.1854  1.15295 ... 1.39696  1.32109  1.28425  1.20314  1.26962
+
+      array name = ycoord
+      order = 1
+      association = POINTS
+      array = float ycoord[64][1] = -9.89526  -7.02102  -4.1434  -1.24457  1.35716 ... -1.49968  1.33697  4.26474  7.0486  9.82858
+
+      array name = zcoord
+      order = 1
+      association = POINTS
+      array = float zcoord[64][1] = -9.94458  -9.93008  -9.89969  -9.81883  -9.70926 ... 9.72215  9.85233  9.84937  9.80072  9.8718
+
+      array name = nodal
+      order = 1
+      association = POINTS
+      array = float nodal[64][1] = 3.42189  3.4667  3.56669  3.72235  3.80443 ... 3.74858  3.66647  3.67055  3.72268  3.68869
+
+      array name = zonal
+      order = 0
+      association = CELL_SET
+      assoc_cellset_name = StructuredGridCells
+      array = float zonal[49][1] = 2.29363  2.65214  3.01935  3.5464  3.70934 ... 3.39323  3.62591  3.34755  3.32206  3.55842
+
