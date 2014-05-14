@@ -25,36 +25,36 @@ eavlDataSet:
       array name = xcoord
       order = 1
       association = POINTS
-      array = float xcoord[97][1] = -7.65506  -7.55102  -7.80411  -7.30252  -7.81631 ... 7.69398  7.63635  6.93931  7.66747  7.14286
+      array = float xcoord[97][1] = -7.655  -7.551  -7.804  -7.303  -7.816 ... 7.694  7.636  6.939  7.667  7.143
 
       array name = ycoord
       order = 1
       association = POINTS
-      array = float ycoord[97][1] = -0.308122  -0.284462  -0.204082  -0.248505  -0.0312613 ... -1.24117  -0.493492  0.203547  -0.204082  0.180233
+      array = float ycoord[97][1] = -0.3081  -0.2845  -0.2041  -0.2485  -0.03126 ... -1.241  -0.4935  0.2035  -0.2041  0.1802
 
       array name = zcoord
       order = 1
       association = POINTS
-      array = float zcoord[97][1] = -7.96318  -7.83548  -8.0082  -7.55102  -7.84758 ... 6.45281  7.14286  7.14286  7.46339  7.32309
+      array = float zcoord[97][1] = -7.963  -7.835  -8.008  -7.551  -7.848 ... 6.453  7.143  7.143  7.463  7.323
 
       array name = hardyglobal
       order = 1
       association = POINTS
-      array = float hardyglobal[97][1] = 3.68961  3.7359  3.66354  3.86356  3.65201 ... 3.98949  4.19725  3.52866  3.98734  3.53531
+      array = float hardyglobal[97][1] = 3.69  3.736  3.664  3.864  3.652 ... 3.989  4.197  3.529  3.987  3.535
 
       array name = nodal
       order = 1
       association = POINTS
-      array = float nodal[97][1] = 3.79916  3.79684  3.80219  3.82351  3.78982 ... 3.90274  4.06486  3.45933  4.01603  3.49374
+      array = float nodal[97][1] = 3.799  3.797  3.802  3.824  3.79 ... 3.903  4.065  3.459  4.016  3.494
 
       array name = zonal
       order = 0
       association = CELL_SET
       assoc_cellset_name = UnstructuredGridCells1D
-      array = float zonal[97][1] = 3.66417  3.66417  3.66936  3.3648  3.3648 ... 3.90107  3.65492  4.46506  3.67771  3.80657
+      array = float zonal[97][1] = 3.664  3.664  3.669  3.365  3.365 ... 3.901  3.655  4.465  3.678  3.807
 
       array name = transformed_coords
       order = 1
       association = POINTS
-      array = float transformed_coords[97][3] = -8.74163  0.560593  -4.93679  -8.61524  0.576129 ... -1.17116  4.33938  8.11495  -0.650642  4.4798
+      array = float transformed_coords[97][3] = -8.742  0.5606  -4.937  -8.615  0.5761 ... -1.171  4.339  8.115  -0.6506  4.48
 

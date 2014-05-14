@@ -52,5 +52,5 @@ eavlDataSet:
       array name = transformed_coords
       order = 1
       association = POINTS
-      array = float transformed_coords[4][3] = 0.85672  3.98813  2.87598  1.67145  3.87621 ... 4.45522  1.98112  5.31675  4.20397  1.10649
+      array = float transformed_coords[4][3] = 0.8567  3.988  2.876  1.671  3.876 ... 4.455  1.981  5.317  4.204  1.106
 

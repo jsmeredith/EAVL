@@ -26,22 +26,22 @@ eavlDataSet:
       order = 1
       association = LOGICALDIM
       assoc_logicaldim = 0
-      array = float x[20][1] = -2  -1.52632  -1.05263  -0.578947  -0.105263 ... 5.10526  5.57895  6.05263  6.52632  7
+      array = float x[20][1] = -2  -1.526  -1.053  -0.5789  -0.1053 ... 5.105  5.579  6.053  6.526  7
 
       array name = y
       order = 1
       association = LOGICALDIM
       assoc_logicaldim = 1
-      array = float y[20][1] = -2  -1.52632  -1.05263  -0.578947  -0.105263 ... 5.10526  5.57895  6.05263  6.52632  7
+      array = float y[20][1] = -2  -1.526  -1.053  -0.5789  -0.1053 ... 5.105  5.579  6.053  6.526  7
 
       array name = z
       order = 1
       association = LOGICALDIM
       assoc_logicaldim = 2
-      array = float z[20][1] = -2  -1.52632  -1.05263  -0.578947  -0.105263 ... 5.10526  5.57895  6.05263  6.52632  7
+      array = float z[20][1] = -2  -1.526  -1.053  -0.5789  -0.1053 ... 5.105  5.579  6.053  6.526  7
 
       array name = dist
       order = 1
       association = POINTS
-      array = float dist[8000][1] = 4.13401  3.90258  3.7174  3.58563  3.51329 ... 7.8935  8.17312  8.47002  8.78244  9.10879
+      array = float dist[8000][1] = 4.134  3.903  3.717  3.586  3.513 ... 7.894  8.173  8.47  8.782  9.109
 

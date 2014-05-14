@@ -33,13 +33,13 @@ eavlDataSet:
       order = 1
       association = LOGICALDIM
       assoc_logicaldim = 0
-      array = float ycoord[8][1] = -10  -7.14286  -4.28571  -1.42857  1.42857  4.28572  7.14286  10  
+      array = float ycoord[8][1] = -10  -7.143  -4.286  -1.429  1.429  4.286  7.143  10  
 
       array name = zcoord
       order = 1
       association = LOGICALDIM
       assoc_logicaldim = 1
-      array = float zcoord[8][1] = -10  -7.14286  -4.28571  -1.42857  1.42857  4.28572  7.14286  10  
+      array = float zcoord[8][1] = -10  -7.143  -4.286  -1.429  1.429  4.286  7.143  10  
 
       array name = avtOriginalBounds
       order = 0
@@ -59,16 +59,16 @@ eavlDataSet:
       array name = nodal
       order = 1
       association = POINTS
-      array = float nodal[64][1] = 3.42189  3.4667  3.56669  3.72235  3.80443 ... 3.74858  3.66647  3.67055  3.72268  3.68869
+      array = float nodal[64][1] = 3.422  3.467  3.567  3.722  3.804 ... 3.749  3.666  3.671  3.723  3.689
 
       array name = zonal
       order = 0
       association = CELL_SET
       assoc_cellset_name = RectilinearGridCells
-      array = float zonal[49][1] = 2.29363  2.65214  3.01935  3.5464  3.70934 ... 3.39323  3.62591  3.34755  3.32206  3.55842
+      array = float zonal[49][1] = 2.294  2.652  3.019  3.546  3.709 ... 3.393  3.626  3.348  3.322  3.558
 
       array name = transformed_coords
       order = 1
       association = POINTS
-      array = float transformed_coords[64][3] = -2.9127  -11.8086  -12.2151  -2.9127  -7.88836 ... 8.05324  10.607  4.87567  11.9735  11.4017
+      array = float transformed_coords[64][3] = -2.913  -11.81  -12.22  -2.913  -7.888 ... 8.053  10.61  4.876  11.97  11.4
 

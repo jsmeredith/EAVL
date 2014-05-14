@@ -302,7 +302,7 @@ class eavlDataSet
     void PrintSummary(ostream &out)
     {
         out << "eavlDataSet:\n";
-	out << setprecision(8) << fixed;
+	out << setprecision(4);
         //out << "   GetMemoryUsage() reports: "<<GetMemoryUsage()<<endl;
         out << "   npoints = "<<npoints << endl;
         if (logicalStructure)
@@ -331,7 +331,7 @@ class eavlDataSet
             (*it)->PrintSummary(out);
         }
 	
-	out << setprecision(6) << fixed;
+	out << setprecision(6);
     }
 };
 

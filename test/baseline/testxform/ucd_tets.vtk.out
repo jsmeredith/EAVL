@@ -25,25 +25,25 @@ eavlDataSet:
       array name = xcoord
       order = 1
       association = POINTS
-      array = float xcoord[100][1] = -2.0707  -3.62614  -6.81263  7.99709  2.08288 ... -2.25057  0.670141  1.32994  1.27768  -4.93386
+      array = float xcoord[100][1] = -2.071  -3.626  -6.813  7.997  2.083 ... -2.251  0.6701  1.33  1.278  -4.934
 
       array name = ycoord
       order = 1
       association = POINTS
-      array = float ycoord[100][1] = 6.80971  7.72857  -2.32568  -6.72908  1.65398 ... -6.36119  3.29472  -8.05072  7.73879  -3.85871
+      array = float ycoord[100][1] = 6.81  7.729  -2.326  -6.729  1.654 ... -6.361  3.295  -8.051  7.739  -3.859
 
       array name = zcoord
       order = 1
       association = POINTS
-      array = float zcoord[100][1] = -2.93328  -9.68834  3.82009  -6.81857  -4.60058 ... -5.50537  -5.96338  -4.45953  -8.5962  7.9328
+      array = float zcoord[100][1] = -2.933  -9.688  3.82  -6.819  -4.601 ... -5.505  -5.963  -4.46  -8.596  7.933
 
       array name = nodal
       order = 1
       association = POINTS
-      array = float nodal[100][1] = 3.23292  3.92045  1.29429  3.66532  2.95239 ... 4.68691  3.34412  1.08656  1.3101  1.67037
+      array = float nodal[100][1] = 3.233  3.92  1.294  3.665  2.952 ... 4.687  3.344  1.087  1.31  1.67
 
       array name = transformed_coords
       order = 1
       association = POINTS
-      array = float transformed_coords[100][3] = -2.66807  9.75215  -0.121607  -6.44473  12.1527 ... 12.2704  -5.99746  -0.546331  -7.05147  7.59413
+      array = float transformed_coords[100][3] = -2.668  9.752  -0.1216  -6.445  12.15 ... 12.27  -5.997  -0.5463  -7.051  7.594
 

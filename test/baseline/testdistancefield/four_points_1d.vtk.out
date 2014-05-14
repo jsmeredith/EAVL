@@ -20,10 +20,10 @@ eavlDataSet:
       order = 1
       association = LOGICALDIM
       assoc_logicaldim = 0
-      array = float x[20][1] = -2  -1.52632  -1.05263  -0.578947  -0.105263 ... 5.10526  5.57895  6.05263  6.52632  7
+      array = float x[20][1] = -2  -1.526  -1.053  -0.5789  -0.1053 ... 5.105  5.579  6.053  6.526  7
 
       array name = dist
       order = 1
       association = POINTS
-      array = float dist[20][1] = 1.7  1.22632  0.752632  0.278947  0.194737 ... 3.10526  3.57895  4.05263  4.52632  5
+      array = float dist[20][1] = 1.7  1.226  0.7526  0.2789  0.1947 ... 3.105  3.579  4.053  4.526  5
 

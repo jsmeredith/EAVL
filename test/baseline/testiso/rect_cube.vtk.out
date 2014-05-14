@@ -31,20 +31,20 @@ eavlDataSet:
       order = 1
       association = CELL_SET
       assoc_cellset_name = iso
-      array = float zonal[198][1] = 2.12651  2.12651  2.23655  2.23655  2.30367 ... 3.18848  3.18848  3.2106  3.2106  3.2106
+      array = float zonal[198][1] = 2.127  2.127  2.237  2.237  2.304 ... 3.188  3.188  3.211  3.211  3.211
 
       array name = newx
       order = 1
       association = POINTS
-      array = float newx[134][1] = 6.71675  2.0809  2.3584  -9.14748  -0.491247 ... -10  -5.91837  -1.83673  2.2449  -5.91837
+      array = float newx[134][1] = 6.717  2.081  2.358  -9.147  -0.4912 ... -10  -5.918  -1.837  2.245  -5.918
 
       array name = newy
       order = 1
       association = POINTS
-      array = float newy[134][1] = -10  -5.91837  -5.91837  6.32653  6.32653 ... 2.2449  2.2449  2.2449  2.2449  10
+      array = float newy[134][1] = -10  -5.918  -5.918  6.327  6.327 ... 2.245  2.245  2.245  2.245  10
 
       array name = newz
       order = 1
       association = POINTS
-      array = float newz[134][1] = -10  -10  -10  -10  -10 ... 9.42109  7.8964  7.05622  6.61009  7.89845
+      array = float newz[134][1] = -10  -10  -10  -10  -10 ... 9.421  7.896  7.056  6.61  7.898
 

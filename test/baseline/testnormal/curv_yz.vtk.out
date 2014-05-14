@@ -27,37 +27,37 @@ eavlDataSet:
       array name = xcoord
       order = 1
       association = POINTS
-      array = float xcoord[64][1] = 1.31054  1.28117  1.24956  1.1854  1.15295 ... 1.39696  1.32109  1.28425  1.20314  1.26962
+      array = float xcoord[64][1] = 1.311  1.281  1.25  1.185  1.153 ... 1.397  1.321  1.284  1.203  1.27
 
       array name = ycoord
       order = 1
       association = POINTS
-      array = float ycoord[64][1] = -9.89526  -7.02102  -4.1434  -1.24457  1.35716 ... -1.49968  1.33697  4.26474  7.0486  9.82858
+      array = float ycoord[64][1] = -9.895  -7.021  -4.143  -1.245  1.357 ... -1.5  1.337  4.265  7.049  9.829
 
       array name = zcoord
       order = 1
       association = POINTS
-      array = float zcoord[64][1] = -9.94458  -9.93008  -9.89969  -9.81883  -9.70926 ... 9.72215  9.85233  9.84937  9.80072  9.8718
+      array = float zcoord[64][1] = -9.945  -9.93  -9.9  -9.819  -9.709 ... 9.722  9.852  9.849  9.801  9.872
 
       array name = nodal
       order = 1
       association = POINTS
-      array = float nodal[64][1] = 3.42189  3.4667  3.56669  3.72235  3.80443 ... 3.74858  3.66647  3.67055  3.72268  3.68869
+      array = float nodal[64][1] = 3.422  3.467  3.567  3.722  3.804 ... 3.749  3.666  3.671  3.723  3.689
 
       array name = zonal
       order = 0
       association = CELL_SET
       assoc_cellset_name = StructuredGridCells
-      array = float zonal[49][1] = 2.29363  2.65214  3.01935  3.5464  3.70934 ... 3.39323  3.62591  3.34755  3.32206  3.55842
+      array = float zonal[49][1] = 2.294  2.652  3.019  3.546  3.709 ... 3.393  3.626  3.348  3.322  3.558
 
       array name = surface_normals
       order = 0
       association = CELL_SET
       assoc_cellset_name = StructuredGridCells
-      array = float surface_normals[49][3] = 0.999948  0.0102169  0.000177455  0.999493  0.0106623 ... 0.024769  0.030839  0.999355  0.00165634  0.0358767
+      array = float surface_normals[49][3] = 0.9999  0.01022  0.0001775  0.9995  0.01066 ... 0.02477  0.03084  0.9994  0.001656  0.03588
 
       array name = nodecentered_surface_normals
       order = 0
       association = POINTS
-      array = float nodecentered_surface_normals[64][3] = 0.999948  0.0102169  0.000177455  0.99972  0.0104396 ... 0.0132127  0.0333579  0.999355  0.00165634  0.0358767
+      array = float nodecentered_surface_normals[64][3] = 0.9999  0.01022  0.0001775  0.9997  0.01044 ... 0.01321  0.03336  0.9994  0.001656  0.03588
 

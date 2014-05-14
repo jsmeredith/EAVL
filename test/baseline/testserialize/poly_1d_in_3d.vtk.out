@@ -22,46 +22,46 @@ eavlDataSet:
       array name = xcoord
       order = 1
       association = POINTS
-      array = float xcoord[97][1] = -7.65505981  -7.55102015  -7.80411005  -7.30251980  -7.81630993 ... 7.69398022  7.63635015  6.93931007  7.66746998  7.14285994
+      array = float xcoord[97][1] = -7.655  -7.551  -7.804  -7.303  -7.816 ... 7.694  7.636  6.939  7.667  7.143
 
       array name = ycoord
       order = 1
       association = POINTS
-      array = float ycoord[97][1] = -0.30812201  -0.28446200  -0.20408200  -0.24850500  -0.03126130 ... -1.24117005  -0.49349201  0.20354700  -0.20408200  0.18023300
+      array = float ycoord[97][1] = -0.3081  -0.2845  -0.2041  -0.2485  -0.03126 ... -1.241  -0.4935  0.2035  -0.2041  0.1802
 
       array name = zcoord
       order = 1
       association = POINTS
-      array = float zcoord[97][1] = -7.96318007  -7.83548021  -8.00819969  -7.55102015  -7.84757996 ... 6.45280981  7.14285994  7.14285994  7.46338987  7.32309008
+      array = float zcoord[97][1] = -7.963  -7.835  -8.008  -7.551  -7.848 ... 6.453  7.143  7.143  7.463  7.323
 
       array name = avtOriginalBounds
       order = 0
       association = WHOLEMESH
-      array = float avtOriginalBounds[6][1] = -10.00000000  10.00000000  -10.00000000  10.00000000  -10.00000000  10.00000000  
+      array = float avtOriginalBounds[6][1] = -10  10  -10  10  -10  10  
 
       array name = base_index
       order = 0
       association = WHOLEMESH
-      array = float base_index[3][1] = 0.00000000  0.00000000  0.00000000  
+      array = float base_index[3][1] = 0  0  0  
 
       array name = group_id
       order = 0
       association = WHOLEMESH
-      array = float group_id[1][1] = 0.00000000  
+      array = float group_id[1][1] = 0  
 
       array name = hardyglobal
       order = 1
       association = POINTS
-      array = float hardyglobal[97][1] = 3.68961000  3.73589993  3.66353989  3.86355996  3.65200996 ... 3.98949003  4.19724989  3.52866006  3.98733997  3.53531003
+      array = float hardyglobal[97][1] = 3.69  3.736  3.664  3.864  3.652 ... 3.989  4.197  3.529  3.987  3.535
 
       array name = nodal
       order = 1
       association = POINTS
-      array = float nodal[97][1] = 3.79916000  3.79683995  3.80219007  3.82350993  3.78981996 ... 3.90274000  4.06485987  3.45933008  4.01602983  3.49374008
+      array = float nodal[97][1] = 3.799  3.797  3.802  3.824  3.79 ... 3.903  4.065  3.459  4.016  3.494
 
       array name = zonal
       order = 0
       association = CELL_SET
       assoc_cellset_name = PolyDataLines
-      array = float zonal[97][1] = 3.66417003  3.66417003  3.66935992  3.36479998  3.36479998 ... 3.90107012  3.65492010  4.46506023  3.67771006  3.80657005
+      array = float zonal[97][1] = 3.664  3.664  3.669  3.365  3.365 ... 3.901  3.655  4.465  3.678  3.807
 

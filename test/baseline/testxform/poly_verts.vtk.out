@@ -25,22 +25,22 @@ eavlDataSet:
       array name = xcoord
       order = 1
       association = POINTS
-      array = float xcoord[57][1] = 12.5609  11.5709  10.3349  12.1819  11.2449 ... 16.1669  16.8789  17.2679  17.6689  18.3279
+      array = float xcoord[57][1] = 12.56  11.57  10.33  12.18  11.24 ... 16.17  16.88  17.27  17.67  18.33
 
       array name = ycoord
       order = 1
       association = POINTS
-      array = float ycoord[57][1] = 10.8984  11.2564  10.4164  8.68939  9.16839 ... 5.23539  7.38039  8.85139  5.53239  7.37239
+      array = float ycoord[57][1] = 10.9  11.26  10.42  8.689  9.168 ... 5.235  7.38  8.851  5.532  7.372
 
       array name = zcoord
       order = 1
       association = POINTS
-      array = float zcoord[57][1] = 14.6205  13.5385  13.5985  11.6995  9.1085 ... 6.2225  4.8045  5.8095  7.2135  5.9105
+      array = float zcoord[57][1] = 14.62  13.54  13.6  11.7  9.108 ... 6.222  4.805  5.81  7.214  5.911
 
       array name = avtOriginalBounds
       order = 0
       association = WHOLEMESH
-      array = float avtOriginalBounds[6][1] = 5.3859  18.3279  5.23539  13.1614  4.8045  17.8685  
+      array = float avtOriginalBounds[6][1] = 5.386  18.33  5.235  13.16  4.805  17.87  
 
       array name = element
       order = 1
@@ -50,20 +50,20 @@ eavlDataSet:
       array name = fx
       order = 1
       association = POINTS
-      array = float fx[57][1] = 0.687401  0.162852  0.085461  0.057385  0.021081 ... 0.105179  0.161167  0.073479  -0.654714  -0.561227
+      array = float fx[57][1] = 0.6874  0.1629  0.08546  0.05739  0.02108 ... 0.1052  0.1612  0.07348  -0.6547  -0.5612
 
       array name = fy
       order = 1
       association = POINTS
-      array = float fy[57][1] = -0.010578  0.693927  0.112668  -0.012088  0.017551 ... 0.129006  0.096506  -0.638083  0.040061  0.260609
+      array = float fy[57][1] = -0.01058  0.6939  0.1127  -0.01209  0.01755 ... 0.129  0.09651  -0.6381  0.04006  0.2606
 
       array name = fz
       order = 1
       association = POINTS
-      array = float fz[57][1] = 0.669446  -1.00326  -0.384809  0.087703  0.010005 ... 0.234076  0.215123  -0.098364  -0.031935  -0.169527
+      array = float fz[57][1] = 0.6694  -1.003  -0.3848  0.0877  0.01001 ... 0.2341  0.2151  -0.09836  -0.03193  -0.1695
 
       array name = transformed_coords
       order = 1
       association = POINTS
-      array = float transformed_coords[57][3] = 14.949  13.0557  12.394  13.7981  13.6836 ... 7.36455  2.65564  15.8065  10.1684  1.78999
+      array = float transformed_coords[57][3] = 14.95  13.06  12.39  13.8  13.68 ... 7.365  2.656  15.81  10.17  1.79
 
