@@ -30,31 +30,31 @@ eavlDataSet:
       array name = xcoord
       order = 1
       association = POINTS
-      array = float xcoord[57][1] = 12.5609  11.5709  10.3349  12.1819  11.2449 ... 16.1669  16.8789  17.2679  17.6689  18.3279
+      array = float xcoord[57][1] = 12.56089973  11.57089996  10.33489990  12.18190002  11.24489975 ... 16.16690063  16.87890053  17.26790047  17.66889954  18.32789993
 
       array name = ycoord
       order = 1
       association = POINTS
-      array = float ycoord[57][1] = 10.8984  11.2564  10.4164  8.68939  9.16839 ... 5.23539  7.38039  8.85139  5.53239  7.37239
+      array = float ycoord[57][1] = 10.89840031  11.25640011  10.41639996  8.68939018  9.16839027 ... 5.23539019  7.38039017  8.85138988  5.53239012  7.37238979
 
       array name = zcoord
       order = 1
       association = POINTS
-      array = float zcoord[57][1] = 14.6205  13.5385  13.5985  11.6995  9.1085 ... 6.2225  4.8045  5.8095  7.2135  5.9105
+      array = float zcoord[57][1] = 14.62049961  13.53849983  13.59850025  11.69950008  9.10849953 ... 6.22249985  4.80450010  5.80950022  7.21350002  5.91050005
 
       array name = avtOriginalBounds
       order = 0
       association = WHOLEMESH
-      array = float avtOriginalBounds[6][1] = 5.3859  18.3279  5.23539  13.1614  4.8045  17.8685  
+      array = float avtOriginalBounds[6][1] = 5.38590002  18.32789993  5.23539019  13.16139984  4.80450010  17.86849976  
 
       array name = element
       order = 1
       association = POINTS
-      array = float element[57][1] = 6  6  6  6  6 ... 1  1  1  1  1
+      array = float element[57][1] = 6.00000000  6.00000000  6.00000000  6.00000000  6.00000000 ... 1.00000000  1.00000000  1.00000000  1.00000000  1.00000000
 
       array name = id
       order = 0
       association = CELL_SET
       assoc_cellset_name = PolyDataLines
-      array = float id[59][1] = 101  102  103  104  105 ... 155  156  157  158  159
+      array = float id[59][1] = 101.00000000  102.00000000  103.00000000  104.00000000  105.00000000 ... 155.00000000  156.00000000  157.00000000  158.00000000  159.00000000
 

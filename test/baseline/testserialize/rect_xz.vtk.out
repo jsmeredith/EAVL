@@ -25,42 +25,42 @@ eavlDataSet:
       order = 1
       association = LOGICALDIM
       assoc_logicaldim = 0
-      array = float xcoord[8][1] = -10  -7.14286  -4.28571  -1.42857  1.42857  4.28572  7.14286  10  
+      array = float xcoord[8][1] = -10.00000000  -7.14285994  -4.28570986  -1.42857003  1.42857003  4.28571987  7.14285994  10.00000000  
 
       array name = ycoord
       order = 1
       association = WHOLEMESH
-      array = float ycoord[1][1] = 1.332  
+      array = float ycoord[1][1] = 1.33200002  
 
       array name = zcoord
       order = 1
       association = LOGICALDIM
       assoc_logicaldim = 1
-      array = float zcoord[8][1] = -10  -7.14286  -4.28571  -1.42857  1.42857  4.28572  7.14286  10  
+      array = float zcoord[8][1] = -10.00000000  -7.14285994  -4.28570986  -1.42857003  1.42857003  4.28571987  7.14285994  10.00000000  
 
       array name = avtOriginalBounds
       order = 0
       association = WHOLEMESH
-      array = float avtOriginalBounds[6][1] = -10  10  -10  10  -10  10  
+      array = float avtOriginalBounds[6][1] = -10.00000000  10.00000000  -10.00000000  10.00000000  -10.00000000  10.00000000  
 
       array name = base_index
       order = 0
       association = WHOLEMESH
-      array = float base_index[3][1] = 0  0  0  
+      array = float base_index[3][1] = 0.00000000  0.00000000  0.00000000  
 
       array name = group_id
       order = 0
       association = WHOLEMESH
-      array = float group_id[1][1] = 0  
+      array = float group_id[1][1] = 0.00000000  
 
       array name = nodal
       order = 1
       association = POINTS
-      array = float nodal[64][1] = 3.60063  3.0714  3.92301  3.84624  3.80009 ... 3.65769  3.66965  3.71889  3.71861  3.78777
+      array = float nodal[64][1] = 3.60063004  3.07139993  3.92301011  3.84624004  3.80009007 ... 3.65769005  3.66965008  3.71888995  3.71861005  3.78777003
 
       array name = zonal
       order = 0
       association = CELL_SET
       assoc_cellset_name = RectilinearGridCells
-      array = float zonal[49][1] = 2.99023  3.28852  4.09229  3.5464  3.17232 ... 3.52497  3.62591  3.83718  4.35788  4.46506
+      array = float zonal[49][1] = 2.99023008  3.28852010  4.09228992  3.54640007  3.17231989 ... 3.52497005  3.62591004  3.83717990  4.35788012  4.46506023
 

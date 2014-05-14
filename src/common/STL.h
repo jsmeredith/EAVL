@@ -13,6 +13,7 @@
 #include <utility>
 #include <algorithm>
 #include <cassert>
+#include <iomanip>
 
 using std::istream;
 using std::ostream;
@@ -33,6 +34,8 @@ using std::pair;
 using std::istringstream;
 using std::ostringstream;
 using std::filebuf;
+using std::setprecision;
+using std::fixed;
 
 ///\todo: This file is lazy.  Get rid of this entire STL.h file.
 
