@@ -1,4 +1,5 @@
 diffs.sh
+tkdiffs.sh
 rebaseline.sh
 results.txt
 testimport
@@ -15,3 +16,4 @@ testvtk
 testthreshold
 testatompipeline
 testbox
+testserialize
