@@ -1,9 +1,9 @@
 SET(EAVL_FONTS_SRCS
+  eavlBitmapFont.cpp
   eavlBitmapFontFactory.cpp
   Liberation2Mono.cpp
   Liberation2Sans.cpp
   Liberation2Serif.cpp
-  eavlBitmapFont.cpp
 )
 
 add_library(eavl_fonts

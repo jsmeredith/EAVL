@@ -20,6 +20,7 @@ IF(EAVL_HAVE_ADIOS)
     eavlPixieImporter.cpp
     # seems to depend on ADIOS
     eavlPixieImporter.cpp
+    eavlXGCImporter.cpp
   )
 ENDIF(EAVL_HAVE_ADIOS)
 
