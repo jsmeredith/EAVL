@@ -5,12 +5,11 @@
 #include "STL.h"
 #include <string.h>
 
-using namespace std;
-class eavlStream : public basic_iostream<char,char_traits<char> >
+class eavlStream : public std::basic_iostream<char, std::char_traits<char> >
 {
 public:
-    eavlStream(ostream &os) : basic_iostream<char,char_traits<char> >(os.rdbuf()) {}
-    eavlStream(istream &is) : basic_iostream<char,char_traits<char> >(is.rdbuf()) {}
+    eavlStream(ostream &os) : basic_iostream<char, std::char_traits<char> >(os.rdbuf()) {}
+    eavlStream(istream &is) : basic_iostream<char, std::char_traits<char> >(is.rdbuf()) {}
 };
 
 template <class T>
@@ -64,6 +63,7 @@ inline eavlStream& operator>>(eavlStream &s, T &v)
 inline eavlStream& operator>>(eavlStream &s, string &str)
 {
     size_t sz;
+
     s.read((char*)&sz, sizeof(sz));
     str.resize(sz);
     s.read(&str[0], sz);
@@ -78,7 +78,7 @@ inline eavlStream& operator>>(eavlStream &s, vector<T> &a)
     s.read((char*)&sz, sizeof(sz));
     a.resize(sz);
     if (sz > 0)
-	s.read((char*)&(a[0]), sz*sizeof(T));
+	  s.read((char*)&(a[0]), sz*sizeof(T));
     
     //cout<<"read ("<<sz<<"*"<<sizeof(T)<<"): ";
     //if (sz > 0) cout <<a[0]<<endl;
