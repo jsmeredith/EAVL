@@ -1,3 +1,6 @@
+#ifndef __EAVL_PLATFORM_H
+#define __EAVL_PLATFORM_H
+
 #ifdef _MSC_VER 
   #include <cstdarg>
   #include <stdio.h> 
@@ -59,3 +62,4 @@ inline int c99_snprintf(char* str, size_t size, const char* format, ...)
 }
 
 #endif // _MSC_VER
+#endif

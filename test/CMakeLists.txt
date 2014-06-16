@@ -23,7 +23,6 @@ include_directories(
   ${EAVL_SOURCE_DIR}/src/filters
 )
 
-
 #-----------------------------------------------------------------------------
 # simple macro to add a test - sets correct execution command etc
 #-----------------------------------------------------------------------------
@@ -118,31 +117,11 @@ MACRO(ADD_TEXT_TEST)
 ENDMACRO(ADD_TEXT_TEST)
 
 #-----------------------------------------------------------------------------
-# test data model
+# List of files used by some tests
 #-----------------------------------------------------------------------------
-add_executable(
-  testdatamodel
-  testdatamodel.cpp
-)
-target_link_libraries(testdatamodel eavl_exporters eavl_filters eavl_common)
 
-ADD_SIMPLE_TEST(
-  NAME
-    testdatamodel
-  COMMAND
-    "$<TARGET_FILE:testdatamodel>"
-)
-
-#-----------------------------------------------------------------------------
-# test import
-#-----------------------------------------------------------------------------
-add_executable(
-  testimport
-  testimport.cpp
-)
-target_link_libraries(testimport eavl_importers eavl_filters eavl_common)
-
-set(datafiles
+# testimport, testxform, testserialize
+set(datafiles_1
     curv_cube.vtk
     curv_x.vtk
     curv_xy.vtk
@@ -169,7 +148,55 @@ set(datafiles
     ucd_tets.vtk
 )
 
-foreach(datafile ${datafiles})
+# testiso
+set(datafiles_2
+  rect_cube.vtk
+  curv_cube.vtk
+  ucd_cube.vtk
+  ucd_sphere.vtk
+  ucd_tets.vtk
+)
+
+# testnormal
+set(datafiles_3
+  curv_cube.vtk
+  curv_xy.vtk
+  curv_xz.vtk
+  curv_yz.vtk
+  poly_2d_in_3d.vtk
+  poly_sphere.vtk
+  rect_cube.vtk
+  rect_xy.vtk
+  rect_xz.vtk
+  rect_yz.vtk
+  ucd_2d_xy.vtk
+  ucd_cube.vtk
+  ucd_sphere.vtk
+  ucd_tets.vtk
+)
+
+# testdistancefield
+set(datafiles_4
+  four_points_1d.vtk
+  four_points_2d.vtk
+  four_points_3d.vtk
+)
+set(distancefield_params
+  "20 -2 7"
+  "50 50  -2 7 -2 7"
+  "20 20 20  -2 7 -2 7 -2 7"
+)
+
+#-----------------------------------------------------------------------------
+# test import
+#-----------------------------------------------------------------------------
+add_executable(
+  testimport
+  testimport.cpp
+)
+target_link_libraries(testimport eavl_exporters eavl_importers eavl_filters eavl_common)
+
+foreach(datafile ${datafiles_1})
   ADD_TEXT_TEST(
     NAME
       "testimport_${datafile}"
@@ -191,15 +218,7 @@ add_executable(
 )
 target_link_libraries(testiso eavl_exporters eavl_importers eavl_filters eavl_common)
 
-set(datafiles
-  rect_cube.vtk
-  curv_cube.vtk
-  ucd_cube.vtk
-  ucd_sphere.vtk
-  ucd_tets.vtk
-)
-
-foreach(datafile ${datafiles})
+foreach(datafile ${datafiles_2})
   ADD_TEXT_TEST(
     NAME 
       testiso_${datafile}
@@ -221,24 +240,7 @@ add_executable(
 )
 target_link_libraries(testnormal eavl_exporters eavl_importers eavl_filters eavl_common)
 
-set(datafiles
-  curv_cube.vtk
-  curv_xy.vtk
-  curv_xz.vtk
-  curv_yz.vtk
-  poly_2d_in_3d.vtk
-  poly_sphere.vtk
-  rect_cube.vtk
-  rect_xy.vtk
-  rect_xz.vtk
-  rect_yz.vtk
-  ucd_2d_xy.vtk
-  ucd_cube.vtk
-  ucd_sphere.vtk
-  ucd_tets.vtk
-)
-
-foreach(datafile ${datafiles})
+foreach(datafile ${datafiles_3})
   ADD_TEXT_TEST(
     NAME
       testnormal_${datafile}
@@ -252,15 +254,6 @@ foreach(datafile ${datafiles})
 endforeach(datafile)
 
 #-----------------------------------------------------------------------------
-# test math
-#-----------------------------------------------------------------------------
-add_executable(
-  testmath
-  testmath.cpp
-)
-target_link_libraries(testmath eavl_exporters eavl_importers eavl_filters eavl_common)
-
-#-----------------------------------------------------------------------------
 # test xform
 #-----------------------------------------------------------------------------
 add_executable(
@@ -269,34 +262,7 @@ add_executable(
 )
 target_link_libraries(testxform eavl_exporters eavl_importers eavl_filters eavl_common)
 
-set(datafiles
-  curv_cube.vtk
-  curv_x.vtk
-  curv_xy.vtk
-  curv_xz.vtk
-  curv_y.vtk
-  curv_yz.vtk
-  curv_z.vtk
-  poly_1d_in_3d.vtk
-  poly_2d_in_3d.vtk
-  poly_sphere.vtk
-  poly_verts_and_lines.vtk
-  poly_verts.vtk
-  rect_cube.vtk
-  rect_x.vtk
-  rect_xy.vtk
-  rect_xz.vtk
-  rect_y.vtk
-  rect_yz.vtk
-  rect_z.vtk
-  ucd_1d_in_3d.vtk
-  ucd_2d_xy.vtk
-  ucd_cube.vtk
-  ucd_sphere.vtk
-  ucd_tets.vtk
-)
-
-foreach(datafile ${datafiles})
+foreach(datafile ${datafiles_1})
   ADD_TEXT_TEST(
     NAME
       testxform_${datafile}
@@ -308,3 +274,82 @@ foreach(datafile ${datafiles})
       "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testxform/${datafile}.out"
   )
 endforeach(datafile)
+
+#-----------------------------------------------------------------------------
+# test serialize
+#-----------------------------------------------------------------------------
+add_executable(
+  testserialize
+  testserialize.cpp
+)
+target_link_libraries(testserialize eavl_importers eavl_filters eavl_common)
+
+foreach(datafile ${datafiles_1})
+  ADD_TEXT_TEST(
+    NAME
+      "testserialize_${datafile}"
+    COMMAND
+      "$<TARGET_FILE:testserialize>"
+    ARGSLIST
+      "${EAVL_SOURCE_DIR}/data/${datafile}"
+    BASELINE
+      "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testserialize/${datafile}.out"
+  )
+endforeach(datafile)
+
+#-----------------------------------------------------------------------------
+# test distance field
+#-----------------------------------------------------------------------------
+add_executable(
+  testdistancefield
+  testdistancefield.cpp
+)
+target_link_libraries(testdistancefield eavl_importers eavl_exporters eavl_filters eavl_common)
+
+list(LENGTH datafiles_4 len1)
+math(EXPR len2 "${len1} - 1")
+
+foreach(val RANGE ${len2})
+  list(GET datafiles_4          ${val} val1)
+  list(GET distancefield_params ${val} val2)
+  # convert string of arguments to list
+  string(REPLACE " " ";" PARAM ${val2})
+
+  ADD_TEXT_TEST(
+    NAME
+      "testdistancefield_${val1}"
+    COMMAND
+      "$<TARGET_FILE:testdistancefield>"
+    ARGSLIST
+      "${EAVL_SOURCE_DIR}/data/${val1}"
+      "${PARAM}"
+    BASELINE
+      "${CMAKE_CURRENT_SOURCE_DIR}/baseline/testdistancefield/${val1}.out"
+  )
+endforeach()
+
+#-----------------------------------------------------------------------------
+# test data model
+#-----------------------------------------------------------------------------
+add_executable(
+  testdatamodel
+  testdatamodel.cpp
+)
+target_link_libraries(testdatamodel eavl_exporters eavl_filters eavl_common)
+
+ADD_SIMPLE_TEST(
+  NAME
+    testdatamodel
+  COMMAND
+    "$<TARGET_FILE:testdatamodel>"
+)
+
+#-----------------------------------------------------------------------------
+# test math
+#-----------------------------------------------------------------------------
+add_executable(
+  testmath
+  testmath.cpp
+)
+target_link_libraries(testmath eavl_exporters eavl_importers eavl_filters eavl_common)
+
