@@ -69,3 +69,5 @@ eavlBinaryMathMutator::Execute()
     eavlField *newfield = new eavlField(field1, result);
     dataset->AddField(newfield);
 }
+
+template<> const char *eavlConcreteArray<float>::GetBasicType() const { return "float"; }
