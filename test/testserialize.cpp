@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
         int meshindex = 0;
         eavlDataSet *data = ReadMeshFromFile(argv[1], meshindex);
 	
-	ofstream f1("dump.dat");
+	ofstream f1("dump.dat", ios::binary);
 	eavlStream s1(f1);
 	data->serialize(s1);
 	f1.close();
@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 	//data->PrintSummary(cout);
 
 	eavlDataSet *d2 = new eavlDataSet;
-	ifstream f2("dump.dat");
+	ifstream f2("dump.dat", ios::binary);
 	eavlStream s2(f2);
 	d2->deserialize(s2);
 	d2->PrintSummary(cout);
