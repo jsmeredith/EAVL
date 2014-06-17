@@ -599,10 +599,10 @@ AC_SUBST(CUDA_LIBS)
 
 # don't use everything -- we only need enough to do data set conversion.
 VTK_ALL_LIBS="
-    vtkIOLegacy-6.0
-    vtkIOCore-6.0
-    vtkCommonDataModel-6.0
-    vtkCommonCore-6.0
+    vtkIOLegacy-6.1
+    vtkIOCore-6.1
+    vtkCommonDataModel-6.1
+    vtkCommonCore-6.1
     "
 
 VTK_CPPFLAGS=""
@@ -617,7 +617,7 @@ VTK Options:
         if test -z "$VTK"; then VTK="no"; fi)
 if test "$VTK" != "yes" -a "$VTK" != "no"; then
    # specified path
-   VTK_CPPFLAGS="-I""$VTK""/include/vtk-6.0 -I""$VTK""/include"
+   VTK_CPPFLAGS="-I""$VTK""/include/vtk-6.1 -I""$VTK""/include"
    VTK_LDFLAGS="-L""$VTK""/lib"
    rpathize(VTK_LDFLAGS, $VTK/lib)
    VTK_LIBS=""
