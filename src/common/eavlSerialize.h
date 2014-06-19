@@ -8,8 +8,8 @@
 class eavlStream : public std::basic_iostream<char, std::char_traits<char> >
 {
 public:
-    eavlStream(ostream &os) : basic_iostream<char, std::char_traits<char> >(os.rdbuf()) {}
-    eavlStream(istream &is) : basic_iostream<char, std::char_traits<char> >(is.rdbuf()) {}
+    eavlStream(ostream &os) : std::basic_iostream<char, std::char_traits<char> >(os.rdbuf()) {}
+    eavlStream(istream &is) : std::basic_iostream<char, std::char_traits<char> >(is.rdbuf()) {}
 };
 
 template <class T>
