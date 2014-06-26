@@ -36,7 +36,7 @@ class eavlIsosurfaceFilter : public eavlFilter
 
   public:
     eavlIsosurfaceFilter();
-    ~eavlIsosurfaceFilter();
+    virtual ~eavlIsosurfaceFilter();
     void SetField(const string &name)
     {
         fieldname = name;

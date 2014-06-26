@@ -16,7 +16,7 @@
 //
 // Modifications:
 // ****************************************************************************
-struct eavlBitmapFont
+class eavlBitmapFont
 {
   public:
     struct Character

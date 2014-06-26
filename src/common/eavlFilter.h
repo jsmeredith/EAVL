@@ -25,7 +25,7 @@ class eavlMutator
     eavlDataSet *dataset;
   public:
     eavlMutator() : dataset(NULL) { }
-    ~eavlMutator() { }
+    virtual ~eavlMutator() { }
     virtual void SetDataSet(eavlDataSet *ds) { dataset = ds; }
     virtual void Execute() = 0;
 };
@@ -49,7 +49,7 @@ class eavlFilter
     eavlDataSet *output;
   public:
     eavlFilter() : input(NULL), output(new eavlDataSet) { }
-    ~eavlFilter() { }
+    virtual ~eavlFilter() { }
     virtual void SetInput(eavlDataSet *ds)
     {
         input = ds;

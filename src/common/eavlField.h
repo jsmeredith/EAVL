@@ -82,7 +82,7 @@ class eavlField
           array(a)
     {
     }
-    ~eavlField()
+    virtual ~eavlField()
     {
         delete array;
     }

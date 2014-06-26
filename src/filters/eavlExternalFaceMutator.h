@@ -23,6 +23,7 @@ class eavlExternalFaceMutator : public eavlMutator
     string cellsetname;
   public:
     eavlExternalFaceMutator();
+    virtual ~eavlExternalFaceMutator();
     void SetCellSet(const string &name)
     {
         cellsetname = name;

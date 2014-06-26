@@ -10,6 +10,10 @@ eavlExternalFaceMutator::eavlExternalFaceMutator()
 {
 }
 
+eavlExternalFaceMutator::~eavlExternalFaceMutator()
+{
+}
+
 void
 eavlExternalFaceMutator::Execute()
 {

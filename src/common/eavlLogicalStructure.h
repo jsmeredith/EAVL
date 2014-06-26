@@ -23,6 +23,7 @@ class eavlLogicalStructure
     int logicalDimension;
   public:
     eavlLogicalStructure(int dim) : logicalDimension(dim) { }
+    virtual ~eavlLogicalStructure() { }
 
     virtual string className() const {return "eavlLogicalStructure";}
     virtual eavlStream& serialize(eavlStream &s) const

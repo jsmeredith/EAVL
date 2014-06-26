@@ -19,6 +19,7 @@ class eavlPointDistanceFieldFilter : public eavlFilter
 {
   public:
     eavlPointDistanceFieldFilter();
+    virtual ~eavlPointDistanceFieldFilter();
     void SetRange1D(int numi,
                     double xn, double xx)
     {

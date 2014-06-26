@@ -30,6 +30,7 @@ class eavlBoxMutator : public eavlMutator
     string fieldname, cellsetname;
   public:
     eavlBoxMutator();
+    virtual ~eavlBoxMutator();
     void SetRange1D(double xn, double xx)
     {
         dim = 1;

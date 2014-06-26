@@ -46,7 +46,7 @@ class eavlDataSet
         npoints = 0;
         logicalStructure = NULL;
     }
-    ~eavlDataSet()
+    virtual ~eavlDataSet()
     {
         Clear();
     }

@@ -19,6 +19,10 @@ eavlPointDistanceFieldFilter::eavlPointDistanceFieldFilter()
     ni = nj = nk = 1;
 }
 
+eavlPointDistanceFieldFilter::~eavlPointDistanceFieldFilter()
+{
+}
+
 void eavlPointDistanceFieldFilter::Execute()
 {
     //

@@ -8,6 +8,10 @@ eavlBoxMutator::eavlBoxMutator()
 {
 }
 
+eavlBoxMutator::~eavlBoxMutator()
+{
+}
+
 
 void
 eavlBoxMutator::Execute()
