@@ -41,7 +41,7 @@ eavlSurfaceNormalMutator::eavlSurfaceNormalMutator()
 void
 eavlSurfaceNormalMutator::Execute()
 {
-    int inCellSetIndex = dataset->GetCellSetIndex(cellsetname);
+    //int inCellSetIndex = dataset->GetCellSetIndex(cellsetname);
     eavlCellSet *inCells = dataset->GetCellSet(cellsetname);
 
     // input arrays are from the coordinates

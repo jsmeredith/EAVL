@@ -22,8 +22,8 @@ class eavlVector4
   public:
     float x, y, z, w;
   public:
-    eavlVector4();
-    eavlVector4(const eavlVector3&);
+    EAVL_HOSTDEVICE eavlVector4();
+    EAVL_HOSTDEVICE eavlVector4(const eavlVector3&);
 };
 
 EAVL_HOSTDEVICE eavlVector4::eavlVector4()

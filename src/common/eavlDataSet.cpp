@@ -10,20 +10,20 @@ eavlStream& eavlDataSet::serialize(eavlStream &s) const
     s<<npoints;
     size_t sz = discreteCoordinates.size();
     s<<sz;
-    for (int i = 0; i < sz; i++)
+    for (unsigned int i = 0; i < sz; i++)
 	discreteCoordinates[i].serialize(s);
     sz = fields.size();
     s << sz;
-    for (int i = 0; i < fields.size(); i++)
+    for (unsigned int i = 0; i < fields.size(); i++)
     	fields[i]->serialize(s);
     
     sz = cellsets.size();
     s << sz;
-    for (int i = 0; i < cellsets.size(); i++)
+    for (unsigned int i = 0; i < cellsets.size(); i++)
 	cellsets[i]->serialize(s);
     sz = coordinateSystems.size();
     s << sz;
-    for (int i = 0; i < coordinateSystems.size(); i++)
+    for (unsigned int i = 0; i < coordinateSystems.size(); i++)
 	coordinateSystems[i]->serialize(s);
     s << (logicalStructure ? true : false);
     if (logicalStructure)
@@ -40,18 +40,18 @@ eavlStream& eavlDataSet::deserialize(eavlStream &s)
     s >> npoints;
     s >> sz;
     discreteCoordinates.resize(sz);
-    for (int i = 0; i < discreteCoordinates.size(); i++)
+    for (unsigned int i = 0; i < discreteCoordinates.size(); i++)
 	discreteCoordinates[i].deserialize(s);
     s >> sz;
     fields.resize(sz);
-    for (int i = 0; i < fields.size(); i++)
+    for (unsigned int i = 0; i < fields.size(); i++)
     {
 	fields[i] = new eavlField;
 	fields[i]->deserialize(s);
     }
     s >> sz;
     cellsets.resize(sz);
-    for (int i = 0; i < sz; i++)
+    for (unsigned int i = 0; i < sz; i++)
     {
 	s >> nm;
 	cellsets[i] = eavlCellSet::CreateObjFromName(nm);
@@ -59,7 +59,7 @@ eavlStream& eavlDataSet::deserialize(eavlStream &s)
     }
     s >> sz;
     coordinateSystems.resize(sz);
-    for (int i = 0; i < coordinateSystems.size(); i++)
+    for (unsigned int i = 0; i < coordinateSystems.size(); i++)
     {
 	s >> nm;
 	coordinateSystems[i] = eavlCoordinates::CreateObjFromName(nm);

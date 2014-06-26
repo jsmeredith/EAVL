@@ -166,7 +166,7 @@ void CalculateTicksLogarithmic(double lower, double upper, bool minor,
     sortedRange[0] = lower < upper ? lower : upper;
     sortedRange[1] = lower > upper ? lower : upper;
 
-    double range = sortedRange[1] - sortedRange[0];
+    //double range = sortedRange[1] - sortedRange[0];
 
     double first_log = ceil(sortedRange[0]);
     double last_log = floor(sortedRange[1]);

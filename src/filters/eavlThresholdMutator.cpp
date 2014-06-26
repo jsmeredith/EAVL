@@ -50,7 +50,7 @@ eavlThresholdMutator::Execute()
                                                           inCells->GetDimensionality());
     subset->SetCellNodeConnectivity(conn);
 
-    int new_cellset_index = dataset->GetNumCellSets();
+    //int new_cellset_index = dataset->GetNumCellSets();
     dataset->AddCellSet(subset);
 
     for (int i=0; i<dataset->GetNumFields(); i++)

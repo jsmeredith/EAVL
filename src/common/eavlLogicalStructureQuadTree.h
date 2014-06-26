@@ -29,7 +29,7 @@ class eavlLogicalStructureQuadTree : public eavlLogicalStructure
 	    s.write((const char *)coeffs, K*K*sizeof(float));
 	    size_t sz = children.size();
 	    s << sz;
-	    for (int i = 0; i < children.size(); i++)
+	    for (unsigned int i = 0; i < children.size(); i++)
 		children[i].serialize(s);
 	    return s;
 	    
@@ -41,7 +41,7 @@ class eavlLogicalStructureQuadTree : public eavlLogicalStructure
 	    size_t sz;
 	    s >> sz;
 	    children.resize(sz);
-	    for (int i = 0; i < children.size(); i++)
+	    for (unsigned int i = 0; i < children.size(); i++)
 		children[i].deserialize(s);
 	    return s;
 	}
@@ -66,7 +66,7 @@ class eavlLogicalStructureQuadTree : public eavlLogicalStructure
 	s << className();
 	root.serialize(s);
 	s << celllist.size();
-	for (int i = 0; i < celllist.size(); i++)
+	for (unsigned int i = 0; i < celllist.size(); i++)
 	    celllist[i]->serialize(s);
 	return s;
     }
