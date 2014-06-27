@@ -1,4 +1,4 @@
-// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
+// Copyright 2010-2014 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #ifndef EAVL_COLOR_BAR_ANNOTATION_H
 #define EAVL_COLOR_BAR_ANNOTATION_H
 

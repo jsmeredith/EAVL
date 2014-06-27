@@ -2,7 +2,7 @@
                                     EAVL
 ------------------------------------------------------------------------------
 
-All EAVL code is copyright (c) 2010-2013, UT-Battelle, LLC.
+All EAVL code is copyright (c) 2010-2014, UT-Battelle, LLC.
 
 EAVL is made available under the "BSD 2-Clause" license.
 
@@ -19,7 +19,7 @@ Any copyrights and disclaimers from those projects are reproduced below:
 
  -   -   -   -   -   -   -   -   -  VisIt  -   -   -   -   -   -   -   -   -
 
-Copyright (c) 2000 - 2012 Lawrence Livermore National Security, LLC.
+Copyright (c) 2000 - 2014 Lawrence Livermore National Security, LLC.
 Produced at the Lawrence Livermore National Laboratory
 LLNL-CODE-442911
 All rights reserved.

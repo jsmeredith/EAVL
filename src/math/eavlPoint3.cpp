@@ -1,4 +1,4 @@
-// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
+// Copyright 2010-2014 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #include "eavlPoint3.h"
 
 ostream &operator<<(ostream& out, const eavlPoint3 &r)

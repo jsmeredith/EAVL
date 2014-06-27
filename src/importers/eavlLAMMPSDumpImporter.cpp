@@ -1,5 +1,5 @@
-// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
-// This file contains code from VisIt, (c) 2000-2013 LLNS.  See COPYRIGHT.txt.
+// Copyright 2010-2014 UT-Battelle, LLC.  See LICENSE.txt for more information.
+// This file contains code from VisIt, (c) 2000-2014 LLNS.  See COPYRIGHT.txt.
 
 #include "eavlLAMMPSDumpImporter.h"
 
