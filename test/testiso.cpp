@@ -234,7 +234,7 @@ int main(int argc, char *argv[])
         //iso->Execute();
         //cerr << "SECOND PASS (AFTER INIT): "<<eavlTimer::Stop(th2,"whole isosurface")<<endl;
 
-        //eavlTimer::Dump(cerr);
+        eavlTimer::Dump(cerr);
 
         // For debugging we can add some temp arrays to input data set
         //WriteToVTKFile(data, "input_modified.vtk", 0);
