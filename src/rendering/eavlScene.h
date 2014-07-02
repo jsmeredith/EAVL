@@ -118,9 +118,14 @@ class eavl3DGLScene : public eavlScene
         view.view3d.ypan = 0;
         view.view3d.zoom = 1.0;
         view.view3d.at   = center;
+#ifdef LEFTHANDED
         view.view3d.from = view.view3d.at + eavlVector3(0,0, -ds_size*2);
+#else
+        view.view3d.from = view.view3d.at + eavlVector3(0,0, ds_size*2);
+#endif
         view.view3d.up   = eavlVector3(0,1,0);
-        view.view3d.fov  = 0.5;
+        view.view3d.fov  = 0.5; // perspective only
+        view.view3d.size = ds_size; //orthographic only;
         view.view3d.nearplane = ds_size/16.;
         view.view3d.farplane = ds_size*4;
 
@@ -151,7 +156,8 @@ class eavl3DGLScene : public eavlScene
             glLightModelfv(GL_LIGHT_MODEL_AMBIENT, eavlColor::grey20.c);
             glLightfv(GL_LIGHT0, GL_AMBIENT, eavlColor::black.c);
             glLightfv(GL_LIGHT0, GL_DIFFUSE, eavlColor::grey50.c);
-            float lightdir[4] = {0, 0, 1, 0};
+            //float lightdir[4] = {0, 0, 1, 0};
+            float lightdir[4] = {.2, .4, 1, 0};
             glLightfv(GL_LIGHT0, GL_POSITION, lightdir);
             glLightfv(GL_LIGHT0, GL_SPECULAR, eavlColor::white.c);
             glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, eavlColor::grey40.c);

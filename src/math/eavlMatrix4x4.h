@@ -277,7 +277,11 @@ eavlMatrix4x4::CreateView(const eavlPoint3 &from,
 {
     eavlVector3 up, right, view_dir;
 
+#ifdef LEFTHANDED
     view_dir = (at - from).normalized();
+#else
+    view_dir = (from - at).normalized();
+#endif
     right    = (world_up % view_dir).normalized();
     up       = (view_dir % right).normalized();
 
@@ -305,7 +309,11 @@ eavlMatrix4x4::CreateRBT(const eavlPoint3 &from,
 {
     eavlVector3 up, right, view_dir;
 
+#ifdef LEFTHANDED
     view_dir = (at - from).normalized();
+#else
+    view_dir = (from - at).normalized();
+#endif
     right    = (world_up % view_dir).normalized();
     up       = (view_dir % right).normalized();
 
@@ -321,48 +329,88 @@ eavlMatrix4x4::CreateRBT(const eavlPoint3 &from,
     m[2][1] = up.z;
     m[2][2] = view_dir.z;
 
-    // Don't forget the translation
     m[0][3] = from.x;
     m[1][3] = from.y;
     m[2][3] = from.z;
 }
 
 EAVL_HOSTDEVICE void
-eavlMatrix4x4::CreatePerspectiveProjection(float near_plane,
-                                    float far_plane,
-                                    float fov,
-                                    float aspect)
+eavlMatrix4x4::CreatePerspectiveProjection(float near,
+                                           float far,
+                                           float fov,
+                                           float aspect)
 {
+    CreateZero();
+
+    ///\todo: unify left-handed code into right-handed code;
+    /// I think only the RH path gets correct Z buffer values
+#ifdef LEFTHANDED // OLD CODE, LEFT-HANDED
     float  c, s, Q;
 
     c = cos(fov*0.5);
     s = sin(fov*0.5);
-    Q = s/(1.0 - near_plane/far_plane);
-
-    CreateZero();
+    Q = s/(1.0 - near/far);
 
     m[0][0] = c/aspect;
     m[1][1] = c;
     m[2][2] = Q;
-    m[2][3] = -Q*near_plane;
+    m[2][3] = -Q*near;
     m[3][2] = s;
+#else // NEW CODE, RIGHT-HANDED
+    // derived from formulas at:
+    //  http://db-in.com/blog/2011/04/cameras-on-opengl-es-2-x/
+    float size = near * tan(fov * 0.5);
+    float left = -size*aspect, right = size*aspect, bottom = -size, top=size;
+    m[0][0] = 2. * near / (right-left);
+
+    m[1][1] = 2. * near / (top-bottom);
+
+    m[0][2] = (right+left) / (right-left);
+    m[1][2] = (top+bottom) / (top-bottom);
+    m[2][2] = -(far+near)  / (far-near);
+    m[3][2] = -1;
+
+    m[2][3] = -(2.*far*near) / (far-near);
+#endif
 }
 
 EAVL_HOSTDEVICE void
 eavlMatrix4x4::CreateOrthographicProjection(float size,
-                                     float near_plane,
-                                     float far_plane,
-                                     float aspect)
+                                            float near,
+                                            float far,
+                                            float aspect)
 {
+    CreateZero();
+
+    ///\todo: unify left-handed code into right-handed code
+    /// I think only the RH path gets correct Z buffer values
+#ifdef LEFTHANDED // OLD CODE, LEFT-HANDED
     float d;
-    d = far_plane - near_plane;
+    d = far - near;
 
     CreateIdentity();
     m[0][0] = 2./(size*aspect);
     m[1][1] = 2./size;
     m[2][2] = 1./d;
-    m[2][3] = -near_plane/d;
+    m[2][3] = -near/d;
     m[3][3] = 1;
+
+#else // NEW CODE, RIGHT-HANDED
+    // derived from formulas at:
+    //  http://db-in.com/blog/2011/04/cameras-on-opengl-es-2-x/
+    float left = -size/2. * aspect;
+    float right = size/2. * aspect;
+    float bottom = -size/2.;
+    float top    =  size/2.;
+
+    m[0][0] = 2. / (right - left);
+    m[1][1] = 2. / (top - bottom);
+    m[2][2] = -2. / (far - near);
+    m[0][3] = -(right + left) / (right - left);
+    m[1][3] = -(top + bottom) / (top - bottom);
+    m[2][3] = -(far + near) / (far - near);
+    m[3][3] = 1.;
+#endif
 }
 
 
@@ -374,7 +422,7 @@ eavlMatrix4x4::CreateTrackball(float p1x,float p1y,  float p2x, float p2y)
 #define AR3 (RADIUS*RADIUS*RADIUS)
 
     float   q[4];   // quaternion
-    eavlVector3  p1, p2; // pointer loactions on trackball
+    eavlVector3  p1, p2; // pointer locations on trackball
     eavlVector3  axis;   // axis of rotation
     double  phi;    // rotation angle (radians)
     double  t;
@@ -416,7 +464,7 @@ eavlMatrix4x4::CreateTrackball(float p1x,float p1y,  float p2x, float p2y)
     q[2] *= t;
     q[3] *= t;
 
-    //q[2]*=-1;   //  This is needed in a LH coordinate system
+    //q[2]*=-1;   // swap left/right handed coordinate system
 
     // create the rotation matrix from the quaternion
     CreateIdentity();

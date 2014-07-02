@@ -192,7 +192,11 @@ struct eavlView
     void TrackballRotate(double x1, double y1, double x2, double y2)
     {
         eavlMatrix4x4 R1;
+#ifdef LEFTHANDED
         R1.CreateTrackball(-x1,-y1, -x2,-y2);
+#else
+        R1.CreateTrackball(x1,y1, x2,y2);
+#endif
         eavlMatrix4x4 T1;
         T1.CreateTranslate(-view3d.at);
         eavlMatrix4x4 T2;
