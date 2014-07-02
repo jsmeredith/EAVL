@@ -44,15 +44,14 @@ class eavlTextAnnotation : public eavlAnnotation
     string text;
     eavlColor color;
     double  scale;
-    ///\todo: change anchor range to [-1,+1] (center=0) instead of [0,1] (center=.5)
     double anchorx, anchory;
 
   public:
     eavlTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, double s)
         : eavlAnnotation(w), text(txt), color(c), scale(s)
     {
-        anchorx = 0;
-        anchory = 0;
+        anchorx = -1;
+        anchory = -1;
     }
     void SetText(const string &txt)
     {
