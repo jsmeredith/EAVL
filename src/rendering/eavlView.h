@@ -67,17 +67,21 @@ struct eavlView
         windowaspect = w / h;
 
         double l=vl, r=vr, b=vb, t=vt;
-        ///\todo: urgent: this is wrong!  should be l,r,b,t!!!
         if (viewtype == EAVL_VIEW_2D)
-            GetRealViewport(l,r,t,b);
+            GetRealViewport(l,r,b,t);
 
         // the viewport's aspect ratio is in terms of pixels
         viewportaspect = (w*(r-l)) / (h*(t-b));
 
         // set up projection matrix
         if (viewtype == EAVL_VIEW_2D)
+        {
+#ifdef LEFTHANDED
+            ///\todo: is it -1 to +1, or the reverse here?
+#endif            
             P.CreateOrthographicProjection(fabs(view2d.t-view2d.b),
                                            +1, -1, viewportaspect);
+        }
         else if (view3d.perspective)
             P.CreatePerspectiveProjection(view3d.nearplane, view3d.farplane,
                                           view3d.fov, viewportaspect);
