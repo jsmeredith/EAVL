@@ -211,9 +211,15 @@ class eavlFlatArray
             int nbytes = length * sizeof(T);
             if (!device)
             {
+#ifdef DEBUG_ARRAY_TRANSFERS
+              cerr << "Allocating "<<nbytes<<" device bytes for "<<this<<endl;
+#endif
                 cudaMalloc((void**)&device, nbytes);
                 CUDA_CHECK_ERROR();
             }
+#ifdef DEBUG_ARRAY_TRANSFERS
+            cerr << "Transferring ("<<this<<") array to device\n";
+#endif
             cudaMemcpy(device, &(host[0]),
                        nbytes, cudaMemcpyHostToDevice);
             CUDA_CHECK_ERROR();
@@ -228,6 +234,9 @@ class eavlFlatArray
         {
             int nbytes = length * sizeof(T);
             // assert(device != NULL)
+#ifdef DEBUG_ARRAY_TRANSFERS
+            cerr << "Transferring ("<<this<<") array to host\n";
+#endif
             cudaMemcpy(&(host[0]), device,
                        nbytes, cudaMemcpyDeviceToHost);
             CUDA_CHECK_ERROR();

@@ -142,14 +142,20 @@ class eavlInfoTopologyGatherMapOp : public eavlOperation
         {
             eavlExplicitConnectivity &conn = elExp->GetConnectivity(topology);
 
-            conn.shapetype.NeedOnDevice();
-            conn.connectivity.NeedOnDevice();
-            conn.mapCellToIndex.NeedOnDevice();
+            cerr<<"copying shapetype from device...\n";
+            conn.shapetype.NeedOnHost();
+            cerr<<"copying connectivity from device...\n";
+            conn.connectivity.NeedOnHost();
+            cerr<<"copying mapCellToIndex from device...\n";
+            conn.mapCellToIndex.NeedOnHost();
 
             eavlOpDispatch<eavlInfoTopologyGatherMapOp_GPU<eavlExplicitConnectivity> >(n, conn, inputs, outputs, indices, functor);
 
+            cerr<<"copying shapetype from device...\n";
             conn.shapetype.NeedOnHost();
+            cerr<<"copying connectivity from device...\n";
             conn.connectivity.NeedOnHost();
+            cerr<<"copying mapCellToIndex from device...\n";
             conn.mapCellToIndex.NeedOnHost();
         }
         else if (elStr)

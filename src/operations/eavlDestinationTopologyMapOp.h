@@ -143,14 +143,20 @@ class eavlDestinationTopologyMapOp : public eavlOperation
         {
             eavlExplicitDestination &conn = elExp->GetDestination(topology);
 
+            cerr<<"copying shapetype to device...\n";
             conn.shapetype.NeedOnDevice();
-            conn.destination.NeedOnDevice();
+            cerr<<"copying connectivity to device...\n";
+            conn.connectivity.NeedOnDevice();
+            cerr<<"copying mapCellToIndex to device...\n";
             conn.mapCellToIndex.NeedOnDevice();
 
             eavlOpDispatch<eavlDestinationTopologyMapOp_GPU<eavlExplicitDestination> >(n, conn, inputs, outputs, functor);
 
+            cerr<<"copying shapetype from device...\n";
             conn.shapetype.NeedOnHost();
-            conn.destination.NeedOnHost();
+            cerr<<"copying connectivity from device...\n";
+            conn.connectivity.NeedOnHost();
+            cerr<<"copying mapCellToIndex from device...\n";
             conn.mapCellToIndex.NeedOnHost();
         }
         else if (elStr)

@@ -324,6 +324,7 @@ void eavlTimer::real_Dump(std::ostream &out)
         sprintf(desc, "%-*s", (int)maxlen, descriptions[i].c_str());
         out << desc << " took " << timeLengths[i] << endl;
     }
+    descriptions.clear();
 }
 
 
