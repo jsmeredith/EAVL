@@ -7,6 +7,7 @@
 #include "eavlColor.h"
 #include "eavlTexture.h"
 #include "eavlRenderSurface.h"
+#include "eavlSceneRenderer.h"
 #include "eavlAnnotation.h"
 
 class eavlScene;
@@ -27,6 +28,7 @@ class eavlWindow
   protected:
     eavlColor bg;
     eavlScene *scene;
+    eavlSceneRenderer *renderer;
     std::map<std::string,eavlTexture*> textures;
 
     std::vector<eavlAnnotation*> annotations;
@@ -37,7 +39,8 @@ class eavlWindow
 
   public:
     eavlWindow(eavlColor bgcolor, eavlRenderSurface *surf,
-               eavlScene *s = NULL) : bg(bgcolor), scene(s), surface(surf)
+               eavlScene *s, eavlSceneRenderer *r)
+        : bg(bgcolor), scene(s), renderer(r), surface(surf)
     {
     }
     virtual ~eavlWindow()
@@ -49,6 +52,14 @@ class eavlWindow
         textures.clear();
     }
 
+    void SetSceneRenderer(eavlSceneRenderer *sr)
+    {
+        renderer = sr;
+    }
+    eavlSceneRenderer *GetSceneRenderer()
+    {
+        return renderer;
+    }
     void ClearAnnotations()
     {
         annotations.clear();

@@ -17,8 +17,9 @@ class eavl3DWindow : public eavlWindow
     eavlBoundingBoxAnnotation *bbox;
     eavl3DAxisAnnotation *xaxis, *yaxis, *zaxis;
   public:
-    eavl3DWindow(eavlColor bg, eavlRenderSurface *surf, eavlScene *s = NULL)
-        : eavlWindow(bg,surf,s)
+    eavl3DWindow(eavlColor bg, eavlRenderSurface *surf,
+                 eavlScene *s, eavlSceneRenderer *r)
+        : eavlWindow(bg,surf,s,r)
     {
         //view.vt = +.8; // save room for legend (and prove 3D viewports work)
 

@@ -4,7 +4,7 @@
 
 #include "eavl.h"
 #include "eavlView.h"
-#include "eavlRenderer.h"
+#include "eavlPlot.h"
 #include "eavlColorTable.h"
 #include "eavlTexture.h"
 #include "eavlWindow.h"
@@ -27,7 +27,7 @@
 class eavlScene
 {
   public:
-    std::vector<eavlRenderer*> plots;
+    std::vector<eavlPlot*> plots;
 
   public:
     eavlScene() { }
@@ -50,16 +50,16 @@ class eavlScene
 
         for (unsigned int i=0; i<plots.size(); i++)
         {
-            eavlRenderer *p = plots[i];
+            eavlPlot *p = plots[i];
             if (!p)
                 continue;
 
             for (int d=0; d<3; d++)
             {
-                double vmin = p->GetMinCoordExtent(d);
+                double vmin = p->GetMinCoordExtentFinal(d);
                 if (vmin < view.minextents[d])
                     view.minextents[d] = vmin;
-                double vmax = p->GetMaxCoordExtent(d);
+                double vmax = p->GetMaxCoordExtentFinal(d);
                 if (vmax > view.maxextents[d])
                     view.maxextents[d] = vmax;
             }
@@ -170,29 +170,31 @@ class eavl3DGLScene : public eavlScene
         glEnable(GL_DEPTH_TEST);
 
         // render the plots
+        eavlSceneRenderer *sr = win->GetSceneRenderer();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
-            eavlRenderer *r = plots[i];
-            if (!r)
+            eavlPlot *p = plots[i];
+            if (!p)
                 continue;
 
             eavlTexture *tex = NULL;
-            if (r->GetColorTableName() != "")
+            string ctname = p->GetColorTableName();
+            if (ctname != "")
             {
-                tex = win->GetTexture(r->GetColorTableName());
+                tex = win->GetTexture(ctname);
                 if (!tex)
                 {
                     if (!tex)
                         tex = new eavlTexture;
-                    tex->CreateFromColorTable(eavlColorTable(r->GetColorTableName()));
-                    win->SetTexture(r->GetColorTableName(), tex);
+                    tex->CreateFromColorTable(eavlColorTable(ctname));
+                    win->SetTexture(ctname, tex);
                 }
             }
 
             if (tex)
                 tex->Enable();
 
-            r->Render();
+            p->Render(sr);
 
             if (tex)
                 tex->Disable();
@@ -249,12 +251,12 @@ class eavl2DGLScene : public eavlScene
         /// identical.  Can we merge them?  (If the renderers had
         /// access to the window, or texture cache if it gets moved
         /// out of the window, then we just move the texture mgt into
-        /// eavlRenderer base, and that makes this code a one-line loop.
+        /// eavlPlot base, and that makes this code a one-line loop.
 
         // render the plots
         for (unsigned int i=0;  i<plots.size(); i++)
         {
-            eavlRenderer *r = plots[i];
+            eavlPlot *r = plots[i];
             if (!r)
                 continue;
 
@@ -274,8 +276,8 @@ class eavl2DGLScene : public eavlScene
             if (tex)
                 tex->Enable();
 
-            r->Render();
-
+            r->Render(win->GetSceneRenderer());
+            
             if (tex)
                 tex->Disable();
         }
@@ -322,32 +324,34 @@ class eavlPolarGLScene : public eavlScene
         /// identical.  Can we merge them?  (If the renderers had
         /// access to the window, or texture cache if it gets moved
         /// out of the window, then we just move the texture mgt into
-        /// eavlRenderer base, and that makes this code a one-line loop.
+        /// eavlPlot base, and that makes this code a one-line loop.
 
         // render the plots
+        eavlSceneRenderer *sr = win->GetSceneRenderer();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
-            eavlRenderer *r = plots[i];
-            if (!r)
+            eavlPlot *p = plots[i];
+            if (!p)
                 continue;
 
             eavlTexture *tex = NULL;
-            if (r->GetColorTableName() != "")
+            string ctname = p->GetColorTableName();
+            if (ctname != "")
             {
-                tex = win->GetTexture(r->GetColorTableName());
+                tex = win->GetTexture(ctname);
                 if (!tex)
                 {
                     if (!tex)
                         tex = new eavlTexture;
-                    tex->CreateFromColorTable(eavlColorTable(r->GetColorTableName()));
-                    win->SetTexture(r->GetColorTableName(), tex);
+                    tex->CreateFromColorTable(eavlColorTable(ctname));
+                    win->SetTexture(ctname, tex);
                 }
             }
 
             if (tex)
                 tex->Enable();
 
-            r->Render();
+            p->Render(sr);
 
             if (tex)
                 tex->Disable();
@@ -443,36 +447,42 @@ class eavl1DGLScene : public eavlScene
         view.SetupForWorldSpace();
 
         // render the plots
+        eavlSceneRenderer *sr = win->GetSceneRenderer();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
-            eavlRenderer *r = plots[i];
-            if (!r)
+            eavlPlot *p = plots[i];
+            if (!p)
                 continue;
 
+            if (view.view2d.logy)
+                cerr << "WARNING; NEED TO RE-ENABLE LOG SCALING!\n";
+            /*
             ///\todo: ugly hack to make the curve renderer do log scaling
             eavlCurveRenderer* cr = dynamic_cast<eavlCurveRenderer*>(r);
             if (cr)
             {
                 cr->SetLogarithmic(view.view2d.logy);
             }
+            */
 
             eavlTexture *tex = NULL;
-            if (r->GetColorTableName() != "")
+            string ctname = p->GetColorTableName();
+            if (ctname != "")
             {
-                tex = win->GetTexture(r->GetColorTableName());
+                tex = win->GetTexture(ctname);
                 if (!tex)
                 {
                     if (!tex)
                         tex = new eavlTexture;
-                    tex->CreateFromColorTable(eavlColorTable(r->GetColorTableName()));
-                    win->SetTexture(r->GetColorTableName(), tex);
+                    tex->CreateFromColorTable(eavlColorTable(ctname));
+                    win->SetTexture(ctname, tex);
                 }
             }
 
             if (tex)
                 tex->Enable();
 
-            r->Render();
+            p->Render(sr);
 
             if (tex)
                 tex->Disable();

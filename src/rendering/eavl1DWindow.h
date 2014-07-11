@@ -16,8 +16,9 @@ class eavl1DWindow : public eavlWindow
     eavl2DFrameAnnotation *frame;
     eavlColorLegendAnnotation *legend;
   public:
-    eavl1DWindow(eavlColor bg, eavlRenderSurface *surf, eavlScene *s = NULL)
-        : eavlWindow(bg,surf,s)
+    eavl1DWindow(eavlColor bg, eavlRenderSurface *surf,
+                 eavlScene *s, eavlSceneRenderer *r)
+        : eavlWindow(bg,surf,s,r)
     {
         view.vl = -.7;
         view.vr = +.7;
@@ -73,6 +74,8 @@ class eavl1DWindow : public eavlWindow
                                  eavlTextAnnotation::VCenter);
         vaxis->Render(view);
 
+        ///\todo: FIXME
+        /*
         legend->Clear();
         for (unsigned int i=0; i<scene->plots.size(); ++i)
         {
@@ -81,6 +84,7 @@ class eavl1DWindow : public eavlWindow
                 legend->AddItem(cr->GetName(), cr->GetColor());
         }
         legend->Render(view);
+        */
 
         glFinish();
     }
