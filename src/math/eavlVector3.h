@@ -145,6 +145,12 @@ eavlVector3::operator-() const
 // scalar multiplication/division
 
 EAVL_HOSTDEVICE eavlVector3
+operator*(const float &s, eavlVector3 &p)
+{
+    return eavlVector3(p.x*s, p.y*s, p.z*s);
+}
+
+EAVL_HOSTDEVICE eavlVector3
 eavlVector3::operator*(const float &s) const
 {
     return eavlVector3(x*s, y*s, z*s);

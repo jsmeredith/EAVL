@@ -161,6 +161,12 @@ eavlPoint3::operator-() const
 // scalar multiplication/division
 
 EAVL_HOSTDEVICE eavlPoint3
+operator*(const float &s, eavlPoint3 &p)
+{
+    return eavlPoint3(p.x*s, p.y*s, p.z*s);
+}
+
+EAVL_HOSTDEVICE eavlPoint3
 eavlPoint3::operator*(const float &s) const
 {
     return eavlPoint3(x*s, y*s, z*s);
