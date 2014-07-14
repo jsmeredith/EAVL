@@ -55,8 +55,10 @@ struct ColorByOptions
 // ****************************************************************************
 class eavlSceneRenderer
 {
+  protected:
     int ncolors;
     float colors[3*1024];
+    eavlView view;
   public:
     eavlSceneRenderer()
     {
@@ -67,7 +69,10 @@ class eavlSceneRenderer
     {
     }
 
-    virtual void StartScene() { }
+    ///\todo: NO, no view in 'startscene'; we need 
+    /// a separate Render method that takes a view;
+    /// EndScene is for setting up BVH's, etc.
+    virtual void StartScene(eavlView v) { view = v; }
     virtual void EndScene() { }
 
     virtual void StartTriangles() { }

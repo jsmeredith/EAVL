@@ -171,7 +171,7 @@ class eavl3DGLScene : public eavlScene
 
         // render the plots
         eavlSceneRenderer *sr = win->GetSceneRenderer();
-        sr->StartScene();
+        sr->StartScene(view);
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             eavlPlot *p = plots[i];
@@ -256,7 +256,7 @@ class eavl2DGLScene : public eavlScene
         /// eavlPlot base, and that makes this code a one-line loop.
 
         eavlSceneRenderer *sr = win->GetSceneRenderer();
-        sr->StartScene();
+        sr->StartScene(view);
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             eavlPlot *p = plots[i];
@@ -333,7 +333,7 @@ class eavlPolarGLScene : public eavlScene
 
         // render the plots
         eavlSceneRenderer *sr = win->GetSceneRenderer();
-        sr->StartScene();
+        sr->StartScene(view);
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             eavlPlot *p = plots[i];
@@ -455,7 +455,7 @@ class eavl1DGLScene : public eavlScene
 
         // render the plots
         eavlSceneRenderer *sr = win->GetSceneRenderer();
-        sr->StartScene();
+        sr->StartScene(view);
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             eavlPlot *p = plots[i];
