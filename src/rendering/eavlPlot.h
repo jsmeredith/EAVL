@@ -34,7 +34,6 @@ class eavlPlot
   protected:
     ///\todo:
     /// some of this is common, some is dimensionality-specific
-    bool           singlecolor;
     string         colortablename;
     eavlColorTable *colortable;
     bool           wireframe;
@@ -47,6 +46,8 @@ class eavlPlot
     {
         /// initializer for other stuff
         field = NULL;
+        wireframe = false;
+        color = eavlColor(.5,.5,.5);
         min_data_extents = max_data_extents = 0;
         if (csname != "")
             name = csname;
@@ -192,6 +193,7 @@ class eavlPlot
 
     void SetField(string fieldname)
     {
+        field = NULL;
         if (fieldname != "")
             name = fieldname;
         else if (cellsetname != "")
@@ -274,6 +276,14 @@ class eavlPlot
     {
         return colortablename;
     }
+    void SetWireframe(bool wf)
+    {
+        wireframe = wf;
+    }
+    void SetSingleColor(eavlColor c)
+    {
+        color = c;
+    }
 
     eavlDataSet *GetDataSet() { return dataset; }
     double GetMinCoordExtentFinal(int axis) { return min_coord_extents_final[axis]; }
@@ -283,34 +293,34 @@ class eavlPlot
 
     virtual void Render(eavlSceneRenderer *r)
     {
+        ColorByOptions opts;
+        opts.singleColor = (field == NULL);
+        opts.color = color;
+        opts.field = field;
+        opts.vmin = min_data_extents;
+        opts.vmax = max_data_extents;
+        opts.ct = colortable;
+
         try
         {
             //cerr << "RENDERING\n";
             if (!cellset)
             {
                 //cerr << "RENDERING POINTS\n";
-                r->RenderPoints(npts, finalpts, field,
-                                min_data_extents, max_data_extents,
-                                colortable);
+                r->RenderPoints(npts, finalpts, opts);
             }
             else
             {
                 if (cellset->GetDimensionality() == 1)
                 {
                     //cerr << "RENDERING 1D CELLS\n";
-                    r->RenderCells1D(cellset,
-                                     npts, finalpts, field,
-                                     min_data_extents, max_data_extents,
-                                     colortable);
+                    r->RenderCells1D(cellset, npts, finalpts, opts);
                 }
                 else if (cellset->GetDimensionality() == 2)
                 {
                     //cerr << "RENDERING 2D CELLS\n";
-                    r->RenderCells2D(cellset,
-                                     npts, finalpts, field,
-                                     min_data_extents, max_data_extents,
-                                     colortable,
-                                     normals);
+                    r->RenderCells2D(cellset, npts, finalpts, opts,
+                                     wireframe, normals);
                 }
                 else if (cellset->GetDimensionality() == 3)
                 {

@@ -102,14 +102,8 @@ class eavlTexture
         //       but 1024 IS.  Real NVIDIA cards can go up to 8192.
         //       Sticking with 1024; that should be plenty for good results.
         const int n = 1024;
-        float colors[n*3];
-        for (int i=0; i<n; i++)
-        {
-            eavlColor c = ct.Map(float(i)/float(n-1));
-            colors[3*i+0] = c.c[0];
-            colors[3*i+1] = c.c[1];
-            colors[3*i+2] = c.c[2];
-        }
+        float *colors = new float[n*3];
+        ct.Sample(n, colors);
         glTexImage1D(GL_TEXTURE_1D, 0,
                      GL_RGB,
                      n,
@@ -117,6 +111,7 @@ class eavlTexture
                      GL_RGB,
                      GL_FLOAT,
                      colors);
+        delete colors;
     }
     void CreateFromDataSet(eavlDataSet *ds,
                            bool cr, bool cg, bool cb, bool ca)

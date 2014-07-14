@@ -8,27 +8,6 @@
 #include "eavlColorTable.h"
 #include "eavlSceneRenderer.h"
 
-static inline eavlColor MapValueToColor(double value,
-                                 double vmin, double vmax,
-                                 eavlColorTable &ct)
-{
-    double norm = 0.5;
-    if (vmin != vmax)
-        norm = (value - vmin) / (vmax - vmin);
-    eavlColor c = ct.Map(norm);
-    return c;
-}
-
-static inline float MapValueToNorm(double value,
-                            double vmin, double vmax)
-{
-    double norm = 0.5;
-    if (vmin != vmax)
-        norm = (value - vmin) / (vmax - vmin);
-    return norm;
-}
-
-
 // ----------------------------------------------------------------------------
 template <bool PointColors>
 void eavlRenderPoints(int npts, double *pts,
@@ -587,20 +566,16 @@ class eavlSceneRendererGL : public eavlSceneRenderer
 {
   public:
     virtual void RenderPoints(int npts, double *pts,
-                              eavlField *field,
-                              double vmin, double vmax,
-                              eavlColorTable *ct)
+                              ColorByOptions opts)
     {
-        ///\todo: HACK! PASS THESE IN!
-        bool singlecolor = (field==NULL);
-        eavlColor color(.5,.5,.5);
-        bool field_nodal = (field && field->GetAssociation() == eavlField::ASSOC_POINTS);
+        bool field_nodal = (opts.field &&
+                opts.field->GetAssociation() == eavlField::ASSOC_POINTS);
 
         glPointSize(2);
-        if (singlecolor)
+        if (opts.singleColor)
         {
             glDisable(GL_LIGHTING);
-            glColor3fv(color.c);
+            glColor3fv(opts.color.c);
 
             eavlRenderPoints<false>(npts, pts, NULL,0,0,NULL);
         }
@@ -610,74 +585,66 @@ class eavlSceneRendererGL : public eavlSceneRenderer
                 THROW(eavlException,
                       "Can't render points for cell-centered field.");
 
-            eavlRenderPoints<true>(npts, pts, field,
-                                   vmin, vmax,
-                                   ct);
+            eavlRenderPoints<true>(npts, pts, opts.field,
+                                   opts.vmin, opts.vmax,
+                                   opts.ct);
         }
 
     }
     virtual void RenderCells1D(eavlCellSet *cellset,
                                int npts, double *pts,
-                               eavlField *field,
-                               double vmin, double vmax,
-                               eavlColorTable *ct)
+                               ColorByOptions opts)
     {
-        ///\todo: HACK! PASS THESE IN!
-        bool singlecolor = (field==NULL);
-        eavlColor color(.5,.5,.5);
-        bool field_nodal = (field && field->GetAssociation() == eavlField::ASSOC_POINTS);
+        bool field_nodal = (opts.field &&
+                opts.field->GetAssociation() == eavlField::ASSOC_POINTS);
 
         glLineWidth(2);
-        if (singlecolor)
+        if (opts.singleColor)
         {
             glDisable(GL_LIGHTING);
-            glColor3fv(color.c);
+            glColor3fv(opts.color.c);
 
             eavlRenderCells1D<false, false>(cellset, npts, pts, NULL,0,0,NULL);
         }
         else
         {
-            if (!field)
+            if (!opts.field)
                 return;
 
             if (field_nodal)
             {
                 eavlRenderCells1D<true, false>(cellset, npts, pts,
-                                               field,
-                                               vmin, vmax,
-                                               ct);
+                                               opts.field,
+                                               opts.vmin, opts.vmax,
+                                               opts.ct);
                 return;
             }
-            else // is there any reason to suspect the field is not associated with this cell set? we should have double checked already...
-
+            else if (opts.field->GetAssociation() == eavlField::ASSOC_CELL_SET &&
+                     opts.field->GetAssocCellSet() == cellset->GetName())
             {
                 eavlRenderCells1D<false, true>(cellset, npts, pts,
-                                               field,
-                                               vmin, vmax,
-                                               ct);
+                                               opts.field,
+                                               opts.vmin, opts.vmax,
+                                               opts.ct);
                 return;
             }
 
             THROW(eavlException,"Error finding field to render given cell set.");
         }
     }
-    virtual void RenderCells2D(eavlCellSet *cellset,
+    virtual void RenderCells2D_old(eavlCellSet *cellset,
                                int npts, double *pts,
-                               eavlField *field,
-                               double vmin, double vmax,
-                               eavlColorTable *ct,
+                               ColorByOptions opts,
+                               bool wireframe,
                                eavlField *normals)
     {
-        ///\todo: HACK! PASS THESE IN!
-        bool singlecolor = (field==NULL);
-        eavlColor color(.5,.5,.5);
-        bool field_nodal = (field && field->GetAssociation() == eavlField::ASSOC_POINTS);
-        bool wireframe = false;
+        bool field_nodal = (opts.field &&
+                opts.field->GetAssociation() == eavlField::ASSOC_POINTS);
 
-        if (singlecolor)
+        if (opts.singleColor)
         {
             glDisable(GL_LIGHTING);
-            glColor3fv(color.c);
+            glColor3fv(opts.color.c);
 
             if (wireframe)
             {
@@ -700,7 +667,7 @@ class eavlSceneRendererGL : public eavlSceneRenderer
         }
         else
         {
-            if (!field)
+            if (!opts.field)
                 return;
 
             if (field_nodal)
@@ -710,24 +677,24 @@ class eavlSceneRendererGL : public eavlSceneRenderer
                     if (normals && normals->GetAssociation()==eavlField::ASSOC_POINTS)
                         eavlRenderCellsWireframe2D<true, false, true, false>(cellset,
                                                                              npts, pts,
-                                                                             field,
-                                                                             vmin,
-                                                                             vmax,
-                                                                             ct, normals);
+                                                                             opts.field,
+                                                                             opts.vmin,
+                                                                             opts.vmax,
+                                                                             opts.ct, normals);
                     else if (normals)
                         eavlRenderCellsWireframe2D<true, false, false, true>(cellset,
                                                                              npts, pts,
-                                                                             field,
-                                                                             vmin,
-                                                                             vmax,
-                                                                             ct, normals);
+                                                                             opts.field,
+                                                                             opts.vmin,
+                                                                             opts.vmax,
+                                                                             opts.ct, normals);
                     else
                         eavlRenderCellsWireframe2D<true, false, false, false>(cellset,
                                                                               npts, pts,
-                                                                              field,
-                                                                              vmin,
-                                                                              vmax,
-                                                                              ct,
+                                                                              opts.field,
+                                                                              opts.vmin,
+                                                                              opts.vmax,
+                                                                              opts.ct,
                                                                               NULL);
                 }
                 else
@@ -735,53 +702,54 @@ class eavlSceneRendererGL : public eavlSceneRenderer
                     if (normals && normals->GetAssociation()==eavlField::ASSOC_POINTS)
                         eavlRenderCells2D<true, false, true, false>(cellset,
                                                                     npts, pts,
-                                                                    field,
-                                                                    vmin,
-                                                                    vmax,
-                                                                    ct, normals);
+                                                                    opts.field,
+                                                                    opts.vmin,
+                                                                    opts.vmax,
+                                                                    opts.ct, normals);
                     else if (normals)
                         eavlRenderCells2D<true, false, false, true>(cellset,
                                                                     npts, pts,
-                                                                    field,
-                                                                    vmin,
-                                                                    vmax,
-                                                                    ct, normals);
+                                                                    opts.field,
+                                                                    opts.vmin,
+                                                                    opts.vmax,
+                                                                    opts.ct, normals);
                     else
                         eavlRenderCells2D<true, false, false, false>(cellset,
                                                                      npts, pts,
-                                                                     field,
-                                                                     vmin,
-                                                                     vmax,
-                                                                     ct,
+                                                                     opts.field,
+                                                                     opts.vmin,
+                                                                     opts.vmax,
+                                                                     opts.ct,
                                                                      NULL);
                 }
                 return;
             }
-            else // is there any reason to suspect the field is not associated with this cell set? we should have double checked already...
+            else if (opts.field->GetAssociation() == eavlField::ASSOC_CELL_SET &&
+                     opts.field->GetAssocCellSet() == cellset->GetName())
             {
                 if (wireframe)
                 {
                     if (normals && normals->GetAssociation()==eavlField::ASSOC_POINTS)
                         eavlRenderCellsWireframe2D<false, true, true, false>(cellset,
                                                                              npts, pts,
-                                                                             field,
-                                                                             vmin,
-                                                                             vmax,
-                                                                             ct, normals);
+                                                                             opts.field,
+                                                                             opts.vmin,
+                                                                             opts.vmax,
+                                                                             opts.ct, normals);
                     else if (normals)
                         eavlRenderCellsWireframe2D<false, true, false, true>(cellset,
                                                                              npts, pts,
-                                                                             field,
-                                                                             vmin,
-                                                                             vmax,
-                                                                             ct, normals);
+                                                                             opts.field,
+                                                                             opts.vmin,
+                                                                             opts.vmax,
+                                                                             opts.ct, normals);
                     else
                         eavlRenderCellsWireframe2D<false, true, false, false>(cellset,
                                                                               npts, pts,
-                                                                              field,
-                                                                              vmin,
-                                                                              vmax,
-                                                                              ct,
+                                                                              opts.field,
+                                                                              opts.vmin,
+                                                                              opts.vmax,
+                                                                              opts.ct,
                                                                               NULL);
                 }
                 else
@@ -789,24 +757,24 @@ class eavlSceneRendererGL : public eavlSceneRenderer
                     if (normals && normals->GetAssociation()==eavlField::ASSOC_POINTS)
                         eavlRenderCells2D<false, true, true, false>(cellset,
                                                                     npts, pts,
-                                                                    field,
-                                                                    vmin,
-                                                                    vmax,
-                                                                    ct, normals);
+                                                                    opts.field,
+                                                                    opts.vmin,
+                                                                    opts.vmax,
+                                                                    opts.ct, normals);
                     else if (normals)
                         eavlRenderCells2D<false, true, false, true>(cellset,
                                                                     npts, pts,
-                                                                    field,
-                                                                    vmin,
-                                                                    vmax,
-                                                                    ct, normals);
+                                                                    opts.field,
+                                                                    opts.vmin,
+                                                                    opts.vmax,
+                                                                    opts.ct, normals);
                     else
                         eavlRenderCells2D<false, true, false, false>(cellset,
                                                                      npts, pts,
-                                                                     field,
-                                                                     vmin,
-                                                                     vmax,
-                                                                     ct,
+                                                                     opts.field,
+                                                                     opts.vmin,
+                                                                     opts.vmax,
+                                                                     opts.ct,
                                                                      NULL);
                 }
                 return;
@@ -815,6 +783,39 @@ class eavlSceneRendererGL : public eavlSceneRenderer
             THROW(eavlException,"Error finding field to render given cell set.");
         }
     }
+
+    virtual void AddTriangleVnVs(double x0, double y0, double z0,
+                                 double x1, double y1, double z1,
+                                 double x2, double y2, double z2,
+                                 double u0, double v0, double w0,
+                                 double u1, double v1, double w1,
+                                 double u2, double v2, double w2,
+                                 double s0, double s1, double s2)
+    {
+        glNormal3d(u0,v0,w0);
+        glTexCoord1f(s0);
+        glVertex3d(x0,y0,z0);
+
+        glNormal3d(u1,v1,w1);
+        glTexCoord1f(s1);
+        glVertex3d(x1,y1,z1);
+
+        glNormal3d(u2,v2,w2);
+        glTexCoord1f(s2);
+        glVertex3d(x2,y2,z2);
+    }
+    virtual void StartTriangles()
+    {
+        glEnable(GL_TEXTURE_1D);
+        glBegin(GL_TRIANGLES);
+    }
+
+    virtual void EndTriangles()
+    {
+        glEnd();
+        glDisable(GL_TEXTURE_1D);
+    }
+
 };
 
 

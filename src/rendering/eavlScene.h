@@ -171,6 +171,7 @@ class eavl3DGLScene : public eavlScene
 
         // render the plots
         eavlSceneRenderer *sr = win->GetSceneRenderer();
+        sr->StartScene();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             eavlPlot *p = plots[i];
@@ -199,6 +200,7 @@ class eavl3DGLScene : public eavlScene
             if (tex)
                 tex->Disable();
         }
+        sr->EndScene();
     }
 };
 
@@ -253,34 +255,37 @@ class eavl2DGLScene : public eavlScene
         /// out of the window, then we just move the texture mgt into
         /// eavlPlot base, and that makes this code a one-line loop.
 
-        // render the plots
+        eavlSceneRenderer *sr = win->GetSceneRenderer();
+        sr->StartScene();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
-            eavlPlot *r = plots[i];
-            if (!r)
+            eavlPlot *p = plots[i];
+            if (!p)
                 continue;
 
             eavlTexture *tex = NULL;
-            if (r->GetColorTableName() != "")
+            string ctname = p->GetColorTableName();
+            if (ctname != "")
             {
-                tex = win->GetTexture(r->GetColorTableName());
+                tex = win->GetTexture(ctname);
                 if (!tex)
                 {
                     if (!tex)
                         tex = new eavlTexture;
-                    tex->CreateFromColorTable(eavlColorTable(r->GetColorTableName()));
-                    win->SetTexture(r->GetColorTableName(), tex);
+                    tex->CreateFromColorTable(eavlColorTable(ctname));
+                    win->SetTexture(ctname, tex);
                 }
             }
 
             if (tex)
                 tex->Enable();
 
-            r->Render(win->GetSceneRenderer());
-            
+            p->Render(sr);
+
             if (tex)
                 tex->Disable();
         }
+        sr->EndScene();
     }
 };
 
@@ -328,6 +333,7 @@ class eavlPolarGLScene : public eavlScene
 
         // render the plots
         eavlSceneRenderer *sr = win->GetSceneRenderer();
+        sr->StartScene();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             eavlPlot *p = plots[i];
@@ -356,6 +362,7 @@ class eavlPolarGLScene : public eavlScene
             if (tex)
                 tex->Disable();
         }
+        sr->EndScene();
     }
 };
 
@@ -448,6 +455,7 @@ class eavl1DGLScene : public eavlScene
 
         // render the plots
         eavlSceneRenderer *sr = win->GetSceneRenderer();
+        sr->StartScene();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             eavlPlot *p = plots[i];
@@ -487,6 +495,7 @@ class eavl1DGLScene : public eavlScene
             if (tex)
                 tex->Disable();
         }
+        sr->EndScene();
     }
 };
 

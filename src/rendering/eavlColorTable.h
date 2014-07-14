@@ -28,6 +28,26 @@ class eavlColorTable
     };
   public:
     vector<ColorControlPoint> pts;
+    void Sample(int n, float *colors) const
+    {
+        for (int i=0; i<n; i++)
+        {
+            eavlColor c = Map(float(i)/float(n-1));
+            colors[3*i+0] = c.c[0];
+            colors[3*i+1] = c.c[1];
+            colors[3*i+2] = c.c[2];
+        }
+    }
+    void Sample(int n, double *colors) const
+    {
+        for (int i=0; i<n; i++)
+        {
+            eavlColor c = Map(float(i)/float(n-1));
+            colors[3*i+0] = c.c[0];
+            colors[3*i+1] = c.c[1];
+            colors[3*i+2] = c.c[2];
+        }
+    }
     eavlColor Map(float c) const
     {
         int n = pts.size();
