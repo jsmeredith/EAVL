@@ -56,6 +56,10 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
         glEnd();
         glDisable(GL_TEXTURE_1D);
     }
+    virtual void Render(eavlView v)
+    {
+        glFinish();
+    }
 
 };
 

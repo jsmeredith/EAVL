@@ -39,13 +39,13 @@ struct ColorByOptions
 };
 
 // ****************************************************************************
-// Class:  eavlRenderer
+// Class:  eavlSceneRenderer
 //
 // Purpose:
 ///   Base class for renderers.
 //
 // Programmer:  Jeremy Meredith
-// Creation:    July 18, 2012
+// Creation:    July 15, 2014
 //
 // Modifications:
 //   Jeremy Meredith, Mon Mar  4 15:44:23 EST 2013
@@ -58,7 +58,6 @@ class eavlSceneRenderer
   protected:
     int ncolors;
     float colors[3*1024];
-    eavlView view;
   public:
     eavlSceneRenderer()
     {
@@ -72,7 +71,9 @@ class eavlSceneRenderer
     ///\todo: NO, no view in 'startscene'; we need 
     /// a separate Render method that takes a view;
     /// EndScene is for setting up BVH's, etc.
-    virtual void StartScene(eavlView v) { view = v; }
+    virtual void Render(eavlView v) = 0;
+
+    virtual void StartScene() { }
     virtual void EndScene() { }
 
     virtual void StartTriangles() { }

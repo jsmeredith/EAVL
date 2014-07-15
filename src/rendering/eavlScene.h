@@ -171,7 +171,7 @@ class eavl3DGLScene : public eavlScene
 
         // render the plots
         eavlSceneRenderer *sr = win->GetSceneRenderer();
-        sr->StartScene(view);
+        sr->StartScene();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             eavlPlot *p = plots[i];
@@ -201,6 +201,7 @@ class eavl3DGLScene : public eavlScene
                 tex->Disable();
         }
         sr->EndScene();
+        sr->Render(view);
     }
 };
 
@@ -256,7 +257,7 @@ class eavl2DGLScene : public eavlScene
         /// eavlPlot base, and that makes this code a one-line loop.
 
         eavlSceneRenderer *sr = win->GetSceneRenderer();
-        sr->StartScene(view);
+        sr->StartScene();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             eavlPlot *p = plots[i];
@@ -286,6 +287,7 @@ class eavl2DGLScene : public eavlScene
                 tex->Disable();
         }
         sr->EndScene();
+        sr->Render(view);
     }
 };
 
@@ -333,7 +335,7 @@ class eavlPolarGLScene : public eavlScene
 
         // render the plots
         eavlSceneRenderer *sr = win->GetSceneRenderer();
-        sr->StartScene(view);
+        sr->StartScene();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             eavlPlot *p = plots[i];
@@ -363,6 +365,7 @@ class eavlPolarGLScene : public eavlScene
                 tex->Disable();
         }
         sr->EndScene();
+        sr->Render(view);
     }
 };
 
@@ -451,11 +454,9 @@ class eavl1DGLScene : public eavlScene
         if (plots.size() == 0)
             return;
 
-        view.SetupForWorldSpace();
-
         // render the plots
         eavlSceneRenderer *sr = win->GetSceneRenderer();
-        sr->StartScene(view);
+        sr->StartScene();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             eavlPlot *p = plots[i];
@@ -496,6 +497,9 @@ class eavl1DGLScene : public eavlScene
                 tex->Disable();
         }
         sr->EndScene();
+
+        view.SetupForWorldSpace();
+        sr->Render(view);
     }
 };
 

@@ -365,8 +365,8 @@ eavlMatrix4x4::CreatePerspectiveProjection(float near,
 
     m[1][1] = 2. * near / (top-bottom);
 
-    m[0][2] = (right+left) / (right-left);
-    m[1][2] = (top+bottom) / (top-bottom);
+    m[0][2] = (right+left) / (right-left); // 0 when centered
+    m[1][2] = (top+bottom) / (top-bottom); // 0 when centered
     m[2][2] = -(far+near)  / (far-near);
     m[3][2] = -1;
 

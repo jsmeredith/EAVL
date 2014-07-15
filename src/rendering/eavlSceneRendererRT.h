@@ -47,6 +47,7 @@ class Object
 class Triangle : public Object
 {
   protected:
+  public:
     eavlPoint3 p;
     eavlVector3 n;
     eavlVector3 n0, n1, n2;
@@ -198,7 +199,7 @@ inline eavlColor CastRay(Ray r, Scene &scene, eavlPoint3 &lightpos,
 
     //cerr << "HIT\n";
 
-#if 0 // map value to color
+#if 1 // map value to color
     eavlColor self = ct.Map(value);
 #else // self-single color
     eavlColor self = o->color;
@@ -219,8 +220,9 @@ inline eavlColor CastRay(Ray r, Scene &scene, eavlPoint3 &lightpos,
         eavlVector3 lightdir = lightvec.normalized();
                 
         float bright = lightdir * norm;
-        if (bright < 0)
-            bright = 0;
+        // clamp to ambient
+        if (bright < .15)
+            bright = .15;
 
         Ray lightray(pt, lightdir);
         eavlPoint3 lr_p;
@@ -298,14 +300,6 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         eavlVector3 n1(u1,v1,w1);
         eavlVector3 n2(u2,v2,w2);
 
-        p0 = view.V * p0;
-        p1 = view.V * p1;
-        p2 = view.V * p2;
-
-        n0 = view.V * n0;
-        n1 = view.V * n1;
-        n2 = view.V * n2;
-        
         Triangle *tri = new Triangle(p0.x, p0.y, p0.z,
                                      p1.x, p1.y, p1.z,
                                      p2.x, p2.y, p2.z,
@@ -322,21 +316,39 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {
     }
 
-    virtual void StartScene(eavlView view)
+    virtual void StartScene()
     {
-        eavlSceneRenderer::StartScene(view); ///<\todo: messy
-
-        rgba.clear();
-        depth.clear();
-        rgba.resize(4*view.w*view.h, 0);
-        depth.resize(view.w*view.h, 1.0f);
         scene.objects.clear();
     }
 
     virtual void EndScene()
     {
+        // nothing to do here
+    }
+
+    virtual void Render(eavlView view)
+    {
+        rgba.clear();
+        depth.clear();
+        rgba.resize(4*view.w*view.h, 0);
+        depth.resize(view.w*view.h, 1.0f);
+
         view.SetupForWorldSpace();
 
+        /*
+        for (int i=0; i<scene.objects.size(); ++i)
+        {
+            if (dynamic_cast<Triangle*>(scene.objects[i]))
+            {
+                Triangle *t = dynamic_cast<Triangle*>(scene.objects[i]);
+                t->p = view.V * t->p;
+                t->n = view.V * t->n;
+                t->e1 = view.V * t->e1;
+                t->e2 = view.V * t->e2;
+            }
+        }
+        */
+        
         eavlPoint3 lightpos(20,40,0);
         eavlColorTable ct("default");
         int w = view.w;
@@ -344,10 +356,36 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
         // todo: should probably include near/far clipping planes
         double eyedist = 1./tan(view.view3d.fov/2.); // fov already radians
+#if 0
         eavlPoint3 eye(0,0,0);
         eavlPoint3 screencenter(0,0,-eyedist);
         eavlVector3 screenx(view.viewportaspect,0,0);
         eavlVector3 screeny(0,1.,0);
+        eavlMatrix4x4 vv = view.V;
+        vv.Invert();
+        eye = vv*eye;
+        screencenter = vv*screencenter;
+        screenx = vv*screenx;
+        screeny = vv*screeny;
+#else
+        float lookdist = (view.view3d.at - view.view3d.from).norm();
+        eavlVector3 lookdir = (view.view3d.at - view.view3d.from).normalized();
+        eavlPoint3 eye = view.view3d.from;
+        eavlPoint3 screencenter = view.view3d.from + lookdir*eyedist;
+        eavlVector3 right = (lookdir % view.view3d.up).normalized();
+        eavlVector3 up = (right % lookdir).normalized();
+        eavlVector3 screenx = right * view.viewportaspect;
+        eavlVector3 screeny = up;
+#endif
+
+        // need to find real z buffer values:
+        float proj22=view.P(2,2);
+        float proj23=view.P(2,3);
+        float proj32=view.P(3,2);
+
+        /*
+        // some debug info:
+        cerr << endl;
         cerr << "eyedist="<<eyedist<<endl;
         cerr << "view3d.nearplane="<<view.view3d.nearplane<<endl;
         cerr << "eye="<<eye<<endl;
@@ -358,14 +396,16 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         cerr << "22 = " << view.P(2,2) << endl;
         cerr << "23 = " << view.P(2,3) << endl;
         cerr << "32 = " << view.P(3,2) << endl;
-
+        cerr << "view.P="<<view.P<<endl;
+        */
+        
         float minz = FLT_MAX;
         float maxz = -FLT_MAX;
         float mind = FLT_MAX;
         float maxd = -FLT_MAX;
 
         const int skip=5;
-//#pragma omp parallel for schedule(dynamic,1) collapse(2)
+#pragma omp parallel for schedule(dynamic,1) collapse(2)
         for (int y=0; y<h; y += skip)
         {
             for (int x=0; x<w; x += skip)
@@ -404,12 +444,24 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
                 //eavlPoint3 pt = r.s + r.v * dist;
                 //eavlPoint3 pt(xx,yy,-(dist + eyedist));
-                eavlPoint3 p2 = view.P * pt;
-                float projdepth = p2[2];
-                //cerr << "x="<<x<<" y="<<y<<" projdepth="<<projdepth<<endl;
-                //cerr << "p="<<p<<endl;
-                //cerr << "pt="<<pt<<endl;
-                //cerr << "p2="<<p2<<endl;
+
+                // case #1 (old) where we pretransformed triangle
+                // vertices by view matrix and left camera in normalized space
+                //eavlPoint3 p2 = view.P * pt;
+                //float projdepth = p2[2];
+
+                // case #2: where points are still in world space:
+                //eavlPoint3 p2 = view.P * view.V * pt;
+                //float projdepth = p2[2];
+
+                // same thing as previous, but much simpler (and a bit faster):
+                // get the depth into the scene
+                // (proj distance along ray onto distance into scene):
+                float scenedepth = eyedist + (lookdir * r.v) * dist;
+                // ... then use projection matrix to get projected depth
+                // (but remember depth is negative in RH system)
+                float projdepth = (proj22 + proj23 / (-scenedepth)) / proj32;
+
                 if (projdepth < minz) minz = projdepth;
                 if (projdepth > maxz) maxz = projdepth;
                 for (int xo=0; xo<skip && x+xo<w; xo++)
@@ -426,13 +478,15 @@ class eavlSceneRendererRT : public eavlSceneRenderer
                 }
             }
         }
+
+        /*
         cerr << "RT minz="<<minz<<endl;
         cerr << "RT maxz="<<maxz<<endl;
         cerr << "RT zrange="<<fabs(minz-maxz)<<endl;
         cerr << "RT mind="<<mind<<endl;
         cerr << "RT maxd="<<maxd<<endl;
         cerr << "RT drange="<<fabs(mind-maxd)<<endl;
-
+        */
 
 
         glColor3f(1,1,1);
