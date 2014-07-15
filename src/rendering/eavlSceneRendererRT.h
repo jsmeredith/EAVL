@@ -181,13 +181,13 @@ class Scene
 
 inline eavlColor CastRay(Ray r, Scene &scene, eavlPoint3 &lightpos,
                          float &dist, eavlPoint3 &pt,
-                         eavlColorTable &ct,
+                         int ncolors, float *colors,
                          int depth = 0)
 {
     eavlColor c;
     eavlVector3 norm;
     dist = -1;
-    float value;
+    float value = 0;
     Object *o = scene.Intersect(r, dist, pt, norm, value);
 
     if (!o)
@@ -200,7 +200,12 @@ inline eavlColor CastRay(Ray r, Scene &scene, eavlPoint3 &lightpos,
     //cerr << "HIT\n";
 
 #if 1 // map value to color
-    eavlColor self = ct.Map(value);
+    int colorindex = ncolors * value;
+    eavlColor self(colors[colorindex*3+0],
+                   colors[colorindex*3+1],
+                   colors[colorindex*3+2]);
+    //eavlColor self = ct.Map(value);
+    
 #else // self-single color
     eavlColor self = o->color;
 #endif
@@ -248,7 +253,7 @@ inline eavlColor CastRay(Ray r, Scene &scene, eavlPoint3 &lightpos,
 
             float ref_dist;
             eavlPoint3 refpt;
-            eavlColor refcolor = CastRay(ref,scene,lightpos,ref_dist,refpt,ct,depth-1);
+            eavlColor refcolor = CastRay(ref,scene,lightpos,ref_dist,refpt,ncolors,colors,depth-1);
                     
             if (ref_dist > mindist)
             {
@@ -336,6 +341,8 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         view.SetupForWorldSpace();
 
         /*
+          // we used to transform geometry into view space;
+          // not a very efficient method.....
         for (int i=0; i<scene.objects.size(); ++i)
         {
             if (dynamic_cast<Triangle*>(scene.objects[i]))
@@ -350,13 +357,14 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         */
         
         eavlPoint3 lightpos(20,40,0);
-        eavlColorTable ct("default");
         int w = view.w;
         int h = view.h;
 
         // todo: should probably include near/far clipping planes
         double eyedist = 1./tan(view.view3d.fov/2.); // fov already radians
+
 #if 0
+        // "simple" way of calculating eye/screen positions in world space
         eavlPoint3 eye(0,0,0);
         eavlPoint3 screencenter(0,0,-eyedist);
         eavlVector3 screenx(view.viewportaspect,0,0);
@@ -368,7 +376,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         screenx = vv*screenx;
         screeny = vv*screeny;
 #else
-        float lookdist = (view.view3d.at - view.view3d.from).norm();
+        // "direct" way of calculating eye/screen positions in world space
         eavlVector3 lookdir = (view.view3d.at - view.view3d.from).normalized();
         eavlPoint3 eye = view.view3d.from;
         eavlPoint3 screencenter = view.view3d.from + lookdir*eyedist;
@@ -417,7 +425,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
                 eavlPoint3 pt;
                 float dist;
-                eavlColor c = CastRay(r, scene, lightpos, dist, pt, ct, 0);
+                eavlColor c = CastRay(r, scene, lightpos, dist, pt, ncolors,colors, 0);
                 if (dist <= mindist)
                 {
                     //cerr << "no intersection!\n";

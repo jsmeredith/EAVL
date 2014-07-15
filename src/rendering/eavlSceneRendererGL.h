@@ -11,8 +11,7 @@
 // ----------------------------------------------------------------------------
 template <bool PointColors>
 void eavlRenderPoints(int npts, double *pts,
-                      eavlField *f, double vmin, double vmax,
-                      eavlColorTable *)
+                      eavlField *f, double vmin, double vmax)
 {
     glDisable(GL_LIGHTING);
     if (PointColors)
@@ -45,8 +44,7 @@ void eavlRenderPoints(int npts, double *pts,
 template <bool PointColors, bool CellColors>
 void eavlRenderCells1D(eavlCellSet *cs,
                   int , double *pts,
-                  eavlField *f, double vmin, double vmax,
-                  eavlColorTable *)
+                  eavlField *f, double vmin, double vmax)
 {
     glDisable(GL_LIGHTING);
     if (PointColors || CellColors)
@@ -101,7 +99,6 @@ template <bool PointColors, bool CellColors, bool PointNormals, bool CellNormals
 void eavlRenderCells2D(eavlCellSet *cs,
                        int , double *pts,
                        eavlField *f, double vmin, double vmax,
-                       eavlColorTable *,
                        eavlField *normals)
 {
     if (PointColors || CellColors)
@@ -306,7 +303,6 @@ template <bool PointColors, bool CellColors, bool PointNormals, bool CellNormals
 void eavlRenderCellsWireframe2D(eavlCellSet *cs,
                                 int , double *pts,
                                 eavlField *f, double vmin, double vmax,
-                                eavlColorTable *,
                                 eavlField *normals)
 {
     if (PointColors || CellColors)
@@ -579,7 +575,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
             glDisable(GL_LIGHTING);
             glColor3fv(opts.color.c);
 
-            eavlRenderPoints<false>(npts, pts, NULL,0,0,NULL);
+            eavlRenderPoints<false>(npts, pts, NULL,0,0);
         }
         else
         {
@@ -588,8 +584,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                       "Can't render points for cell-centered field.");
 
             eavlRenderPoints<true>(npts, pts, opts.field,
-                                   opts.vmin, opts.vmax,
-                                   opts.ct);
+                                   opts.vmin, opts.vmax);
         }
 
     }
@@ -606,7 +601,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
             glDisable(GL_LIGHTING);
             glColor3fv(opts.color.c);
 
-            eavlRenderCells1D<false, false>(cellset, npts, pts, NULL,0,0,NULL);
+            eavlRenderCells1D<false, false>(cellset, npts, pts, NULL,0,0);
         }
         else
         {
@@ -617,8 +612,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
             {
                 eavlRenderCells1D<true, false>(cellset, npts, pts,
                                                opts.field,
-                                               opts.vmin, opts.vmax,
-                                               opts.ct);
+                                               opts.vmin, opts.vmax);
                 return;
             }
             else if (opts.field->GetAssociation() == eavlField::ASSOC_CELL_SET &&
@@ -626,8 +620,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
             {
                 eavlRenderCells1D<false, true>(cellset, npts, pts,
                                                opts.field,
-                                               opts.vmin, opts.vmax,
-                                               opts.ct);
+                                               opts.vmin, opts.vmax);
                 return;
             }
 
@@ -651,20 +644,20 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
             if (wireframe)
             {
                 if (normals && normals->GetAssociation()==eavlField::ASSOC_POINTS)
-                    eavlRenderCellsWireframe2D<false, false, true, false>(cellset, npts, pts, NULL,0,0,NULL, normals);
+                    eavlRenderCellsWireframe2D<false, false, true, false>(cellset, npts, pts, NULL,0,0,normals);
                 else if (normals)
-                    eavlRenderCellsWireframe2D<false, false, false, true>(cellset, npts, pts, NULL,0,0,NULL, normals);
+                    eavlRenderCellsWireframe2D<false, false, false, true>(cellset, npts, pts, NULL,0,0,normals);
                 else
-                    eavlRenderCellsWireframe2D<false, false, false, false>(cellset, npts, pts, NULL,0,0,NULL, NULL);
+                    eavlRenderCellsWireframe2D<false, false, false, false>(cellset, npts, pts, NULL,0,0,NULL);
             }
             else
             {
                 if (normals && normals->GetAssociation()==eavlField::ASSOC_POINTS)
-                    eavlRenderCells2D<false, false, true, false>(cellset, npts, pts, NULL,0,0,NULL, normals);
+                    eavlRenderCells2D<false, false, true, false>(cellset, npts, pts, NULL,0,0,normals);
                 else if (normals)
-                    eavlRenderCells2D<false, false, false, true>(cellset, npts, pts, NULL,0,0,NULL, normals);
+                    eavlRenderCells2D<false, false, false, true>(cellset, npts, pts, NULL,0,0,normals);
                 else
-                    eavlRenderCells2D<false, false, false, false>(cellset, npts, pts, NULL,0,0,NULL, NULL);
+                    eavlRenderCells2D<false, false, false, false>(cellset, npts, pts, NULL,0,0,NULL);
             }
         }
         else
@@ -682,21 +675,20 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                                                                              opts.field,
                                                                              opts.vmin,
                                                                              opts.vmax,
-                                                                             opts.ct, normals);
+                                                                             normals);
                     else if (normals)
                         eavlRenderCellsWireframe2D<true, false, false, true>(cellset,
                                                                              npts, pts,
                                                                              opts.field,
                                                                              opts.vmin,
                                                                              opts.vmax,
-                                                                             opts.ct, normals);
+                                                                             normals);
                     else
                         eavlRenderCellsWireframe2D<true, false, false, false>(cellset,
                                                                               npts, pts,
                                                                               opts.field,
                                                                               opts.vmin,
                                                                               opts.vmax,
-                                                                              opts.ct,
                                                                               NULL);
                 }
                 else
@@ -707,21 +699,20 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                                                                     opts.field,
                                                                     opts.vmin,
                                                                     opts.vmax,
-                                                                    opts.ct, normals);
+                                                                    normals);
                     else if (normals)
                         eavlRenderCells2D<true, false, false, true>(cellset,
                                                                     npts, pts,
                                                                     opts.field,
                                                                     opts.vmin,
                                                                     opts.vmax,
-                                                                    opts.ct, normals);
+                                                                    normals);
                     else
                         eavlRenderCells2D<true, false, false, false>(cellset,
                                                                      npts, pts,
                                                                      opts.field,
                                                                      opts.vmin,
                                                                      opts.vmax,
-                                                                     opts.ct,
                                                                      NULL);
                 }
                 return;
@@ -737,21 +728,20 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                                                                              opts.field,
                                                                              opts.vmin,
                                                                              opts.vmax,
-                                                                             opts.ct, normals);
+                                                                             normals);
                     else if (normals)
                         eavlRenderCellsWireframe2D<false, true, false, true>(cellset,
                                                                              npts, pts,
                                                                              opts.field,
                                                                              opts.vmin,
                                                                              opts.vmax,
-                                                                             opts.ct, normals);
+                                                                             normals);
                     else
                         eavlRenderCellsWireframe2D<false, true, false, false>(cellset,
                                                                               npts, pts,
                                                                               opts.field,
                                                                               opts.vmin,
                                                                               opts.vmax,
-                                                                              opts.ct,
                                                                               NULL);
                 }
                 else
@@ -762,21 +752,20 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                                                                     opts.field,
                                                                     opts.vmin,
                                                                     opts.vmax,
-                                                                    opts.ct, normals);
+                                                                    normals);
                     else if (normals)
                         eavlRenderCells2D<false, true, false, true>(cellset,
                                                                     npts, pts,
                                                                     opts.field,
                                                                     opts.vmin,
                                                                     opts.vmax,
-                                                                    opts.ct, normals);
+                                                                    normals);
                     else
                         eavlRenderCells2D<false, true, false, false>(cellset,
                                                                      npts, pts,
                                                                      opts.field,
                                                                      opts.vmin,
                                                                      opts.vmax,
-                                                                     opts.ct,
                                                                      NULL);
                 }
                 return;

@@ -47,6 +47,7 @@ class eavlPlot
         /// initializer for other stuff
         field = NULL;
         wireframe = false;
+        colortable = NULL;
         color = eavlColor(.5,.5,.5);
         min_data_extents = max_data_extents = 0;
         if (csname != "")
@@ -269,6 +270,8 @@ class eavlPlot
     }
     void SetColorTableName(string ct)
     {
+        if (colortable)
+            delete colortable;
         colortablename = ct;
         colortable = new eavlColorTable(colortablename);
     }
@@ -299,7 +302,7 @@ class eavlPlot
         opts.field = field;
         opts.vmin = min_data_extents;
         opts.vmax = max_data_extents;
-        opts.ct = colortable;
+        opts.ct = colortablename;
 
         try
         {

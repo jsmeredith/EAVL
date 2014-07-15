@@ -35,7 +35,8 @@ struct ColorByOptions
     eavlColor color;  ///< color to use when singleColor==true
     eavlField *field; ///< field to color by when singleColor==false
     double vmin, vmax; ///< field min and max
-    eavlColorTable *ct; ///< colortable to color by when singleColor==false
+    string ct; ///< colortable to color by when singleColor==false
+    //eavlColorTable *ct; ///< colortable to color by when singleColor==false
 };
 
 // ****************************************************************************
@@ -294,6 +295,11 @@ class eavlSceneRenderer
         bool CellNormals = (normals &&
                 normals->GetAssociation() == eavlField::ASSOC_CELL_SET &&
                 normals->GetAssocCellSet() == cs->GetName());
+
+        if (opts.singleColor)
+            SetActiveColor(opts.color);
+        else
+            SetActiveColorTable(opts.ct);
 
         StartTriangles();
 
