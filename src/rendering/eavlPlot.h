@@ -353,15 +353,25 @@ class eavl1DPlot : public eavlPlot
     {
         barstyle = false;
     }
+    virtual void SetBarStyle(bool bs)
+    {
+        barstyle = bs;
+    }
     virtual void Render(eavlSceneRenderer *r)
     {
-        if (!cellset)
+        if (barstyle)
         {
-            RenderPoints(r);
+            if (cellset)
+                RenderBars(r);
+            else
+                RenderBarsForPoints(r);
         }
         else
         {
-            RenderCells(r);
+            if (cellset)
+                RenderCells(r);
+            else
+                RenderPoints(r);
         }
     }
 
@@ -421,19 +431,19 @@ class eavl1DPlot : public eavlPlot
 
             if (CellField)
             {
-                double s = field->GetArray()->GetComponentAsDouble(j,0);
+                double v = field->GetArray()->GetComponentAsDouble(j,0);
                 if (j > 0)
                 {
-                    double s_last = field->GetArray()->GetComponentAsDouble(j-1,0);
-                    r->AddLine(x0,s_last, 0.0,  x0,s, 0.0);
+                    double v_last = field->GetArray()->GetComponentAsDouble(j-1,0);
+                    r->AddLine(x0,v_last, 0.0,  x0,v, 0.0);
                 }
-                r->AddLine(x0,s, 0.0, x1,s, 0.0);
+                r->AddLine(x0,v, 0.0, x1,v, 0.0);
             }
             else if (PointField)
             {
-                double s0 = field->GetArray()->GetComponentAsDouble(i0,0);
-                double s1 = field->GetArray()->GetComponentAsDouble(i1,0);
-                r->AddLine(x0,s0, 0.0, x1,s1, 0.0);
+                double v0 = field->GetArray()->GetComponentAsDouble(i0,0);
+                double v1 = field->GetArray()->GetComponentAsDouble(i1,0);
+                r->AddLine(x0,v0, 0.0, x1,v1, 0.0);
             }
             else
             {
@@ -442,6 +452,88 @@ class eavl1DPlot : public eavlPlot
         }
 
         r->EndLines();
+    }
+
+    void RenderBarsForPoints(eavlSceneRenderer *r)
+    {
+        bool PointField = (field &&
+            field->GetAssociation() == eavlField::ASSOC_POINTS);
+
+        if (!PointField)
+            return;
+
+        r->SetActiveColor(color);
+
+        r->StartLines();
+
+        for (int j=0; j<npts; j++)
+        {
+            double x = finalpts[j*3+0];
+            double v = field->GetArray()->GetComponentAsDouble(j,0);
+            r->AddLine(x,0,0, x,v,0);
+        }
+
+        r->EndLines();
+    }
+
+    void RenderBars(eavlSceneRenderer *r)
+    {
+        bool PointField = (field &&
+            field->GetAssociation() == eavlField::ASSOC_POINTS);
+        bool CellField = (field &&
+            field->GetAssociation() == eavlField::ASSOC_CELL_SET &&
+            field->GetAssocCellSet() == cellset->GetName());
+
+        if (!CellField && !PointField)
+            return;
+
+        r->SetActiveColor(color);
+
+        r->StartTriangles();
+
+        int ncells = cellset->GetNumCells();
+        for (int j=0; j<ncells; j++)
+        {
+            eavlCell cell = cellset->GetCellNodes(j);
+            if (cell.type != EAVL_BEAM)
+                continue;
+
+            int i0 = cell.indices[0];
+            int i1 = cell.indices[1];
+
+            // get vertex coordinates
+            double x0 = finalpts[i0*3+0];
+            double x1 = finalpts[i1*3+0];
+
+            double gap = (CellField ? 0.1 : 0);
+
+            double w = fabs(x1-x0);
+            double g = w * gap / 2.;
+
+            if (CellField)
+            {
+                double v = field->GetArray()->GetComponentAsDouble(j,0);
+                r->AddTriangle(x0+g, 0, 0,
+                               x1-g, 0, 0,
+                               x1-g, v, 0);
+                r->AddTriangle(x0+g, 0, 0,
+                               x1-g, v, 0,
+                               x0+g, v, 0);
+            }
+            else if (PointField)
+            {
+                double v0 = field->GetArray()->GetComponentAsDouble(i0,0);
+                double v1 = field->GetArray()->GetComponentAsDouble(i1,0);
+                r->AddTriangle(x0+g, 0, 0,
+                               x1-g, 0, 0,
+                               x1-g, v1, 0);
+                r->AddTriangle(x0+g, 0, 0,
+                               x1-g, v1, 0,
+                               x0+g, v0, 0);
+            }
+        }
+
+        r->EndTriangles();
     }
 };
 
