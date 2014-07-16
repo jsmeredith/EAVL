@@ -25,6 +25,29 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
 {
   public:
 
+    virtual void SetActiveColor(eavlColor c)
+    {
+        glColor3fv(c.c);
+        glDisable(GL_TEXTURE_1D);
+    }
+    virtual void SetActiveColorTable(string ct)
+    {
+        glColor3fv(eavlColor::white.c);
+        glEnable(GL_TEXTURE_1D);
+    }
+
+
+    // ------------------------------------------------------------------------
+    virtual void StartTriangles()
+    {
+        glBegin(GL_TRIANGLES);
+    }
+
+    virtual void EndTriangles()
+    {
+        glEnd();
+    }
+
     virtual void AddTriangleVnVs(double x0, double y0, double z0,
                                  double x1, double y1, double z1,
                                  double x2, double y2, double z2,
@@ -45,17 +68,55 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
         glTexCoord1f(s2);
         glVertex3d(x2,y2,z2);
     }
-    virtual void StartTriangles()
+
+
+    // ------------------------------------------------------------------------
+
+    virtual void StartPoints()
     {
-        glEnable(GL_TEXTURE_1D);
-        glBegin(GL_TRIANGLES);
+        glDisable(GL_LIGHTING);
+        glPointSize(2);
+        glBegin(GL_POINTS);
     }
 
-    virtual void EndTriangles()
+    virtual void EndPoints()
     {
         glEnd();
-        glDisable(GL_TEXTURE_1D);
     }
+
+    virtual void AddPointVs(double x, double y, double z, double r, double s)
+    {
+        glTexCoord1f(s);
+        glVertex3d(x,y,z);
+    }
+
+    // ------------------------------------------------------------------------
+
+    virtual void StartLines()
+    {
+        glDisable(GL_LIGHTING);
+        glLineWidth(2);
+        glBegin(GL_LINES);
+    }
+
+    virtual void EndLines()
+    {
+        glEnd();
+    }
+
+    virtual void AddLineVs(double x0, double y0, double z0,
+                           double x1, double y1, double z1,
+                           double s0, double s1)
+    {
+        glTexCoord1f(s0);
+        glVertex3d(x0,y0,z0);
+
+        glTexCoord1f(s1);
+        glVertex3d(x1,y1,z1);
+    }
+
+
+    // ------------------------------------------------------------------------
     virtual void Render(eavlView v)
     {
         glFinish();

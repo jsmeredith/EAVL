@@ -343,4 +343,17 @@ class eavlPlot
     }
 };
 
+class eavl1DPlot : public eavlPlot
+{
+    eavl1DPlot(eavlDataSet *ds, const string &csname = "")
+        : eavlPlot(ds, csname)
+    {
+    }
+    virtual void Render(eavlSceneRenderer *r)
+    {
+
+    }
+};
+
+
 #endif

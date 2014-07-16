@@ -321,14 +321,27 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {
     }
 
+    virtual void AddPointVs(double x, double y, double z, double r, double s)
+    {
+    }
+    virtual void AddLineVs(double x0, double y0, double z0,
+                           double x1, double y1, double z1,
+                           double s0, double s1)
+    {
+    }
+
     virtual void StartScene()
     {
+        for (unsigned int i=0; i<scene.objects.size(); ++i)
+            delete scene.objects[i];
         scene.objects.clear();
+        //cerr << "startscene\n";
     }
 
     virtual void EndScene()
     {
         // nothing to do here
+        //cerr << "endscene\n";
     }
 
     virtual void Render(eavlView view)
@@ -391,6 +404,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         float proj23=view.P(2,3);
         float proj32=view.P(3,2);
 
+        //cerr << "rendering\n";
         /*
         // some debug info:
         cerr << endl;

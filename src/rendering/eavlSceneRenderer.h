@@ -80,6 +80,12 @@ class eavlSceneRenderer
     virtual void StartTriangles() { }
     virtual void EndTriangles() { }
 
+    virtual void StartPoints() { }
+    virtual void EndPoints() { }
+
+    virtual void StartLines() { }
+    virtual void EndLines() { }
+
     //
     // per-plot properties (in essence, at least) follow:
     //
@@ -115,7 +121,7 @@ class eavlSceneRenderer
                                  double s0, double s1, double s2) = 0;
 
     // face scalar
-    virtual void AddTriangleVnFs(double x0, double y0, double z0,
+    virtual void AddTriangleVnCs(double x0, double y0, double z0,
                                  double x1, double y1, double z1,
                                  double x2, double y2, double z2,
                                  double u0, double v0, double w0,
@@ -153,7 +159,7 @@ class eavlSceneRenderer
     //----------------------------------------
 
     // vertex scalar
-    virtual void AddTriangleFnVs(double x0, double y0, double z0,
+    virtual void AddTriangleCnVs(double x0, double y0, double z0,
                                  double x1, double y1, double z1,
                                  double x2, double y2, double z2,
                                  double u,  double v,  double w,
@@ -168,7 +174,7 @@ class eavlSceneRenderer
                         s0,s1,s2);
     }
     // face scalar
-    virtual void AddTriangleFnFs(double x0, double y0, double z0,
+    virtual void AddTriangleCnCs(double x0, double y0, double z0,
                                  double x1, double y1, double z1,
                                  double x2, double y2, double z2,
                                  double u,  double v,  double w,
@@ -183,7 +189,7 @@ class eavlSceneRenderer
                         s, s, s);
     }
     // no scalar
-    virtual void AddTriangleFn(double x0, double y0, double z0,
+    virtual void AddTriangleCn(double x0, double y0, double z0,
                                double x1, double y1, double z1,
                                double x2, double y2, double z2,
                                double u,  double v,  double w)
@@ -219,7 +225,7 @@ class eavlSceneRenderer
                         s0,s1,s2);
     }
     // face scalar
-    virtual void AddTriangleFs(double x0, double y0, double z0,
+    virtual void AddTriangleCs(double x0, double y0, double z0,
                                double x1, double y1, double z1,
                                double x2, double y2, double z2,
                                double s)
@@ -253,29 +259,153 @@ class eavlSceneRenderer
     }
 
     // ----------------------------------------
-    // Sphere
+    // Point
     // ----------------------------------------
-    virtual void AddSphere(double x, double y, double z, double r)
+    virtual void AddPoint(double x, double y, double z, double r)
     {
-        AddSphereS(x,y,z,r,0);
+        AddPointVs(x,y,z,r,0);
     }
-    virtual void AddSphereS(double x, double y, double z, double r, double s)
-    {
-        ///\todo: make this pure virtual
-    }
+    virtual void AddPointVs(double x, double y, double z, double r, double s)
+        = 0;
 
+    // ----------------------------------------
+    // Line
+    // ----------------------------------------
+    virtual void AddLine(double x0, double y0, double z0,
+                         double x1, double y1, double z1)
+    {
+        AddLineVs(x0,y0,z0, x1,y1,z1, 0,0);
+    }
+    virtual void AddLineCs(double x0, double y0, double z0,
+                           double x1, double y1, double z1,
+                           double s)
+    {
+        AddLineVs(x0,y0,z0, x1,y1,z1, s,s);
+    }
+    virtual void AddLineVs(double x0, double y0, double z0,
+                           double x1, double y1, double z1,
+                           double s0, double s1)
+        = 0;
 
     // -----------------------------------------------------------------------
     // -----------------------------------------------------------------------
 
     virtual void RenderPoints(int npts, double *pts,
-                              ColorByOptions opts) { }
+                              ColorByOptions opts)
+    {
+        eavlField *f = opts.field;
+        bool NoColors = (opts.field == NULL);
+        bool PointColors = (opts.field &&
+                opts.field->GetAssociation() == eavlField::ASSOC_POINTS);
+
+        if (opts.singleColor)
+            SetActiveColor(opts.color);
+        else
+            SetActiveColorTable(opts.ct);
+
+        StartPoints();
+
+        double radius = 1.0;
+        for (int j=0; j<npts; j++)
+        {
+            double x0 = pts[j*3+0];
+            double y0 = pts[j*3+1];
+            double z0 = pts[j*3+2];
+
+            if (PointColors)
+            {
+                double v = MapValueToNorm(f->GetArray()->GetComponentAsDouble(j,0),
+                                          opts.vmin, opts.vmax);
+                AddPointVs(x0,y0,z0, radius, v);
+            }
+            else
+            {
+                AddPoint(x0,y0,z0, radius);
+            }
+        }
+
+        EndPoints();
+    }
     virtual void RenderCells0D(eavlCellSet *cs,
                                int npts, double *pts,
-                               ColorByOptions opts) { }
+                               ColorByOptions opts)
+    {
+    }
     virtual void RenderCells1D(eavlCellSet *cs,
                                int npts, double *pts,
-                               ColorByOptions opts) { }
+                               ColorByOptions opts)
+    {
+        eavlField *f = opts.field;
+        bool NoColors = (opts.field == NULL);
+        bool PointColors = (opts.field &&
+                opts.field->GetAssociation() == eavlField::ASSOC_POINTS);
+        bool CellColors = (opts.field &&
+                opts.field->GetAssociation() == eavlField::ASSOC_CELL_SET &&
+                opts.field->GetAssocCellSet() == cs->GetName());
+
+        if (opts.singleColor)
+            SetActiveColor(opts.color);
+        else
+            SetActiveColorTable(opts.ct);
+
+        StartLines();
+
+        int ncells = cs->GetNumCells();
+        for (int j=0; j<ncells; j++)
+        {
+            eavlCell cell = cs->GetCellNodes(j);
+            if (cell.type != EAVL_BEAM)
+                continue;
+
+            int i0 = cell.indices[0];
+            int i1 = cell.indices[1];
+
+            // get vertex coordinates
+            double x0 = pts[i0*3+0];
+            double y0 = pts[i0*3+1];
+            double z0 = pts[i0*3+2];
+
+            double x1 = pts[i1*3+0];
+            double y1 = pts[i1*3+1];
+            double z1 = pts[i1*3+2];
+
+
+            // get scalars (if applicable)
+            double s, s0, s1;
+            if (CellColors)
+            {
+                s = MapValueToNorm(f->GetArray()->
+                                   GetComponentAsDouble(j,0),
+                                   opts.vmin, opts.vmax);
+            }
+            else if (PointColors)
+            {
+                s0 = MapValueToNorm(f->GetArray()->
+                                    GetComponentAsDouble(i0,0),
+                                    opts.vmin, opts.vmax);
+                s1 = MapValueToNorm(f->GetArray()->
+                                    GetComponentAsDouble(i1,0),
+                                    opts.vmin, opts.vmax);
+            }
+
+            if (NoColors)
+            {
+                AddLine(x0,y0,z0, x1,y1,z1);
+            }
+            else if (CellColors)
+            {
+                AddLineCs(x0,y0,z0, x1,y1,z1, s);
+            }
+            else if (PointColors)
+            {
+                AddLineVs(x0,y0,z0, x1,y1,z1, s0,s1);
+            }
+        }
+
+
+        EndLines();
+
+    }
     virtual void RenderCells2D(eavlCellSet *cs,
                                int npts, double *pts,
                                ColorByOptions opts,
@@ -398,7 +528,7 @@ class eavlSceneRenderer
                     }
                     else if (CellColors)
                     {
-                        AddTriangleFs(x0,y0,z0, x1,y1,z1, x2,y2,z2, s);
+                        AddTriangleCs(x0,y0,z0, x1,y1,z1, x2,y2,z2, s);
                     }
                     else if (PointColors)
                     {
@@ -410,17 +540,17 @@ class eavlSceneRenderer
                 {
                     if (NoColors)
                     {
-                        AddTriangleFn(x0,y0,z0, x1,y1,z1, x2,y2,z2,
+                        AddTriangleCn(x0,y0,z0, x1,y1,z1, x2,y2,z2,
                                       u,v,w);
                     }
                     else if (CellColors)
                     {
-                        AddTriangleFnFs(x0,y0,z0, x1,y1,z1, x2,y2,z2,
+                        AddTriangleCnCs(x0,y0,z0, x1,y1,z1, x2,y2,z2,
                                         u,v,w, s);
                     }
                     else if (PointColors)
                     {
-                        AddTriangleFnVs(x0,y0,z0, x1,y1,z1, x2,y2,z2,
+                        AddTriangleCnVs(x0,y0,z0, x1,y1,z1, x2,y2,z2,
                                         u,v,w, s0,s1,s2);
                     }
                 }
@@ -433,7 +563,7 @@ class eavlSceneRenderer
                     }
                     else if (CellColors)
                     {
-                        AddTriangleVnFs(x0,y0,z0, x1,y1,z1, x2,y2,z2,
+                        AddTriangleVnCs(x0,y0,z0, x1,y1,z1, x2,y2,z2,
                                         u0,v0,w0, u1,v1,w2, u2,v2,w2,
                                         s);
                     }

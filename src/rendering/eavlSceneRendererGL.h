@@ -46,6 +46,7 @@ void eavlRenderCells1D(eavlCellSet *cs,
                   int , double *pts,
                   eavlField *f, double vmin, double vmax)
 {
+    cerr << "render cells 1d\n";
     glDisable(GL_LIGHTING);
     if (PointColors || CellColors)
     {
@@ -598,9 +599,9 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
         glLineWidth(2);
         if (opts.singleColor)
         {
+            glDisable(GL_DEPTH_TEST);
             glDisable(GL_LIGHTING);
             glColor3fv(opts.color.c);
-
             eavlRenderCells1D<false, false>(cellset, npts, pts, NULL,0,0);
         }
         else

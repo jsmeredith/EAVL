@@ -454,6 +454,8 @@ class eavl1DGLScene : public eavlScene
         if (plots.size() == 0)
             return;
 
+        view.SetupForWorldSpace();
+
         // render the plots
         eavlSceneRenderer *sr = win->GetSceneRenderer();
         sr->StartScene();
