@@ -345,13 +345,103 @@ class eavlPlot
 
 class eavl1DPlot : public eavlPlot
 {
+  protected:
+    bool barstyle;
+  public:
     eavl1DPlot(eavlDataSet *ds, const string &csname = "")
         : eavlPlot(ds, csname)
     {
+        barstyle = false;
     }
     virtual void Render(eavlSceneRenderer *r)
     {
+        if (!cellset)
+        {
+            RenderPoints(r);
+        }
+        else
+        {
+            RenderCells(r);
+        }
+    }
 
+    void RenderPoints(eavlSceneRenderer *r)
+    {
+        bool PointField = (field &&
+            field->GetAssociation() == eavlField::ASSOC_POINTS);
+
+        r->SetActiveColor(color);
+
+        r->StartPoints();
+
+        double radius = 1.0;
+        for (int j=0; j<npts; j++)
+        {
+            double x = finalpts[j*3+0];
+
+            if (PointField)
+            {
+                double v = field->GetArray()->GetComponentAsDouble(j,0);
+                r->AddPoint(x,v,0.0, radius);
+            }
+            else
+            {
+                r->AddPoint(x,0.0,0.0, radius);
+            }
+        }
+
+        r->EndPoints();
+    }
+
+    void RenderCells(eavlSceneRenderer *r)
+    {
+        bool PointField = (field &&
+            field->GetAssociation() == eavlField::ASSOC_POINTS);
+        bool CellField = (field &&
+            field->GetAssociation() == eavlField::ASSOC_CELL_SET &&
+            field->GetAssocCellSet() == cellset->GetName());
+
+        r->SetActiveColor(color);
+
+        r->StartLines();
+
+        int ncells = cellset->GetNumCells();
+        for (int j=0; j<ncells; j++)
+        {
+            eavlCell cell = cellset->GetCellNodes(j);
+            if (cell.type != EAVL_BEAM)
+                continue;
+
+            int i0 = cell.indices[0];
+            int i1 = cell.indices[1];
+
+            // get vertex coordinates
+            double x0 = finalpts[i0*3+0];
+            double x1 = finalpts[i1*3+0];
+
+            if (CellField)
+            {
+                double s = field->GetArray()->GetComponentAsDouble(j,0);
+                if (j > 0)
+                {
+                    double s_last = field->GetArray()->GetComponentAsDouble(j-1,0);
+                    r->AddLine(x0,s_last, 0.0,  x0,s, 0.0);
+                }
+                r->AddLine(x0,s, 0.0, x1,s, 0.0);
+            }
+            else if (PointField)
+            {
+                double s0 = field->GetArray()->GetComponentAsDouble(i0,0);
+                double s1 = field->GetArray()->GetComponentAsDouble(i1,0);
+                r->AddLine(x0,s0, 0.0, x1,s1, 0.0);
+            }
+            else
+            {
+                r->AddLine(x0,0.0,0.0, x1,0.0,0.0);
+            }
+        }
+
+        r->EndLines();
     }
 };
 

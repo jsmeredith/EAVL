@@ -75,7 +75,7 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
     virtual void StartPoints()
     {
         glDisable(GL_LIGHTING);
-        glPointSize(2);
+        glPointSize(3);
         glBegin(GL_POINTS);
     }
 
