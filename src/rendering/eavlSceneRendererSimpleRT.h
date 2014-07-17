@@ -1,6 +1,6 @@
 // Copyright 2010-2014 UT-Battelle, LLC.  See LICENSE.txt for more information.
-#ifndef EAVL_SCENE_RENDERER_RT_H
-#define EAVL_SCENE_RENDERER_RT_H
+#ifndef EAVL_SCENE_RENDERER_SIMPLE_RT_H
+#define EAVL_SCENE_RENDERER_SIMPLE_RT_H
 
 #include "eavlDataSet.h"
 #include "eavlCellSet.h"
@@ -269,7 +269,7 @@ inline eavlColor CastRay(Ray r, Scene &scene, eavlPoint3 &lightpos,
 
 
 // ****************************************************************************
-// Class:  eavlSceneRendererRT
+// Class:  eavlSceneRendererSimpleRT
 //
 // Purpose:
 ///   A very simple, though not necessarily fast, implementation of
@@ -281,7 +281,7 @@ inline eavlColor CastRay(Ray r, Scene &scene, eavlPoint3 &lightpos,
 // Modifications:
 //
 // ****************************************************************************
-class eavlSceneRendererRT : public eavlSceneRenderer
+class eavlSceneRendererSimpleRT : public eavlSceneRenderer
 {
     Scene scene;
     vector<byte> rgba;

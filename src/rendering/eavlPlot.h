@@ -155,43 +155,6 @@ class eavlPlot
         }
     }
 
-    void SetTransformField(int dim)
-    {
-        if (finalpts == origpts)
-            finalpts = new double[npts*3];
-        min_coord_extents_final[0] = min_coord_extents_final[1] = min_coord_extents_final[2] = +DBL_MAX;
-        max_coord_extents_final[0] = max_coord_extents_final[1] = max_coord_extents_final[2] = -DBL_MAX;
-        if (!field)
-        {
-            THROW(eavlException, "Can't call SetTransformField without "
-                  "an active field.");
-        }
-        ///\todo: yeah, we really need this pretty urgently.
-        if (!field_nodal)
-        {
-            THROW(eavlException, "Can't yet call SetTransformField on "
-                  "a cell-centered field.");
-        }
-        for (int i=0; i<npts; i++)
-        {
-            double x,y,z;
-            finalpts[3*i+0] = origpts[3*i+0];
-            finalpts[3*i+1] = origpts[3*i+1];
-            finalpts[3*i+2] = origpts[3*i+2];
-
-            finalpts[3*i + dim] = field->GetArray()->GetComponentAsDouble(i,0);
-
-            for (int dim=0; dim<3; ++dim)
-            {
-                double v = finalpts[3*i+dim];
-                if (v < min_coord_extents_final[dim])
-                    min_coord_extents_final[dim] = v;
-                if (v > max_coord_extents_final[dim])
-                    max_coord_extents_final[dim] = v;
-            }
-        }
-    }
-
     void SetField(string fieldname)
     {
         field = NULL;
@@ -347,18 +310,30 @@ class eavl1DPlot : public eavlPlot
 {
   protected:
     bool barstyle;
+    bool logarithmic;
   public:
     eavl1DPlot(eavlDataSet *ds, const string &csname = "")
         : eavlPlot(ds, csname)
     {
         barstyle = false;
+        logarithmic = false;
     }
     virtual void SetBarStyle(bool bs)
     {
         barstyle = bs;
     }
+    virtual void SetLogarithmic(bool l)
+    {
+        logarithmic = l;
+    }
     virtual void Render(eavlSceneRenderer *r)
     {
+        if (logarithmic && min_data_extents <= 0)
+        {
+            cerr << "ERROR: logarithmic plot with values <= 0\n";
+            //THROW(eavlException, "Log plot with nonpositive values");
+        }
+
         if (barstyle)
         {
             if (cellset)
@@ -392,6 +367,8 @@ class eavl1DPlot : public eavlPlot
             if (PointField)
             {
                 double v = field->GetArray()->GetComponentAsDouble(j,0);
+                if (logarithmic)
+                    v = log10(v);
                 r->AddPoint(x,v,0.0, radius);
             }
             else
@@ -432,9 +409,13 @@ class eavl1DPlot : public eavlPlot
             if (CellField)
             {
                 double v = field->GetArray()->GetComponentAsDouble(j,0);
+                if (logarithmic)
+                    v = log10(v);
                 if (j > 0)
                 {
                     double v_last = field->GetArray()->GetComponentAsDouble(j-1,0);
+                    if (logarithmic)
+                        v_last = log10(v_last);
                     r->AddLine(x0,v_last, 0.0,  x0,v, 0.0);
                 }
                 r->AddLine(x0,v, 0.0, x1,v, 0.0);
@@ -443,6 +424,11 @@ class eavl1DPlot : public eavlPlot
             {
                 double v0 = field->GetArray()->GetComponentAsDouble(i0,0);
                 double v1 = field->GetArray()->GetComponentAsDouble(i1,0);
+                if (logarithmic)
+                {
+                    v0 = log10(v0);
+                    v1 = log10(v1);
+                }
                 r->AddLine(x0,v0, 0.0, x1,v1, 0.0);
             }
             else
@@ -462,6 +448,10 @@ class eavl1DPlot : public eavlPlot
         if (!PointField)
             return;
 
+        double minval = 0;
+        if (logarithmic)
+            minval = floor(log10(min_data_extents));
+
         r->SetActiveColor(color);
 
         r->StartLines();
@@ -470,7 +460,9 @@ class eavl1DPlot : public eavlPlot
         {
             double x = finalpts[j*3+0];
             double v = field->GetArray()->GetComponentAsDouble(j,0);
-            r->AddLine(x,0,0, x,v,0);
+            if (logarithmic)
+                v = log10(v);
+            r->AddLine(x,minval,0, x,v,0);
         }
 
         r->EndLines();
@@ -486,6 +478,10 @@ class eavl1DPlot : public eavlPlot
 
         if (!CellField && !PointField)
             return;
+
+        double minval = 0;
+        if (logarithmic)
+            minval = floor(log10(min_data_extents));
 
         r->SetActiveColor(color);
 
@@ -513,23 +509,30 @@ class eavl1DPlot : public eavlPlot
             if (CellField)
             {
                 double v = field->GetArray()->GetComponentAsDouble(j,0);
-                r->AddTriangle(x0+g, 0, 0,
-                               x1-g, 0, 0,
-                               x1-g, v, 0);
-                r->AddTriangle(x0+g, 0, 0,
-                               x1-g, v, 0,
-                               x0+g, v, 0);
+                if (logarithmic)
+                    v = log10(v);
+                r->AddTriangle(x0+g, minval, 0,
+                               x1-g, minval, 0,
+                               x1-g, v,      0);
+                r->AddTriangle(x0+g, minval, 0,
+                               x1-g, v,      0,
+                               x0+g, v,      0);
             }
             else if (PointField)
             {
                 double v0 = field->GetArray()->GetComponentAsDouble(i0,0);
                 double v1 = field->GetArray()->GetComponentAsDouble(i1,0);
-                r->AddTriangle(x0+g, 0, 0,
-                               x1-g, 0, 0,
-                               x1-g, v1, 0);
-                r->AddTriangle(x0+g, 0, 0,
-                               x1-g, v1, 0,
-                               x0+g, v0, 0);
+                if (logarithmic)
+                {
+                    v0 = log10(v0);
+                    v1 = log10(v1);
+                }
+                r->AddTriangle(x0+g, minval, 0,
+                               x1-g, minval, 0,
+                               x1-g, v1,     0);
+                r->AddTriangle(x0+g, minval, 0,
+                               x1-g, v1,     0,
+                               x0+g, v0,     0);
             }
         }
 
