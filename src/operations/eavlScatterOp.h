@@ -1,4 +1,4 @@
-// Copyright 2010-2014 UT-Battelle, LLC.  See LICENSE.txt for more information.
+// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #ifndef EAVL_SCATTER_OP_H
 #define EAVL_SCATTER_OP_H
 
@@ -28,6 +28,7 @@ struct eavlScatterOp_CPU
 #pragma omp parallel for
         for (int sparseindex = 0; sparseindex < nitems; ++sparseindex)
         {
+
             int denseindex = denseindices[get<0>(indices).indexer.index(sparseindex)];
             // can't use operator= because it's ambiguous when only
             // one input and one output array (without a functor that
@@ -101,7 +102,8 @@ struct eavlScatterOp_GPU
 // Creation:    August  1, 2013
 //
 // Modifications:
-//     Matt Larsen- February 5, 2014 (used eavlGatherOp as a template)
+//     Matt Larsen- 2/5/2014 (used eavlGatherOp as a template to create op)
+//     Matt Larsen- 7/10/2014 Added support for operating on subset of input
 // ****************************************************************************
 template <class I, class O, class INDEX>
 class eavlScatterOp : public eavlOperation
@@ -111,23 +113,31 @@ class eavlScatterOp : public eavlOperation
     I            inputs;
     O            outputs;
     INDEX        indices;
+    int          nitems;
   public:
     eavlScatterOp(I i, O o, INDEX ind)
-        : inputs(i), outputs(o), indices(ind)
+        : inputs(i), outputs(o), indices(ind), nitems(-1)
+    {
+    }
+    eavlScatterOp(I i, O o, INDEX ind, int itemsToProcess)
+        : inputs(i), outputs(o), indices(ind), nitems(itemsToProcess)
     {
     }
     virtual void GoCPU()
     {
         int dummy;
-        int n = inputs.first.length();
-        cerr<<"numInputs "<<n<<endl;
+        int n=0;
+        if(nitems > 0) n = nitems;
+        else n = inputs.first.length();
         eavlOpDispatch<eavlScatterOp_CPU>(n, dummy, inputs, outputs, indices, functor);
     }
     virtual void GoGPU()
     {
 #ifdef HAVE_CUDA
         int dummy;
-        int n = inputs.first.length();
+        int n=0;
+        if(nitems > 0) n = nitems;
+        else n = inputs.first.length();
         eavlOpDispatch<eavlScatterOp_GPU>(n, dummy, inputs, outputs, indices, functor);
 #else
         THROW(eavlException,"Executing GPU code without compiling under CUDA compiler.");
@@ -140,6 +150,12 @@ template <class I, class O, class INDEX>
 eavlScatterOp<I,O,INDEX> *new_eavlScatterOp(I i, O o, INDEX indices) 
 {
     return new eavlScatterOp<I,O,INDEX>(i,o,indices);
+}
+
+template <class I, class O, class INDEX>
+eavlScatterOp<I,O,INDEX> *new_eavlScatterOp(I i, O o, INDEX indices, int itemsToProcess) 
+{
+    return new eavlScatterOp<I,O,INDEX>(i,o,indices, itemsToProcess);
 }
 
 

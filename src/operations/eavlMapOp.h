@@ -1,4 +1,4 @@
-// Copyright 2010-2014 UT-Battelle, LLC.  See LICENSE.txt for more information.
+// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #ifndef EAVL_MAP_OP_H
 #define EAVL_MAP_OP_H
 
@@ -25,7 +25,8 @@ struct eavlMapOp_CPU
             typename collecttype<IN>::const_type in(collect(index, inputs));
             typename collecttype<OUT>::type out(collect(index, outputs));
             out = functor(in);
-
+            //int tid = omp_get_thread_num();
+            //cerr<<index<< " "<<endl;
             // or more simply:
             //collect(index, outputs) = functor(collect(index, inputs));
         }
@@ -42,10 +43,11 @@ mapKernel(int nitems, const IN inputs, OUT outputs, F functor)
     const int numThreads = blockDim.x * gridDim.x;
     const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
     for (int index = threadID; index < nitems; index += numThreads)
-    {
+    { 
+        //if (threadID<nitems)  
         collect(index, outputs) = functor(collect(index, inputs));
     }
-}
+} 
 
 struct eavlMapOp_GPU
 {
@@ -54,9 +56,11 @@ struct eavlMapOp_GPU
     template <class F, class IN, class OUT>
     static void call(int nitems, int, const IN inputs, OUT outputs, F &functor)
     {
-        int numThreads = 64;
+        
+        int numThreads = 128;
         dim3 threads(numThreads,   1, 1);
-        dim3 blocks (32,           1, 1);
+        dim3 blocks (240,           1, 1);
+        cudaFuncSetCacheConfig(mapKernel<F, IN,OUT>, cudaFuncCachePreferL1);
         mapKernel<<< blocks, threads >>>(nitems, inputs, outputs, functor);
         CUDA_CHECK_ERROR();
     }

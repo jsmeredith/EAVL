@@ -1,4 +1,4 @@
-// Copyright 2010-2014 UT-Battelle, LLC.  See LICENSE.txt for more information.
+// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #ifndef EAVL_GATHER_OP_H
 #define EAVL_GATHER_OP_H
 
@@ -95,7 +95,9 @@ struct eavlGatherOp_GPU
 // Programmer:  Jeremy Meredith
 // Creation:    August  1, 2013
 //
-// Modifications:
+// Modifications: Matt Larsen 7/10/14 Added ability to only process a subset of 
+//                the output length. This allows the output array length to be 
+//                larger than the index array length.
 // ****************************************************************************
 template <class I, class O, class INDEX>
 class eavlGatherOp : public eavlOperation
@@ -105,22 +107,31 @@ class eavlGatherOp : public eavlOperation
     I            inputs;
     O            outputs;
     INDEX        indices;
+    int          nitems;
   public:
     eavlGatherOp(I i, O o, INDEX ind)
-        : inputs(i), outputs(o), indices(ind)
+        : inputs(i), outputs(o), indices(ind), nitems(-1)
+    {
+    }
+    eavlGatherOp(I i, O o, INDEX ind, int itemsToProcess)
+        : inputs(i), outputs(o), indices(ind), nitems(itemsToProcess)
     {
     }
     virtual void GoCPU()
     {
         int dummy;
-        int n = outputs.first.length();
+        int n=0;
+        if( nitems > 0 ) n = nitems;
+        else n = outputs.first.length();
         eavlOpDispatch<eavlGatherOp_CPU>(n, dummy, inputs, outputs, indices, functor);
     }
     virtual void GoGPU()
     {
 #ifdef HAVE_CUDA
         int dummy;
-        int n = outputs.first.length();
+        int n=0;
+        if( nitems > 0 ) n = nitems;
+        else n = outputs.first.length();
         eavlOpDispatch<eavlGatherOp_GPU>(n, dummy, inputs, outputs, indices, functor);
 #else
         THROW(eavlException,"Executing GPU code without compiling under CUDA compiler.");
@@ -133,6 +144,12 @@ template <class I, class O, class INDEX>
 eavlGatherOp<I,O,INDEX> *new_eavlGatherOp(I i, O o, INDEX indices) 
 {
     return new eavlGatherOp<I,O,INDEX>(i,o,indices);
+}
+
+template <class I, class O, class INDEX>
+eavlGatherOp<I,O,INDEX> *new_eavlGatherOp(I i, O o, INDEX indices, int itemsToProcess) 
+{
+    return new eavlGatherOp<I,O,INDEX>(i,o,indices, itemsToProcess);
 }
 
 
