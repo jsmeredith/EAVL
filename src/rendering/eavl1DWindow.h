@@ -74,17 +74,13 @@ class eavl1DWindow : public eavlWindow
                                  eavlTextAnnotation::VCenter);
         vaxis->Render(view);
 
-        ///\todo: FIXME
-        /*
         legend->Clear();
         for (unsigned int i=0; i<scene->plots.size(); ++i)
         {
-            eavlCurveRenderer *cr = dynamic_cast<eavlCurveRenderer*>(scene->plots[i]);
-            if (cr)
-                legend->AddItem(cr->GetName(), cr->GetColor());
+            eavlPlot *p = scene->plots[i];
+            legend->AddItem(p->GetName(), p->GetColor());
         }
         legend->Render(view);
-        */
 
         glFinish();
     }
