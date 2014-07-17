@@ -23,27 +23,31 @@ class eavlRayTracerMutator : public eavlMutator
     }
 
     eavlFloatArray* getFrameBuffer() { return frameBuffer; }
-
+    eavlFloatArray* getDepthBuffer() { return zBuffer; }
 
 
     void setResolution(const int h, const int w)
     {
-      if(h!=height || width !=height) sizeDirty=true;
+      if(h!=height || width !=height) 
+      {
+        cout<<h<<" "<<height<<" "<<w<<" "<<width<<endl;
+        sizeDirty=true;
+      }
       height=h;
       width=w;
     }
 
-    void SetDepth(const int d)
+    void setDepth(const int d)
     {
       depth=d;
     }
 
-    void SetFOVx(const float d)
+    void setFOVx(const float d)
     {
       fovx=d;
     }
 
-    void SetFOVy(const float d)
+    void setFOVy(const float d)
     {
       fovy=d;
     }
@@ -147,7 +151,7 @@ class eavlRayTracerMutator : public eavlMutator
     /* there could be a settings dirty, but just set size dirty=true */
     void setAO(bool on)
     {
-      if(isOccusionOn!=on) sizeDirty=true;
+      if(isOccusionOn!=on) {sizeDirty=true; cout<<"occ dirty"<<endl; }
       isOccusionOn=on;
     }
 
@@ -156,6 +160,7 @@ class eavlRayTracerMutator : public eavlMutator
       if (compactOp!=on)
       {
         sizeDirty=true;
+        cout<<"compact dirty"<<endl;
       }
       compactOp=on;
     }

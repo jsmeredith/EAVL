@@ -145,12 +145,12 @@ static inline std::string &trim(std::string &s) {
         return ltrim(rtrim(s));
 }
 
-/*! \class Primitive
- *  \brief a basic class to store a primitive (defined by a mesh and a material)
+/*! \class OBJPrimitive
+ *  \brief a basic class to store a OBJPrimitive (defined by a mesh and a material)
  */
-struct Primitive
+struct OBJPrimitive
 {
-    Primitive( TriangleMesh *m, Material *mat) : 
+    OBJPrimitive( TriangleMesh *m, Material *mat) : 
         mesh(m), material(mat) {}
      TriangleMesh* mesh;   /*! the object's geometry */
      Material* material;   /*! the object's material */
@@ -228,7 +228,7 @@ public:
     inline void loadMTL(const std::string &mtlFilename);
     inline void flushFaceGroup();
     inline unsigned int getVertex(std::map<Vertex, unsigned int>&, std::vector<Vec3f>&, std::vector<Vec3f>&, std::vector<Vec2f>&, const Vertex&);
-    std::vector<Primitive* > model;
+    std::vector<OBJPrimitive* > model;
     inline void printStats();
     inline void extractNormals();
     bool hasNormals;
@@ -453,7 +453,7 @@ inline void ObjReader::flushFaceGroup()
         mesh->texcoords = new Vec2f[texcoords.size()];
         memcpy(mesh->texcoords, &texcoords[0], sizeof(Vec2f) * texcoords.size());
     }
-    model.push_back(new Primitive(mesh, curMaterial));
+    model.push_back(new OBJPrimitive(mesh, curMaterial));
 }
 
 inline  void ObjReader::printStats()

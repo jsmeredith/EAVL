@@ -205,9 +205,11 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     occSamples  =4;
     aoMax       =1.f;
     verbose     =false;
+    rayDirX     =NULL;
     redIndexer  = new eavlArrayIndexer(3,0);
     greenIndexer= new eavlArrayIndexer(3,1);
     blueIndexer = new eavlArrayIndexer(3,2);
+    cout<<"Construtor Done. Dirty"<<endl;
 }
 
 
@@ -217,18 +219,7 @@ void eavlRayTracerMutator::setCompact(bool comp)
     compactOp=comp;
 }
 
-EAVL_HOSTDEVICE void jenkinsMix(unsigned int & a, unsigned int & b, unsigned int & c)
-{
-    a -= b; a -= c; a ^= (c>>13);
-    b -= c; b -= a; b ^= (a<<8);
-    c -= a; c -= b; c ^= (b>>13);
-    a -= b; a -= c; a ^= (c>>12);
-    b -= c; b -= a; b ^= (a<<16);
-    c -= a; c -= b; c ^= (b>>5);
-    a -= b; a -= c; a ^= (c>>3);
-    b -= c; b -= a; b ^= (a<<10);
-    c -= a; c -= b; c ^= (b>>15);   
-}
+
 
 struct RNG
 {
@@ -302,8 +293,19 @@ struct OccRayGenFunctor
 };
 
 
-
-
+/* Next two functions use code adapted from NVIDIA rayGen kernels see headers in RT/bvh/ for full copyright information */
+EAVL_HOSTDEVICE void jenkinsMix(unsigned int & a, unsigned int & b, unsigned int & c)
+{
+    a -= b; a -= c; a ^= (c>>13);
+    b -= c; b -= a; b ^= (a<<8);
+    c -= a; c -= b; c ^= (b>>13);
+    a -= b; a -= c; a ^= (c>>12);
+    b -= c; b -= a; b ^= (a<<16);
+    c -= a; c -= b; c ^= (b>>5);
+    a -= b; a -= c; a ^= (c>>3);
+    b -= c; b -= a; b ^= (a<<10);
+    c -= a; c -= b; c ^= (b>>15);   
+}
 struct OccRayGenFunctor2
 {   
     OccRayGenFunctor2(){}
@@ -577,7 +579,6 @@ EAVL_HOSTDEVICE eavlVector3 triangleIntersectionABG(const eavlVector3 ray,const 
     //inside test
     alpha=((c-b)%(intersect-b))*normal; //angles between the intersect point and edges
     beta =((a-c)%(intersect-c))*normal;
-    //if(alpha<0 || beta<0 || gamma<0 || tempDistance<EPSILON) return eavlVector3(-9999,-9999,-9999);        //intersect not within the triangle
     // this is for the barycentric coordinates for color, normal lerping.
     area=normal*normal;
     alpha=alpha/area;
@@ -1332,7 +1333,7 @@ void eavlRayTracerMutator::writeBMP(int _height, int _width, eavlFloatArray *r, 
 void eavlRayTracerMutator::allocateArrays()
 {
     if(rayDirX!=NULL)
-    {   
+    {   cout<<"Deleting"<<rayDirX<<endl;
         delete  rayDirX;
         delete  rayDirY;
         delete  rayDirZ;
@@ -1396,6 +1397,7 @@ void eavlRayTracerMutator::allocateArrays()
         }
 
     }
+    cout<<"alloc "<<size<<endl;
     /*Temp arrays for compact*/
     compactTempInt  = new eavlIntArray("temp",1,size);
     compactTempFloat= new eavlFloatArray("temp",1,size);
@@ -1471,6 +1473,7 @@ void eavlRayTracerMutator::allocateArrays()
     }
 
     sizeDirty=false;
+    cout<<"dirty end should be false "<<sizeDirty<<endl;
 }
 
 void eavlRayTracerMutator::Init()
@@ -1480,13 +1483,15 @@ void eavlRayTracerMutator::Init()
     if(antiAlias) size=(width+1)*(height+1);
 #endif
     currentSize=size; //for compact
-   
+    cout<<"Here 1 dirty="<<sizeDirty<<endl;
     if(sizeDirty) 
     {
+        cout<<"Here 2"<<endl;
         allocateArrays();
+        cout<<"Here 3"<<endl;
         createRays(); //creates the morton ray indexes
     }
-
+    cout<<"Here 4"<<endl;
     //fill the const arrays with vertex and normal data
     
     /* Set ray origins to the eye */
@@ -1509,7 +1514,7 @@ void eavlRayTracerMutator::Init()
                                              IntMemsetFunctor(0)),
                                              "init");
     eavlExecutor::Go();
-
+    cout<<"Here 4"<<endl;
     if(geomDirty) extractGeometry();
 }
 
@@ -1522,26 +1527,36 @@ void eavlRayTracerMutator::extractGeometry()
     if(verbose) cerr<<"Extracting Geometry"<<endl;
     
     scene->createRawData();
-
+    cout<<"raw data created"<<endl;
     numTriangles    = scene->getNumTriangles();
     numMats         = scene->getNumMaterials();
     verts_raw       = scene->getTrianglePtr();
     norms_raw       = scene->getTriangleNormPtr();
     matIdx_raw      = scene->getTriMatIdxsPtr();
     mats_raw        = scene->getMatsPtr();
-
+     cout<<"got pointers"<<endl;
     int bvhsize=0;
     int bvhLeafSize=0;
     float *bvhLeafs;
+    bool cacheExists=false;
+    bool writeCache=true;
 
-    bool cacheExists=readBVHCache(bvhFlatArray_raw, bvhsize, bvhLeafs, bvhLeafSize, bvhCacheName.c_str());
-    if(!cacheExists)
-    {
+    //if(bvhCacheName!="")
+    //{
+    //    cacheExists=readBVHCache(bvhFlatArray_raw, bvhsize, bvhLeafs, bvhLeafSize, bvhCacheName.c_str());
+    //}
+    //else 
+    //{
+    //    writeCache=false;
+//
+    //
+    //if(!cacheExists)
+    //{
         SplitBVH *testSplit= new SplitBVH((eavlVector3*)verts_raw, numTriangles); 
         testSplit->getFlatArray(bvhsize, bvhLeafSize, bvhFlatArray_raw, bvhLeafs);
-        writeBVHCache(bvhFlatArray_raw, bvhsize, bvhLeafs, bvhLeafSize, bvhCacheName.c_str());
+        //if( writeCache) writeBVHCache(bvhFlatArray_raw, bvhsize, bvhLeafs, bvhLeafSize, bvhCacheName.c_str());
         delete testSplit;
-    }
+    //}
     
 
     if(numMats==0) { cerr<<"NO MATS bailing"<<endl; exit(0); }
@@ -1850,15 +1865,15 @@ void eavlRayTracerMutator::Execute()
         eavlExecutor::Go();
 
         if(verbose) cerr << "TOTAL     RUNTIME: "<<eavlTimer::Stop(th,"raytrace")<<endl;
-        writeBMP(height,width,r2,g2,b2,"notA.bmp");
+        //writeBMP(height,width,r2,g2,b2,"notA.bmp");
 #endif
     //} 
     
     
-    //writeBMP(height,width,r,g,b,(char*)scounter.c_str());
-    frameCounter++; 
+    //writeBMP(height,width,r,g,b,(char*)scounter.c_str()); 
     
     
+    cout<<"leaving execute"<<endl;
 }
 /*
 void eavlRayTracerMutator::printMemUsage()

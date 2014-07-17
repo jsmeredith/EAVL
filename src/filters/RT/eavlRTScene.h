@@ -24,7 +24,7 @@ class eavlRTScene
 		float *				tris_norms_raw;
 		float * 			spheres_raw;
 		float *				mats_raw;
-		int * 			trisMatIdxs;
+		int * 			    trisMatIdxs;
 	public:
 		EAVL_HOSTONLY inline eavlRTScene(RTMaterial defualtMaterial= RTMaterial());
 		EAVL_HOSTONLY inline ~eavlRTScene();
@@ -67,6 +67,11 @@ EAVL_HOSTONLY inline eavlRTScene::eavlRTScene(RTMaterial defualtMaterial)
 
 	tris= new vector<RTTriangle>();
 	spheres= new vector<RTSphere>();
+	tris_raw 		=NULL;
+	tris_norms_raw 	=NULL;
+	spheres_raw 	=NULL;
+	mats_raw 		=NULL;
+	trisMatIdxs		=NULL;
 }
 
 EAVL_HOSTONLY inline eavlRTScene::~eavlRTScene()
