@@ -269,7 +269,7 @@ inline eavlColor CastRay(Ray r, Scene &scene, eavlPoint3 &lightpos,
 
 
 // ****************************************************************************
-// Class:  eavlSceneRendererRT
+// Class:  eavlSceneRendererSimpleRT
 //
 // Purpose:
 ///   A very simple, though not necessarily fast, implementation of
@@ -281,7 +281,7 @@ inline eavlColor CastRay(Ray r, Scene &scene, eavlPoint3 &lightpos,
 // Modifications:
 //
 // ****************************************************************************
-class eavlSceneRendererRT : public eavlSceneRenderer
+class eavlSceneRendererSimpleRT : public eavlSceneRenderer
 {
     Scene scene;
     vector<byte> rgba;

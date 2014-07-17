@@ -465,16 +465,13 @@ class eavl1DGLScene : public eavlScene
             if (!p)
                 continue;
 
-            if (view.view2d.logy)
-                cerr << "WARNING; NEED TO RE-ENABLE LOG SCALING!\n";
-            /*
             ///\todo: ugly hack to make the curve renderer do log scaling
-            eavlCurveRenderer* cr = dynamic_cast<eavlCurveRenderer*>(r);
-            if (cr)
+            eavl1DPlot *p1d = dynamic_cast<eavl1DPlot*>(p);
+            if (p1d)
             {
-                cr->SetLogarithmic(view.view2d.logy);
+                p1d->SetLogarithmic(view.view2d.logy);
             }
-            */
+
 
             eavlTexture *tex = NULL;
             string ctname = p->GetColorTableName();
