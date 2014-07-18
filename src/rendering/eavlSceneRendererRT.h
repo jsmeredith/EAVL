@@ -28,6 +28,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     eavlRayTracerMutator* tracer;
     bool canRender;
     bool setLight;
+    string ctName;
   public:
     eavlSceneRendererRT()
     {
@@ -41,6 +42,8 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
         canRender=false;
         setLight=true;
+        ctName="";
+
     }
     ~eavlSceneRendererRT()
     {
@@ -54,9 +57,15 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     }
     virtual void SetActiveColorTable(string ct)
     {
+
         eavlSceneRenderer::SetActiveColorTable(ct);
-        tracer->setColorMap3f(colors,ncolors);
-        cout<<"Setting Active Color Table"<<endl;
+        if(ct!=ctName)
+        {
+            ctName=ct;
+            tracer->setColorMap3f(colors,ncolors);
+            cout<<"Setting Active Color Table"<<endl;
+        }
+        
     }
 
 
@@ -149,20 +158,25 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {
         if(!canRender) return;
         tracer->setResolution(v.h,v.w);
+        /*Otherwise the light will move with the camera*/
         if(setLight)
         {
-          tracer->setLightParams(v.view3d.from.x,v.view3d.from.y,v.view3d.from.z, 1.f, 1, 0, 0);  
+          tracer->setLightParams(v.view3d.from.x,v.view3d.from.y,v.view3d.from.z, 1.f, 1, 0, 0);  /*Light params: intensity, constant, linear and exponential coefficeints*/
+          setLight=false;
         } 
+        /*Set up field of view: tracer takes the half FOV in degrees*/
         float fovx= 2.f*atan(tan(v.view3d.fov/2.f)*v.w/v.h);
         fovx*=180.f/M_PI;
-        //cout<<"fovx "<<v.view3d.fov*(180.f/M_PI)<<" fovy = "<<fovy<<endl;
         tracer->setFOVy((v.view3d.fov*(180.f/M_PI))/2.f);
-        tracer->setFOVx( fovx/2.f );//Todo fix this
+        tracer->setFOVx( fovx/2.f );
+
         eavlVector3 lookdir = (v.view3d.at - v.view3d.from).normalized();
         tracer->lookAtPos(v.view3d.at.x,v.view3d.at.y,v.view3d.at.z);
         tracer->setCameraPos(v.view3d.from.x,v.view3d.from.y,v.view3d.from.z);
+
         eavlVector3 right = (lookdir % v.view3d.up).normalized();
-        eavlVector3 up = ( lookdir % right).normalized();  //left to right handed conversion
+        /* Tracer is a lefty, so this is flip so down is not up */
+        eavlVector3 up = ( lookdir % right).normalized();  
         tracer->setUp(up.x,up.y,up.z);
         
 
