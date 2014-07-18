@@ -549,18 +549,18 @@ class eavlSceneRenderer
                     if (NoColors)
                     {
                         AddTriangleVn(x0,y0,z0, x1,y1,z1, x2,y2,z2,
-                                      u0,v0,w0, u1,v1,w2, u2,v2,w2);
+                                      u0,v0,w0, u1,v1,w1, u2,v2,w2);
                     }
                     else if (CellColors)
                     {
                         AddTriangleVnCs(x0,y0,z0, x1,y1,z1, x2,y2,z2,
-                                        u0,v0,w0, u1,v1,w2, u2,v2,w2,
+                                        u0,v0,w0, u1,v1,w1, u2,v2,w2,
                                         s);
                     }
                     else if (PointColors)
                     {
                         AddTriangleVnVs(x0,y0,z0, x1,y1,z1, x2,y2,z2,
-                                        u0,v0,w0, u1,v1,w2, u2,v2,w2,
+                                        u0,v0,w0, u1,v1,w1, u2,v2,w2,
                                         s0,s1,s2);
                     }
                 }
