@@ -242,6 +242,10 @@ class eavlPlot
     {
         return colortablename;
     }
+    eavlColor GetColor()
+    {
+        return color;
+    }
     void SetWireframe(bool wf)
     {
         wireframe = wf;
