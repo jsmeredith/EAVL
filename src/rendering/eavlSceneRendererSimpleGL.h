@@ -25,6 +25,12 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
 {
   public:
 
+    // we're not caching anything; always say we need it
+    virtual bool NeedsGeometryForPlot(eavlPlot*)
+    {
+        return true;
+    }
+
     virtual void SetActiveColor(eavlColor c)
     {
         glColor3fv(c.c);

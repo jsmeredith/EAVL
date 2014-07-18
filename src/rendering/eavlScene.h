@@ -195,7 +195,11 @@ class eavl3DGLScene : public eavlScene
             if (tex)
                 tex->Enable();
 
-            p->Render(sr);
+            if (sr->NeedsGeometryForPlot(p))
+            {
+                sr->SendingGeometryForPlot(p);
+                p->Generate(sr);
+            }
 
             if (tex)
                 tex->Disable();
@@ -281,7 +285,11 @@ class eavl2DGLScene : public eavlScene
             if (tex)
                 tex->Enable();
 
-            p->Render(sr);
+            if (sr->NeedsGeometryForPlot(p))
+            {
+                sr->SendingGeometryForPlot(p);
+                p->Generate(sr);
+            }
 
             if (tex)
                 tex->Disable();
@@ -359,7 +367,11 @@ class eavlPolarGLScene : public eavlScene
             if (tex)
                 tex->Enable();
 
-            p->Render(sr);
+            if (sr->NeedsGeometryForPlot(p))
+            {
+                sr->SendingGeometryForPlot(p);
+                p->Generate(sr);
+            }
 
             if (tex)
                 tex->Disable();
@@ -490,7 +502,11 @@ class eavl1DGLScene : public eavlScene
             if (tex)
                 tex->Enable();
 
-            p->Render(sr);
+            if (sr->NeedsGeometryForPlot(p))
+            {
+                sr->SendingGeometryForPlot(p);
+                p->Generate(sr);
+            }
 
             if (tex)
                 tex->Disable();

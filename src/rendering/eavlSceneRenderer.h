@@ -39,6 +39,8 @@ struct ColorByOptions
     //eavlColorTable *ct; ///< colortable to color by when singleColor==false
 };
 
+class eavlPlot;
+
 // ****************************************************************************
 // Class:  eavlSceneRenderer
 //
@@ -59,6 +61,7 @@ class eavlSceneRenderer
   protected:
     int ncolors;
     float colors[3*1024];
+    set<eavlPlot*> contents;
   public:
     eavlSceneRenderer()
     {
@@ -67,6 +70,16 @@ class eavlSceneRenderer
     }
     virtual ~eavlSceneRenderer()
     {
+    }
+
+    virtual bool NeedsGeometryForPlot(eavlPlot *p)
+    {
+        bool containsplot = contents.count(p) > 0;
+        return !containsplot;
+    }
+    virtual void SendingGeometryForPlot(eavlPlot *p)
+    {
+        contents.insert(p);
     }
 
     ///\todo: NO, no view in 'startscene'; we need 
