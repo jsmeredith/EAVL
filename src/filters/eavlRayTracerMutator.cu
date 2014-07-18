@@ -405,9 +405,11 @@ struct RayGenFunctor
         float thx=tan(half_fovX*PI/180);
         float thy=tan(half_fovY*PI/180);
 
-        eavlVector3 ru= look%up;// % == cross
+        //eavlVector3 ru= look%up;// % == cross
+        eavlVector3 ru= up%look;
         ru.normalize();
-        eavlVector3 rv= look%ru;
+        //eavlVector3 rv= look%ru;
+        eavlVector3 rv= ru%look;
         rv.normalize();
 
         delta_x=ru*(2*thx/(float)w);

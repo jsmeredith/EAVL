@@ -28,7 +28,7 @@ class eavlRayTracerMutator : public eavlMutator
 
     void setResolution(const int h, const int w)
     {
-      if(h!=height || width !=height) 
+      if(h!=height || width !=w) 
       {
         cout<<h<<" "<<height<<" "<<w<<" "<<width<<endl;
         sizeDirty=true;

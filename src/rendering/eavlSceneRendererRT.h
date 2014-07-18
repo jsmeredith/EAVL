@@ -34,7 +34,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setDepth(1);
         tracer->setVerbose(true);
         tracer->setAOMax(3);
-        tracer->setOccSamples(4);
+        tracer->setOccSamples(16);
         tracer->setAO(true);
         tracer->setBVHCacheName(""); // don't use cache
 
@@ -145,15 +145,17 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {
         if(!canRender) return;
         tracer->setResolution(v.h,v.w);
-        tracer->setLightParams(v.view3d.from.x,v.view3d.from.y,v.view3d.from.z, 1, 1, 0, 0);
-        float aspect=v.w/v.h;
-        tracer->setFOVx(45);
-        tracer->setFOVy(30);//Todo fix this
+        tracer->setLightParams(v.view3d.from.x,v.view3d.from.y,v.view3d.from.z, .7, 1, 0, 0);
+        float fovy= 2.f*atan(tan(v.view3d.fov/2.f)*v.h/v.w);
+        fovy*=180.f/M_PI;
+        cout<<"fovx "<<v.view3d.fov*(180.f/M_PI)<<" fovy = "<<fovy<<endl;
+        tracer->setFOVy(fovy/2.f);
+        tracer->setFOVx((v.view3d.fov*(180.f/M_PI))/2.f);//Todo fix this
         eavlVector3 lookdir = (v.view3d.at - v.view3d.from).normalized();
         tracer->lookAtPos(v.view3d.at.x,v.view3d.at.y,v.view3d.at.z);
         tracer->setCameraPos(v.view3d.from.x,v.view3d.from.y,v.view3d.from.z);
         eavlVector3 right = (lookdir % v.view3d.up).normalized();
-        eavlVector3 up = (right % lookdir).normalized();
+        eavlVector3 up = ( lookdir % right).normalized();  //left to right handed conversion
         tracer->setUp(up.x,up.y,up.z);
         
 
