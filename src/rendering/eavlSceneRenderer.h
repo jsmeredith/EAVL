@@ -213,14 +213,15 @@ class eavlSceneRenderer
                                double x2, double y2, double z2,
                                double s0, double s1, double s2)
     {
-        double u = 1;
-        double v = 0;
-        double w = 0;
-        AddTriangleVnVs(x0,y0,z0,
+        eavlVector3 e0(x1-x0, y1-y0, z1-z0);
+        eavlVector3 e1(x2-x1, y2-y1, z2-z1);
+        eavlVector3 n((e0 % e1).normalized());
+        double u = n[0];
+        double v = n[1];
+        double w = n[2];
+        AddTriangleCnVs(x0,y0,z0,
                         x1,y1,z1,
                         x2,y2,z2,
-                        u ,v ,w ,
-                        u ,v ,w ,
                         u ,v ,w ,
                         s0,s1,s2);
     }
@@ -230,32 +231,21 @@ class eavlSceneRenderer
                                double x2, double y2, double z2,
                                double s)
     {
-        double u = 1;
-        double v = 0;
-        double w = 0;
-        AddTriangleVnVs(x0,y0,z0,
-                        x1,y1,z1,
-                        x2,y2,z2,
-                        u ,v ,w ,
-                        u ,v ,w ,
-                        u ,v ,w ,
-                        s, s, s);
+        AddTriangleVs(x0,y0,z0,
+                      x1,y1,z1,
+                      x2,y2,z2,
+                      s, s, s);
     }
     // no scalar
     virtual void AddTriangle(double x0, double y0, double z0,
                              double x1, double y1, double z1,
                              double x2, double y2, double z2)
     {
-        double u = 1;
-        double v = 0;
-        double w = 0;
-        AddTriangleVnVs(x0,y0,z0,
-                        x1,y1,z1,
-                        x2,y2,z2,
-                        u ,v ,w ,
-                        u ,v ,w ,
-                        u ,v ,w ,
-                        0, 0, 0);
+        double s = 0;
+        AddTriangleVs(x0,y0,z0,
+                      x1,y1,z1,
+                      x2,y2,z2,
+                      s, s, s);
     }
 
     // ----------------------------------------
