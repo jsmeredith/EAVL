@@ -35,7 +35,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer = new eavlRayTracerMutator();
         tracer->setDepth(1);
         tracer->setVerbose(true);
-        tracer->setAOMax(3);
+        tracer->setAOMax(5);
         tracer->setOccSamples(16);
         tracer->setAO(true);
         tracer->setBVHCacheName(""); // don't use cache
@@ -158,6 +158,8 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {
         if(!canRender) return;
         tracer->setResolution(v.h,v.w);
+        tracer->setAOMax(tracer->scene->getSceneExtentMagnitude()/5.f);
+
         /*Otherwise the light will move with the camera*/
         if(setLight)
         {

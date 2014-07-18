@@ -54,6 +54,7 @@ class eavlRTScene
 		EAVL_HOSTONLY inline float*     getSpherePtr();
 		EAVL_HOSTONLY inline float*     getMatsPtr();
 		EAVL_HOSTONLY inline int*       getTriMatIdxsPtr();
+		EAVL_HOSTONLY inline float 		getSceneExtentMagnitude();
 
 };
 
@@ -328,5 +329,9 @@ EAVL_HOSTONLY inline int* eavlRTScene::getTriMatIdxsPtr()
 	return trisMatIdxs;
 }
 
+EAVL_HOSTONLY inline float eavlRTScene::getSceneExtentMagnitude()
+{
+	return sqrt(sceneBbox.extent.x*sceneBbox.extent.x+sceneBbox.extent.y*sceneBbox.extent.y+sceneBbox.extent.z*sceneBbox.extent.z);
+}
 
 #endif
