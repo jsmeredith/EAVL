@@ -306,7 +306,7 @@ class eavlRayTracerMutator : public eavlMutator
       cleanUp();
     }
     virtual void Execute();
-      
+    void setColorMap3f(float*,int);
   protected:
     string fieldname;
 
@@ -333,6 +333,7 @@ class eavlRayTracerMutator : public eavlMutator
     float     lightCoConst;
     float     lightCoLinear;
     float     lightCoExponent;
+    int       colorMapSize;
 
     std::ostringstream oss;
     string fileprefix;
@@ -423,12 +424,15 @@ class eavlRayTracerMutator : public eavlMutator
     int * matIdx_raw;
     float * mats_raw;
     eavlConstArray<float> *bvhFlatArray;
+    eavlFloatArray*     scalars;
+    float *colorMap_raw;
 
     float *verts_raw;
     float *norms_raw;
     float *bvhFlatArray_raw;
 
     void Init();
+    void setDefaultColorMap();
     void writeBMP(int, int, eavlFloatArray*,eavlFloatArray*,eavlFloatArray*,const char*);
     int  compact();
     void compactFloatArray(eavlFloatArray*& input, eavlIntArray* reverseIndex, int nitems);

@@ -27,6 +27,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
   private:
     eavlRayTracerMutator* tracer;
     bool canRender;
+    bool setLight;
   public:
     eavlSceneRendererRT()
     {
@@ -39,6 +40,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setBVHCacheName(""); // don't use cache
 
         canRender=false;
+        setLight=true;
     }
     ~eavlSceneRendererRT()
     {
@@ -48,23 +50,25 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {
         glColor3fv(c.c);
         glDisable(GL_TEXTURE_1D);
+        cout<<"Setting Active Color"<<endl;
     }
     virtual void SetActiveColorTable(string ct)
     {
-        glColor3fv(eavlColor::white.c);
-        glEnable(GL_TEXTURE_1D);
+        eavlSceneRenderer::SetActiveColorTable(ct);
+        tracer->setColorMap3f(colors,ncolors);
+        cout<<"Setting Active Color Table"<<endl;
     }
 
 
     // ------------------------------------------------------------------------
     virtual void StartTriangles()
     {
-        glBegin(GL_TRIANGLES);
+        cout<<"Calling Start Tris"<<endl;
     }
 
     virtual void EndTriangles()
     {
-        glEnd();
+        cout<<"Calling End Tris"<<endl;
     }
 
     virtual void AddTriangleVnVs(double x0, double y0, double z0,
@@ -145,12 +149,15 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {
         if(!canRender) return;
         tracer->setResolution(v.h,v.w);
-        tracer->setLightParams(v.view3d.from.x,v.view3d.from.y,v.view3d.from.z, .7, 1, 0, 0);
-        float fovy= 2.f*atan(tan(v.view3d.fov/2.f)*v.h/v.w);
-        fovy*=180.f/M_PI;
-        cout<<"fovx "<<v.view3d.fov*(180.f/M_PI)<<" fovy = "<<fovy<<endl;
-        tracer->setFOVy(fovy/2.f);
-        tracer->setFOVx((v.view3d.fov*(180.f/M_PI))/2.f);//Todo fix this
+        if(setLight)
+        {
+          tracer->setLightParams(v.view3d.from.x,v.view3d.from.y,v.view3d.from.z, 1.f, 1, 0, 0);  
+        } 
+        float fovx= 2.f*atan(tan(v.view3d.fov/2.f)*v.w/v.h);
+        fovx*=180.f/M_PI;
+        //cout<<"fovx "<<v.view3d.fov*(180.f/M_PI)<<" fovy = "<<fovy<<endl;
+        tracer->setFOVy((v.view3d.fov*(180.f/M_PI))/2.f);
+        tracer->setFOVx( fovx/2.f );//Todo fix this
         eavlVector3 lookdir = (v.view3d.at - v.view3d.from).normalized();
         tracer->lookAtPos(v.view3d.at.x,v.view3d.at.y,v.view3d.at.z);
         tracer->setCameraPos(v.view3d.from.x,v.view3d.from.y,v.view3d.from.z);

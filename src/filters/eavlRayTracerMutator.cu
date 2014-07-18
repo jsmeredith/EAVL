@@ -51,7 +51,7 @@
 texture<float4> bvhInnerTexRef;
 texture<float4> vertsTexRef;
 texture<float>  bvhLeafTexRef;
-
+texture<float4> colorMapRef;
 #define USE_TEXTURE_MEM
 template<class T>
 class eavlConstArrayV2
@@ -84,10 +84,19 @@ class eavlConstArrayV2
     {
         return tex1Dfetch(g_textureRef, index);
     }
+    EAVL_HOSTONLY  void unbind(texture<T> g_textureRef)
+    {
+        cudaUnbindTexture(g_textureRef);
+        CUDA_CHECK_ERROR();
+    }
 #else
     EAVL_DEVICEONLY const T &getValue(texture<T> g_textureRef, int index) const
     {
         return device[index];
+    }
+    EAVL_HOSTONLY  void unbind(texture<T> g_textureRef)
+    {
+        //do nothing
     }
 #endif
 #else
@@ -95,12 +104,18 @@ class eavlConstArrayV2
     {
         return host[index];
     }
+    EAVL_HOSTONLY  void unbind(texture<T> g_textureRef)
+    {
+        //do nothing
+    }
 #endif
+
 };
 
 eavlConstArrayV2<float4>* bvhTex;
 eavlConstArrayV2<float4>* vertsTex;
 eavlConstArrayV2<float>*  bvhLeafsTex;
+eavlConstArrayV2<float4>* colorMapTex;
 
 void writeBVHCache(const float *innerNodes, const int innerSize, const float * leafNodes, const int leafSize, const char* filename )
 {
@@ -210,9 +225,54 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     greenIndexer= new eavlArrayIndexer(3,1);
     blueIndexer = new eavlArrayIndexer(3,2);
     cout<<"Construtor Done. Dirty"<<endl;
+    colorMapTex=NULL;
+    colorMap_raw=NULL;
+    setDefaultColorMap();
 }
 
+void eavlRayTracerMutator::setColorMap3f(float* cmap,int size)
+{
+    colorMapSize=size;
+    if(colorMapTex!=NULL)
+    {
+        cout<<"Unbinding"<<endl;
+        colorMapTex->unbind(colorMapRef);
+        delete colorMapTex;
+    }
+    if(colorMap_raw!=NULL)
+    {
+        delete colorMap_raw;
+    }
+    colorMap_raw= new float[size*4];
+    
+    for(int i=0;i<size;i++)
+    {
+        colorMap_raw[i*4  ]=cmap[i*3  ];
+        colorMap_raw[i*4+1]=cmap[i*3+1];
+        colorMap_raw[i*4+2]=cmap[i*3+2];
+        colorMap_raw[i*4+3]=0;
+        //cout<<cmap[i*3]<<" "<<cmap[i*3+1]<<" "<<cmap[i*3+2]<<endl;
+    }
+    colorMapTex = new eavlConstArrayV2<float4>((float4*)colorMap_raw, colorMapSize, colorMapRef);
+}
+void eavlRayTracerMutator::setDefaultColorMap()
+{
+    if(colorMapTex!=NULL)
+    {
+        colorMapTex->unbind(colorMapRef);
+        delete colorMapTex;
+    }
+    if(colorMap_raw!=NULL)
+    {
+        delete colorMap_raw;
+    }
+    //two values all 1s
+    colorMapSize=2;
+    colorMap_raw= new float[8];
+    for(int i=0;i<8;i++) colorMap_raw[i]=1.f;
+    colorMapTex = new eavlConstArrayV2<float4>((float4*)colorMap_raw, colorMapSize, colorMapRef);
 
+}
 
 void eavlRayTracerMutator::setCompact(bool comp)
 {
@@ -981,11 +1041,11 @@ struct ReflectFunctor{
     {
         
     }                                                    //order a b c clockwise
-    EAVL_FUNCTOR tuple<float,float,float,float,float, float,float,float, float,float,float> operator()( tuple<float,float,float,float,float,float,int> rayTuple){
+    EAVL_FUNCTOR tuple<float,float,float,float,float, float,float,float, float,float,float, float> operator()( tuple<float,float,float,float,float,float,int> rayTuple){
        
         
         int hitIndex=get<6>(rayTuple);//hack for now
-        if(hitIndex==-1) return tuple<float,float,float,float,float, float,float,float, float,float,float>(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0);
+        if(hitIndex==-1) return tuple<float,float,float,float,float, float,float,float, float,float,float, float>(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0);
         
         eavlVector3 intersect;
 
@@ -997,7 +1057,7 @@ struct ReflectFunctor{
 
         float4 a4=verts.getValue(vertsTexRef, hitIndex*3);
         float4 b4=verts.getValue(vertsTexRef, hitIndex*3+1);
-        float4 c4=verts.getValue(vertsTexRef, hitIndex*3+2);
+        float4 c4=verts.getValue(vertsTexRef, hitIndex*3+2); //scalars are stored in c.yzw
         eavlVector3 a(a4.x,a4.y,a4.z);
         eavlVector3 b(a4.w,b4.x,b4.y);
         eavlVector3 c(b4.z,b4.w,c4.x);
@@ -1009,17 +1069,18 @@ struct ReflectFunctor{
         eavlVector3 aNorm=normalPtr[0];
         eavlVector3 bNorm=normalPtr[1];
         eavlVector3 cNorm=normalPtr[2];
-        normal=(-aNorm)*alpha+(-bNorm)*beta+(-cNorm)*gamma;
+        normal=aNorm*alpha+bNorm*beta+cNorm*gamma;
+        float lerpedScalar = c4.y*alpha+c4.z*beta+c4.w*gamma;
         //reflect the ray
         ray.normalize();
         normal.normalize();
-        if ((normal*ray) > 0.0f) normal = -normal;
+        if ((normal*ray) > 0.0f) normal = -normal; //flip the normal if we hit the back side
         reflection=ray-normal*2.f*(normal*ray);
         reflection.normalize();
         intersect=intersect+(-ray*BARY_TOLE);
 
 
-        return tuple<float,float,float,float,float,float,float,float,float,float,float>(intersect.x, intersect.y,intersect.z,reflection.x,reflection.y,reflection.z,normal.x,normal.y,normal.z,alpha,beta);
+        return tuple<float,float,float,float,float,float,float,float,float,float,float,float>(intersect.x, intersect.y,intersect.z,reflection.x,reflection.y,reflection.z,normal.x,normal.y,normal.z,alpha,beta, lerpedScalar);
     }
 };
 
@@ -1175,19 +1236,21 @@ struct ShaderFunctor
     eavlVector3     eye; 
     float           depth;
     int             size;
-    eavlConstArray<float> norms;
-    eavlConstArray<int>   matIds;
-    eavlConstArray<float> mats;
+    int             colorMapSize;
+    eavlConstArray<float>       norms;
+    eavlConstArray<int>         matIds;
+    eavlConstArray<float>       mats;
+    eavlConstArrayV2<float4>    colorMap;
 
     ShaderFunctor(int numTris,eavlVector3 theLight,eavlVector3 eyePos,eavlConstArray<float> *xnorm, int dpth,eavlConstArray<int> *_matIds,eavlConstArray<float> *_mats,
-                  int _lightIntensity, float _lightCoConst, float _lightCoLinear, float _lightCoExponent)
-        :norms(*xnorm), matIds(*_matIds), mats(*_mats)
+                  int _lightIntensity, float _lightCoConst, float _lightCoLinear, float _lightCoExponent, eavlConstArrayV2<float4>* _colorMap, int _colorMapSize)
+        :norms(*xnorm), matIds(*_matIds), mats(*_mats),colorMap(*_colorMap)
 
     {
         depth=(float)dpth;
         light=theLight;
         size=numTris;
-
+        colorMapSize=_colorMapSize;
         eye=eyePos;
 
         lightDiff=eavlVector3(.5,.5,.5);
@@ -1198,7 +1261,7 @@ struct ShaderFunctor
         lightCoExponent = _lightCoExponent;
     }
 
-    EAVL_FUNCTOR tuple<float,float,float> operator()(tuple<int,int,float,float,float,float,float,float,float,float,float,float,float,float> input)
+    EAVL_FUNCTOR tuple<float,float,float> operator()(tuple<int,int,float,float,float,float,float,float,float,float,float,float,float,float,float > input)
     {
         int hitIdx=get<0>(input);
         int hit=get<1>(input);
@@ -1256,6 +1319,16 @@ struct ShaderFunctor
         red  =ka.x*ambPct+ (kd.x*lightDiff.x*cosTheta+ks.x*lightSpec.x*specConst)*shadowHit*dist;
         green=ka.y*ambPct+ (kd.y*lightDiff.y*cosTheta+ks.y*lightSpec.y*specConst)*shadowHit*dist;
         blue =ka.z*ambPct+ (kd.z*lightDiff.z*cosTheta+ks.z*lightSpec.z*specConst)*shadowHit*dist;
+        
+        /*Color map*/
+        float scalar    = get<14>(input);
+        int   colorIdx = floor(scalar*colorMapSize);
+        
+        float4 color = colorMap.getValue(colorMapRef, colorIdx); 
+        red*=color.x;
+        green*=color.y;
+        blue*=color.z;
+
         //cout<<kd<<ks<<id<<endl;
         //cout<<cosTheta<<endl;
         //red  =ka.x*ambPct+ (ks.x*lightSpec.x*specConst)*shadowHit;
@@ -1371,6 +1444,7 @@ void eavlRayTracerMutator::allocateArrays()
         delete ambPct;
         delete zBuffer;
         delete frameBuffer;
+        delete scalars;
         //what happens when someone turns these on and off??? 
         //1. we could just always do it and waste memory
         //2 call allocation if we detect dirty settings/dirtySize <-this is what is being done;
@@ -1439,6 +1513,7 @@ void eavlRayTracerMutator::allocateArrays()
     ambPct         = new eavlFloatArray("",1, size);
     zBuffer        = new eavlFloatArray("",1, size);
     frameBuffer    = new eavlFloatArray("",1, width*height*3);
+    scalars        = new eavlFloatArray("",1,size);
     //compact arrays
     if(compactOp)
     {
@@ -1640,7 +1715,7 @@ void eavlRayTracerMutator::Execute()
         }
         int treflect = eavlTimer::Start();
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx),
-                                                 eavlOpArgs(interX, interY,interZ,rayDirX,rayDirY,rayDirZ,normX,normY,normZ,alphas,betas),
+                                                 eavlOpArgs(interX, interY,interZ,rayDirX,rayDirY,rayDirZ,normX,normY,normZ,alphas,betas,scalars),
                                                  ReflectFunctor(vertsTex,norms)),
                                                                                                      "reflect");
         eavlExecutor::Go();                        
@@ -1708,9 +1783,9 @@ void eavlRayTracerMutator::Execute()
         eavlExecutor::Go();
         if(verbose) cerr<<"After Shadow Rays"<<endl;
         int shade = eavlTimer::Start();
-        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx,shadowHits,interX,interY,interZ,alphas,betas,ambPct,normX,normY,normZ,rayOriginX,rayOriginY,rayOriginZ),
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx,shadowHits,interX,interY,interZ,alphas,betas,ambPct,normX,normY,normZ,rayOriginX,rayOriginY,rayOriginZ, scalars),
                                                  eavlOpArgs(r2,g2,b2),
-                                                 ShaderFunctor(numTriangles,light,eye,norms,i,matIdx,mats,lightIntensity, lightCoConst, lightCoLinear, lightCoExponent)),
+                                                 ShaderFunctor(numTriangles,light,eye,norms,i,matIdx,mats,lightIntensity, lightCoConst, lightCoLinear, lightCoExponent, colorMapTex, colorMapSize)),
                                                  "shader");
         eavlExecutor::Go();
         cerr<<"\nShading : "<<eavlTimer::Stop(shade,"")<<endl;
