@@ -54,6 +54,8 @@ class eavlWindow
 
     void SetSceneRenderer(eavlSceneRenderer *sr)
     {
+        if (renderer)
+            delete renderer;
         renderer = sr;
     }
     eavlSceneRenderer *GetSceneRenderer()

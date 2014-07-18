@@ -7,6 +7,7 @@
 #include "eavlColor.h"
 #include "eavlColorTable.h"
 #include "eavlSceneRenderer.h"
+#include "eavlTexture.h"
 
 // ****************************************************************************
 // Class:  eavlSceneRendererSimpleGL
@@ -23,7 +24,26 @@
 // ****************************************************************************
 class eavlSceneRendererSimpleGL : public eavlSceneRenderer
 {
+    std::map<std::string,eavlTexture*> textures;
+
   public:
+    virtual ~eavlSceneRendererSimpleGL()
+    {
+        for (std::map<std::string,eavlTexture*>::iterator i = textures.begin();
+             i != textures.end() ; ++i)
+            delete i->second;
+        textures.clear();
+    }
+
+    eavlTexture *GetTexture(const std::string &s)
+    {
+        return textures[s];
+    }
+    void SetTexture(const std::string &s, eavlTexture *tex)
+    {
+        textures[s] = tex;
+    }
+
 
     // we're not caching anything; always say we need it
     virtual bool NeedsGeometryForPlot(eavlPlot*)
@@ -36,10 +56,18 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
         glColor3fv(c.c);
         glDisable(GL_TEXTURE_1D);
     }
-    virtual void SetActiveColorTable(string ct)
+    virtual void SetActiveColorTable(string ctname)
     {
         glColor3fv(eavlColor::white.c);
-        glEnable(GL_TEXTURE_1D);
+
+        eavlTexture *tex = GetTexture(ctname);
+        if (!tex)
+        {
+            tex = new eavlTexture;
+            tex->CreateFromColorTable(eavlColorTable(ctname));
+            SetTexture(ctname, tex);
+        }
+        tex->Enable();
     }
 
 
@@ -52,6 +80,8 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
     virtual void EndTriangles()
     {
         glEnd();
+        ///\todo: small hack -- should use tex->Disable() instead
+        glDisable(GL_TEXTURE_1D);
     }
 
     virtual void AddTriangleVnVs(double x0, double y0, double z0,
@@ -88,6 +118,7 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
     virtual void EndPoints()
     {
         glEnd();
+        glDisable(GL_TEXTURE_1D);
     }
 
     virtual void AddPointVs(double x, double y, double z, double r, double s)
@@ -108,6 +139,7 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
     virtual void EndLines()
     {
         glEnd();
+        glDisable(GL_TEXTURE_1D);
     }
 
     virtual void AddLineVs(double x0, double y0, double z0,

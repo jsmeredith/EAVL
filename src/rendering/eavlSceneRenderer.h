@@ -87,8 +87,13 @@ class eavlSceneRenderer
     /// EndScene is for setting up BVH's, etc.
     virtual void Render(eavlView v) = 0;
 
-    virtual void StartScene() { }
-    virtual void EndScene() { }
+    virtual void StartScene()
+    {
+        contents.clear();
+    }
+    virtual void EndScene()
+    {
+    }
 
     virtual void StartTriangles() { }
     virtual void EndTriangles() { }

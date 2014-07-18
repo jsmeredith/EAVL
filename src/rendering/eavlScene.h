@@ -6,7 +6,6 @@
 #include "eavlView.h"
 #include "eavlPlot.h"
 #include "eavlColorTable.h"
-#include "eavlTexture.h"
 #include "eavlWindow.h"
 
 // ****************************************************************************
@@ -178,31 +177,11 @@ class eavl3DGLScene : public eavlScene
             if (!p)
                 continue;
 
-            eavlTexture *tex = NULL;
-            string ctname = p->GetColorTableName();
-            if (ctname != "")
-            {
-                tex = win->GetTexture(ctname);
-                if (!tex)
-                {
-                    if (!tex)
-                        tex = new eavlTexture;
-                    tex->CreateFromColorTable(eavlColorTable(ctname));
-                    win->SetTexture(ctname, tex);
-                }
-            }
-
-            if (tex)
-                tex->Enable();
-
             if (sr->NeedsGeometryForPlot(p))
             {
                 sr->SendingGeometryForPlot(p);
                 p->Generate(sr);
             }
-
-            if (tex)
-                tex->Disable();
         }
         sr->EndScene();
         sr->Render(view);
@@ -268,31 +247,11 @@ class eavl2DGLScene : public eavlScene
             if (!p)
                 continue;
 
-            eavlTexture *tex = NULL;
-            string ctname = p->GetColorTableName();
-            if (ctname != "")
-            {
-                tex = win->GetTexture(ctname);
-                if (!tex)
-                {
-                    if (!tex)
-                        tex = new eavlTexture;
-                    tex->CreateFromColorTable(eavlColorTable(ctname));
-                    win->SetTexture(ctname, tex);
-                }
-            }
-
-            if (tex)
-                tex->Enable();
-
             if (sr->NeedsGeometryForPlot(p))
             {
                 sr->SendingGeometryForPlot(p);
                 p->Generate(sr);
             }
-
-            if (tex)
-                tex->Disable();
         }
         sr->EndScene();
         sr->Render(view);
@@ -350,31 +309,11 @@ class eavlPolarGLScene : public eavlScene
             if (!p)
                 continue;
 
-            eavlTexture *tex = NULL;
-            string ctname = p->GetColorTableName();
-            if (ctname != "")
-            {
-                tex = win->GetTexture(ctname);
-                if (!tex)
-                {
-                    if (!tex)
-                        tex = new eavlTexture;
-                    tex->CreateFromColorTable(eavlColorTable(ctname));
-                    win->SetTexture(ctname, tex);
-                }
-            }
-
-            if (tex)
-                tex->Enable();
-
             if (sr->NeedsGeometryForPlot(p))
             {
                 sr->SendingGeometryForPlot(p);
                 p->Generate(sr);
             }
-
-            if (tex)
-                tex->Disable();
         }
         sr->EndScene();
         sr->Render(view);
@@ -485,31 +424,11 @@ class eavl1DGLScene : public eavlScene
             }
 
 
-            eavlTexture *tex = NULL;
-            string ctname = p->GetColorTableName();
-            if (ctname != "")
-            {
-                tex = win->GetTexture(ctname);
-                if (!tex)
-                {
-                    if (!tex)
-                        tex = new eavlTexture;
-                    tex->CreateFromColorTable(eavlColorTable(ctname));
-                    win->SetTexture(ctname, tex);
-                }
-            }
-
-            if (tex)
-                tex->Enable();
-
             if (sr->NeedsGeometryForPlot(p))
             {
                 sr->SendingGeometryForPlot(p);
                 p->Generate(sr);
             }
-
-            if (tex)
-                tex->Disable();
         }
         sr->EndScene();
 
