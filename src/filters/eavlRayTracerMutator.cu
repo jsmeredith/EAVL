@@ -614,6 +614,27 @@ struct AccFunctor1to1
 };
 
 
+struct WeightedAccFunctor1to1
+{
+    int samples;
+    int additionalSamples;
+
+    WeightedAccFunctor1to1(int _numSamples, int _additionalSamples)
+    {
+        samples=_numSamples;
+        additionalSamples=_additionalSamples;
+    }
+
+    EAVL_FUNCTOR tuple<float> operator()(tuple<float,float> input){
+
+        float newAve=get<0>(input)*samples+get<1>(input)*additionalSamples;
+        newAve=newAve/(samples+additionalSamples);
+        return tuple<float>(newAve);
+    }
+
+};
+
+
 /*----------------------End Utility Functors---------------------------------- */
 //if this is called we know that the there is a hit
 EAVL_HOSTDEVICE void triangleIntersectionDistance(const eavlVector3 ray,const eavlVector3 rayOrigin,const eavlVector3 a, const eavlVector3 b, const eavlVector3 c, float &tempDist)
@@ -1316,18 +1337,18 @@ struct ShaderFunctor
         //green=ambPct;//ka.y*ambPct+ (kd.y*lightDiff.y*max(cosTheta,0.0f)+ks.y*lightSpec.y*specConst)*shadowHit;
         //blue =ambPct;//ka.z*ambPct+ (kd.z*lightDiff.z*max(cosTheta,0.0f)+ks.z*lightSpec.z*specConst)*shadowHit;
         
-        red  =ka.x*ambPct;//+ (kd.x*lightDiff.x*cosTheta+ks.x*lightSpec.x*specConst)*shadowHit*dist;
-        green=ka.y*ambPct;//+ (kd.y*lightDiff.y*cosTheta+ks.y*lightSpec.y*specConst)*shadowHit*dist;
-        blue =ka.z*ambPct;//+ (kd.z*lightDiff.z*cosTheta+ks.z*lightSpec.z*specConst)*shadowHit*dist;
+        red  =ka.x*ambPct+ (kd.x*lightDiff.x*cosTheta+ks.x*lightSpec.x*specConst)*shadowHit*dist;
+        green=ka.y*ambPct+ (kd.y*lightDiff.y*cosTheta+ks.y*lightSpec.y*specConst)*shadowHit*dist;
+        blue =ka.z*ambPct+ (kd.z*lightDiff.z*cosTheta+ks.z*lightSpec.z*specConst)*shadowHit*dist;
         
         /*Color map*/
         float scalar    = get<14>(input);
         int   colorIdx = floor(scalar*colorMapSize);
         
         float4 color = colorMap.getValue(colorMapRef, colorIdx); 
-        //red*=color.x;
-        //green*=color.y;
-        //blue*=color.z;
+        red*=color.x;
+        green*=color.y;
+        blue*=color.z;
 
         //cout<<kd<<ks<<id<<endl;
         //cout<<cosTheta<<endl;
@@ -1462,7 +1483,7 @@ void eavlRayTracerMutator::allocateArrays()
             delete occY;
             delete occZ;
             delete localHits;
-
+            delete tempAmbPct;
             delete occIndexer;
         }
         if (compactOp)
@@ -1536,7 +1557,7 @@ void eavlRayTracerMutator::allocateArrays()
         occY      = new eavlFloatArray("",1, size*occSamples);//
         occZ      = new eavlFloatArray("",1, size*occSamples);
         localHits = new eavlFloatArray("",1, size*occSamples);
-        
+        tempAmbPct= new eavlFloatArray("",1, size);
         occIndexer= new eavlArrayIndexer(occSamples,1e9, 1, 0);
     }
     else //set amient light percentage to whatever the lights are
@@ -1765,11 +1786,21 @@ void eavlRayTracerMutator::Execute()
             if(verbose) cerr << "occInt RUNTIME: "<<eavlTimer::Stop(toccGen,"occGen")<<endl;
 
             eavlExecutor::AddOperation(new_eavlNto1GatherOp(eavlOpArgs(localHits),
-                                                            eavlOpArgs(ambPct), // now using this space(normX) to store bent normal of ave light direction
+                                                            eavlOpArgs(tempAmbPct), // now using this space(normX) to store bent normal of ave light direction
                                                             occSamples),
                                                             "gather");
             eavlExecutor::Go();
 
+            /*Only do this when depth is set to zero reflections*/
+            if(!cameraDirty&& depth==1)
+            {
+                eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(ambPct,tempAmbPct),
+                                                     eavlOpArgs(ambPct),
+                                                     WeightedAccFunctor1to1(sampleCount,occSamples)),
+                                                     "weight average");
+                eavlExecutor::Go();
+                sampleCount+=occSamples;
+            }
             
         }
         /*********************************END AMB OCC***********************************/
@@ -1801,7 +1832,7 @@ void eavlRayTracerMutator::Execute()
 
         if(!compactOp)
         {
-            if(verbose) cerr<<"before ADD"<<endl;
+
             //these RGB values are in morton order and must be scattered 
             //into the correct order before they are written.
             eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(r2,g2,b2,r,g,b),
@@ -1809,7 +1840,6 @@ void eavlRayTracerMutator::Execute()
                                                      AccFunctor3to3()),
                                                      "add");
             eavlExecutor::Go();
-            if(verbose) cerr<<"After Add"<<endl;
         }
         else
         {
@@ -1878,7 +1908,7 @@ void eavlRayTracerMutator::Execute()
 
     if(!compactOp)
     {
-        //Non-compacted RGB values are in morton order anbd must be scattered
+        //Non-compacted RGB values are in morton order and must be scattered
         //back into the correct order
         eavlExecutor::AddOperation(new_eavlScatterOp(eavlOpArgs(r),
                                                      eavlOpArgs(r2),

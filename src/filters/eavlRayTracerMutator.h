@@ -270,6 +270,7 @@ class eavlRayTracerMutator : public eavlMutator
 
       delete shadowHits;
       delete ambPct;
+      delete tempAmbPct;
       delete frameBuffer;
 
       delete[] verts_raw;
@@ -406,6 +407,7 @@ class eavlRayTracerMutator : public eavlMutator
     eavlFloatArray  *occZ;
     eavlFloatArray  *localHits;
     eavlFloatArray  *ambPct;
+    eavlFloatArray  *tempAmbPct;
 
     eavlIntArray    *mask;
     eavlIntArray    *indexScan;
