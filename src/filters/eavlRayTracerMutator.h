@@ -52,22 +52,7 @@ class eavlRayTracerMutator : public eavlMutator
       fovy=d;
     }
 
-    void setCameraPos(float x, float y, float z)
-    {
-
-      eye.x=x;
-      eye.y=y;
-      eye.z=z;
-
-    }
-    void setUp(float x, float y, float z)
-    {
-
-      up.x=x;
-      up.y=y;
-      up.z=z;
-
-    }
+    
 
     void setRawData(float *v, float *n, int numTri, float* _materials, int * _matIndex, int _numMats)
     {
@@ -126,15 +111,6 @@ class eavlRayTracerMutator : public eavlMutator
       //debugPtr=v;
     }
 
-
-
-    void rotateCamera(float xRadians)
-    {
-      eavlMatrix4x4 rot;
-      rot.CreateRotateX(xRadians);
-      eye=rot*eye;
-    }
-
     void rotateLight(float xRadians)
     {
       eavlMatrix4x4 rot;
@@ -144,10 +120,44 @@ class eavlRayTracerMutator : public eavlMutator
 
     void setCameraPos(const eavlVector3 pos)
     {
-
+      if( eye.x!=pos.x  || eye.y!=pos.y || eye.z!=pos.z) cameraDirty=true;
       eye=pos;
 
     }
+    void setCameraPos(float x, float y, float z)
+    {
+      if ( eye.x!=x || eye.y!=y || eye.z!=z ) cameraDirty=true;
+      eye.x=x;
+      eye.y=y;
+      eye.z=z;
+
+    }
+
+    void setUp(float x, float y, float z)
+    {
+      if ( up.x!=x || up.y!=y || up.z!=z ) cameraDirty=true;
+      up.x=x;
+      up.y=y;
+      up.z=z;
+
+    }
+
+    void rotateCamera(float xRadians)
+    {
+      eavlMatrix4x4 rot;
+      rot.CreateRotateX(xRadians);
+      eye=rot*eye;
+      cameraDirty=true;
+    }
+
+    void lookAtPos(float x, float y, float z)
+    {
+      if ( lookat.x!=x || lookat.y!=y || lookat.z!=z ) cameraDirty=true;
+      lookat.x=x;
+      lookat.y=y;
+      lookat.z=z;
+    }
+
     /* there could be a settings dirty, but just set size dirty=true */
     void setAO(bool on)
     {
@@ -180,14 +190,6 @@ class eavlRayTracerMutator : public eavlMutator
       if(occSamples!=num) sizeDirty=true;
       occSamples=num; 
     }
-
-    void lookAtPos(float x, float y, float z)
-    {
-      lookat.x=x;
-      lookat.y=y;
-      lookat.z=z;
-    }
-
     
     void setOutputFilename(char * name)
     {
@@ -307,6 +309,11 @@ class eavlRayTracerMutator : public eavlMutator
     }
     virtual void Execute();
     void setColorMap3f(float*,int);
+    void startScene()
+    {
+      scene->clear();
+      geomDirty=true;
+    }
   protected:
     string fieldname;
 
@@ -327,7 +334,9 @@ class eavlRayTracerMutator : public eavlMutator
     int       numTriangles;
     bool      compactOp;
     bool      antiAlias;
+    bool      cameraDirty;
     float     aoMax;
+    int       sampleCount;    /* keeps a running total of the number of re-usable ambient occlusion samples ie., the camera is unchanged */
 
     float     lightIntensity; //light attenuation coefficients
     float     lightCoConst;
@@ -347,7 +356,7 @@ class eavlRayTracerMutator : public eavlMutator
 
 
     //camera vars
-    eavlVector3 look;
+    eavlVector3 look;     //Todo: shove this is a struct or class( could  share it with path tracer)
     eavlVector3 up;
     eavlVector3 lookat;
     eavlVector3 eye;

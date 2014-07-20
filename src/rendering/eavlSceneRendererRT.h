@@ -8,6 +8,7 @@
 #include "eavlColorTable.h"
 #include "eavlSceneRenderer.h"
 #include "eavlRayTracerMutator.h"
+#include "eavlTimer.h"
 // ****************************************************************************
 // Class:  eavlSceneRendererRT
 //
@@ -39,7 +40,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setOccSamples(16);
         tracer->setAO(true);
         tracer->setBVHCacheName(""); // don't use cache
-
+        tracer->setCompactOp(false);
         canRender=false;
         setLight=true;
         ctName="";
@@ -68,6 +69,10 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         
     }
 
+    virtual void StartScene() 
+    {
+        //tracer->startScene();
+    }
 
     // ------------------------------------------------------------------------
     virtual void StartTriangles()
@@ -156,16 +161,13 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     // ------------------------------------------------------------------------
     virtual void Render(eavlView v)
     {
+        int tframe = eavlTimer::Start();
         if(!canRender) return;
         tracer->setResolution(v.h,v.w);
-        tracer->setAOMax(tracer->scene->getSceneExtentMagnitude()/5.f);
+        float magnitude=tracer->scene->getSceneExtentMagnitude();
+        tracer->setAOMax(magnitude);
 
-        /*Otherwise the light will move with the camera*/
-        if(setLight)
-        {
-          tracer->setLightParams(v.view3d.from.x,v.view3d.from.y,v.view3d.from.z, 1.f, 1, 0, 0);  /*Light params: intensity, constant, linear and exponential coefficeints*/
-          setLight=false;
-        } 
+
         /*Set up field of view: tracer takes the half FOV in degrees*/
         float fovx= 2.f*atan(tan(v.view3d.fov/2.f)*v.w/v.h);
         fovx*=180.f/M_PI;
@@ -181,6 +183,14 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         eavlVector3 up = ( lookdir % right).normalized();  
         tracer->setUp(up.x,up.y,up.z);
         
+        /*Otherwise the light will move with the camera*/
+        if(true)//setLight)
+        {
+          eavlVector3 minersLight(v.view3d.from.x,v.view3d.from.y,v.view3d.from.z);
+          minersLight=minersLight+ up*magnitude*.2f;
+          tracer->setLightParams(minersLight.x,minersLight.y,minersLight.z, 1.f, 1, 0, 0);  /*Light params: intensity, constant, linear and exponential coefficeints*/
+          setLight=false;
+        } 
 
         tracer->Execute();
 
@@ -208,6 +218,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         glDepthMask(GL_TRUE);
         canRender=false;
+        cerr<<"\nTotal Frame Time  : "<<eavlTimer::Stop(tframe,"")<<endl;
     }
 
 };

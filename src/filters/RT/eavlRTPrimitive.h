@@ -80,9 +80,9 @@ struct RTMaterial
 		kd.y=.5f;
 		kd.z=.5f;
 
-		ks.x=5.f;
-		ks.y=5.f;
-		ks.z=5.f;
+		ks.x=.5f;
+		ks.y=.5f;
+		ks.z=.5f;
 
 		shiny=5.f;
 		rs=.2f;

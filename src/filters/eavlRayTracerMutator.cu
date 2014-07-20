@@ -211,6 +211,7 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     geomDirty   =true;
     antiAlias   =false;
     sizeDirty   =true;
+    cameraDirty =true;
 
     fileprefix  ="output";
     filetype    =".bmp";
@@ -235,7 +236,6 @@ void eavlRayTracerMutator::setColorMap3f(float* cmap,int size)
     colorMapSize=size;
     if(colorMapTex!=NULL)
     {
-        cout<<"Unbinding"<<endl;
         colorMapTex->unbind(colorMapRef);
         delete colorMapTex;
     }
@@ -1316,18 +1316,18 @@ struct ShaderFunctor
         //green=ambPct;//ka.y*ambPct+ (kd.y*lightDiff.y*max(cosTheta,0.0f)+ks.y*lightSpec.y*specConst)*shadowHit;
         //blue =ambPct;//ka.z*ambPct+ (kd.z*lightDiff.z*max(cosTheta,0.0f)+ks.z*lightSpec.z*specConst)*shadowHit;
         
-        red  =ka.x*ambPct+ (kd.x*lightDiff.x*cosTheta+ks.x*lightSpec.x*specConst)*shadowHit*dist;
-        green=ka.y*ambPct+ (kd.y*lightDiff.y*cosTheta+ks.y*lightSpec.y*specConst)*shadowHit*dist;
-        blue =ka.z*ambPct+ (kd.z*lightDiff.z*cosTheta+ks.z*lightSpec.z*specConst)*shadowHit*dist;
+        red  =ka.x*ambPct;//+ (kd.x*lightDiff.x*cosTheta+ks.x*lightSpec.x*specConst)*shadowHit*dist;
+        green=ka.y*ambPct;//+ (kd.y*lightDiff.y*cosTheta+ks.y*lightSpec.y*specConst)*shadowHit*dist;
+        blue =ka.z*ambPct;//+ (kd.z*lightDiff.z*cosTheta+ks.z*lightSpec.z*specConst)*shadowHit*dist;
         
         /*Color map*/
         float scalar    = get<14>(input);
         int   colorIdx = floor(scalar*colorMapSize);
         
         float4 color = colorMap.getValue(colorMapRef, colorIdx); 
-        red*=color.x;
-        green*=color.y;
-        blue*=color.z;
+        //red*=color.x;
+        //green*=color.y;
+        //blue*=color.z;
 
         //cout<<kd<<ks<<id<<endl;
         //cout<<cosTheta<<endl;
@@ -1560,19 +1560,22 @@ void eavlRayTracerMutator::Init()
     if(antiAlias) size=(width+1)*(height+1);
 #endif
     currentSize=size; //for compact
-    cout<<"Here 1 dirty="<<sizeDirty<<endl;
     if(sizeDirty) 
     {
-        cout<<"Here 2"<<endl;
         allocateArrays();
-        cout<<"Here 3"<<endl;
         createRays(); //creates the morton ray indexes
+        cameraDirty=true; //in this case the camera isn't really dirty, but for accumulating occ samples we need this. maybe rename it
     }
-    cout<<"Here 4"<<endl;
+
+    if(cameraDirty)
+    {
+        cout<<"Camera Dirty."<<endl;
+        sampleCount=0;
+        cameraDirty=false;
+    }
     //fill the const arrays with vertex and normal data
     
     /* Set ray origins to the eye */
-
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(indexes), //dummy arg
                                              eavlOpArgs(rayOriginX,rayOriginY,rayOriginZ),
                                              FloatMemsetFunctor3to3(eye.x,eye.y,eye.z)),
@@ -1591,7 +1594,6 @@ void eavlRayTracerMutator::Init()
                                              IntMemsetFunctor(0)),
                                              "init");
     eavlExecutor::Go();
-    cout<<"Here 4"<<endl;
     if(geomDirty) extractGeometry();
 }
 
@@ -1599,19 +1601,17 @@ void eavlRayTracerMutator::extractGeometry()
 {
     
     
-    //sort();
-    //list<Triangle> triangles; 
+
     if(verbose) cerr<<"Extracting Geometry"<<endl;
     
     scene->createRawData();
-    cout<<"raw data created"<<endl;
     numTriangles    = scene->getNumTriangles();
     numMats         = scene->getNumMaterials();
     verts_raw       = scene->getTrianglePtr();
     norms_raw       = scene->getTriangleNormPtr();
     matIdx_raw      = scene->getTriMatIdxsPtr();
     mats_raw        = scene->getMatsPtr();
-     cout<<"got pointers"<<endl;
+
     int bvhsize=0;
     int bvhLeafSize=0;
     float *bvhLeafs;
@@ -1628,7 +1628,8 @@ void eavlRayTracerMutator::extractGeometry()
 //
     //
     //if(!cacheExists)
-    //{
+    //{  
+        cout<<"Building BVH...."<<endl;
         SplitBVH *testSplit= new SplitBVH((eavlVector3*)verts_raw, numTriangles); 
         testSplit->getFlatArray(bvhsize, bvhLeafSize, bvhFlatArray_raw, bvhLeafs);
         //if( writeCache) writeBVHCache(bvhFlatArray_raw, bvhsize, bvhLeafs, bvhLeafSize, bvhCacheName.c_str());
@@ -1651,7 +1652,6 @@ void eavlRayTracerMutator::extractGeometry()
     INIT(eavlConstArray<float>, mats,numMats*12);
     INIT(eavlConstArray<float>,norms,numTriangles*9);
     INIT(eavlConstArray<int>, matIdx,numTriangles);
-    if(verbose) cerr<<"after allocation"<<endl;
     
     geomDirty=false;
     
@@ -1678,7 +1678,8 @@ void eavlRayTracerMutator::Execute()
     if(verbose) cerr<<"Eye"<<eye<<endl;
     if(verbose) cerr<<"Light"<<light<<endl;
    
-    int th = eavlTimer::Start();
+    int th ;
+    if(verbose) th = eavlTimer::Start();
     //init camera rays
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(indexes),
                                              eavlOpArgs(rayDirX,rayDirY,rayDirZ),
@@ -1689,7 +1690,8 @@ void eavlRayTracerMutator::Execute()
 
     for(int i=0; i<depth;i++) 
     {
-        int tintersect = eavlTimer::Start();
+        int tintersect;
+        if(verbose) tintersect = eavlTimer::Start();
 
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx),
                                                  eavlOpArgs(hitIdx),
@@ -1706,14 +1708,17 @@ void eavlRayTracerMutator::Execute()
             eavlExecutor::Go(); 
         }
 
-        cerr << "intersect RUNTIME: "<<eavlTimer::Stop(tintersect,"intersect")<<endl;
+        if(verbose) cerr << "intersect RUNTIME: "<<eavlTimer::Stop(tintersect,"intersect")<<endl;
         if(compactOp) 
         {
             int tcompact = eavlTimer::Start();
             currentSize=compact();
             cerr << "compact RUNTIME: "<<eavlTimer::Stop(tcompact,"intersect")<<endl;
         }
-        int treflect = eavlTimer::Start();
+
+        int treflect ;
+        if(verbose) treflect = eavlTimer::Start();
+
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx),
                                                  eavlOpArgs(interX, interY,interZ,rayDirX,rayDirY,rayDirZ,normX,normY,normZ,alphas,betas,scalars),
                                                  ReflectFunctor(vertsTex,norms)),
@@ -1729,7 +1734,8 @@ void eavlRayTracerMutator::Execute()
         /*********************************AMB OCC***********************************/
         if(isOccusionOn){
             
-            int toccGen = eavlTimer::Start(); 
+            int toccGen ;
+            if(verbose) toccGen = eavlTimer::Start(); 
             eavlExecutor::AddOperation(new_eavl1toNScatterOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(normX),
                                                      eavlIndexable<eavlFloatArray>(normY),
                                                      eavlIndexable<eavlFloatArray>(normZ),
@@ -1741,7 +1747,7 @@ void eavlRayTracerMutator::Execute()
                                           occSamples),
                                           "occ scatter");
             eavlExecutor::Go();
-            cerr << "occRayGen RUNTIME: "<<eavlTimer::Stop(toccGen,"occGen")<<endl;
+            if(verbose) cerr << "occRayGen RUNTIME: "<<eavlTimer::Stop(toccGen,"occGen")<<endl;
             int toccInt = eavlTimer::Start(); 
             eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(occX),
                                                                 eavlIndexable<eavlFloatArray>(occY),
@@ -1756,7 +1762,7 @@ void eavlRayTracerMutator::Execute()
             
             eavlExecutor::Go();
     
-            cerr << "occInt RUNTIME: "<<eavlTimer::Stop(toccGen,"occGen")<<endl;
+            if(verbose) cerr << "occInt RUNTIME: "<<eavlTimer::Stop(toccGen,"occGen")<<endl;
 
             eavlExecutor::AddOperation(new_eavlNto1GatherOp(eavlOpArgs(localHits),
                                                             eavlOpArgs(ambPct), // now using this space(normX) to store bent normal of ave light direction
@@ -1782,13 +1788,14 @@ void eavlRayTracerMutator::Execute()
                                                  "shadowRays");
         eavlExecutor::Go();
         if(verbose) cerr<<"After Shadow Rays"<<endl;
-        int shade = eavlTimer::Start();
+        int shade ;
+        if(verbose) shade = eavlTimer::Start();
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx,shadowHits,interX,interY,interZ,alphas,betas,ambPct,normX,normY,normZ,rayOriginX,rayOriginY,rayOriginZ, scalars),
                                                  eavlOpArgs(r2,g2,b2),
                                                  ShaderFunctor(numTriangles,light,eye,norms,i,matIdx,mats,lightIntensity, lightCoConst, lightCoLinear, lightCoExponent, colorMapTex, colorMapSize)),
                                                  "shader");
         eavlExecutor::Go();
-        cerr<<"\nShading : "<<eavlTimer::Stop(shade,"")<<endl;
+        if(verbose) cerr<<"\nShading : "<<eavlTimer::Stop(shade,"")<<endl;
         //if(verbose) cerr<<"after delete amb"<<endl;
 
 
@@ -1809,7 +1816,8 @@ void eavlRayTracerMutator::Execute()
             //zero out the array so bad values don't get accumulated.
             //The compact arrays must be scattered back out to the original size
             //After the scatter, RGB values are in the correct order(not morton order)
-            int tscatterAcc = eavlTimer::Start();
+            int tscatterAcc;
+            if(verbose) tscatterAcc = eavlTimer::Start();
             eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(compactTempFloat),
                                              eavlOpArgs(compactTempFloat),
                                              FloatMemsetFunctor(0)),
@@ -1849,7 +1857,7 @@ void eavlRayTracerMutator::Execute()
                                                      AccFunctor1to1()),
                                                      "add");
             eavlExecutor::Go();
-            cerr<<"\nScatter Acc : "<<eavlTimer::Stop(tscatterAcc,"")<<endl;
+            if(verbose) cerr<<"\nScatter Acc : "<<eavlTimer::Stop(tscatterAcc,"")<<endl;
         }
 
 
@@ -1865,7 +1873,9 @@ void eavlRayTracerMutator::Execute()
 
     }
     //todo fix this
-    int ttest = eavlTimer::Start();
+    int ttest;
+    if(verbose) ttest = eavlTimer::Start();
+
     if(!compactOp)
     {
         //Non-compacted RGB values are in morton order anbd must be scattered

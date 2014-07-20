@@ -27,7 +27,6 @@ struct eavlNto1GatherOp_CPU
             typename collecttype<IN>::const_type in(collect(index, inputs));
             float acc=0;
             tuple<float> p;
-            if(index==636) cerr<<"Here"<<endl;
             for(int i=0;i<n;i++){
                
                 p=collect(index*n+i, inputs);

@@ -25,6 +25,7 @@ class eavlRTScene
 		float * 			spheres_raw;
 		float *				mats_raw;
 		int * 			    trisMatIdxs;
+		RTMaterial			defaultMat;
 	public:
 		EAVL_HOSTONLY inline eavlRTScene(RTMaterial defualtMaterial= RTMaterial());
 		EAVL_HOSTONLY inline ~eavlRTScene();
@@ -59,10 +60,11 @@ class eavlRTScene
 };
 
 
-EAVL_HOSTONLY inline eavlRTScene::eavlRTScene(RTMaterial defualtMaterial)
+EAVL_HOSTONLY inline eavlRTScene::eavlRTScene(RTMaterial defaultMaterial)
 {
+	defaultMat=defaultMaterial;
 	mats= new vector<RTMaterial>();
-	mats->push_back(defualtMaterial);
+	mats->push_back(defaultMaterial);
 	matMap.insert(pair<string, int> ("default", 0));
 	numMats=1;
 
@@ -307,6 +309,9 @@ void inline eavlRTScene::clear()
 	spheres->clear();
 	mats->clear();
 	matMap.clear();
+	/* Load the defualt materials back in*/
+	mats->push_back(defaultMat);
+	matMap.insert(pair<string, int> ("default", 0));
 }
 
 EAVL_HOSTONLY  inline float*  eavlRTScene::getTrianglePtr()
