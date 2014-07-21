@@ -11,6 +11,7 @@
 class eavlPlot
 {
   protected:
+    int          id;
     eavlDataSet *dataset;
     int          npts;
     double      *origpts;
@@ -40,10 +41,15 @@ class eavlPlot
     eavlColor      color;
 
   public:
+    int GetID() const { return id; }
     eavlPlot(eavlDataSet *ds,
              const string &csname = "")
         : dataset(ds), cellsetname(csname), cellset(NULL), normals(NULL)
     {
+        static int next_id = 1;
+        id = next_id;
+        next_id++;
+
         /// initializer for other stuff
         field = NULL;
         wireframe = false;
