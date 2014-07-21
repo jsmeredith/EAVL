@@ -426,7 +426,7 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
         float mind = FLT_MAX;
         float maxd = -FLT_MAX;
 
-        const int skip=5;
+        const int skip=15;
 #pragma omp parallel for schedule(dynamic,1) collapse(2)
         for (int y=0; y<h; y += skip)
         {

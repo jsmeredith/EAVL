@@ -169,21 +169,28 @@ class eavl3DGLScene : public eavlScene
         glEnable(GL_DEPTH_TEST);
 
         // render the plots
+        bool needs_update = false;
         eavlSceneRenderer *sr = win->GetSceneRenderer();
-        sr->StartScene();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
-            eavlPlot *p = plots[i];
-            if (!p)
-                continue;
+            if (plots[i] && sr->NeedsGeometryForPlot(plots[i]->GetID()))
+                needs_update = true;
+        }
 
-            if (sr->NeedsGeometryForPlot(p))
+        if (needs_update)
+        {
+            sr->StartScene();
+            for (unsigned int i=0;  i<plots.size(); i++)
             {
-                sr->SendingGeometryForPlot(p);
+                eavlPlot *p = plots[i];
+                if (!p)
+                    continue;
+                sr->SendingGeometryForPlot(p->GetID());
                 p->Generate(sr);
             }
+            sr->EndScene();
         }
-        sr->EndScene();
+
         sr->Render(view);
     }
 };
@@ -239,21 +246,29 @@ class eavl2DGLScene : public eavlScene
         /// out of the window, then we just move the texture mgt into
         /// eavlPlot base, and that makes this code a one-line loop.
 
+        // render the plots
+        bool needs_update = false;
         eavlSceneRenderer *sr = win->GetSceneRenderer();
-        sr->StartScene();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
-            eavlPlot *p = plots[i];
-            if (!p)
-                continue;
+            if (plots[i] && sr->NeedsGeometryForPlot(plots[i]->GetID()))
+                needs_update = true;
+        }
 
-            if (sr->NeedsGeometryForPlot(p))
+        if (needs_update)
+        {
+            sr->StartScene();
+            for (unsigned int i=0;  i<plots.size(); i++)
             {
-                sr->SendingGeometryForPlot(p);
+                eavlPlot *p = plots[i];
+                if (!p)
+                    continue;
+                sr->SendingGeometryForPlot(p->GetID());
                 p->Generate(sr);
             }
+            sr->EndScene();
         }
-        sr->EndScene();
+
         sr->Render(view);
     }
 };
@@ -301,21 +316,28 @@ class eavlPolarGLScene : public eavlScene
         /// eavlPlot base, and that makes this code a one-line loop.
 
         // render the plots
+        bool needs_update = false;
         eavlSceneRenderer *sr = win->GetSceneRenderer();
-        sr->StartScene();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
-            eavlPlot *p = plots[i];
-            if (!p)
-                continue;
+            if (plots[i] && sr->NeedsGeometryForPlot(plots[i]->GetID()))
+                needs_update = true;
+        }
 
-            if (sr->NeedsGeometryForPlot(p))
+        if (needs_update)
+        {
+            sr->StartScene();
+            for (unsigned int i=0;  i<plots.size(); i++)
             {
-                sr->SendingGeometryForPlot(p);
+                eavlPlot *p = plots[i];
+                if (!p)
+                    continue;
+                sr->SendingGeometryForPlot(p->GetID());
                 p->Generate(sr);
             }
+            sr->EndScene();
         }
-        sr->EndScene();
+
         sr->Render(view);
     }
 };
@@ -408,31 +430,36 @@ class eavl1DGLScene : public eavlScene
         view.SetupForWorldSpace();
 
         // render the plots
+        bool needs_update = false;
         eavlSceneRenderer *sr = win->GetSceneRenderer();
-        sr->StartScene();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
-            eavlPlot *p = plots[i];
-            if (!p)
-                continue;
+            if (plots[i] && sr->NeedsGeometryForPlot(plots[i]->GetID()))
+                needs_update = true;
+        }
 
-            ///\todo: ugly hack to make the curve renderer do log scaling
-            eavl1DPlot *p1d = dynamic_cast<eavl1DPlot*>(p);
-            if (p1d)
+        if (needs_update)
+        {
+            sr->StartScene();
+            for (unsigned int i=0;  i<plots.size(); i++)
             {
-                p1d->SetLogarithmic(view.view2d.logy);
-            }
+                eavlPlot *p = plots[i];
+                if (!p)
+                    continue;
 
+                ///\todo: ugly hack to make the curve renderer do log scaling
+                eavl1DPlot *p1d = dynamic_cast<eavl1DPlot*>(p);
+                if (p1d)
+                {
+                    p1d->SetLogarithmic(view.view2d.logy);
+                }
 
-            if (sr->NeedsGeometryForPlot(p))
-            {
-                sr->SendingGeometryForPlot(p);
+                sr->SendingGeometryForPlot(p->GetID());
                 p->Generate(sr);
             }
+            sr->EndScene();
         }
-        sr->EndScene();
 
-        view.SetupForWorldSpace();
         sr->Render(view);
     }
 };
