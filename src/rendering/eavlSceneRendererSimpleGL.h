@@ -46,7 +46,7 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
 
 
     // we're not caching anything; always say we need it
-    virtual bool NeedsGeometryForPlot(eavlPlot*)
+    virtual bool NeedsGeometryForPlot(int)
     {
         return true;
     }
