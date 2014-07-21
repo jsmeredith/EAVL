@@ -71,6 +71,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
     virtual void StartScene() 
     {
+        cout<<"Calling Start scene"<<endl;
         //tracer->startScene();
     }
 
@@ -93,6 +94,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
                                  double u2, double v2, double w2,
                                  double s0, double s1, double s2)
     {
+        cout<<"Calling add trianles"<<endl;
         /*glNormal3d(u0,v0,w0);
         glTexCoord1f(s0);
         glVertex3d(x0,y0,z0);
@@ -108,7 +110,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->scene->addTriangle(eavlVector3(x0,y0,z0) , eavlVector3(x1,y1,z1), eavlVector3(x2,y2,z2),
                                    eavlVector3(u0,v0,w0) , eavlVector3(u1,v1,w1), eavlVector3(u2,v2,w2),
                                    s0,s1,s2,  "default");
-        canRender=true;
+        //canRender=true;
     }
 
 
@@ -162,7 +164,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     virtual void Render(eavlView v)
     {
         int tframe = eavlTimer::Start();
-        if(!canRender) return;
+        //if(!canRender) return;
         tracer->setResolution(v.h,v.w);
         float magnitude=tracer->scene->getSceneExtentMagnitude();
         tracer->setAOMax(magnitude);

@@ -233,14 +233,16 @@ class eavlRayTracerMutator : public eavlMutator
 
     ~eavlRayTracerMutator()
     {
+
       delete scene;
+
       delete rayDirX;
       delete rayDirY;
       delete rayDirZ;
 
       delete  rayOriginX;
       delete  rayOriginY;
-      delete  rayOriginZ;
+      delete  rayOriginZ; 
 
       delete    r;
       delete    g;
@@ -249,8 +251,9 @@ class eavlRayTracerMutator : public eavlMutator
       delete    r2;
       delete    g2;
       delete    b2;
-      
-      delete  verts;
+
+      delete  mats;
+
       delete  norms;
 
       delete  alphas;
@@ -270,7 +273,7 @@ class eavlRayTracerMutator : public eavlMutator
 
       delete shadowHits;
       delete ambPct;
-      delete tempAmbPct;
+
       delete frameBuffer;
 
       delete[] verts_raw;
@@ -292,12 +295,12 @@ class eavlRayTracerMutator : public eavlMutator
       }
       if(isOccusionOn)
       {
-
         delete localHits;      
         delete occX;
         delete occY;
         delete occZ;
         delete occIndexer;
+        delete tempAmbPct;
       }
 
       if (compactOp)

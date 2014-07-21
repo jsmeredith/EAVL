@@ -1352,6 +1352,7 @@ struct ShaderFunctor
 
         //cout<<kd<<ks<<id<<endl;
         //cout<<cosTheta<<endl;
+        /* Diffuse + ambient light*/
         //red  =ka.x*ambPct+ (ks.x*lightSpec.x*specConst)*shadowHit;
         //green=ka.y*ambPct+ (ks.y*lightSpec.y*specConst)*shadowHit;
         //blue =ka.z*ambPct+ (ks.z*lightSpec.z*specConst)*shadowHit;
@@ -1562,7 +1563,6 @@ void eavlRayTracerMutator::allocateArrays()
     }
     else //set amient light percentage to whatever the lights are
     {
-       cout<<"setting amb"<<endl;
        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(ambPct),
                                                 eavlOpArgs(ambPct),
                                                 FloatMemsetFunctor(1.0f)),
@@ -1571,7 +1571,7 @@ void eavlRayTracerMutator::allocateArrays()
     }
 
     sizeDirty=false;
-    cout<<"dirty end should be false "<<sizeDirty<<endl;
+
 }
 
 void eavlRayTracerMutator::Init()
@@ -1797,7 +1797,7 @@ void eavlRayTracerMutator::Execute()
                 eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(ambPct,tempAmbPct),
                                                      eavlOpArgs(ambPct),
                                                      WeightedAccFunctor1to1(sampleCount,occSamples)),
-                                                     "weight average");
+                                                     "weighted average");
                 eavlExecutor::Go();
                 sampleCount+=occSamples;
             }
