@@ -88,10 +88,12 @@ class eavlSceneRenderer
 
     virtual void StartScene()
     {
+        //cerr << "StartScene\n";
         plotcontents.clear();
     }
     virtual void EndScene()
     {
+        //cerr << "EndScene\n";
     }
 
     virtual void StartTriangles() { }
