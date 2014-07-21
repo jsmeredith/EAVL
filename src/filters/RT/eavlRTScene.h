@@ -47,6 +47,7 @@ class eavlRTScene
 		EAVL_HOSTONLY inline int 		getNumTriangles(){ return tris->size(); };
 		EAVL_HOSTONLY inline int 		getNumMaterials(){ return mats->size(); };
 		EAVL_HOSTONLY inline int 		getNumSpheres(){ return spheres->size(); };
+		EAVL_HOSTONLY inline int 		getTotalPrimitives();
 		EAVL_HOSTONLY inline void       loadObjFile(const char* filename);
 		EAVL_HOSTONLY inline void       createRawData(); 										/* copies data to  raw floats */
 		EAVL_HOSTONLY inline void       clear();   												/* clears primitives */
@@ -339,4 +340,8 @@ EAVL_HOSTONLY inline float eavlRTScene::getSceneExtentMagnitude()
 	return sqrt(sceneBbox.extent.x*sceneBbox.extent.x+sceneBbox.extent.y*sceneBbox.extent.y+sceneBbox.extent.z*sceneBbox.extent.z);
 }
 
+EAVL_HOSTONLY  inline int  eavlRTScene::getTotalPrimitives()
+{
+	return getNumTriangles()+getNumSpheres();
+}
 #endif

@@ -1681,6 +1681,11 @@ void eavlRayTracerMutator::extractGeometry()
 
 void eavlRayTracerMutator::Execute()
 {
+    if(scene->getTotalPrimitives()==0) 
+    {
+        cerr<<"Error:  Cannot render 0 primitives"<<endl;
+        return;
+    }
     
     if(verbose) cerr<<"Executing Before Init"<<endl;
 

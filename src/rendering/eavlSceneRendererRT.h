@@ -41,7 +41,6 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setAO(true);
         tracer->setBVHCacheName(""); // don't use cache
         tracer->setCompactOp(false);
-        canRender=false;
         setLight=true;
         ctName="";
 
@@ -80,6 +79,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {
         cout<<"Calling Start Tris"<<endl;
         tracer->startScene();
+
     }
 
     virtual void EndTriangles()
@@ -111,7 +111,6 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->scene->addTriangle(eavlVector3(x0,y0,z0) , eavlVector3(x1,y1,z1), eavlVector3(x2,y2,z2),
                                    eavlVector3(u0,v0,w0) , eavlVector3(u1,v1,w1), eavlVector3(u2,v2,w2),
                                    s0,s1,s2,  "default");
-        //canRender=true;
     }
 
 
@@ -122,6 +121,8 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         //glDisable(GL_LIGHTING);
         //glPointSize(3);
         //glBegin(GL_POINTS);
+        //canRender=false;
+        cout<<"Starting points"<<endl;
     }
 
     virtual void EndPoints()
@@ -139,6 +140,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
     virtual void StartLines()
     {
+        cout<<"Starting lines"<<endl;
         //glDisable(GL_LIGHTING);
         //glLineWidth(2);
         //glBegin(GL_LINES);
@@ -164,8 +166,8 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     // ------------------------------------------------------------------------
     virtual void Render(eavlView v)
     {
+        if(tracer->scene->getTotalPrimitives() == 0) return;
         int tframe = eavlTimer::Start();
-        //if(!canRender) return;
         tracer->setResolution(v.h,v.w);
         float magnitude=tracer->scene->getSceneExtentMagnitude();
         tracer->setAOMax(magnitude);
@@ -220,7 +222,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         // set the various masks back to "normal"
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         glDepthMask(GL_TRUE);
-        canRender=false;
+        
         cerr<<"\nTotal Frame Time  : "<<eavlTimer::Stop(tframe,"")<<endl;
     }
 
