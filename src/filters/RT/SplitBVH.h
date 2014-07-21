@@ -19,13 +19,13 @@ BVHNode * root;
 SplitBVHBuilder *builder;
 
 
-SplitBVH(eavlVector3 * verts, int numTriangles)
+SplitBVH(float * verts, int numPrimitives, int primitveType)
 {
 	
 	BuildParams buildParams;
 	buildParams.splitAlpha = 1e-5f;
 
-	builder = new SplitBVHBuilder(verts,numTriangles, buildParams);
+	builder = new SplitBVHBuilder(verts,numPrimitives, buildParams, primitveType);
 	root=builder->run();
 	
 }

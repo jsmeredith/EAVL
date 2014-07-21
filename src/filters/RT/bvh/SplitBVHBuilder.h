@@ -95,7 +95,7 @@ private:
     };
 
 public:
-                            SplitBVHBuilder     (eavlVector3 *verts,int numTriangles, const BuildParams& params);
+                            SplitBVHBuilder     (float *verts,int numPrimitives, const BuildParams& params, int primitveType);
                             ~SplitBVHBuilder    (void);
 
     BVHNode*                run                 (void);
@@ -126,7 +126,7 @@ private:
     //BVH&                    m_bvh;
     Platform                m_platform;
     const BuildParams&      m_params;
-    eavlVector3 *           m_verts;
+    float *                 m_verts;        /* This may not be the best way of pointing, could just make it a float ptr */
     Array<Reference>        m_refStack;
     float                   m_minOverlap;
     Array<AABB>             m_rightBounds;
@@ -135,12 +135,13 @@ private:
 
     //Timer                   m_progressTimer;
     int                     m_numDuplicates;
-    int                     m_numTriangles;
+    int                     m_numPrimitives;
     int                     m_innerNodeCount;
     int                     m_leafNodeCount;
     int                     m_maxDepth;
+    int                     m_primitiveType;
     int numR;
-    int numL;
+    int numL; //todo: delete these
     int megaCounter;
     Array<int>              m_triIndices;  //Maybe seg fault??
 };
@@ -149,15 +150,19 @@ private:
 
 
 //------------------------------------------------------------------------
-
-SplitBVHBuilder::SplitBVHBuilder(eavlVector3 *verts, int numTriangles, const BuildParams& params)
+/* 
+    primitives types :
+                        0 = triangle
+                        1 = sphere
+*/
+SplitBVHBuilder::SplitBVHBuilder(float *verts, int numPrimitives, const BuildParams& params, int primitveType)
 :   //m_bvh           (bvh),
-    
+    m_primitiveType(primitveType),
     m_params        (params),
     m_minOverlap    (0),
     m_sortDim       (-1),
     m_verts         (verts),
-    m_numTriangles  (numTriangles)
+    m_numPrimitives  (numPrimitives)
 
 {
     //Platform* p=new Platform();
@@ -198,13 +203,41 @@ BVHNode* SplitBVHBuilder::run(void)
     //const eavlVector3* verts ;//= (const eavlVector3*)m_bvh.getScene()->getVtxPosBuffer().getPtr(); //insert here
 
     NodeSpec rootSpec;
-    rootSpec.numRef = m_numTriangles;
+    rootSpec.numRef = m_numPrimitives;
     m_refStack.resize(rootSpec.numRef);
+    eavlVector3 *triPtr    = (eavlVector3 *)&m_verts[0];
+    eavlVector4 *spherePtr = (eavlVector4 *)&m_verts[0];
     for (int i = 0; i < rootSpec.numRef; i++)
     {
         m_refStack[i].triIdx = i;
-        for (int j = 0; j < 3; j++)
-            m_refStack[i].bounds.grow(m_verts[i*4+j]);
+
+        /* Insert methods here for creating bounding boxes of different primitives  */
+        if(m_primitiveType == 0 )
+        {
+            for (int j = 0; j < 3; j++) m_refStack[i].bounds.grow(triPtr[i*4+j]);
+        }
+        else if ( m_primitiveType == 1 )
+        {
+            eavlVector3 temp(0,0,0);
+            eavlVector3 center( spherePtr[i].x, spherePtr[i].y, spherePtr[i].z );
+            float radius = spherePtr[i].w;
+            temp.x=radius;
+            temp.y=0;
+            temp.z=0;
+            m_refStack[i].bounds.grow(center+temp);
+            m_refStack[i].bounds.grow(center-temp);
+            temp.x=0;
+            temp.y=radius;
+            temp.z=0;
+            m_refStack[i].bounds.grow(center+temp);
+            m_refStack[i].bounds.grow(center-temp);
+            temp.x=0;
+            temp.y=0;
+            temp.z=radius;
+            m_refStack[i].bounds.grow(center+temp);
+            m_refStack[i].bounds.grow(center-temp);
+        }
+        
         
         rootSpec.bounds.grow(m_refStack[i].bounds);
     }
@@ -222,12 +255,13 @@ BVHNode* SplitBVHBuilder::run(void)
     BVHNode* root = buildNode(rootSpec, 0, 0.0f, 1.0f);
     float s=0;
     root->computeSubtreeProbabilities(m_platform,1.f,s);
-    cout<<"Bounds "<<rootSpec.bounds.area()<<endl;
-    cerr<<"SAH : "<<s<<endl;
-    cerr<<"Num Triangles Refs "<<m_numTriangles+m_numDuplicates<<" InnerNodes "<<m_innerNodeCount<<" leaf nodes "<<m_leafNodeCount<<" Max Depth "<<m_maxDepth<<endl;
+    cout<<" ------------------BVH Stats--------------------------------"<<endl;
+    cout<<"Bounds "<<rootSpec.bounds.area()<<"   SAH : "<<s<<endl;
+    cout<<"Num Triangles Refs "<<m_numPrimitives+m_numDuplicates<<" InnerNodes "<<m_innerNodeCount<<" leaf nodes "<<m_leafNodeCount<<" Max Depth "<<m_maxDepth<<endl;
 
     if (m_params.enablePrints)
-        printf("duplicates %.0f%% Spacial Splits %d\n" , (float)m_numDuplicates / (float)m_numTriangles * 100.0f, numSpacialSplits);
+        printf("duplicates %.0f%% Spacial Splits %d\n" , (float)m_numDuplicates / (float)m_numPrimitives * 100.0f, numSpacialSplits);
+    cout<<" ------------------End BVH Stats----------------------------"<<endl;
     //m_params.stats->SAHCost           = sah;
      
     //cout<<"Leaf Count "<<root->getSubtreeSize(BVH_STAT_LEAF_COUNT)<<endl;
@@ -334,9 +368,9 @@ BVHNode* SplitBVHBuilder::buildNode(NodeSpec spec, int level, float progressStar
     //printf("Counter %d\n",tcounter); 
     NodeSpec left, right;
     if (minSAH == spatial.sah)
-    {performSpatialSplit(left, right, spec, spatial);   }
+    {   performSpatialSplit(left, right, spec, spatial);   }
     if (!left.numRef || !right.numRef)
-    {performObjectSplit(left, right, spec, object);    }
+    {   performObjectSplit(left, right, spec, object);    }
     tcounter++;
     // Create inner node.
     //if(tcounter==10) exit(0);
@@ -649,7 +683,7 @@ void SplitBVHBuilder::splitReference(Reference& left, Reference& right, const Re
 
     left.triIdx = right.triIdx = ref.triIdx;
     left.bounds = right.bounds = AABB();
-
+    eavlVector3 *triPtr= (eavlVector3*)&m_verts[0];
     // Loop over vertices/edges.
 
     //const Vec3i* tris = (const Vec3i*)m_bvh.getScene()->getTriVtxIndexBuffer().getPtr();
@@ -664,19 +698,19 @@ void SplitBVHBuilder::splitReference(Reference& left, Reference& right, const Re
         if(i==0)
         {
             
-            v0=&m_verts[ref.triIdx*4];
-            v1=&m_verts[ref.triIdx*4+1];
+            v0=&triPtr[ref.triIdx*4];
+            v1=&triPtr[ref.triIdx*4+1];
         }
         else if(i==1)
         {
             
-            v0=&m_verts[ref.triIdx*4+1];
-            v1=&m_verts[ref.triIdx*4+2];
+            v0=&triPtr[ref.triIdx*4+1];
+            v1=&triPtr[ref.triIdx*4+2];
         }
         else
         {   
-            v0=&m_verts[ref.triIdx*4+2];
-            v1=&m_verts[ref.triIdx*4];
+            v0=&triPtr[ref.triIdx*4+2];
+            v1=&triPtr[ref.triIdx*4];
         }
 
         float v0p, v1p;
@@ -875,7 +909,7 @@ void SplitBVHBuilder::bvhToFlatArray(BVHNode * root, int &innerSize, int &leafSi
     innerSize=currentIndex;
     leafSize=numLeafVals;
     cerr<<"Done.. Inner Size "<<innerSize<<" leaf size "<<numLeafVals<<endl;
-    //for (int i=0; i< m_numTriangles;i++) cerr<<"Root acess test "<<m_triIndices[i]<<endl;
+    //for (int i=0; i< m_numPrimitives;i++) cerr<<"Root acess test "<<m_triIndices[i]<<endl;
 }
 
 //---------

@@ -37,7 +37,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setDepth(1);
         tracer->setVerbose(true);
         tracer->setAOMax(5);
-        tracer->setOccSamples(16);
+        tracer->setOccSamples(8);
         tracer->setAO(true);
         tracer->setBVHCacheName(""); // don't use cache
         tracer->setCompactOp(false);
@@ -53,7 +53,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {
         glColor3fv(c.c);
         glDisable(GL_TEXTURE_1D);
-        cout<<"Setting Active Color"<<endl;
+        //cout<<"Setting Active Color"<<endl;
     }
     virtual void SetActiveColorTable(string ct)
     {
@@ -63,7 +63,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         {
             ctName=ct;
             tracer->setColorMap3f(colors,ncolors);
-            cout<<"Setting Active Color Table"<<endl;
+            //cout<<"Setting Active Color Table"<<endl;
         }
         
     }
@@ -77,7 +77,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     // ------------------------------------------------------------------------
     virtual void StartTriangles()
     {
-        cout<<"Calling Start Tris"<<endl;
+        //cout<<"Calling Start Tris"<<endl;
         tracer->startScene();
 
     }
@@ -122,7 +122,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         //glPointSize(3);
         //glBegin(GL_POINTS);
         //canRender=false;
-        cout<<"Starting points"<<endl;
+        //cout<<"Starting points"<<endl;
     }
 
     virtual void EndPoints()
@@ -140,7 +140,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
     virtual void StartLines()
     {
-        cout<<"Starting lines"<<endl;
+        //cout<<"Starting lines"<<endl;
         //glDisable(GL_LIGHTING);
         //glLineWidth(2);
         //glBegin(GL_LINES);
@@ -170,7 +170,8 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         int tframe = eavlTimer::Start();
         tracer->setResolution(v.h,v.w);
         float magnitude=tracer->scene->getSceneExtentMagnitude();
-        tracer->setAOMax(magnitude);
+        //cout<<"Magnitude "<<magnitude<<endl;
+        tracer->setAOMax(magnitude*.2f);
 
 
         /*Set up field of view: tracer takes the half FOV in degrees*/
@@ -192,9 +193,9 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         if(true)//setLight)
         {
           eavlVector3 minersLight(v.view3d.from.x,v.view3d.from.y,v.view3d.from.z);
-          minersLight=minersLight+ up*magnitude*.2f;
+          minersLight = minersLight+ up*magnitude*.3f;
           tracer->setLightParams(minersLight.x,minersLight.y,minersLight.z, 1.f, 1, 0, 0);  /*Light params: intensity, constant, linear and exponential coefficeints*/
-          setLight=false;
+          setLight = false;
         } 
 
         tracer->Execute();
@@ -223,7 +224,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         glDepthMask(GL_TRUE);
         
-        cerr<<"\nTotal Frame Time  : "<<eavlTimer::Stop(tframe,"")<<endl;
+        cerr<<"\nTotal Frame Time   : "<<eavlTimer::Stop(tframe,"")<<endl;
     }
 
 };

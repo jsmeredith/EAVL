@@ -1292,9 +1292,10 @@ struct ShaderFunctor
         if(hitIdx==-1 ) return tuple<float,float,float>(0,0,0);// primary ray never hit anything.
 
         eavlVector3 normal(get<8>(input), get<9>(input), get<10>(input));
-        eavlVector3 rayInt(get<2>(input),get<3>(input),get<4>(input));
+        eavlVector3 rayInt(get<2>(input), get<3>(input), get<4 >(input));
         eavlVector3 rayOrigin(get<11>(input),get<12>(input),get<13>(input));
         eavlVector3 abg(get<5>(input),get<6>(input),1.f); //alpha beta gamma
+
         abg.z=abg.z-abg.x-abg.y; // get gamma
         eavlVector3 lightDir=light-rayInt;
         eavlVector3 viewDir=eye-rayOrigin;
@@ -1333,22 +1334,22 @@ struct ShaderFunctor
         //cout<<specConst<<endl;
         //ambPct=0;
         float shadowHit= (hit==1) ? 0.f : 1.f;
-        //red  =ambPct;//ka.x*ambPct+ (kd.x*lightDiff.x*max(cosTheta,0.0f)+ks.x*lightSpec.x*specConst)*shadowHit;
-        //green=ambPct;//ka.y*ambPct+ (kd.y*lightDiff.y*max(cosTheta,0.0f)+ks.y*lightSpec.y*specConst)*shadowHit;
-        //blue =ambPct;//ka.z*ambPct+ (kd.z*lightDiff.z*max(cosTheta,0.0f)+ks.z*lightSpec.z*specConst)*shadowHit;
+        //red  =ambPct;
+        //green=ambPct;
+        //blue =ambPct;
         
         red  =ka.x*ambPct+ (kd.x*lightDiff.x*cosTheta+ks.x*lightSpec.x*specConst)*shadowHit*dist;
         green=ka.y*ambPct+ (kd.y*lightDiff.y*cosTheta+ks.y*lightSpec.y*specConst)*shadowHit*dist;
         blue =ka.z*ambPct+ (kd.z*lightDiff.z*cosTheta+ks.z*lightSpec.z*specConst)*shadowHit*dist;
         
         /*Color map*/
-        float scalar    = get<14>(input);
+        float scalar   = get<14>(input);
         int   colorIdx = floor(scalar*colorMapSize);
         
         float4 color = colorMap.getValue(colorMapRef, colorIdx); 
-        red*=color.x;
-        green*=color.y;
-        blue*=color.z;
+        red   *= color.x;
+        green *= color.y;
+        blue  *= color.z;
 
         //cout<<kd<<ks<<id<<endl;
         //cout<<cosTheta<<endl;
@@ -1590,7 +1591,7 @@ void eavlRayTracerMutator::Init()
 
     if(cameraDirty)
     {
-        cout<<"Camera Dirty."<<endl;
+        //cout<<"Camera Dirty."<<endl;
         sampleCount=0;
         cameraDirty=false;
     }
@@ -1633,11 +1634,11 @@ void eavlRayTracerMutator::extractGeometry()
     matIdx_raw      = scene->getTriMatIdxsPtr();
     mats_raw        = scene->getMatsPtr();
 
-    int bvhsize=0;
-    int bvhLeafSize=0;
+    int    bvhsize      =0;
+    int    bvhLeafSize  =0;
+    bool   cacheExists  =false;
+    bool   writeCache   =true;
     float *bvhLeafs;
-    bool cacheExists=false;
-    bool writeCache=true;
 
     //if(bvhCacheName!="")
     //{
@@ -1651,7 +1652,7 @@ void eavlRayTracerMutator::extractGeometry()
     //if(!cacheExists)
     //{  
         cout<<"Building BVH...."<<endl;
-        SplitBVH *testSplit= new SplitBVH((eavlVector3*)verts_raw, numTriangles); 
+        SplitBVH *testSplit= new SplitBVH(verts_raw, numTriangles, 0); // 0=triangle
         testSplit->getFlatArray(bvhsize, bvhLeafSize, bvhFlatArray_raw, bvhLeafs);
         //if( writeCache) writeBVHCache(bvhFlatArray_raw, bvhsize, bvhLeafs, bvhLeafSize, bvhCacheName.c_str());
         delete testSplit;
@@ -1660,7 +1661,7 @@ void eavlRayTracerMutator::extractGeometry()
 
     if(numMats==0) { cerr<<"NO MATS bailing"<<endl; exit(0); }
 
-    if(verbose) cerr<<"BVH Size : " <<bvhsize<<endl;
+    //if(verbose) cerr<<"BVH Size : " <<bvhsize<<endl;
    
     
 
@@ -1684,15 +1685,16 @@ void eavlRayTracerMutator::Execute()
     if(scene->getTotalPrimitives()==0) 
     {
         cerr<<"Error:  Cannot render 0 primitives"<<endl;
-        return;
+        return; //maybe throw
     }
-    
-    if(verbose) cerr<<"Executing Before Init"<<endl;
+
+    //if(verbose) cerr<<"Executing Before Init"<<endl;
 
     Init();
-    if(verbose) cerr<<"Executing After Init"<<endl;
+    //if(verbose) cerr<<"Executing After Init"<<endl;
    
-    if(verbose) cerr<<"Number of triangles "<<numTriangles<<endl;
+    if(verbose) cerr<<"Number of triangles: "<<numTriangles<<endl;
+    
     //Extract the triangles and normals from the isosurface
    
 
@@ -1700,9 +1702,7 @@ void eavlRayTracerMutator::Execute()
 
     //light=light+movement;
     look=lookat-eye;
-    if(verbose) cerr<<"Look "<<look<<endl;
-    if(verbose) cerr<<"Eye"<<eye<<endl;
-    if(verbose) cerr<<"Light"<<light<<endl;
+    if(verbose) cerr<<"Look "<<look<<" Eye"<<eye<<"Light"<<light<<endl;
    
     int th ;
     if(verbose) th = eavlTimer::Start();
@@ -1734,12 +1734,14 @@ void eavlRayTracerMutator::Execute()
             eavlExecutor::Go(); 
         }
 
-        if(verbose) cerr << "intersect RUNTIME: "<<eavlTimer::Stop(tintersect,"intersect")<<endl;
+        if(verbose) cout<<"intersect   RUNTIME: "<<eavlTimer::Stop(tintersect,"intersect")<<endl;
+        
+
         if(compactOp) 
         {
             int tcompact = eavlTimer::Start();
             currentSize=compact();
-            cerr << "compact RUNTIME: "<<eavlTimer::Stop(tcompact,"intersect")<<endl;
+                    cout << "compact     RUNTIME: "<<eavlTimer::Stop(tcompact,"intersect")<<endl;
         }
 
         int treflect ;
@@ -1750,7 +1752,7 @@ void eavlRayTracerMutator::Execute()
                                                  ReflectFunctor(vertsTex,norms)),
                                                                                                      "reflect");
         eavlExecutor::Go();                        
-        if(verbose) cerr<<"Reflect "<<eavlTimer::Stop(treflect,"rf")<<endl;
+        if(verbose) cout<<"Reflect     RUNTIME: "<<eavlTimer::Stop(treflect,"rf")<<endl;
         /*if(currentSize==0)
         {
 
@@ -1773,7 +1775,7 @@ void eavlRayTracerMutator::Execute()
                                           occSamples),
                                           "occ scatter");
             eavlExecutor::Go();
-            if(verbose) cerr << "occRayGen RUNTIME: "<<eavlTimer::Stop(toccGen,"occGen")<<endl;
+            if(verbose) cout << "occRayGen   RUNTIME: "<<eavlTimer::Stop(toccGen,"occGen")<<endl;
             int toccInt = eavlTimer::Start(); 
             eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(occX),
                                                                 eavlIndexable<eavlFloatArray>(occY),
@@ -1788,10 +1790,10 @@ void eavlRayTracerMutator::Execute()
             
             eavlExecutor::Go();
     
-            if(verbose) cerr << "occInt RUNTIME: "<<eavlTimer::Stop(toccGen,"occGen")<<endl;
+            if(verbose) cout<<"occInt      RUNTIME: "<<eavlTimer::Stop(toccGen,"occGen")<<endl;
 
             eavlExecutor::AddOperation(new_eavlNto1GatherOp(eavlOpArgs(localHits),
-                                                            eavlOpArgs(tempAmbPct), // now using this space(normX) to store bent normal of ave light direction
+                                                            eavlOpArgs(tempAmbPct), 
                                                             occSamples),
                                                             "gather");
             eavlExecutor::Go();
@@ -1817,13 +1819,14 @@ void eavlRayTracerMutator::Execute()
                                                 "memset");
         
         eavlExecutor::Go();
-
+        int tshadow ;
+        if(verbose) tshadow = eavlTimer::Start();
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(interX,interY,interZ,hitIdx),
                                                  eavlOpArgs(shadowHits),
                                                  ShadowRayFunctor(light,vertsTex,bvhTex,bvhLeafsTex)),
                                                  "shadowRays");
         eavlExecutor::Go();
-        if(verbose) cerr<<"After Shadow Rays"<<endl;
+        if(verbose) cout<<  "Shadow      RUNTIME: "<<eavlTimer::Stop(tshadow,"")<<endl;
         int shade ;
         if(verbose) shade = eavlTimer::Start();
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx,shadowHits,interX,interY,interZ,alphas,betas,ambPct,normX,normY,normZ,rayOriginX,rayOriginY,rayOriginZ, scalars),
@@ -1831,7 +1834,8 @@ void eavlRayTracerMutator::Execute()
                                                  ShaderFunctor(numTriangles,light,eye,norms,i,matIdx,mats,lightIntensity, lightCoConst, lightCoLinear, lightCoExponent, colorMapTex, colorMapSize)),
                                                  "shader");
         eavlExecutor::Go();
-        if(verbose) cerr<<"\nShading : "<<eavlTimer::Stop(shade,"")<<endl;
+        if(verbose) cout<<  "Shading     RUNTIME: "<<eavlTimer::Stop(shade,"")<<endl;
+
         //if(verbose) cerr<<"after delete amb"<<endl;
 
 
@@ -1892,7 +1896,8 @@ void eavlRayTracerMutator::Execute()
                                                      AccFunctor1to1()),
                                                      "add");
             eavlExecutor::Go();
-            if(verbose) cerr<<"\nScatter Acc : "<<eavlTimer::Stop(tscatterAcc,"")<<endl;
+            if(verbose) cout<<"ScatterACC  RUNTIME : "<<eavlTimer::Stop(tscatterAcc,"")<<endl;
+
         }
 
 
@@ -1952,7 +1957,7 @@ void eavlRayTracerMutator::Execute()
         b=tmpPtr;
 
     }
-    if(verbose) cerr<<"\nscat : "<<eavlTimer::Stop(ttest,"")<<endl;
+    if(verbose) cout<<"scatter     RUNTIME: "<<eavlTimer::Stop(ttest,"")<<endl;
 
 #if 0
     if(antiAlias)
@@ -1986,16 +1991,14 @@ void eavlRayTracerMutator::Execute()
                                                  "memcopy");
         eavlExecutor::Go();
 
-        if(verbose) cerr << "TOTAL     RUNTIME: "<<eavlTimer::Stop(th,"raytrace")<<endl;
+        if(verbose) cout<<"TOTAL       RUNTIME: "<<eavlTimer::Stop(th,"raytrace")<<endl;
+        
         //writeBMP(height,width,r2,g2,b2,"notA.bmp");
 #endif
     //} 
     
     
     //writeBMP(height,width,r,g,b,(char*)scounter.c_str()); 
-    
-    
-    cout<<"leaving execute"<<endl;
 }
 /*
 void eavlRayTracerMutator::printMemUsage()
