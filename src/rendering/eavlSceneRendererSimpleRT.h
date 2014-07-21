@@ -315,6 +315,7 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
     }
     virtual void StartTriangles()
     {
+        cout<<"calling start triangles"<<endl;
     }
 
     virtual void EndTriangles()

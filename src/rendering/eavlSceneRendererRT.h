@@ -71,7 +71,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
     virtual void StartScene() 
     {
-        cout<<"Calling Start scene"<<endl;
+        //cout<<"Calling Start scene"<<endl;
         //tracer->startScene();
     }
 
@@ -79,11 +79,12 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     virtual void StartTriangles()
     {
         cout<<"Calling Start Tris"<<endl;
+        tracer->startScene();
     }
 
     virtual void EndTriangles()
     {
-        cout<<"Calling End Tris"<<endl;
+        //cout<<"Calling End Tris"<<endl;
     }
 
     virtual void AddTriangleVnVs(double x0, double y0, double z0,
@@ -94,7 +95,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
                                  double u2, double v2, double w2,
                                  double s0, double s1, double s2)
     {
-        cout<<"Calling add trianles"<<endl;
+        //cout<<"Calling add trianles"<<endl;
         /*glNormal3d(u0,v0,w0);
         glTexCoord1f(s0);
         glVertex3d(x0,y0,z0);
@@ -200,8 +201,8 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         glDisable(GL_BLEND);
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);
-        const float* rgb=tracer->getFrameBuffer()->GetTuple(0);
-        const float* depth=tracer->getDepthBuffer()->GetTuple(0);
+        const float* rgb   = tracer->getFrameBuffer()->GetTuple(0);
+        const float* depth = tracer->getDepthBuffer()->GetTuple(0);
         // draw the pixel colors
         glDrawPixels(v.w, v.h, GL_RGB, GL_FLOAT, &rgb[0]);
 
