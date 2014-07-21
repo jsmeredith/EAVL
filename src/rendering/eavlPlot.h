@@ -261,7 +261,7 @@ class eavlPlot
     double GetMinCoordExtentOrig(int axis) { return min_coord_extents_orig[axis]; }
     double GetMaxCoordExtentOrig(int axis) { return max_coord_extents_orig[axis]; }
 
-    virtual void Render(eavlSceneRenderer *r)
+    virtual void Generate(eavlSceneRenderer *r)
     {
         ColorByOptions opts;
         opts.singleColor = (field == NULL);
@@ -330,7 +330,7 @@ class eavl1DPlot : public eavlPlot
     {
         logarithmic = l;
     }
-    virtual void Render(eavlSceneRenderer *r)
+    virtual void Generate(eavlSceneRenderer *r)
     {
         if (logarithmic && min_data_extents <= 0)
         {
@@ -341,20 +341,20 @@ class eavl1DPlot : public eavlPlot
         if (barstyle)
         {
             if (cellset)
-                RenderBars(r);
+                GenerateBars(r);
             else
-                RenderBarsForPoints(r);
+                GenerateBarsForPoints(r);
         }
         else
         {
             if (cellset)
-                RenderCells(r);
+                GenerateCells(r);
             else
-                RenderPoints(r);
+                GeneratePoints(r);
         }
     }
 
-    void RenderPoints(eavlSceneRenderer *r)
+    void GeneratePoints(eavlSceneRenderer *r)
     {
         bool PointField = (field &&
             field->GetAssociation() == eavlField::ASSOC_POINTS);
@@ -384,7 +384,7 @@ class eavl1DPlot : public eavlPlot
         r->EndPoints();
     }
 
-    void RenderCells(eavlSceneRenderer *r)
+    void GenerateCells(eavlSceneRenderer *r)
     {
         bool PointField = (field &&
             field->GetAssociation() == eavlField::ASSOC_POINTS);
@@ -444,7 +444,7 @@ class eavl1DPlot : public eavlPlot
         r->EndLines();
     }
 
-    void RenderBarsForPoints(eavlSceneRenderer *r)
+    void GenerateBarsForPoints(eavlSceneRenderer *r)
     {
         bool PointField = (field &&
             field->GetAssociation() == eavlField::ASSOC_POINTS);
@@ -472,7 +472,7 @@ class eavl1DPlot : public eavlPlot
         r->EndLines();
     }
 
-    void RenderBars(eavlSceneRenderer *r)
+    void GenerateBars(eavlSceneRenderer *r)
     {
         bool PointField = (field &&
             field->GetAssociation() == eavlField::ASSOC_POINTS);
