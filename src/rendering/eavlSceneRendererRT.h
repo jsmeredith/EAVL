@@ -165,27 +165,27 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
 
     // ------------------------------------------------------------------------
-    virtual void Render(eavlView v)
+    virtual void Render()
     {
         if(tracer->scene->getTotalPrimitives() == 0) return;
         int tframe = eavlTimer::Start();
-        tracer->setResolution(v.h,v.w);
+        tracer->setResolution(view.h,view.w);
         float magnitude=tracer->scene->getSceneExtentMagnitude();
         //cout<<"Magnitude "<<magnitude<<endl;
         tracer->setAOMax(magnitude*.2f);
 
 
         /*Set up field of view: tracer takes the half FOV in degrees*/
-        float fovx= 2.f*atan(tan(v.view3d.fov/2.f)*v.w/v.h);
+        float fovx= 2.f*atan(tan(view.view3d.fov/2.f)*view.w/view.h);
         fovx*=180.f/M_PI;
-        tracer->setFOVy((v.view3d.fov*(180.f/M_PI))/2.f);
+        tracer->setFOVy((view.view3d.fov*(180.f/M_PI))/2.f);
         tracer->setFOVx( fovx/2.f );
 
-        eavlVector3 lookdir = (v.view3d.at - v.view3d.from).normalized();
-        tracer->lookAtPos(v.view3d.at.x,v.view3d.at.y,v.view3d.at.z);
-        tracer->setCameraPos(v.view3d.from.x,v.view3d.from.y,v.view3d.from.z);
+        eavlVector3 lookdir = (view.view3d.at - view.view3d.from).normalized();
+        tracer->lookAtPos(view.view3d.at.x,view.view3d.at.y,view.view3d.at.z);
+        tracer->setCameraPos(view.view3d.from.x,view.view3d.from.y,view.view3d.from.z);
 
-        eavlVector3 right = (lookdir % v.view3d.up).normalized();
+        eavlVector3 right = (lookdir % view.view3d.up).normalized();
         /* Tracer is a lefty, so this is flip so down is not up */
         eavlVector3 up = ( lookdir % right).normalized();  
         tracer->setUp(up.x,up.y,up.z);
@@ -193,7 +193,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         /*Otherwise the light will move with the camera*/
         if(true)//setLight)
         {
-          eavlVector3 minersLight(v.view3d.from.x,v.view3d.from.y,v.view3d.from.z);
+          eavlVector3 minersLight(view.view3d.from.x,view.view3d.from.y,view.view3d.from.z);
           minersLight = minersLight+ up*magnitude*.3f;
           tracer->setLightParams(minersLight.x,minersLight.y,minersLight.z, 1.f, 1, 0, 0);  /*Light params: intensity, constant, linear and exponential coefficeints*/
           setLight = false;
@@ -208,7 +208,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         const float* rgb   = tracer->getFrameBuffer()->GetTuple(0);
         const float* depth = tracer->getDepthBuffer()->GetTuple(0);
         // draw the pixel colors
-        glDrawPixels(v.w, v.h, GL_RGB, GL_FLOAT, &rgb[0]);
+        glDrawPixels(view.w, view.h, GL_RGB, GL_FLOAT, &rgb[0]);
 
         // drawing the Z buffer will overwrite the pixel colors
         // unless you actively prevent it....
@@ -219,7 +219,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         glEnable(GL_DEPTH_TEST);
 
         // draw the z buffer
-        glDrawPixels(v.w, v.h, GL_DEPTH_COMPONENT, GL_FLOAT, &depth[0]);
+        glDrawPixels(view.w, view.h, GL_DEPTH_COMPONENT, GL_FLOAT, &depth[0]);
 
         // set the various masks back to "normal"
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);

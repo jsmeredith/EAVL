@@ -318,26 +318,9 @@ int main(int argc, char *argv[])
     catch (const eavlException &e)
     {
         cerr << e.GetErrorText() << endl;
-       
-        cerr << "\nUsage: "<<argv[0]<<" <file> <field> [numbins]\n";
         return 1;
     }
 
     return 0;
 }
 
-eavlDataSet *ReadWholeFile(const string &filename)
-{
-    eavlImporter *importer = eavlImporterFactory::GetImporterForFile(filename);
-    
-    if (!importer)
-        THROW(eavlException,"Didn't determine proper file reader to use");
-
-    string mesh = importer->GetMeshList()[0];
-    eavlDataSet *out = importer->GetMesh(mesh, 0);
-    vector<string> allvars = importer->GetFieldList(mesh);
-    for (size_t i=0; i<allvars.size(); i++)
-        out->AddField(importer->GetField(allvars[i], mesh, 0));
-
-    return out;
-}
