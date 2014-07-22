@@ -140,6 +140,7 @@ private:
     int                     m_leafNodeCount;
     int                     m_maxDepth;
     int                     m_primitiveType;
+    bool                    m_doSpacialSplits;
     int numR;
     int numL; //todo: delete these
     int megaCounter;
@@ -171,6 +172,8 @@ SplitBVHBuilder::SplitBVHBuilder(float *verts, int numPrimitives, const BuildPar
     m_leafNodeCount=0;
     m_maxDepth=0;
 
+    if      ( m_primitiveType == 0 ) m_doSpacialSplits=true;
+    else if ( m_primitiveType == 1 ) m_doSpacialSplits=false;
     //todo remove
     megaCounter=0;
 }
@@ -353,7 +356,7 @@ BVHNode* SplitBVHBuilder::buildNode(NodeSpec spec, int level, float progressStar
     {
         AABB overlap = object.leftBounds;
         overlap.intersect(object.rightBounds);
-        if (overlap.area() >= m_minOverlap)
+        if (overlap.area() >= m_minOverlap && m_doSpacialSplits) //only for triangles
             spatial = findSpatialSplit(spec, nodeSAH);
     }
 

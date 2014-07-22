@@ -323,30 +323,32 @@ class eavlRayTracerMutator : public eavlMutator
 
   private:
     int       height;
-    int       width;
-    int       occSamples;
-    float     fovy;
-    float     fovx;
-    bool      geomDirty;
-    bool      sizeDirty;
-    bool      verbose;
-    float     isoVal;
-    int       depth;
-    int       size;
-    bool      isOccusionOn;
-    int       currentSize;
-    int       numTriangles;
-    bool      compactOp;
-    bool      antiAlias;
-    bool      cameraDirty;
-    float     aoMax;
-    int       sampleCount;    /* keeps a running total of the number of re-usable ambient occlusion samples ie., the camera is unchanged */
+    int       width;           
+    float     fovy;           /*half vertical field of view in degrees*/
+    float     fovx;           /*half horizontal field of view in degrees**/
+    int       depth;          /*Number of ray bounces*/
+    int       size;           /*Size of the ray arrays h*w*/
+    int       occSamples;     /*Number of ambient occlusion samples per intersection*/
+    int       colorMapSize;   /*Number of values if the color map lookup table*/
+    bool      isOccusionOn;   /*True if ambient occlusion is on*/
+    int       currentSize;    /*Current working set size if array compaction is on*/
+    int       numTriangles;   /*number of triangles*/
+    bool      compactOp;      /*True if array compaction is on*/
+    bool      antiAlias;      /*True if anti-aliasing is on*/
+    bool      cameraDirty;    /*True is camera parameters are dirty. Used to accumulate AO values when the view is the same*/
+    bool      geomDirty;      /*Geometry is Dirty. Rebuild the BVH*/
+    bool      sizeDirty;      /*Image size is dirty. Resize the ray arrays*/
+    bool      verbose;        /*Turn on print statements*/
 
+    float     aoMax;          /* Maximum ambient occulsion ray length*/
+    int       sampleCount;    /* keeps a running total of the number of re-usable ambient occlusion samples ie., the camera is unchanged */
+    int       numMats;        /* current number of materials*/
+    /*Light Distance values*/
     float     lightIntensity; //light attenuation coefficients
     float     lightCoConst;
     float     lightCoLinear;
     float     lightCoExponent;
-    int       colorMapSize;
+    
 
     std::ostringstream oss;
     string fileprefix;
@@ -381,18 +383,18 @@ class eavlRayTracerMutator : public eavlMutator
     eavlFloatArray  *reflectZ;
     eavlFloatArray  *shadowHits;
 
-    eavlFloatArray    *r;
-    eavlFloatArray    *g;
-    eavlFloatArray    *b;
+    eavlFloatArray  *r;
+    eavlFloatArray  *g;
+    eavlFloatArray  *b;
 
 
-    eavlFloatArray    *r2;      //cmpressed color arrays         
-    eavlFloatArray    *g2;            
-    eavlFloatArray    *b2;
+    eavlFloatArray  *r2;      //cmpressed color arrays         
+    eavlFloatArray  *g2;            
+    eavlFloatArray  *b2;
 
-    eavlFloatArray    *rOut;
-    eavlFloatArray    *gOut;
-    eavlFloatArray    *bOut;
+    eavlFloatArray  *rOut;   //todo: get rid of these
+    eavlFloatArray  *gOut;
+    eavlFloatArray  *bOut;
 
     eavlFloatArray  *alphas;  //barycentric coeffients of triangle hit for lerping
     eavlFloatArray  *betas;
@@ -400,11 +402,12 @@ class eavlRayTracerMutator : public eavlMutator
     eavlFloatArray  *interX;  
     eavlFloatArray  *interY;
     eavlFloatArray  *interZ;
+
     eavlFloatArray  *normX;  
     eavlFloatArray  *normY;
     eavlFloatArray  *normZ;
 
-
+    /*Ambient occlusion arrays */
     eavlFloatArray  *occX;  
     eavlFloatArray  *occY;
     eavlFloatArray  *occZ;
@@ -412,6 +415,7 @@ class eavlRayTracerMutator : public eavlMutator
     eavlFloatArray  *ambPct;
     eavlFloatArray  *tempAmbPct;
 
+    /* Compact Arrays*/
     eavlIntArray    *mask;
     eavlIntArray    *indexScan;
     eavlIntArray    *count;
@@ -422,28 +426,27 @@ class eavlRayTracerMutator : public eavlMutator
     eavlIntArray    *compactTempInt;
     eavlFloatArray  *compactTempFloat;
     eavlFloatArray  *zBuffer;
+    eavlFloatArray  *frameBuffer; /* RGBRGB..*/
 
+    /*eavl Array indexers*/
     eavlArrayIndexer      *occIndexer;
-    eavlConstArray<float> *verts;
-
-    eavlConstArray<float> *norms;
-    eavlFloatArray *       frameBuffer;
-    eavlArrayIndexer*      redIndexer;
-    eavlArrayIndexer*      greenIndexer;
-    eavlArrayIndexer*      blueIndexer;
+    eavlArrayIndexer      *redIndexer;
+    eavlArrayIndexer      *greenIndexer;
+    eavlArrayIndexer      *blueIndexer;
     //mats and colors
-    int numMats;
-    eavlConstArray<float> *mats;
-    eavlConstArray<int> *matIdx;
-    int * matIdx_raw;
-    float * mats_raw;
-    eavlConstArray<float> *bvhFlatArray;
-    eavlFloatArray*     scalars;
-    float *colorMap_raw;
 
-    float *verts_raw;
-    float *norms_raw;
-    float *bvhFlatArray_raw;
+    eavlFloatArray        *scalars;   /*lerped intersection scalars */ 
+    eavlConstArray<float> *mats;
+    eavlConstArray<int>   *matIdx;
+    eavlConstArray<float> *norms;
+
+    /*  Raw Data Arrays used for eavlConst and eavlConstV2 */
+    float     *colorMap_raw;
+    float     *verts_raw;
+    float     *norms_raw;
+    float     *bvhFlatArray_raw;
+    int       *matIdx_raw;
+    float     *mats_raw;
 
     void Init();
     void setDefaultColorMap();
