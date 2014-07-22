@@ -137,40 +137,11 @@ class eavl3DGLScene : public eavlScene
 
         view.SetupForWorldSpace();
 
-        // We need to set lighting without the view matrix (for an eye
-        // light) so load the identity matrix into modelview temporarily....
-        glMatrixMode( GL_MODELVIEW );
-        glLoadIdentity();
-
-        // lighting
-        bool lighting = true;
-        if (lighting)
-        {
-            bool twoSidedLighting = true;
-            glShadeModel(GL_SMOOTH);
-            glEnable(GL_LIGHTING);
-            glEnable(GL_COLOR_MATERIAL);
-            glEnable(GL_LIGHT0);
-            glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, twoSidedLighting?1:0);
-            glLightModelfv(GL_LIGHT_MODEL_AMBIENT, eavlColor::grey20.c);
-            glLightfv(GL_LIGHT0, GL_AMBIENT, eavlColor::black.c);
-            glLightfv(GL_LIGHT0, GL_DIFFUSE, eavlColor::grey50.c);
-            //float lightdir[4] = {0, 0, 1, 0};
-            float lightdir[4] = {.2, .4, 1, 0};
-            glLightfv(GL_LIGHT0, GL_POSITION, lightdir);
-            glLightfv(GL_LIGHT0, GL_SPECULAR, eavlColor::white.c);
-            glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, eavlColor::grey40.c);
-            glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 8.0f);
-        }
-
-        // Okay, safe to set the view matrix back now that lighting's done.
-        glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
-
-        glEnable(GL_DEPTH_TEST);
+        eavlSceneRenderer *sr = win->GetSceneRenderer();
+        sr->SetView(view);
 
         // render the plots
         bool needs_update = false;
-        eavlSceneRenderer *sr = win->GetSceneRenderer();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             if (plots[i] && sr->NeedsGeometryForPlot(plots[i]->GetID()))
@@ -191,7 +162,7 @@ class eavl3DGLScene : public eavlScene
             sr->EndScene();
         }
 
-        sr->Render(view);
+        sr->Render();
     }
 };
 
@@ -240,6 +211,9 @@ class eavl2DGLScene : public eavlScene
 
         view.SetupForWorldSpace();
 
+        eavlSceneRenderer *sr = win->GetSceneRenderer();
+        sr->SetView(view);
+
         ///\todo: the tail of the 1D/2D/3D Render() methods are currently
         /// identical.  Can we merge them?  (If the renderers had
         /// access to the window, or texture cache if it gets moved
@@ -248,7 +222,6 @@ class eavl2DGLScene : public eavlScene
 
         // render the plots
         bool needs_update = false;
-        eavlSceneRenderer *sr = win->GetSceneRenderer();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             if (plots[i] && sr->NeedsGeometryForPlot(plots[i]->GetID()))
@@ -269,7 +242,7 @@ class eavl2DGLScene : public eavlScene
             sr->EndScene();
         }
 
-        sr->Render(view);
+        sr->Render();
     }
 };
 
@@ -309,6 +282,9 @@ class eavlPolarGLScene : public eavlScene
 
         view.SetupForWorldSpace();
 
+        eavlSceneRenderer *sr = win->GetSceneRenderer();
+        sr->SetView(view);
+
         ///\todo: the tail of the 1D/2D/3D Render() methods are currently
         /// identical.  Can we merge them?  (If the renderers had
         /// access to the window, or texture cache if it gets moved
@@ -317,7 +293,6 @@ class eavlPolarGLScene : public eavlScene
 
         // render the plots
         bool needs_update = false;
-        eavlSceneRenderer *sr = win->GetSceneRenderer();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             if (plots[i] && sr->NeedsGeometryForPlot(plots[i]->GetID()))
@@ -338,7 +313,7 @@ class eavlPolarGLScene : public eavlScene
             sr->EndScene();
         }
 
-        sr->Render(view);
+        sr->Render();
     }
 };
 
@@ -429,9 +404,11 @@ class eavl1DGLScene : public eavlScene
 
         view.SetupForWorldSpace();
 
+        eavlSceneRenderer *sr = win->GetSceneRenderer();
+        sr->SetView(view);
+
         // render the plots
         bool needs_update = false;
-        eavlSceneRenderer *sr = win->GetSceneRenderer();
         for (unsigned int i=0;  i<plots.size(); i++)
         {
             if (plots[i] && sr->NeedsGeometryForPlot(plots[i]->GetID()))
@@ -460,7 +437,7 @@ class eavl1DGLScene : public eavlScene
             sr->EndScene();
         }
 
-        sr->Render(view);
+        sr->Render();
     }
 };
 

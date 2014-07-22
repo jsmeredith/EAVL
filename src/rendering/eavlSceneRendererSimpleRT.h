@@ -345,7 +345,7 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
         //cerr << "endscene\n";
     }
 
-    virtual void Render(eavlView view)
+    virtual void Render()
     {
         rgba.clear();
         depth.clear();

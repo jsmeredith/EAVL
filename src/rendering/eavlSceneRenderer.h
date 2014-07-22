@@ -60,15 +60,61 @@ class eavlSceneRenderer
     int ncolors;
     float colors[3*1024];
     set<int> plotcontents;
+
+    eavlView view;
+
+    float Ka;
+    float Kd;
+    float Ks;
+    float Lx, Ly, Lz;
+    bool  eyeLight;
   public:
     eavlSceneRenderer()
     {
+        Ka = 0.2;
+        Kd = 0.8;
+        Ks = 0.2;
+
+        Lx = 0.2;
+        Ly = 0.2;
+        Lz = 1.0;
+
+        eyeLight = true;
+
         ncolors = 1;
         colors[0] = colors[1] = colors[2] = 0.5;
     }
     virtual ~eavlSceneRenderer()
     {
     }
+
+    void SetAmbientCoefficient(float a)
+    {
+        Ka = a;
+    }
+    void SetDiffuseCoefficient(float d)
+    {
+        Kd = d;
+    }
+    void SetSpecularCoefficient(float s)
+    {
+        Ks = s;
+    }
+    void SetLightDirection(float x, float y, float z)
+    {
+        Lx = x;
+        Ly = y;
+        Lz = z;
+    }
+    void SetEyeLight(bool eye)
+    {
+        eyeLight = eye;
+    }
+    void SetView(eavlView v)
+    {
+        view = v;
+    }
+
 
     virtual bool NeedsGeometryForPlot(int plotid)
     {
@@ -81,17 +127,16 @@ class eavlSceneRenderer
         plotcontents.insert(plotid);
     }
 
-    ///\todo: NO, no view in 'startscene'; we need 
-    /// a separate Render method that takes a view;
-    /// EndScene is for setting up BVH's, etc.
-    virtual void Render(eavlView v) = 0;
+    virtual void Render() = 0;
 
     virtual void StartScene()
     {
+        //cerr << "StartScene\n";
         plotcontents.clear();
     }
     virtual void EndScene()
     {
+        //cerr << "EndScene\n";
     }
 
     virtual void StartTriangles() { }
