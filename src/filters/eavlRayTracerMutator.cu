@@ -1626,22 +1626,34 @@ void eavlRayTracerMutator::Init()
 
 
     if(geomDirty) extractGeometry();
+    /*Need to start seperating functions that are not geometry. This allows the materials to be updated */
+    if(defaultMatDirty)
+    {
+        numMats         = scene->getNumMaterials();
+        mats_raw        = scene->getMatsPtr();
+        if(mats!=NULL)
+        {
+            delete mats;
+        }
+        INIT(eavlConstArray<float>, mats,numMats*12);
+        defaultMatDirty=false;
+    }
 }
 
 void eavlRayTracerMutator::extractGeometry()
 {
-    
     
 
     if(verbose) cerr<<"Extracting Geometry"<<endl;
     
     scene->createRawData();
     numTriangles    = scene->getNumTriangles();
-    numMats         = scene->getNumMaterials();
     verts_raw       = scene->getTrianglePtr();
     norms_raw       = scene->getTriangleNormPtr();
     matIdx_raw      = scene->getTriMatIdxsPtr();
+    numMats         = scene->getNumMaterials();
     mats_raw        = scene->getMatsPtr();
+    
 
     int    bvhsize      =0;
     int    bvhLeafSize  =0;
@@ -1684,6 +1696,7 @@ void eavlRayTracerMutator::extractGeometry()
     INIT(eavlConstArray<int>, matIdx,numTriangles);
     
     geomDirty=false;
+    defaultMatDirty=false;
     
 }
 

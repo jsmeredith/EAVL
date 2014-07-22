@@ -43,6 +43,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setCompactOp(false);
         setLight=true;
         ctName="";
+        tracer->setDefaultMaterial(Ka,Kd,Ks);
         cout<<"END rt const"<<endl;
 
     }
@@ -167,8 +168,11 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     // ------------------------------------------------------------------------
     virtual void Render()
     {
+
         if(tracer->scene->getTotalPrimitives() == 0) return;
+
         int tframe = eavlTimer::Start();
+        tracer->setDefaultMaterial(Ka,Kd,Ks);
         tracer->setResolution(view.h,view.w);
         float magnitude=tracer->scene->getSceneExtentMagnitude();
         //cout<<"Magnitude "<<magnitude<<endl;
@@ -191,13 +195,16 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setUp(up.x,up.y,up.z);
         
         /*Otherwise the light will move with the camera*/
-        if(true)//setLight)
+        if(eyeLight)//setLight)
         {
           eavlVector3 minersLight(view.view3d.from.x,view.view3d.from.y,view.view3d.from.z);
           minersLight = minersLight+ up*magnitude*.3f;
-          tracer->setLightParams(minersLight.x,minersLight.y,minersLight.z, 1.f, 1, 0, 0);  /*Light params: intensity, constant, linear and exponential coefficeints*/
-          setLight = false;
+          tracer->setLightParams(minersLight.x,minersLight.y,minersLight.z, 1.f, 1.f, 0.f, 0.f);  /*Light params: intensity, constant, linear and exponential coefficeints*/
         } 
+        else
+        {
+           tracer->setLightParams(Lx, Ly, Lz, 1.f, 1.f , 0.f , 0.f);
+        }
 
         tracer->Execute();
 

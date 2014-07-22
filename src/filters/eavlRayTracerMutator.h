@@ -25,7 +25,18 @@ class eavlRayTracerMutator : public eavlMutator
     eavlFloatArray* getFrameBuffer() { return frameBuffer; }
     eavlFloatArray* getDepthBuffer() { return zBuffer; }
 
-
+    void setDefaultMaterial(float ka, float kd, float ks)
+    {
+      float old_a=scene->getDefaultMaterial().ka.x;
+      float old_s=scene->getDefaultMaterial().ka.x;
+      float old_d=scene->getDefaultMaterial().ka.x;
+      if(old_a==ka && old_d == kd && old_s == ks) return;     //no change, do nothing
+      scene->setDefaultMaterial(RTMaterial(eavlVector3(ka,ka,ka),
+                                           eavlVector3(kd,kd,kd),
+                                           eavlVector3(ks,ks,ks), 10.f,.3));
+      defaultMatDirty=true;
+      cout<<"Changing Default mats"<<endl;
+    }
     void setResolution(const int h, const int w)
     {
       if(h!=height || width !=w) 
@@ -344,6 +355,7 @@ class eavlRayTracerMutator : public eavlMutator
     bool      cameraDirty;    /*True is camera parameters are dirty. Used to accumulate AO values when the view is the same*/
     bool      geomDirty;      /*Geometry is Dirty. Rebuild the BVH*/
     bool      sizeDirty;      /*Image size is dirty. Resize the ray arrays*/
+    bool      defaultMatDirty;/*Default Material is dirty.*/
     bool      verbose;        /*Turn on print statements*/
     bool      useBVHCache;    /*Turn on print statements*/
 

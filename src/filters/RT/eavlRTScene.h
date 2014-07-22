@@ -57,6 +57,7 @@ class eavlRTScene
 		EAVL_HOSTONLY inline float*     getMatsPtr();
 		EAVL_HOSTONLY inline int*       getTriMatIdxsPtr();
 		EAVL_HOSTONLY inline float 		getSceneExtentMagnitude();
+		EAVL_HOSTONLY inline RTMaterial getDefaultMaterial(){ return defaultMat;};
 
 };
 
@@ -88,6 +89,7 @@ EAVL_HOSTONLY inline eavlRTScene::~eavlRTScene()
 EAVL_HOSTONLY inline void eavlRTScene::setDefaultMaterial(const RTMaterial &_mat)
 {
 	mats->at(0)=_mat;
+	defaultMat=_mat;
 }
 
 EAVL_HOSTONLY inline int eavlRTScene::addMaterial(RTMaterial _mat, string matName)
@@ -219,10 +221,7 @@ void inline eavlRTScene::createRawData()
 	{
 		delete spheres_raw;
 	}
-	if(mats_raw!=NULL)
-	{
-		delete mats_raw;
-	}
+	
 
 	if(totalPrimitives>0)
 	{
@@ -271,8 +270,40 @@ void inline eavlRTScene::createRawData()
 	}
 	else
 	{
-		cout<<"Cannot create data with no primitves"<<endl;
+		cout<<"Cannot create data without any primitves"<<endl;
 	}
+	//cout<<"Done."<<endl;
+}
+
+void inline eavlRTScene::clear()
+{
+	tris->clear();
+	spheres->clear();
+	mats->clear();
+	matMap.clear();
+	/* Load the defualt materials back in*/
+	mats->push_back(defaultMat);
+	matMap.insert(pair<string, int> ("default", 0));
+}
+
+EAVL_HOSTONLY  inline float*  eavlRTScene::getTrianglePtr()
+{
+	return tris_raw;
+}
+
+EAVL_HOSTONLY  inline float* eavlRTScene::getTriangleNormPtr()
+{
+	return tris_norms_raw;
+}
+EAVL_HOSTONLY inline float* eavlRTScene::getSpherePtr(){ cout<<"sphere ptr not implemented"<<endl; return NULL;};
+
+EAVL_HOSTONLY inline float* eavlRTScene::getMatsPtr()
+{
+	if(mats_raw!=NULL)
+	{
+		delete mats_raw;
+	}
+
 	int numMats=mats->size();
 	if(numMats>0)
 	{
@@ -301,32 +332,7 @@ void inline eavlRTScene::createRawData()
 		cout<<"Must have at least one material"<<endl;
 		exit(0);
 	}
-	//cout<<"Done."<<endl;
-}
 
-void inline eavlRTScene::clear()
-{
-	tris->clear();
-	spheres->clear();
-	mats->clear();
-	matMap.clear();
-	/* Load the defualt materials back in*/
-	mats->push_back(defaultMat);
-	matMap.insert(pair<string, int> ("default", 0));
-}
-
-EAVL_HOSTONLY  inline float*  eavlRTScene::getTrianglePtr()
-{
-	return tris_raw;
-}
-
-EAVL_HOSTONLY  inline float* eavlRTScene::getTriangleNormPtr()
-{
-	return tris_norms_raw;
-}
-EAVL_HOSTONLY inline float* eavlRTScene::getSpherePtr(){ cout<<"sphere ptr not implemented"<<endl; return NULL;};
-EAVL_HOSTONLY inline float* eavlRTScene::getMatsPtr()
-{
 	return mats_raw;
 }
 
