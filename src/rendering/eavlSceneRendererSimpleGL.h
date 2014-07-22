@@ -98,6 +98,14 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
     {
         return true;
     }
+    virtual void StartScene()
+    {
+        eavlSceneRenderer::StartScene();
+        // we're rendering in immediate mode and
+        // will send triangles to OpenGL instead of 
+        // caching; set up the rendering stuff now.
+        SetupForRendering();
+    }
  #endif
 #endif
 
@@ -231,8 +239,63 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
 
 
     // ------------------------------------------------------------------------
-    virtual void Render(eavlView v)
+    void SetupForRendering()
     {
+        if (view.viewtype == eavlView::EAVL_VIEW_3D)
+        {
+            if (eyeLight)
+            {
+                // We need to set lighting without the view matrix (for an eye
+                // light) so load the identity matrix into modelview temporarily.
+                glMatrixMode( GL_MODELVIEW );
+                glLoadIdentity();
+            }
+
+            eavlColor ambient(Ka,Ka,Ka);
+            eavlColor diffuse(Kd,Kd,Kd);
+            eavlColor specular(Ks,Ks,Ks);
+            float     shininess = 8.0;
+
+            bool twoSidedLighting = true;
+            //glShadeModel(GL_SMOOTH);
+            glEnable(GL_LIGHTING);
+            glEnable(GL_LIGHT0);
+            glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, twoSidedLighting?1:0);
+            glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient.c);
+            glLightModeli(GL_LIGHT_MODEL_COLOR_CONTROL, GL_SEPARATE_SPECULAR_COLOR);
+            glLightfv(GL_LIGHT0, GL_AMBIENT, eavlColor::black.c);
+            glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse.c);
+            glLightfv(GL_LIGHT0, GL_SPECULAR, eavlColor::white.c);
+
+            //float lightdir[4] = {0, 0, 1, 0};
+            float lightdir[4] = {Lx, Ly, Lz, 0};
+            glLightfv(GL_LIGHT0, GL_POSITION, lightdir);
+
+            glEnable(GL_COLOR_MATERIAL);
+            glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE) ;
+            glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular.c);
+            glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
+
+
+            if (eyeLight)
+            {
+                // Okay, set the view matrix back now that lighting's done.
+                glLoadMatrixf(view.V.GetOpenGLMatrix4x4());
+            }
+
+            glEnable(GL_DEPTH_TEST);
+        }
+        else
+        {
+            glDisable(GL_LIGHTING);
+            glDisable(GL_DEPTH_TEST);
+        }
+    }
+
+    virtual void Render()
+    {
+        SetupForRendering();
+        
         //cerr << "Render\n";
 #ifdef USE_DISPLAY_LISTS
         glCallList(mylist);
