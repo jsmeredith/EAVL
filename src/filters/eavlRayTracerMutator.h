@@ -6,7 +6,7 @@
 #include "eavlMatrix4x4.h"
 #include "RT/eavlRTScene.h"
 
-
+enum primitive_t { TRIANGLE=0, SPHERE=1 };
 
 
 class eavlRayTracerMutator : public eavlMutator
@@ -44,7 +44,7 @@ class eavlRayTracerMutator : public eavlMutator
 
     void setFOVx(const float d)
     {
-      fovx=d;
+      fovx=d; 
     }
 
     void setFOVy(const float d)
@@ -52,7 +52,10 @@ class eavlRayTracerMutator : public eavlMutator
       fovy=d;
     }
 
-    
+    void setBVHCache(bool on)
+    {
+      useBVHCache=on;
+    }
 
     void setRawData(float *v, float *n, int numTri, float* _materials, int * _matIndex, int _numMats)
     {
@@ -284,6 +287,9 @@ class eavlRayTracerMutator : public eavlMutator
       delete redIndexer;
       delete blueIndexer;
       delete greenIndexer;
+
+      delete primitiveTypes;
+      delete scalars;
       //delete bvhFlatArray;
       //conditional deletes
       if (antiAlias)
@@ -339,6 +345,7 @@ class eavlRayTracerMutator : public eavlMutator
     bool      geomDirty;      /*Geometry is Dirty. Rebuild the BVH*/
     bool      sizeDirty;      /*Image size is dirty. Resize the ray arrays*/
     bool      verbose;        /*Turn on print statements*/
+    bool      useBVHCache;    /*Turn on print statements*/
 
     float     aoMax;          /* Maximum ambient occulsion ray length*/
     int       sampleCount;    /* keeps a running total of the number of re-usable ambient occlusion samples ie., the camera is unchanged */
@@ -433,7 +440,8 @@ class eavlRayTracerMutator : public eavlMutator
     eavlArrayIndexer      *redIndexer;
     eavlArrayIndexer      *greenIndexer;
     eavlArrayIndexer      *blueIndexer;
-    //mats and colors
+
+    eavlIntArray          *primitiveTypes;
 
     eavlFloatArray        *scalars;   /*lerped intersection scalars */ 
     eavlConstArray<float> *mats;

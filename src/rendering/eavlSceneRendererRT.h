@@ -39,10 +39,11 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setAOMax(5);
         tracer->setOccSamples(4);
         tracer->setAO(true);
-        tracer->setBVHCacheName(""); // don't use cache
+        tracer->setBVHCache(false); // don't use cache
         tracer->setCompactOp(false);
         setLight=true;
         ctName="";
+        cout<<"END rt const"<<endl;
 
     }
     ~eavlSceneRendererRT()

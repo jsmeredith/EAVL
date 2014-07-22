@@ -192,7 +192,7 @@ EAVL_HOSTONLY inline void eavlRTScene::loadObjFile(const char * _filename)
 
 	for( int i=0; i<numTris;i++)
 	{
-		addTriangle(eavlVector3(v[i*9  ],v[i*9+1],v[i*9+2] ),
+		addTriangle(eavlVector3( v[i*9  ],v[i*9+1],v[i*9+2] ),
 					eavlVector3( v[i*9+3],v[i*9+4],v[i*9+5] ),
 					eavlVector3( v[i*9+6],v[i*9+7],v[i*9+8]),
 					0.f, 0.f, 0.f, newMatidxs[mIdx[i]]	);

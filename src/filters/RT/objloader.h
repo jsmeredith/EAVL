@@ -296,9 +296,13 @@ inline void ObjReader::loadMTL(const std::string &mtlFilename)
             continue;
         }
 
-        if (!mat) throw std::runtime_error("invalid material file: newmtl expected first");
+        if (!mat) 
+        {
+            cout<<"Bad line in mat file : "<<line<<endl;
+            throw std::runtime_error("invalid material file: newmtl expected first");
+        }
         
-        if (!strncmp(token, "d", 1))  { parseSep(token += 1); mat->d = getFloat(token); continue; }
+        if (!strncmp(token, "d", 1))  { parseSep(token += 1); mat->d  = getFloat(token); continue; }
         if (!strncmp(token, "Ns", 1)) { parseSep(token += 2); mat->Ns = getFloat(token); continue; }
         if (!strncmp(token, "Ns", 1)) { parseSep(token += 2); mat->Ni = getFloat(token); continue; }
         if (!strncmp(token, "Ka", 2)) { parseSep(token += 2); mat->Ka = getVec3f(token); continue; }
