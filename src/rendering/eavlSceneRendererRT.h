@@ -38,7 +38,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setVerbose(true);
         tracer->setAOMax(5);
         tracer->setOccSamples(8);
-        tracer->setAO(true);
+        tracer->setAO(false);
         tracer->setBVHCacheName(""); // don't use cache
         tracer->setCompactOp(false);
         setLight=true;

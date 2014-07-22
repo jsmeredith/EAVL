@@ -36,7 +36,7 @@
 
 #define TOLERANCE   0.00001
 #define BARY_TOLE   0.0001f
-#define EPSILON     0.0001f
+#define EPSILON     0.01f
 #define PI          3.14159265359f
 #define INFINITE    1000000
 #define END_FLAG    -1000000000
@@ -802,11 +802,11 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
                         t.z=oz-a4.z;
 
                         float u=(t*p)*dot;
-                        if(u>=0.f && u<=1.f)
+                        if(u>= (0.f- EPSILON) && u<=(1.f+EPSILON))
                         {
                             eavlVector3 q=t%e1;
                             float v=(dirx*q.x+diry*q.y+dirz*q.z)*dot;
-                            if(v>=0.f && v<=1.f)
+                            if(v>= (0.f- EPSILON) && v<=(1.f+EPSILON))
                             {
                                 float dist=(e2*q)*dot;
                                 if((dist>EPSILON && dist<minDistance) && !(u+v>1) )
@@ -1616,6 +1616,8 @@ void eavlRayTracerMutator::Init()
                                              IntMemsetFunctor(0)),
                                              "init");
     eavlExecutor::Go();
+
+
     if(geomDirty) extractGeometry();
 }
 
@@ -1698,8 +1700,7 @@ void eavlRayTracerMutator::Execute()
     //Extract the triangles and normals from the isosurface
    
 
-    clearFrameBuffer(r,g,b);//may not needed if this isn't going to be supported
-
+    clearFrameBuffer(r,g,b);
     //light=light+movement;
     look=lookat-eye;
     if(verbose) cerr<<"Look "<<look<<" Eye"<<eye<<"Light"<<light<<endl;
@@ -1902,7 +1903,7 @@ void eavlRayTracerMutator::Execute()
 
 
         /* Copy intersections to origins if there are more bounces*/
-        if(i<depth-1) 
+        if(i<depth-1) //depth -2?
         {
             eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(interX, interY, interZ),
                                                      eavlOpArgs(rayOriginX, rayOriginY, rayOriginZ),
@@ -1937,6 +1938,16 @@ void eavlRayTracerMutator::Execute()
                                                      eavlOpArgs(mortonIndexes)),
                                                      "scatter");
         eavlExecutor::Go();
+        eavlExecutor::AddOperation(new_eavlScatterOp(eavlOpArgs(zBuffer),
+                                                     eavlOpArgs(compactTempFloat),
+                                                     eavlOpArgs(mortonIndexes)),
+                                                     "scatter");
+        eavlExecutor::Go();
+
+        eavlFloatArray *tmpPtr=zBuffer;
+        zBuffer=compactTempFloat;
+        compactTempFloat=tmpPtr;
+
     }
     else
     {
@@ -1983,6 +1994,7 @@ void eavlRayTracerMutator::Execute()
 #else
     //else
     //{
+    
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(r2, g2, b2),
                                                  eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer),
                                                             eavlIndexable<eavlFloatArray>(frameBuffer,*greenIndexer),
