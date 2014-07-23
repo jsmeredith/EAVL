@@ -1465,7 +1465,7 @@ void eavlRayTracerMutator::allocateArrays()
         if (compactOp)
         {
             delete mask;
-            delete count;
+            delete count; 
             delete indexScan;
         }
 
