@@ -673,7 +673,7 @@ EAVL_HOSTDEVICE eavlVector3 triangleIntersectionABG(const eavlVector3 ray,const 
 
 
 
-EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &bvhLeafs,eavlConstArrayV2<float4> &verts,const float &maxDistance, int &distance)
+EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &bvhLeafs,eavlConstArrayV2<float4> &verts,const float &maxDistance, float &distance)
 {
 
 
@@ -992,66 +992,33 @@ struct RayIntersectFunctor{
 
 
     eavlConstArrayV2<float4> verts;
-    //eavlConstArray<float> bvh;
-    eavlConstArrayV2<float4> bvh;
-    eavlConstArrayV2<float> bvhLeafs;
-
-    RayIntersectFunctor(eavlConstArrayV2<float4> *_verts, eavlConstArrayV2<float4> *theBvh,eavlConstArrayV2<float> *theBvhLeafs)
-        :verts(*_verts),
-         bvh(*theBvh),
-         bvhLeafs(*theBvhLeafs)
-    {
-
-        
-    }                                                     //order a b c clockwise
-    EAVL_HOSTDEVICE tuple<int,float> operator()( tuple<float,float,float,float,float,float,int> rayTuple){
-       
-        
-        int deadRay=get<6>(rayTuple);
-        if(deadRay==-1) return tuple<int,float>(-1, INFINITE);
-
-        int minHit=-1; 
-        int distance;
-        eavlVector3 rayOrigin(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
-        eavlVector3 ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
-        minHit= getIntersectionTri(ray, rayOrigin, false,bvh,bvhLeafs, verts,INFINITE,distance);
-    
-        if(minHit!=-1) return tuple<int, float>(minHit, distance);
-        else           return tuple<int, float>(-1, INFINITE);
-    }
-};
-
-struct RayIntersectFunctorDepth{
-
-
-    eavlConstArrayV2<float4> verts;
     eavlConstArrayV2<float4> bvh;
     eavlConstArrayV2<float>  bvhLeafs;
+    primitive_t              primitiveType;
 
-    RayIntersectFunctorDepth(eavlConstArrayV2<float4> *_verts, eavlConstArrayV2<float4> *theBvh,eavlConstArrayV2<float> *theBvhLeafs)
+    RayIntersectFunctor(eavlConstArrayV2<float4> *_verts, eavlConstArrayV2<float4> *theBvh,eavlConstArrayV2<float> *theBvhLeafs, primitive_t _primitveType)
         :verts(*_verts),
          bvh(*theBvh),
          bvhLeafs(*theBvhLeafs)
-    {
-
-        
-    }                                                    
-    EAVL_HOSTDEVICE tuple<float> operator()( tuple<float,float,float,float,float,float,int> rayTuple){
+    {}                                                 
+    EAVL_HOSTDEVICE tuple<int,float,int> operator()( tuple<float,float,float,float,float,float,int, int, float> rayTuple){
        
         
         int deadRay=get<6>(rayTuple);
-        if(deadRay==-1) return tuple<int>(-1);
+        if(deadRay==-1) return tuple<int,float,int>(-1, INFINITE, -1);
 
-        float depth=-1; 
-
+        int   minHit=-1; 
+        float distance;
+        float maxDistance = get<8>(rayTuple);
         eavlVector3 rayOrigin(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
-        eavlVector3 ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
-        depth= getIntersectionDepth(ray, rayOrigin, false,bvh,bvhLeafs, verts,INFINITE);
+        eavlVector3       ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
+        minHit = getIntersectionTri(ray, rayOrigin, false,bvh,bvhLeafs, verts,maxDistance,distance);
     
-        return tuple<float>(depth);
-        
+        if(minHit!=-1) return tuple<int,float,int>(minHit, distance, TRIANGLE);
+        else           return tuple<int,float,int>(-1, INFINITE, get<7>(rayTuple));
     }
 };
+
 
 struct ReflectFunctor{
 
@@ -1195,14 +1162,14 @@ struct occIntersectFunctor{
 
         maxDistance=max;
         
-    }                                                    //order a b c clockwise
+    }                                                   
     EAVL_FUNCTOR tuple<float> operator()( tuple<float,float,float,float,float,float,int> rayTuple){
         
         int deadRay=get<6>(rayTuple);//hack for now leaving this in for CPU
         if(deadRay==-1) return tuple<float>(0.0f);
         int minHit=-1;   
-        int distance;
-        eavlVector3 intersect(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));//change this name, only eye for the first pass
+        float distance;
+        eavlVector3 intersect(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
         eavlVector3 ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
         minHit= getIntersectionTri(ray, intersect, true,bvh, bvhLeafs, verts,maxDistance, distance);
 
@@ -1239,7 +1206,7 @@ struct ShadowRayFunctor
         float lightDistance=sqrt(shadowRay.x*shadowRay.x+shadowRay.y*shadowRay.y+shadowRay.z*shadowRay.z);
         shadowRay.normalize();
         int minHit;
-        int distance;
+        float distance;
         minHit= getIntersectionTri(shadowRay, rayOrigin, true,bvh, bvhLeafs, verts,lightDistance, distance);
         if(minHit!=-1) return tuple<int>(1);//in shadow
         else return tuple<int>(0);//clear view of the light
@@ -1279,8 +1246,8 @@ struct ShaderFunctor
         colorMapSize=_colorMapSize;
         eye=eyePos;
 
-        lightDiff=eavlVector3(.5,.5,.5);
-        lightSpec=eavlVector3(.5,.5,.5);
+        lightDiff=eavlVector3(.9,.9,.9);
+        lightSpec=eavlVector3(.9,.9,.9);
         lightIntensity  = _lightIntensity;
         lightCoConst    = _lightCoConst;   //used as coefficients for light attenuation
         lightCoLinear   = _lightCoLinear;
@@ -1294,7 +1261,7 @@ struct ShaderFunctor
         float specConst;
 
 
-        if(hitIdx==-1 ) return tuple<float,float,float>(0,0,0);// primary ray never hit anything.
+        if(hitIdx==-1 ) return tuple<float,float,float>(1,1,1);// primary ray never hit anything.
 
         eavlVector3 normal(get<8>(input), get<9>(input), get<10>(input));
         eavlVector3 rayInt(get<2>(input), get<3>(input), get<4 >(input));
@@ -1302,14 +1269,14 @@ struct ShaderFunctor
         eavlVector3 abg(get<5>(input),get<6>(input),1.f); //alpha beta gamma
 
         abg.z=abg.z-abg.x-abg.y; // get gamma
-        eavlVector3 lightDir=light-rayInt;
-        eavlVector3 viewDir=eye-rayOrigin;
-        float dist=sqrt(lightDir.x*lightDir.x+lightDir.y*lightDir.y+lightDir.z*lightDir.z); 
-        dist+=sqrt(viewDir.x*viewDir.x+viewDir.y*viewDir.y+viewDir.z*viewDir.z);
-        lightDir=lightDir/dist;
-        dist=lightIntensity/(lightCoConst+lightCoLinear*dist+lightCoExponent*dist*dist);
+        eavlVector3 lightDir    = light-rayInt;
+        eavlVector3 viewDir     = eye-rayOrigin;
+        float dist = sqrt( lightDir.x*lightDir.x+lightDir.y*lightDir.y+lightDir.z*lightDir.z ); 
+        dist += sqrt( viewDir.x*viewDir.x+viewDir.y*viewDir.y+viewDir.z*viewDir.z );
+        lightDir = lightDir/dist;
+        dist = lightIntensity/(lightCoConst+lightCoLinear*dist+lightCoExponent*dist*dist);
         float ambPct=get<7>(input);
-        eavlVector3 pixel(0,0,0);
+
 
         int id=matIds[hitIdx];
         eavlVector3* matPtr=(eavlVector3*)(&mats[0]+id*12);
@@ -1324,28 +1291,28 @@ struct ShaderFunctor
         float green=0;
         float blue=0;
  
-        float cosTheta=normal*lightDir; //for diffuse
-        cosTheta=min(max(cosTheta,0.f),1.f); //clamp this to [0,1]
+        float cosTheta = normal*lightDir; //for diffuse
+        cosTheta = min(max(cosTheta,0.f),1.f); //clamp this to [0,1]
         
-        eavlVector3 halfVector=viewDir+lightDir;
+        eavlVector3 halfVector = viewDir+lightDir;
         halfVector.normalize();
         
         viewDir.normalize();
         
-        float cosPhi=normal*halfVector;
+        float cosPhi = normal*halfVector;
         
-        specConst=pow(max(cosPhi,0.0f),matShine);
+        specConst = pow(max(cosPhi,0.0f),matShine);
         //cosTheta=.5;
         //cout<<specConst<<endl;
         //ambPct=0;
-        float shadowHit= (hit==1) ? 0.f : 1.f;
+        float shadowHit = (hit==1) ? 0.f : 1.f;
         //red  =ambPct;
         //green=ambPct;
         //blue =ambPct;
         
-        red  =ka.x*ambPct+ (kd.x*lightDiff.x*cosTheta+ks.x*lightSpec.x*specConst)*shadowHit*dist;
-        green=ka.y*ambPct+ (kd.y*lightDiff.y*cosTheta+ks.y*lightSpec.y*specConst)*shadowHit*dist;
-        blue =ka.z*ambPct+ (kd.z*lightDiff.z*cosTheta+ks.z*lightSpec.z*specConst)*shadowHit*dist;
+        red   = ka.x*ambPct+ (kd.x*lightDiff.x*cosTheta + ks.x*lightSpec.x*specConst)*shadowHit*dist;
+        green = ka.y*ambPct+ (kd.y*lightDiff.y*cosTheta + ks.y*lightSpec.y*specConst)*shadowHit*dist;
+        blue  = ka.z*ambPct+ (kd.z*lightDiff.z*cosTheta + ks.z*lightSpec.z*specConst)*shadowHit*dist;
         
         /*Color map*/
         float scalar   = get<14>(input);
@@ -1371,13 +1338,13 @@ struct ShaderFunctor
         float reflectionCo=1;
         if(depth==0) reflectionCo=1;
         else reflectionCo=pow(.3f,depth);
-        pixel.x=red  *reflectionCo;
-        pixel.y=green*reflectionCo;
-        pixel.z=blue *reflectionCo;
+        red   = red  *reflectionCo;
+        green = green*reflectionCo;
+        blue  = blue *reflectionCo;
         //if(specConst==0.0) pixel.z=1;
 
         //}
-        return tuple<float,float,float>(min(pixel.x,1.0f),min(pixel.y,1.0f),min(pixel.z,1.0f));
+        return tuple<float,float,float>(min(red,1.0f),min(green,1.0f),min(blue,1.0f));
 
     }
 
@@ -1473,7 +1440,8 @@ void eavlRayTracerMutator::allocateArrays()
         delete zBuffer;
         delete frameBuffer;
         delete scalars;
-        delete primitiveTypes;
+        delete primitiveTypeHit;
+        delete minDistances;
         //what happens when someone turns these on and off??? 
         //1. we could just always do it and waste memory
         //2 call allocation if we detect dirty settings/dirtySize <-this is what is being done;
@@ -1504,52 +1472,53 @@ void eavlRayTracerMutator::allocateArrays()
     }
     cout<<"alloc "<<size<<endl;
     /*Temp arrays for compact*/
-    compactTempInt  = new eavlIntArray("temp",1,size);
-    compactTempFloat= new eavlFloatArray("temp",1,size);
-    mortonIndexes   = new eavlIntArray("mortonIdxs",1,size);
+    compactTempInt   = new eavlIntArray("temp",1,size);
+    compactTempFloat = new eavlFloatArray("temp",1,size);
+    mortonIndexes    = new eavlIntArray("mortonIdxs",1,size);
 
-    rayDirX        = new eavlFloatArray("x",1,size);
-    rayDirY        = new eavlFloatArray("y",1,size);
-    rayDirZ        = new eavlFloatArray("z",1,size);
+    rayDirX          = new eavlFloatArray("x",1,size);
+    rayDirY          = new eavlFloatArray("y",1,size);
+    rayDirZ          = new eavlFloatArray("z",1,size);
 
-    rayOriginX     = new eavlFloatArray("x",1,size);
-    rayOriginY     = new eavlFloatArray("y",1,size);
-    rayOriginZ     = new eavlFloatArray("z",1,size);
+    rayOriginX       = new eavlFloatArray("x",1,size);
+    rayOriginY       = new eavlFloatArray("y",1,size);
+    rayOriginZ       = new eavlFloatArray("z",1,size);
 
 
-    r              = new eavlFloatArray("r",1,size);
-    g              = new eavlFloatArray("g",1,size);
-    b              = new eavlFloatArray("b",1,size);
+    r                = new eavlFloatArray("r",1,size);
+    g                = new eavlFloatArray("g",1,size);
+    b                = new eavlFloatArray("b",1,size);
 
-    r2             = new eavlFloatArray("",1,size);
-    g2             = new eavlFloatArray("",1,size);
-    b2             = new eavlFloatArray("",1,size);
+    r2               = new eavlFloatArray("",1,size);
+    g2               = new eavlFloatArray("",1,size);
+    b2               = new eavlFloatArray("",1,size);
 
    
-    alphas         = new eavlFloatArray("aplha",1,size);
-    betas          = new eavlFloatArray("beta",1,size);
+    alphas           = new eavlFloatArray("aplha",1,size);
+    betas            = new eavlFloatArray("beta",1,size);
 
-    interX         = new eavlFloatArray("interX",1,size);
-    interY         = new eavlFloatArray("interY",1,size);
-    interZ         = new eavlFloatArray("interZ",1,size);
-    normX          = new eavlFloatArray("normX",1,size);
-    normY          = new eavlFloatArray("normY",1,size);
-    normZ          = new eavlFloatArray("normZ",1,size);
+    interX           = new eavlFloatArray("interX",1,size);
+    interY           = new eavlFloatArray("interY",1,size);
+    interZ           = new eavlFloatArray("interZ",1,size);
+    normX            = new eavlFloatArray("normX",1,size);
+    normY            = new eavlFloatArray("normY",1,size);
+    normZ            = new eavlFloatArray("normZ",1,size);
 
-    hitIdx         = new eavlIntArray("hitIndex",1,size);
-    indexes        = new eavlIntArray("indexes",1,size);
-    shadowHits     = new eavlFloatArray("",1,size);
-    ambPct         = new eavlFloatArray("",1, size);
-    zBuffer        = new eavlFloatArray("",1, size);
-    frameBuffer    = new eavlFloatArray("",1, width*height*3);
-    scalars        = new eavlFloatArray("",1,size);
-    primitiveTypes = new eavlIntArray("primitiveType",1,size);
+    hitIdx           = new eavlIntArray("hitIndex",1,size);
+    indexes          = new eavlIntArray("indexes",1,size);
+    shadowHits       = new eavlFloatArray("",1,size);
+    ambPct           = new eavlFloatArray("",1, size);
+    zBuffer          = new eavlFloatArray("",1, size);
+    frameBuffer      = new eavlFloatArray("",1, width*height*3);
+    scalars          = new eavlFloatArray("",1,size);
+    primitiveTypeHit = new eavlIntArray("primitiveType",1,size);
+    minDistances     = new eavlFloatArray("",1,size);
     //compact arrays
     if(compactOp)
     {
-        mask       = new eavlIntArray("mask",1,currentSize);        //array to store the mask
-        indexScan  = new eavlIntArray("indexScan",1,currentSize);
-        count      = new eavlIntArray("count",1,1);
+        mask         = new eavlIntArray("mask",1,currentSize);        //array to store the mask
+        indexScan    = new eavlIntArray("indexScan",1,currentSize);
+        count        = new eavlIntArray("count",1,1);
     }
 
 #if 0
@@ -1624,7 +1593,6 @@ void eavlRayTracerMutator::Init()
                                              "init");
     eavlExecutor::Go();
 
-
     if(geomDirty) extractGeometry();
     /*Need to start seperating functions that are not geometry. This allows the materials to be updated */
     if(defaultMatDirty)
@@ -1659,7 +1627,7 @@ void eavlRayTracerMutator::extractGeometry()
     int    bvhLeafSize  =0;
     bool   cacheExists  =false;
     bool   writeCache   =true;
-    float *bvhLeafs;
+    
 
     if(useBVHCache)
     {
@@ -1678,17 +1646,11 @@ void eavlRayTracerMutator::extractGeometry()
         delete testSplit;
     }
     
-
     if(numMats==0) { cerr<<"NO MATS bailing"<<endl; exit(0); }
 
-    //if(verbose) cerr<<"BVH Size : " <<bvhsize<<endl;
-   
-    
-
-
-    bvhTex     = new eavlConstArrayV2<float4>((float4*)bvhFlatArray_raw, bvhsize/4,bvhInnerTexRef);
-    bvhLeafsTex= new eavlConstArrayV2<float>(bvhLeafs, bvhLeafSize,bvhLeafTexRef);
-    vertsTex   = new eavlConstArrayV2<float4>((float4*)verts_raw,numTriangles*3, vertsTexRef);
+    bvhTex      = new eavlConstArrayV2<float4>((float4*)bvhFlatArray_raw, bvhsize/4,bvhInnerTexRef);
+    bvhLeafsTex = new eavlConstArrayV2<float>(bvhLeafs, bvhLeafSize,bvhLeafTexRef);
+    vertsTex    = new eavlConstArrayV2<float4>((float4*)verts_raw,numTriangles*3, vertsTexRef);
 
 
     INIT(eavlConstArray<float>, mats,numMats*12);
@@ -1700,6 +1662,23 @@ void eavlRayTracerMutator::extractGeometry()
     
 }
 
+void eavlRayTracerMutator::intersect()
+{
+    /*set the minimum distances to INFINITE */
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(indexes), //dummy arg
+                                             eavlOpArgs(minDistances),
+                                             FloatMemsetFunctor(INFINITE)),
+                                             "init");
+    eavlExecutor::Go();
+
+
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
+                                             eavlOpArgs(hitIdx, minDistances, primitiveTypeHit),
+                                             RayIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex,TRIANGLE)),
+                                                                                                    "intersect");
+    eavlExecutor::Go();
+    //for( int i=0; i<size; i++) cout<<primitiveTypeHit->GetValue(i)<<" ";
+}
 
 void eavlRayTracerMutator::Execute()
 {
@@ -1739,15 +1718,15 @@ void eavlRayTracerMutator::Execute()
         int tintersect;
         if(verbose) tintersect = eavlTimer::Start();
 
-        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx),
-                                                 eavlOpArgs(hitIdx, zBuffer),
-                                                 RayIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex)),
-                                                                                                    "intersect");
-        eavlExecutor::Go();
+        intersect();
         /* Get the depth buffer. This can only happen on the first bounce. */
         if(i==0)
         {
-            //todo : copy zBuffer first hit
+            eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(minDistances),
+                                             eavlOpArgs(zBuffer),
+                                             FloatMemcpyFunctor1to1()),
+                                             "cpy");
+            eavlExecutor::Go();
         }
 
         if(verbose) cout<<"intersect   RUNTIME: "<<eavlTimer::Stop(tintersect,"intersect")<<endl;
@@ -2261,7 +2240,8 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
 {
     
     Init();
-    eavlIntArray *dummy= new eavlIntArray("",1,size);
+    eavlIntArray    *dummy= new eavlIntArray("",1,size);
+    eavlFloatArray  *dummyFloat= new eavlFloatArray("",1,size);
     look=lookat-eye;
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(indexes),
                                              eavlOpArgs(rayDirX,rayDirY,rayDirZ),
@@ -2269,13 +2249,19 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
                                              "ray gen");
     eavlExecutor::Go();
 
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(indexes), //dummy arg
+                                             eavlOpArgs(minDistances),
+                                             FloatMemsetFunctor(INFINITE)),
+                                             "init");
+    eavlExecutor::Go();
+
     cout<<"Warming up "<<warmupRounds<<" rounds."<<endl;
     int warm = eavlTimer::Start(); //Dirs, origins
     for(int i=0; i<warmupRounds;i++)
     {
-        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx),
-                                                 eavlOpArgs(dummy,zBuffer),
-                                                 RayIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex)),
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
+                                                 eavlOpArgs(dummy, dummyFloat, primitiveTypeHit),
+                                                 RayIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex, TRIANGLE )),
                                                                                                     "intersect");
         eavlExecutor::Go();
     }
@@ -2286,9 +2272,9 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
     int test = eavlTimer::Start(); //Dirs, origins
     for(int i=0; i<testRounds;i++)
     {
-        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx),
-                                                 eavlOpArgs(dummy,zBuffer),
-                                                 RayIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex)),
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
+                                                 eavlOpArgs(dummy, dummyFloat, primitiveTypeHit),
+                                                 RayIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex, TRIANGLE )),
                                                                                                     "intersect");
         eavlExecutor::Go();
     }
@@ -2300,11 +2286,11 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
     eavlFloatArray *depthBuffer= new eavlFloatArray("",1,size);
     eavlFloatArray *d= new eavlFloatArray("",1,size);
 
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx),
-                                                 eavlOpArgs(dummy,depthBuffer),
-                                                 RayIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex)),
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
+                                                 eavlOpArgs(dummy, depthBuffer, primitiveTypeHit),
+                                                 RayIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex, TRIANGLE )),
                                                                                                     "intersect");
-        eavlExecutor::Go();
+    eavlExecutor::Go();
     float maxDepth=0;
     float minDepth=INFINITE;
 
@@ -2332,6 +2318,7 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
 
 void eavlRayTracerMutator::fpsTest(int warmupRounds, int testRounds)
 {
+#if 0
     Init();
     look=lookat-eye;
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(indexes),
@@ -2448,6 +2435,7 @@ void eavlRayTracerMutator::fpsTest(int warmupRounds, int testRounds)
 
     writeBMP(height,width,rOut,gOut,bOut,outfilename);
     exit(0);
+#endif
 }
 
 

@@ -299,8 +299,9 @@ class eavlRayTracerMutator : public eavlMutator
       delete blueIndexer;
       delete greenIndexer;
 
-      delete primitiveTypes;
+      delete primitiveTypeHit;
       delete scalars;
+      delete bvhLeafs;
       //delete bvhFlatArray;
       //conditional deletes
       if (antiAlias)
@@ -407,22 +408,22 @@ class eavlRayTracerMutator : public eavlMutator
     eavlFloatArray  *b;
 
 
-    eavlFloatArray  *r2;      //cmpressed color arrays         
+    eavlFloatArray  *r2;                    /*cmpressed color arrays*/         
     eavlFloatArray  *g2;            
     eavlFloatArray  *b2;
 
-    eavlFloatArray  *rOut;   //todo: get rid of these
+    eavlFloatArray  *rOut;                  /*todo: get rid of these if possible */
     eavlFloatArray  *gOut;
     eavlFloatArray  *bOut;
 
-    eavlFloatArray  *alphas;  //barycentric coeffients of triangle hit for lerping
+    eavlFloatArray  *alphas;                /*barycentric coeffients of triangle hit for lerping*/
     eavlFloatArray  *betas;
 
     eavlFloatArray  *interX;  
     eavlFloatArray  *interY;
     eavlFloatArray  *interZ;
 
-    eavlFloatArray  *normX;  
+    eavlFloatArray  *normX;                 /*Lerped normals of the hit*/ 
     eavlFloatArray  *normY;
     eavlFloatArray  *normZ;
 
@@ -431,21 +432,23 @@ class eavlRayTracerMutator : public eavlMutator
     eavlFloatArray  *occY;
     eavlFloatArray  *occZ;
     eavlFloatArray  *localHits;
-    eavlFloatArray  *ambPct;
-    eavlFloatArray  *tempAmbPct;
+    eavlFloatArray  *ambPct;                /*percenatage of ambient light reaching the hit */
+    eavlFloatArray  *tempAmbPct;            /*used to accumulate ambient occlusion in multiple passes */ 
 
     /* Compact Arrays*/
     eavlIntArray    *mask;
     eavlIntArray    *indexScan;
     eavlIntArray    *count;
 
-    eavlIntArray    *hitIdx;    //index of traingle hit
-    eavlIntArray    *indexes; //pixels index corresponding to the ray
-    eavlIntArray    *mortonIndexes; //
-    eavlIntArray    *compactTempInt;
+    eavlIntArray    *hitIdx;                /*index of traingle hit*/
+    eavlIntArray    *primitiveTypeHit;      /*type of primitive that was hit*/
+    eavlFloatArray  *minDistances;          /*distance to ray hit */
+    eavlIntArray    *indexes;               /*pixel  index corresponding to the ray */
+    eavlIntArray    *mortonIndexes;         /*indexes of primiary rays sorted in morton order */
+    eavlIntArray    *compactTempInt;        /*temp arrays for misc usage */
     eavlFloatArray  *compactTempFloat;
     eavlFloatArray  *zBuffer;
-    eavlFloatArray  *frameBuffer; /* RGBRGB..*/
+    eavlFloatArray  *frameBuffer;           /* RGBRGB..*/
 
     /*eavl Array indexers*/
     eavlArrayIndexer      *occIndexer;
@@ -453,18 +456,17 @@ class eavlRayTracerMutator : public eavlMutator
     eavlArrayIndexer      *greenIndexer;
     eavlArrayIndexer      *blueIndexer;
 
-    eavlIntArray          *primitiveTypes;
-
-    eavlFloatArray        *scalars;   /*lerped intersection scalars */ 
+    eavlFloatArray        *scalars;         /*lerped intersection scalars */ 
     eavlConstArray<float> *mats;
     eavlConstArray<int>   *matIdx;
     eavlConstArray<float> *norms;
 
     /*  Raw Data Arrays used for eavlConst and eavlConstV2 */
     float     *colorMap_raw;
-    float     *verts_raw;
+    float     *verts_raw;                   /* Triangle verts, currenly scalars are stored with the verts*/
     float     *norms_raw;
-    float     *bvhFlatArray_raw;
+    float     *bvhFlatArray_raw;            /* BVH broken up into inner nodes and leaf nodes */
+    float     *bvhLeafs;
     int       *matIdx_raw;
     float     *mats_raw;
 
@@ -481,6 +483,8 @@ class eavlRayTracerMutator : public eavlMutator
     void createRays();
     void allocateArrays();
     void cleanUp();
-
+    void intersect();                        /*find the closest intersection point       */
+    void shadowIntersect();                  /*Find any hit between intersect and lights */
+    void occlusionIntersect();               /*Ambient occulsion intersection            */
 };
 #endif
