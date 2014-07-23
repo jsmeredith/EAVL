@@ -483,8 +483,9 @@ class eavlRayTracerMutator : public eavlMutator
     void createRays();
     void allocateArrays();
     void cleanUp();
-    void intersect();                        /*find the closest intersection point       */
-    void shadowIntersect();                  /*Find any hit between intersect and lights */
-    void occlusionIntersect();               /*Ambient occulsion intersection            */
+    void intersect();                        /*find the closest intersection point         */
+    void shadowIntersect();                  /*Find any hit between intersect and lights   */
+    void occlusionIntersect();               /*Ambient occulsion intersection              */
+    void reflect();                          /*Find relfections, lerped normals and scalars*/ 
 };
 #endif

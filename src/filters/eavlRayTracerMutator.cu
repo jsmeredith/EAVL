@@ -1033,23 +1033,24 @@ struct RayIntersectFunctor{
 };
 
 
-struct ReflectFunctor{
+struct ReflectTriFunctor{
 
     eavlConstArrayV2<float4> verts;
     eavlConstArray<float> norms;
 
 
-    ReflectFunctor(eavlConstArrayV2<float4> *_verts,eavlConstArray<float> *xnorm)
+    ReflectTriFunctor(eavlConstArrayV2<float4> *_verts,eavlConstArray<float> *xnorm)
         :verts(*_verts),
          norms(*xnorm)
     {
         
     }                                                    //order a b c clockwise
-    EAVL_FUNCTOR tuple<float,float,float,float,float, float,float,float, float,float,float, float> operator()( tuple<float,float,float,float,float,float,int> rayTuple){
+    EAVL_FUNCTOR tuple<float,float,float,float,float, float,float,float, float,float,float, float> operator()( tuple<float,float,float,float,float,float,int, int> rayTuple){
        
         
         int hitIndex=get<6>(rayTuple);//hack for now
-        if(hitIndex==-1) return tuple<float,float,float,float,float, float,float,float, float,float,float, float>(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0);
+        int primitiveType=get<7>(rayTuple);
+        if(hitIndex==-1 || primitiveType != TRIANGLE) return tuple<float,float,float,float,float, float,float,float, float,float,float, float>(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0);
         
         eavlVector3 intersect;
 
@@ -1119,12 +1120,12 @@ struct DepthFunctor{
     }
 };
 
-struct ReflectFunctorBasic{
+struct ReflectTriFunctorBasic{
 
     eavlConstArray<float> verts;
     eavlConstArray<float> norms;
 
-    ReflectFunctorBasic(eavlConstArray<float> *_verts,eavlConstArray<float> *xnorm)
+    ReflectTriFunctorBasic(eavlConstArray<float> *_verts,eavlConstArray<float> *xnorm)
         :verts(*_verts),
          norms(*xnorm)
     {
@@ -1204,18 +1205,22 @@ struct ShadowRayFunctor
     eavlConstArrayV2<float4> bvh;
     eavlConstArrayV2<float> bvhLeafs;
     eavlVector3 light;
+    primitive_t type;
 
-    ShadowRayFunctor(eavlVector3 theLight,eavlConstArrayV2<float4> *_verts,eavlConstArrayV2<float4> *theBvh,eavlConstArrayV2<float> *theBvhLeafs)
+    ShadowRayFunctor(eavlVector3 theLight,eavlConstArrayV2<float4> *_verts,eavlConstArrayV2<float4> *theBvh,eavlConstArrayV2<float> *theBvhLeafs, primitive_t _type)
         :verts(*_verts),
          bvh(*theBvh),
          bvhLeafs(*theBvhLeafs),
-         light(theLight)
+         light(theLight),
+         type(_type)
     {}
 
-    EAVL_FUNCTOR tuple<int> operator()(tuple<float,float,float,int> input)
+    EAVL_FUNCTOR tuple<int> operator()(tuple<float,float,float,int,int> input)
     {
-        int hitIdx=get<3>(input);
-        if(hitIdx==-1) return tuple<int>(1);// primary ray never hit anything.
+        int hitIdx           = get<3>(input);
+        bool alreadyOccluded = get<4>(input) == 0 ? false : true;
+        if( hitIdx==-1 || alreadyOccluded ) return tuple<int>(1);// primary ray never hit anything.
+
         //float alpha,beta,gamma,d,tempDistance;
         eavlVector3 rayOrigin(get<0>(input),get<1>(input),get<2>(input));
         
@@ -1681,6 +1686,12 @@ void eavlRayTracerMutator::extractGeometry()
 
 void eavlRayTracerMutator::intersect()
 {
+    /* Ideas : 
+               Order of intersections : determine order of intersections by a combination of total surface area and which bounding box is hit first.
+               On multiple bounces    : reduce based on primitve types and hit indexes to see if it is even needed to intersect with them.
+
+               Also could change primitive type to a usnigned char to save on data movement
+    */
     /*set the minimum distances to INFINITE */
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(indexes), //dummy arg
                                              eavlOpArgs(minDistances),
@@ -1723,6 +1734,30 @@ void eavlRayTracerMutator::occlusionIntersect()
                                              occIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex,aoMax, TRIANGLE)),
                                              "occIntercept");
             
+    eavlExecutor::Go();
+}
+
+void eavlRayTracerMutator::reflect()
+{
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx, primitiveTypeHit),
+                                             eavlOpArgs(interX, interY,interZ,rayDirX,rayDirY,rayDirZ,normX,normY,normZ,alphas,betas,scalars),
+                                             ReflectTriFunctor(vertsTex,norms)),
+                                             "reflect");
+    eavlExecutor::Go();     
+}
+
+void eavlRayTracerMutator::shadowIntersect()
+{
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(shadowHits), //dummy arg
+                                             eavlOpArgs(shadowHits),
+                                             FloatMemsetFunctor(0.f)),
+                                             "memset");
+    eavlExecutor::Go();
+    
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(interX,interY,interZ,hitIdx, shadowHits),
+                                                 eavlOpArgs(shadowHits),
+                                                 ShadowRayFunctor(light,vertsTex,bvhTex,bvhLeafsTex, TRIANGLE)),
+                                                 "shadowRays");
     eavlExecutor::Go();
 }
 
@@ -1787,12 +1822,8 @@ void eavlRayTracerMutator::Execute()
 
         int treflect ;
         if(verbose) treflect = eavlTimer::Start();
-
-        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx),
-                                                 eavlOpArgs(interX, interY,interZ,rayDirX,rayDirY,rayDirZ,normX,normY,normZ,alphas,betas,scalars),
-                                                 ReflectFunctor(vertsTex,norms)),
-                                                                                                     "reflect");
-        eavlExecutor::Go();                        
+        reflect();
+                           
         if(verbose) cout<<"Reflect     RUNTIME: "<<eavlTimer::Stop(treflect,"rf")<<endl;
         /*if(currentSize==0)
         {
@@ -1806,23 +1837,20 @@ void eavlRayTracerMutator::Execute()
             int toccGen ;
             if(verbose) toccGen = eavlTimer::Start(); 
             eavlExecutor::AddOperation(new_eavl1toNScatterOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(normX),
-                                                     eavlIndexable<eavlFloatArray>(normY),
-                                                     eavlIndexable<eavlFloatArray>(normZ),
-                                                     eavlIndexable<eavlFloatArray>(interX),
-                                                     eavlIndexable<eavlFloatArray>(interY),
-                                                     eavlIndexable<eavlFloatArray>(interZ),
-                                                     eavlIndexable<eavlIntArray>  (hitIdx)),
-                                          eavlOpArgs(occX,occY,occZ),OccRayGenFunctor2(),
-                                          occSamples),
-                                          "occ scatter");
+                                                                        eavlIndexable<eavlFloatArray>(normY),
+                                                                        eavlIndexable<eavlFloatArray>(normZ),
+                                                                        eavlIndexable<eavlFloatArray>(interX),
+                                                                        eavlIndexable<eavlFloatArray>(interY),
+                                                                        eavlIndexable<eavlFloatArray>(interZ),
+                                                                        eavlIndexable<eavlIntArray>  (hitIdx)),
+                                                            eavlOpArgs(occX,occY,occZ),OccRayGenFunctor2(),
+                                                            occSamples),
+                                                            "occ scatter");
             eavlExecutor::Go();
             if(verbose) cout << "occRayGen   RUNTIME: "<<eavlTimer::Stop(toccGen,"occGen")<<endl;
+
             int toccInt = eavlTimer::Start(); 
-            
             occlusionIntersect();
-            
-            eavlExecutor::Go();
-    
             if(verbose) cout<<"occInt      RUNTIME: "<<eavlTimer::Stop(toccGen,"occGen")<<endl;
 
             eavlExecutor::AddOperation(new_eavlNto1GatherOp(eavlOpArgs(localHits),
@@ -1854,11 +1882,7 @@ void eavlRayTracerMutator::Execute()
         eavlExecutor::Go();
         int tshadow ;
         if(verbose) tshadow = eavlTimer::Start();
-        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(interX,interY,interZ,hitIdx),
-                                                 eavlOpArgs(shadowHits),
-                                                 ShadowRayFunctor(light,vertsTex,bvhTex,bvhLeafsTex)),
-                                                 "shadowRays");
-        eavlExecutor::Go();
+        shadowIntersect();
         if(verbose) cout<<  "Shadow      RUNTIME: "<<eavlTimer::Stop(tshadow,"")<<endl;
         int shade ;
         if(verbose) shade = eavlTimer::Start();
@@ -2389,7 +2413,7 @@ void eavlRayTracerMutator::fpsTest(int warmupRounds, int testRounds)
 
         //eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,interX,interY,interZ,hitIdx),
         //                                         eavlOpArgs(interX, interY,interZ,alphas,betas),
-        //                                         ReflectFunctorBasic(vertsTex,norms)),
+        //                                         ReflectTriFunctorBasic(vertsTex,norms)),
         //                                         "reflectBasic");
         //eavlExecutor::Go();
 
@@ -2416,7 +2440,7 @@ void eavlRayTracerMutator::fpsTest(int warmupRounds, int testRounds)
 
         //eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,interX,interY,interZ,hitIdx),
         //                                         eavlOpArgs(interX, interY,interZ,alphas,betas),
-        //                                         ReflectFunctorBasic(vertsTex,norms)),
+        //                                         ReflectTriFunctorBasic(vertsTex,norms)),
         //                                         "reflectBasic");
         //eavlExecutor::Go();
 
