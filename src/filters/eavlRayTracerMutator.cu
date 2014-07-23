@@ -636,6 +636,19 @@ struct WeightedAccFunctor1to1
 
 };
 
+struct HitFilterFunctor
+{
+    HitFilterFunctor()
+    {}
+
+    EAVL_FUNCTOR tuple<int> operator()(int in){
+        int out;
+        if(in==-2) out=-1;
+        else out=in;
+        return tuple<int>(out);
+    }
+
+};
 
 /*----------------------End Utility Functors---------------------------------- */
 //if this is called we know that the there is a hit
@@ -1004,8 +1017,8 @@ struct RayIntersectFunctor{
     EAVL_HOSTDEVICE tuple<int,float,int> operator()( tuple<float,float,float,float,float,float,int, int, float> rayTuple){
        
         
-        int deadRay=get<6>(rayTuple);
-        if(deadRay==-1) return tuple<int,float,int>(-1, INFINITE, -1);
+        int hitIdx=get<6>(rayTuple);
+        if(hitIdx==-1) return tuple<int,float,int>(-1, INFINITE, -1);
 
         int   minHit=-1; 
         float distance;
@@ -1015,7 +1028,7 @@ struct RayIntersectFunctor{
         minHit = getIntersectionTri(ray, rayOrigin, false,bvh,bvhLeafs, verts,maxDistance,distance);
     
         if(minHit!=-1) return tuple<int,float,int>(minHit, distance, TRIANGLE);
-        else           return tuple<int,float,int>(-1, INFINITE, get<7>(rayTuple));
+        else           return tuple<int,float,int>(hitIdx, INFINITE, get<7>(rayTuple));
     }
 };
 
@@ -1152,21 +1165,25 @@ struct occIntersectFunctor{
     // /eavlConstArray<float> bvh;
     eavlConstArrayV2<float4> bvh;
     eavlConstArrayV2<float> bvhLeafs;
+    primitive_t primitiveType;
 
 
-    occIntersectFunctor(eavlConstArrayV2<float4> *_verts, eavlConstArrayV2<float4> *theBvh, eavlConstArrayV2<float> *theBvhLeafs, float max)
+    occIntersectFunctor(eavlConstArrayV2<float4> *_verts, eavlConstArrayV2<float4> *theBvh, eavlConstArrayV2<float> *theBvhLeafs, float max, primitive_t _primitveType)
         :verts(*_verts),
          bvh(*theBvh),
-         bvhLeafs(*theBvhLeafs)
+         bvhLeafs(*theBvhLeafs),
+         primitiveType(_primitveType)
     {
 
         maxDistance=max;
         
     }                                                   
-    EAVL_FUNCTOR tuple<float> operator()( tuple<float,float,float,float,float,float,int> rayTuple){
+    EAVL_FUNCTOR tuple<float> operator()( tuple<float,float,float,float,float,float,int, float> rayTuple){
         
         int deadRay=get<6>(rayTuple);//hack for now leaving this in for CPU
-        if(deadRay==-1) return tuple<float>(0.0f);
+        bool alreadyOccluded= get<7>(rayTuple) > 0 ? true : false;
+        if(deadRay==-1)     return tuple<float>(0.0f);
+        if(alreadyOccluded) return tuple<float>(1.f);
         int minHit=-1;   
         float distance;
         eavlVector3 intersect(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
@@ -1589,7 +1606,7 @@ void eavlRayTracerMutator::Init()
 
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx),
                                              eavlOpArgs(hitIdx),
-                                             IntMemsetFunctor(0)),
+                                             IntMemsetFunctor(-2)),
                                              "init");
     eavlExecutor::Go();
 
@@ -1677,7 +1694,36 @@ void eavlRayTracerMutator::intersect()
                                              RayIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex,TRIANGLE)),
                                                                                                     "intersect");
     eavlExecutor::Go();
-    //for( int i=0; i<size; i++) cout<<primitiveTypeHit->GetValue(i)<<" ";
+
+
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx),                /*On primary ray: hits some in as -2, and leave as -1 if it misses everything*/
+                                             eavlOpArgs(hitIdx),                /*This allows dead rays to be filtered out on multiple bounces */
+                                             HitFilterFunctor()),
+                                             "Hit Filter");
+    eavlExecutor::Go();
+}
+
+void eavlRayTracerMutator::occlusionIntersect()
+{
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(localHits), //dummy arg
+                                             eavlOpArgs(localHits),
+                                             FloatMemsetFunctor(0.f)),
+                                             "memset");
+    eavlExecutor::Go();
+
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(occX),
+                                                        eavlIndexable<eavlFloatArray>(occY),
+                                                        eavlIndexable<eavlFloatArray>(occZ),
+                                                        eavlIndexable<eavlFloatArray>(interX, *occIndexer),
+                                                        eavlIndexable<eavlFloatArray>(interY, *occIndexer),
+                                                        eavlIndexable<eavlFloatArray>(interZ, *occIndexer),
+                                                        eavlIndexable<eavlIntArray>  (hitIdx, *occIndexer),
+                                                        eavlIndexable<eavlFloatArray>(localHits)),
+                                             eavlOpArgs(localHits),
+                                             occIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex,aoMax, TRIANGLE)),
+                                             "occIntercept");
+            
+    eavlExecutor::Go();
 }
 
 void eavlRayTracerMutator::Execute()
@@ -1772,16 +1818,8 @@ void eavlRayTracerMutator::Execute()
             eavlExecutor::Go();
             if(verbose) cout << "occRayGen   RUNTIME: "<<eavlTimer::Stop(toccGen,"occGen")<<endl;
             int toccInt = eavlTimer::Start(); 
-            eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(occX),
-                                                                eavlIndexable<eavlFloatArray>(occY),
-                                                                eavlIndexable<eavlFloatArray>(occZ),
-                                                                eavlIndexable<eavlFloatArray>(interX, *occIndexer),
-                                                                eavlIndexable<eavlFloatArray>(interY, *occIndexer),
-                                                                eavlIndexable<eavlFloatArray>(interZ, *occIndexer),
-                                                                eavlIndexable<eavlIntArray>  (hitIdx, *occIndexer)),
-                                                     eavlOpArgs(localHits),
-                                                     occIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex,aoMax)),
-                                                     "occIntercept");
+            
+            occlusionIntersect();
             
             eavlExecutor::Go();
     
