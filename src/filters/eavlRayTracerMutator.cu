@@ -48,10 +48,11 @@
 #define FILE_LEAF -100001
 
 //declare the texture reference even if we are not using texture memory
-texture<float4> bvhInnerTexRef;
-texture<float4> vertsTexRef;
-texture<float>  bvhLeafTexRef;
-texture<float4> colorMapRef;
+texture<float4> tri_bvh_in_tref;
+texture<float4> tri_verts_tref;
+texture<float>  tri_bvh_lf_tref;
+texture<float4> color_map_tref;
+texture<float4> sphr_verts_tref;
 #define USE_TEXTURE_MEM
 template<class T>
 class eavlConstArrayV2
@@ -112,10 +113,10 @@ class eavlConstArrayV2
 
 };
 
-eavlConstArrayV2<float4>* bvhTex;
-eavlConstArrayV2<float4>* vertsTex;
-eavlConstArrayV2<float>*  bvhLeafsTex;
-eavlConstArrayV2<float4>* colorMapTex;
+eavlConstArrayV2<float4>* tri_bvh_in_array;
+eavlConstArrayV2<float4>* tri_verts_array;
+eavlConstArrayV2<float>*  tri_bvh_lf_array;
+eavlConstArrayV2<float4>* color_map_array;
 
 void writeBVHCache(const float *innerNodes, const int innerSize, const float * leafNodes, const int leafSize, const char* filename )
 {
@@ -227,7 +228,7 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     greenIndexer= new eavlArrayIndexer(3,1);
     blueIndexer = new eavlArrayIndexer(3,2);
     
-    colorMapTex=NULL;
+    color_map_array=NULL;
     colorMap_raw=NULL;
     setDefaultColorMap();
     cout<<"Construtor Done. Dirty"<<endl;
@@ -236,10 +237,10 @@ eavlRayTracerMutator::eavlRayTracerMutator()
 void eavlRayTracerMutator::setColorMap3f(float* cmap,int size)
 {
     colorMapSize=size;
-    if(colorMapTex!=NULL)
+    if(color_map_array!=NULL)
     {
-        colorMapTex->unbind(colorMapRef);
-        delete colorMapTex;
+        color_map_array->unbind(color_map_tref);
+        delete color_map_array;
     }
     if(colorMap_raw!=NULL)
     {
@@ -255,14 +256,14 @@ void eavlRayTracerMutator::setColorMap3f(float* cmap,int size)
         colorMap_raw[i*4+3]=0;
         //cout<<cmap[i*3]<<" "<<cmap[i*3+1]<<" "<<cmap[i*3+2]<<endl;
     }
-    colorMapTex = new eavlConstArrayV2<float4>((float4*)colorMap_raw, colorMapSize, colorMapRef);
+    color_map_array = new eavlConstArrayV2<float4>((float4*)colorMap_raw, colorMapSize, color_map_tref);
 }
 void eavlRayTracerMutator::setDefaultColorMap()
 {
-    if(colorMapTex!=NULL)
+    if(color_map_array!=NULL)
     {
-        colorMapTex->unbind(colorMapRef);
-        delete colorMapTex;
+        color_map_array->unbind(color_map_tref);
+        delete color_map_array;
     }
     if(colorMap_raw!=NULL)
     {
@@ -272,7 +273,7 @@ void eavlRayTracerMutator::setDefaultColorMap()
     colorMapSize=2;
     colorMap_raw= new float[8];
     for(int i=0;i<8;i++) colorMap_raw[i]=1.f;
-    colorMapTex = new eavlConstArrayV2<float4>((float4*)colorMap_raw, colorMapSize, colorMapRef);
+    color_map_array = new eavlConstArrayV2<float4>((float4*)colorMap_raw, colorMapSize, color_map_tref);
 
 }
 
@@ -723,9 +724,9 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
         if(currentNode>-1)
         {
 
-            float4 n1=bvh.getValue(bvhInnerTexRef, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
-            float4 n2=bvh.getValue(bvhInnerTexRef, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
-            float4 n3=bvh.getValue(bvhInnerTexRef, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
+            float4 n1=bvh.getValue(tri_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
+            float4 n2=bvh.getValue(tri_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
+            float4 n3=bvh.getValue(tri_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
             
             float txmin0 =   n1.x* invDirx -odirx;       
             float tymin0 =   n1.y* invDiry -odiry;         
@@ -759,7 +760,7 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
         }
         else
         {
-            float4 n4=bvh.getValue(bvhInnerTexRef, currentNode+3); //(leftChild, rightChild, pad,pad)
+            float4 n4=bvh.getValue(tri_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
             int leftChild =(int)n4.x;
             int rightChild=(int)n4.y;
 
@@ -790,15 +791,15 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
             
 
             currentNode=-currentNode; //swap the neg address 
-            int numTri=(int)bvhLeafs.getValue(bvhLeafTexRef,currentNode)+1;
+            int numTri=(int)bvhLeafs.getValue(tri_bvh_lf_tref,currentNode)+1;
 
             for(int i=1;i<numTri;i++)
             {        
-                    int triIndex=(int)bvhLeafs.getValue(bvhLeafTexRef,currentNode+i);
+                    int triIndex=(int)bvhLeafs.getValue(tri_bvh_lf_tref,currentNode+i);
                    
-                    float4 a4=verts.getValue(vertsTexRef, triIndex*3);
-                    float4 b4=verts.getValue(vertsTexRef, triIndex*3+1);
-                    float4 c4=verts.getValue(vertsTexRef, triIndex*3+2);
+                    float4 a4=verts.getValue(tri_verts_tref, triIndex*3);
+                    float4 b4=verts.getValue(tri_verts_tref, triIndex*3+1);
+                    float4 c4=verts.getValue(tri_verts_tref, triIndex*3+2);
                     eavlVector3 e1( a4.w-a4.x , b4.x-a4.y, b4.y-a4.z ); 
                     eavlVector3 e2( b4.z-a4.x , b4.w-a4.y, c4.x-a4.z );
 
@@ -883,9 +884,9 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
         if(currentNode>-1)
         {
 
-            float4 n1=bvh.getValue(bvhInnerTexRef, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
-            float4 n2=bvh.getValue(bvhInnerTexRef, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
-            float4 n3=bvh.getValue(bvhInnerTexRef, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
+            float4 n1=bvh.getValue(tri_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
+            float4 n2=bvh.getValue(tri_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
+            float4 n3=bvh.getValue(tri_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
             
             float txmin0 =   n1.x* invDirx -odirx;       
             float tymin0 =   n1.y* invDiry -odiry;         
@@ -919,7 +920,7 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
         }
         else
         {
-            float4 n4=bvh.getValue(bvhInnerTexRef, currentNode+3); //(leftChild, rightChild, pad,pad)
+            float4 n4=bvh.getValue(tri_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
             int leftChild =(int)n4.x;
             int rightChild=(int)n4.y;
 
@@ -950,7 +951,7 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
             
 
             currentNode=-currentNode; //swap the neg address 
-            int numSheres=(int)bvhLeafs.getValue(bvhLeafTexRef,currentNode)+1;
+            int numSheres=(int)bvhLeafs.getValue(tri_bvh_lf_tref,currentNode)+1;
             /* a,b  are the same for every sphere */
             float a  = dirx*dirx + diry*diry + dirz*dirz;
             float b  = ox*dirx   + oy*diry   + oz*dirz;
@@ -959,9 +960,9 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
 
             for(int i=1;i<numSheres;i++)
             {        
-                int sphereIndex=(int)bvhLeafs.getValue(bvhLeafTexRef,currentNode+i);
+                int sphereIndex=(int)bvhLeafs.getValue(tri_bvh_lf_tref,currentNode+i);
                 
-                float4 data=verts.getValue(spheresTexRef, sphereIndex);
+                float4 data=verts.getValue(sphr_verts_tref, sphereIndex);
                 float c = cc  +data.w*data.w;               /* radius squared */
                 float d = b*b - 4.f*a*c;                    /* descriminant */ 
 
@@ -1036,10 +1037,10 @@ EAVL_HOSTDEVICE float getIntersectionDepth(const eavlVector3 rayDir, const eavlV
         
         if(currentNode>-1)
         {
-            float4 n1=bvh.getValue(bvhInnerTexRef, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
+            float4 n1=bvh.getValue(tri_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
             //cout<<n1.x<<" "<<n1.y<<" "<<n1.z<<" "<<n1.w<<endl;
-            float4 n2=bvh.getValue(bvhInnerTexRef, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
-            float4 n3=bvh.getValue(bvhInnerTexRef, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
+            float4 n2=bvh.getValue(tri_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
+            float4 n3=bvh.getValue(tri_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
             
             float txmin0 =   n1.x* invDirx -odirx;       
             float tymin0 =   n1.y* invDiry -odiry;         
@@ -1072,7 +1073,7 @@ EAVL_HOSTDEVICE float getIntersectionDepth(const eavlVector3 rayDir, const eavlV
         }
         else
         {
-            float4 n4=bvh.getValue(bvhInnerTexRef, currentNode+3); //(leftChild, rightChild, pad,pad)
+            float4 n4=bvh.getValue(tri_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
             int leftChild =(int)n4.x;
             int rightChild=(int)n4.y;
             currentNode= (traverseChild0) ? leftChild : rightChild;
@@ -1102,14 +1103,14 @@ EAVL_HOSTDEVICE float getIntersectionDepth(const eavlVector3 rayDir, const eavlV
             
 
             currentNode=-currentNode; //swap the neg address 
-            int numTri=(int)bvhLeafs.getValue(bvhLeafTexRef,currentNode)+1;
+            int numTri=(int)bvhLeafs.getValue(tri_bvh_lf_tref,currentNode)+1;
 
             for(int i=1;i<numTri;i++)
             {        
-                    int triIndex=(int)bvhLeafs.getValue(bvhLeafTexRef,currentNode+i);
-                    float4 a4=verts.getValue(vertsTexRef, triIndex*3);
-                    float4 b4=verts.getValue(vertsTexRef, triIndex*3+1);
-                    float4 c4=verts.getValue(vertsTexRef, triIndex*3+2);
+                    int triIndex=(int)bvhLeafs.getValue(tri_bvh_lf_tref,currentNode+i);
+                    float4 a4=verts.getValue(tri_verts_tref, triIndex*3);
+                    float4 b4=verts.getValue(tri_verts_tref, triIndex*3+1);
+                    float4 c4=verts.getValue(tri_verts_tref, triIndex*3+2);
                     eavlVector3 e1( a4.w-a4.x , b4.x-a4.y, b4.y-a4.z ); 
                     eavlVector3 e2( b4.z-a4.x , b4.w-a4.y, c4.x-a4.z );
 
@@ -1215,9 +1216,9 @@ struct ReflectTriFunctor{
         eavlVector3 ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
         float alpha=0, beta=0, gamma=0;
 
-        float4 a4=verts.getValue(vertsTexRef, hitIndex*3);
-        float4 b4=verts.getValue(vertsTexRef, hitIndex*3+1);
-        float4 c4=verts.getValue(vertsTexRef, hitIndex*3+2); //scalars are stored in c.yzw
+        float4 a4=verts.getValue(tri_verts_tref, hitIndex*3);
+        float4 b4=verts.getValue(tri_verts_tref, hitIndex*3+1);
+        float4 c4=verts.getValue(tri_verts_tref, hitIndex*3+2); //scalars are stored in c.yzw
         eavlVector3 a(a4.x,a4.y,a4.z);
         eavlVector3 b(a4.w,b4.x,b4.y);
         eavlVector3 c(b4.z,b4.w,c4.x);
@@ -1263,9 +1264,9 @@ struct DepthFunctor{
         eavlVector3 rayOrigin(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
         eavlVector3       ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
 
-        float4 a4=verts.getValue(vertsTexRef, hitIndex*3);
-        float4 b4=verts.getValue(vertsTexRef, hitIndex*3+1);
-        float4 c4=verts.getValue(vertsTexRef, hitIndex*3+2);
+        float4 a4=verts.getValue(tri_verts_tref, hitIndex*3);
+        float4 b4=verts.getValue(tri_verts_tref, hitIndex*3+1);
+        float4 c4=verts.getValue(tri_verts_tref, hitIndex*3+2);
         eavlVector3 a(a4.x,a4.y,a4.z);
         eavlVector3 b(a4.w,b4.x,b4.y);
         eavlVector3 c(b4.z,b4.w,c4.x);
@@ -1495,7 +1496,7 @@ struct ShaderFunctor
         float scalar   = get<14>(input);
         int   colorIdx = floor(scalar*colorMapSize);
         
-        float4 color = colorMap.getValue(colorMapRef, colorIdx); 
+        float4 color = colorMap.getValue(color_map_tref, colorIdx); 
         red   *= color.x;
         green *= color.y;
         blue  *= color.z;
@@ -1825,9 +1826,9 @@ void eavlRayTracerMutator::extractGeometry()
     
     if(numMats==0) { cerr<<"NO MATS bailing"<<endl; exit(0); }
 
-    bvhTex      = new eavlConstArrayV2<float4>((float4*)bvhFlatArray_raw, bvhsize/4,bvhInnerTexRef);
-    bvhLeafsTex = new eavlConstArrayV2<float>(bvhLeafs, bvhLeafSize,bvhLeafTexRef);
-    vertsTex    = new eavlConstArrayV2<float4>((float4*)verts_raw,numTriangles*3, vertsTexRef);
+    tri_bvh_in_array      = new eavlConstArrayV2<float4>((float4*)bvhFlatArray_raw, bvhsize/4,tri_bvh_in_tref);
+    tri_bvh_lf_array = new eavlConstArrayV2<float>(bvhLeafs, bvhLeafSize,tri_bvh_lf_tref);
+    tri_verts_array    = new eavlConstArrayV2<float4>((float4*)verts_raw,numTriangles*3, tri_verts_tref);
 
 
     INIT(eavlConstArray<float>, mats,numMats*12);
@@ -1857,7 +1858,7 @@ void eavlRayTracerMutator::intersect()
 
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
                                              eavlOpArgs(hitIdx, minDistances, primitiveTypeHit),
-                                             RayIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex,TRIANGLE)),
+                                             RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array,TRIANGLE)),
                                                                                                     "intersect");
     eavlExecutor::Go();
 
@@ -1886,7 +1887,7 @@ void eavlRayTracerMutator::occlusionIntersect()
                                                         eavlIndexable<eavlIntArray>  (hitIdx, *occIndexer),
                                                         eavlIndexable<eavlFloatArray>(localHits)),
                                              eavlOpArgs(localHits),
-                                             occIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex,aoMax, TRIANGLE)),
+                                             occIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array,aoMax, TRIANGLE)),
                                              "occIntercept");
             
     eavlExecutor::Go();
@@ -1896,7 +1897,7 @@ void eavlRayTracerMutator::reflect()
 {
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx, primitiveTypeHit),
                                              eavlOpArgs(interX, interY,interZ,rayDirX,rayDirY,rayDirZ,normX,normY,normZ,alphas,betas,scalars),
-                                             ReflectTriFunctor(vertsTex,norms)),
+                                             ReflectTriFunctor(tri_verts_array,norms)),
                                              "reflect");
     eavlExecutor::Go();     
 }
@@ -1911,7 +1912,7 @@ void eavlRayTracerMutator::shadowIntersect()
     
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(interX,interY,interZ,hitIdx, shadowHits),
                                                  eavlOpArgs(shadowHits),
-                                                 ShadowRayFunctor(light,vertsTex,bvhTex,bvhLeafsTex, TRIANGLE)),
+                                                 ShadowRayFunctor(light,tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array, TRIANGLE)),
                                                  "shadowRays");
     eavlExecutor::Go();
 }
@@ -2043,7 +2044,7 @@ void eavlRayTracerMutator::Execute()
         if(verbose) shade = eavlTimer::Start();
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx,shadowHits,interX,interY,interZ,alphas,betas,ambPct,normX,normY,normZ,rayOriginX,rayOriginY,rayOriginZ, scalars),
                                                  eavlOpArgs(r2,g2,b2),
-                                                 ShaderFunctor(numTriangles,light,eye,norms,i,matIdx,mats,lightIntensity, lightCoConst, lightCoLinear, lightCoExponent, colorMapTex, colorMapSize)),
+                                                 ShaderFunctor(numTriangles,light,eye,norms,i,matIdx,mats,lightIntensity, lightCoConst, lightCoLinear, lightCoExponent, color_map_array, colorMapSize)),
                                                  "shader");
         eavlExecutor::Go();
         if(verbose) cout<<  "Shading     RUNTIME: "<<eavlTimer::Stop(shade,"")<<endl;
@@ -2478,7 +2479,7 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
     {
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
                                                  eavlOpArgs(dummy, dummyFloat, primitiveTypeHit),
-                                                 RayIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex, TRIANGLE )),
+                                                 RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array, TRIANGLE )),
                                                                                                     "intersect");
         eavlExecutor::Go();
     }
@@ -2491,7 +2492,7 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
     {
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
                                                  eavlOpArgs(dummy, dummyFloat, primitiveTypeHit),
-                                                 RayIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex, TRIANGLE )),
+                                                 RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array, TRIANGLE )),
                                                                                                     "intersect");
         eavlExecutor::Go();
     }
@@ -2505,7 +2506,7 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
 
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
                                                  eavlOpArgs(dummy, depthBuffer, primitiveTypeHit),
-                                                 RayIntersectFunctor(vertsTex,bvhTex,bvhLeafsTex, TRIANGLE )),
+                                                 RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array, TRIANGLE )),
                                                                                                     "intersect");
     eavlExecutor::Go();
     float maxDepth=0;
@@ -2561,14 +2562,14 @@ void eavlRayTracerMutator::fpsTest(int warmupRounds, int testRounds)
     {
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,eyex,eyey,eyez,hitIdx),
                                                  eavlOpArgs(hitIdx,zBuffer),
-                                                 RayIntersectFunctor(vertsTex,bvhTex, bvhLeafsTex)),
+                                                 RayIntersectFunctor(tri_verts_array,tri_bvh_in_array, tri_bvh_lf_array)),
                                                  "intersect");
 
         eavlExecutor::Go();
 
         //eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,interX,interY,interZ,hitIdx),
         //                                         eavlOpArgs(interX, interY,interZ,alphas,betas),
-        //                                         ReflectTriFunctorBasic(vertsTex,norms)),
+        //                                         ReflectTriFunctorBasic(tri_verts_array,norms)),
         //                                         "reflectBasic");
         //eavlExecutor::Go();
 
@@ -2588,14 +2589,14 @@ void eavlRayTracerMutator::fpsTest(int warmupRounds, int testRounds)
     {
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,eyex,eyey,eyez,hitIdx),
                                                  eavlOpArgs(hitIdx,zBuffer),
-                                                 RayIntersectFunctor(vertsTex,bvhTex, bvhLeafsTex)),
+                                                 RayIntersectFunctor(tri_verts_array,tri_bvh_in_array, tri_bvh_lf_array)),
                                                  "intersect");
 
         eavlExecutor::Go();
 
         //eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,interX,interY,interZ,hitIdx),
         //                                         eavlOpArgs(interX, interY,interZ,alphas,betas),
-        //                                         ReflectTriFunctorBasic(vertsTex,norms)),
+        //                                         ReflectTriFunctorBasic(tri_verts_array,norms)),
         //                                         "reflectBasic");
         //eavlExecutor::Go();
 
@@ -2658,8 +2659,8 @@ void eavlRayTracerMutator::fpsTest(int warmupRounds, int testRounds)
 
 void eavlRayTracerMutator::cleanUp()
 {
-    delete bvhLeafsTex;
-    delete bvhTex;
-    delete vertsTex;
+    delete tri_bvh_lf_array;
+    delete tri_bvh_in_array;
+    delete tri_verts_array;
 }
 
