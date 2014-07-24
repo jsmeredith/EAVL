@@ -137,7 +137,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {
         //glTexCoord1f(s);
         //glVertex3d(x,y,z);
-        tracer->scene->addSphere(r,x,y,z);
+        tracer->scene->addSphere(.01,x,y,z);
     }
 
     // ------------------------------------------------------------------------

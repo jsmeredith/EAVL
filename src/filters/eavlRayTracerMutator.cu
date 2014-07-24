@@ -1537,15 +1537,15 @@ struct ShaderFunctor
 
 
         if(hitIdx==-1 ) return tuple<float,float,float>(1,1,1);// primary ray never hit anything.
-        
+        return tuple<float,float,float>(1,0,0);
         int primitiveType=get<15>(input);
         
-        return tuple<float,float,float>(1,0,0);
+
         eavlVector3 normal(get<8>(input), get<9>(input), get<10>(input));
         eavlVector3 rayInt(get<2>(input), get<3>(input), get<4 >(input));
         eavlVector3 rayOrigin(get<11>(input),get<12>(input),get<13>(input));
         eavlVector3 abg(get<5>(input),get<6>(input),1.f); //alpha beta gamma
-        return tuple<float,float,float>(1,0,0);
+        //return tuple<float,float,float>(1,0,0);
         abg.z=abg.z-abg.x-abg.y; // get gamma
         eavlVector3 lightDir    = light-rayInt;
         eavlVector3 viewDir     = eye-rayOrigin;
@@ -1557,7 +1557,7 @@ struct ShaderFunctor
 
 
         int id=0;
-        
+
         if(primitiveType==TRIANGLE) id =matIds[hitIdx];
         else if(primitiveType == SPHERE ) id=0;//sphr_matIds[hitIdx];
 
