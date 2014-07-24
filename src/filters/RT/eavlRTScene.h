@@ -261,10 +261,18 @@ void inline eavlRTScene::createRawData()
           	cout<<"After dump"<<endl;
 
 		}
-		if(getNumSpheres()>0)
+		int numSpheres= getNumSpheres();
+		if(numSpheres>0)
 		{
 			cout<<"Spheres not implemented yet"<<endl;
-			spheres_raw= new float[getNumSpheres()];
+			spheres_raw= new float[numSpheres*4];
+			for(int i=0; i< numSpheres ; i++)
+			{
+				spheres_raw[i*4  ]= spheres->at(i).data[0];
+				spheres_raw[i*4+1]= spheres->at(i).data[1];
+				spheres_raw[i*4+2]= spheres->at(i).data[2];
+				spheres_raw[i*4+3]= spheres->at(i).data[3];
+			}
 			
 		}
 	}
@@ -295,7 +303,7 @@ EAVL_HOSTONLY  inline float* eavlRTScene::getTriangleNormPtr()
 {
 	return tris_norms_raw;
 }
-EAVL_HOSTONLY inline float* eavlRTScene::getSpherePtr(){ cout<<"sphere ptr not implemented"<<endl; return NULL;};
+EAVL_HOSTONLY inline float* eavlRTScene::getSpherePtr(){ cout<<"sphere ptr not implemented"<<endl; return spheres_raw;};
 
 EAVL_HOSTONLY inline float* eavlRTScene::getMatsPtr()
 {

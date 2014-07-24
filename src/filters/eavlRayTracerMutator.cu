@@ -1819,6 +1819,7 @@ void eavlRayTracerMutator::extractGeometry()
     
     scene->createRawData();
     numTriangles    = scene->getNumTriangles();
+    int numSpheres  = scene->getNumSpheres();
     tri_verts_raw   = scene->getTrianglePtr();
     tri_norms_raw   = scene->getTriangleNormPtr();
     tri_matIdx_raw  = scene->getTriMatIdxsPtr();
@@ -1826,33 +1827,55 @@ void eavlRayTracerMutator::extractGeometry()
     mats_raw        = scene->getMatsPtr();
     
 
-    int    bvhsize      =0;
-    int    tri_bvh_lf_rawize  =0;
+    int    tri_bvh_in_size   =0;
+    int    tri_bvh_lf_size   =0;
+    int    sphr_bvh_in_size  =0;
+    int    sphr_bvh_lf_size  =0;
+
+    
     bool   cacheExists  =false;
     bool   writeCache   =true;
     
 
-    if(useBVHCache)
+    if(false )//useBVHCache)
     {
-        cacheExists=readBVHCache(tri_bvh_in_raw, bvhsize, tri_bvh_lf_raw, tri_bvh_lf_rawize, bvhCacheName.c_str());
+        cacheExists=readBVHCache(tri_bvh_in_raw, tri_bvh_in_size, tri_bvh_lf_raw, tri_bvh_lf_size, bvhCacheName.c_str());
     }
     else 
     {
         writeCache=false;
     }
-    if(!cacheExists)
-    {  
-        cout<<"Building BVH...."<<endl;
-        SplitBVH *testSplit= new SplitBVH(tri_verts_raw, numTriangles, 0); // 0=triangle
-        testSplit->getFlatArray(bvhsize, tri_bvh_lf_rawize, tri_bvh_in_raw, tri_bvh_lf_raw);
-        if( writeCache) writeBVHCache(tri_bvh_in_raw, bvhsize, tri_bvh_lf_raw, tri_bvh_lf_rawize, bvhCacheName.c_str());
-        delete testSplit;
+
+    if(numTriangles>0)
+    {
+
+        if(!cacheExists)
+        {  
+            cout<<"Building BVH...."<<endl;
+            SplitBVH *testSplit= new SplitBVH(tri_verts_raw, numTriangles, 0); // 0=triangle
+            testSplit->getFlatArray(tri_bvh_in_size, tri_bvh_lf_size, tri_bvh_in_raw, tri_bvh_lf_raw);
+            if( writeCache) writeBVHCache(tri_bvh_in_raw, tri_bvh_in_size, tri_bvh_lf_raw, tri_bvh_lf_size, bvhCacheName.c_str());
+            delete testSplit;
+        }
     }
+
+    if(numSpheres>0)
+    {
+
+        if(!cacheExists)
+        {  
+            cout<<"Building BVH...."<<endl;
+            SplitBVH *testSplit= new SplitBVH(tri_verts_raw, numTriangles, 0); // 0=triangle
+            testSplit->getFlatArray(sphr_bvh_in_size, sphr_bvh_lf_size, sphr_bvh_in_raw, sphr_bvh_lf_raw);
+            delete testSplit;
+        }
+    }
+    
     
     if(numMats==0) { cerr<<"NO MATS bailing"<<endl; exit(0); }
 
-    tri_bvh_in_array      = new eavlConstArrayV2<float4>((float4*)tri_bvh_in_raw, bvhsize/4,tri_bvh_in_tref);
-    tri_bvh_lf_array = new eavlConstArrayV2<float>(tri_bvh_lf_raw, tri_bvh_lf_rawize,tri_bvh_lf_tref);
+    tri_bvh_in_array   = new eavlConstArrayV2<float4>((float4*)tri_bvh_in_raw, tri_bvh_in_size/4,tri_bvh_in_tref);
+    tri_bvh_lf_array   = new eavlConstArrayV2<float>(tri_bvh_lf_raw, tri_bvh_lf_size,tri_bvh_lf_tref);
     tri_verts_array    = new eavlConstArrayV2<float4>((float4*)tri_verts_raw,numTriangles*3, tri_verts_tref);
 
 
