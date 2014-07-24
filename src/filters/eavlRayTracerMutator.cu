@@ -907,9 +907,9 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
         if(currentNode>-1)
         {
 
-            float4 n1=bvh.getValue(tri_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
-            float4 n2=bvh.getValue(tri_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
-            float4 n3=bvh.getValue(tri_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
+            float4 n1=bvh.getValue(sphr_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
+            float4 n2=bvh.getValue(sphr_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
+            float4 n3=bvh.getValue(sphr_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
             
             float txmin0 = n1.x* invDirx -odirx;       
             float tymin0 = n1.y* invDiry -odiry;         
@@ -943,7 +943,7 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
             }
             else
             {
-                float4 n4=bvh.getValue(tri_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
+                float4 n4=bvh.getValue(sphr_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
                 int leftChild =(int)n4.x;
                 int rightChild=(int)n4.y;
 
@@ -974,8 +974,11 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
             
 
             currentNode=-currentNode; //swap the neg address 
-            int numSheres=(int)tri_bvh_lf_raw.getValue(tri_bvh_lf_tref,currentNode)+1;
+            int numSheres=(int)tri_bvh_lf_raw.getValue(sphr_bvh_lf_tref,currentNode)+1;
             /* a,b  are the same for every sphere */
+            //cout<<"Origin "<<ox<<" "<<oy<<" "<<oz<<endl;
+            //cout<<"Dir "<<dirx<<" "<<diry<<" "<<dirz<<endl;
+
             float a  = dirx*dirx + diry*diry + dirz*dirz;
             float b  = ox*dirx   + oy*diry   + oz*dirz;
             float cc = ox*ox + oy*oy + oz*oz;
@@ -983,21 +986,23 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
 
             for(int i=1;i<numSheres;i++)
             {        
-                int sphereIndex=(int)tri_bvh_lf_raw.getValue(tri_bvh_lf_tref,currentNode+i);
+                int sphereIndex=(int)tri_bvh_lf_raw.getValue(sphr_bvh_lf_tref,currentNode+i);
                 
                 float4 data=verts.getValue(sphr_verts_tref, sphereIndex);
-                float c = cc  +data.w*data.w;               /* radius squared */
+                //cout<<"sphere "<<data.x<<" "<<data.y<<" "<<data.z<<" "<<data.w<<" "<<endl;
+                float c = cc  - data.w*data.w;               /* radius squared */
                 float d = b*b - 4.f*a*c;                    /* descriminant */ 
-
+                //cout<<"Intersecting Leaf "<<sphereIndex<<" a "<<a<<" b "<<b<<" c "<<c<<" d "<<d<<" "<<cc<<endl;
                 if(d >= 0) /*has real roots */
                 {
+                    //cout<<"Has Real Root"<<endl;
                     d=sqrt(d);
 
                     float q=  b < 0 ? (b-d) : (b+d);
                     q*=-.5f;
                     float t1 = q/a;
                     float t2 = c/q;
-
+                    //cout<<"Hits at "<<t1<<" "<<t2<<endl;
                     if(t1 > 0 && t2 >0)                     /*not behind the ray origin*/
                     {
                         if(t1 > t2 ) t1=t2;                 /* need the closer intersection */
@@ -1211,10 +1216,11 @@ struct RayIntersectFunctor{
         } 
         else if(primitiveType == SPHERE)
         {
+            cout<<"Sphere"<<endl;
             minHit = getIntersectionSphere(ray, rayOrigin, false,bvh,bvh_inner, verts,maxDistance,distance);
         }
         
-        if(minHit!=-1) return tuple<int,float,int>(minHit, distance, TRIANGLE);
+        if(minHit!=-1) return tuple<int,float,int>(minHit, distance, primitiveType);
         else           return tuple<int,float,int>(hitIdx, INFINITE, get<7>(rayTuple));
     }
 };
@@ -1831,8 +1837,8 @@ void eavlRayTracerMutator::extractGeometry()
     scene->addSphere(5.f, 22, 5,0,0);
     scene->addSphere(5.f, 22, 33,0,0);
 
-    scene->addSphere(5.f, 1, 1,0,0);
-    scene->addSphere(5.f, 0, 0,0),0;
+    scene->addSphere(1.f, 1, 1,0,0);
+    scene->addSphere(2.f, 10, .5,0);
 
 
 
@@ -1903,6 +1909,17 @@ void eavlRayTracerMutator::extractGeometry()
         sphr_verts_array    = new eavlConstArrayV2<float4>((float4*)sphr_verts_raw,numSpheres, sphr_verts_tref);
         /*no need for normals, trivial calculation */
         INIT(eavlConstArray<int>, sphr_matIdx,numSpheres);
+
+        for(int i=0; i<numSpheres;i++)
+        {
+            //cout<<sphr_verts_raw[i*4]<<" "<<sphr_verts_raw[i*4+1]<<" "<<sphr_verts_raw[i*4+2]<<" "<<sphr_verts_raw[i*4+3]<<" "<<endl;
+            //cout<<sphr_verts_array->getValue(sphr_verts_tref,i).x<<" "<<sphr_verts_array->getValue(sphr_verts_tref,i).y<<" "<<sphr_verts_array->getValue(sphr_verts_tref,i).z<<" "<<sphr_verts_array->getValue(sphr_verts_tref,i).w<<endl;
+        }
+        for(int i=0; i<sphr_bvh_in_size; i++)
+        {
+            //cout<<sphr_bvh_in_raw[i]<<" ";
+        }
+        //exit(0);
     }
     
     
@@ -1935,18 +1952,18 @@ void eavlRayTracerMutator::intersect()
     eavlExecutor::Go();
 
 
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
-                                             eavlOpArgs(hitIdx, minDistances, primitiveTypeHit),
-                                             RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array,TRIANGLE)),
-                                                                                                    "intersect");
-    eavlExecutor::Go();
+    //eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
+    //                                         eavlOpArgs(hitIdx, minDistances, primitiveTypeHit),
+    //                                         RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array,TRIANGLE)),
+    //                                                                                                "intersect");
+    //eavlExecutor::Go();
 
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
                                              eavlOpArgs(hitIdx, minDistances, primitiveTypeHit),
                                              RayIntersectFunctor(sphr_verts_array,sphr_bvh_in_array,sphr_bvh_lf_array,SPHERE)),
                                                                                                     "intersect");
     eavlExecutor::Go();
-
+    for (int i=0 ; i<size; i++) cout<< hitIdx->GetValue(i)<<" ";
 
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx),                /*On primary ray: hits some in as -2, and leave as -1 if it misses everything*/
                                              eavlOpArgs(hitIdx),                /*This allows dead rays to be filtered out on multiple bounces */
@@ -2562,11 +2579,11 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
     int warm = eavlTimer::Start(); //Dirs, origins
     for(int i=0; i<warmupRounds;i++)
     {
-        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
-                                                 eavlOpArgs(dummy, dummyFloat, primitiveTypeHit),
-                                                 RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array, TRIANGLE )),
-                                                                                                    "intersect");
-        eavlExecutor::Go();
+        //eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
+        //                                         eavlOpArgs(dummy, dummyFloat, primitiveTypeHit),
+        //                                         RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array, TRIANGLE )),
+        //                                                                                            "intersect");
+        //eavlExecutor::Go();
     }
 
     float rayper=size/(eavlTimer::Stop(warm,"warm")/(float)warmupRounds);
@@ -2575,11 +2592,11 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
     int test = eavlTimer::Start(); //Dirs, origins
     for(int i=0; i<testRounds;i++)
     {
-        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
-                                                 eavlOpArgs(dummy, dummyFloat, primitiveTypeHit),
-                                                 RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array, TRIANGLE )),
-                                                                                                    "intersect");
-        eavlExecutor::Go();
+        //eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
+        //                                         eavlOpArgs(dummy, dummyFloat, primitiveTypeHit),
+        //                                         RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array, TRIANGLE )),
+        //                                                                                            "intersect");
+        //eavlExecutor::Go();
     }
     rayper=size/(eavlTimer::Stop(test,"test")/(float)testRounds);
     cout << "# "<<rayper/1000000.f<<endl;
@@ -2589,9 +2606,25 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
     eavlFloatArray *depthBuffer= new eavlFloatArray("",1,size);
     eavlFloatArray *d= new eavlFloatArray("",1,size);
 
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(indexes), //dummy arg
+                                             eavlOpArgs(minDistances),
+                                             FloatMemsetFunctor(INFINITE)),
+                                             "init");
+    eavlExecutor::Go();
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx),
+                                             eavlOpArgs(hitIdx),
+                                             IntMemsetFunctor(-2)),
+                                             "init");
+    eavlExecutor::Go();
+    //eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
+    //                                             eavlOpArgs(dummy, depthBuffer, primitiveTypeHit),
+    //                                             RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array, TRIANGLE )),
+    //                                                                                                "intersect");
+    //eavlExecutor::Go();
+
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
-                                                 eavlOpArgs(dummy, depthBuffer, primitiveTypeHit),
-                                                 RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array, TRIANGLE )),
+                                             eavlOpArgs(dummy, depthBuffer, primitiveTypeHit),
+                                             RayIntersectFunctor(sphr_verts_array,sphr_bvh_in_array,sphr_bvh_lf_array,SPHERE)),
                                                                                                     "intersect");
     eavlExecutor::Go();
     float maxDepth=0;
