@@ -70,11 +70,11 @@ class eavlRayTracerMutator : public eavlMutator
 
     void setRawData(float *v, float *n, int numTri, float* _materials, int * _matIndex, int _numMats)
     {
-      //verts_raw=v;
-      norms_raw=n;
+      //tri_verts_raw=v;
+      tri_norms_raw=n;
       numTriangles=numTri;
       mats_raw=_materials;
-      matIdx_raw=_matIndex;
+      tri_matIdx_raw=_matIndex;
       numMats=_numMats;
       //convert the verts into aligned memory
       
@@ -82,42 +82,42 @@ class eavlRayTracerMutator : public eavlMutator
       if(true)
       {
         cout<<"No norms: extracting"<<endl;
-        norms_raw= new float [numTri*9];
-        verts_raw= new float [numTri*12];
-        //eavlVector3* vec3Ptr=(eavlVector3*)&verts_raw[0];
+        tri_norms_raw= new float [numTri*9];
+        tri_verts_raw= new float [numTri*12];
+        //eavlVector3* vec3Ptr=(eavlVector3*)&tri_verts_raw[0];
         for (int i=0; i<numTri; i++)
         {
           eavlVector3 a(v[i*9  ],v[i*9+1],v[i*9+2]);
           eavlVector3 b(v[i*9+3],v[i*9+4],v[i*9+5]);
           eavlVector3 c(v[i*9+6],v[i*9+7],v[i*9+8]);
 
-          verts_raw[i*12   ]=v[i*9];
-          verts_raw[i*12+1 ]=v[i*9+1];
-          verts_raw[i*12+2 ]=v[i*9+2];
-          verts_raw[i*12+3 ]=v[i*9+3];
-          verts_raw[i*12+4 ]=v[i*9+4];
-          verts_raw[i*12+5 ]=v[i*9+5];
-          verts_raw[i*12+6 ]=v[i*9+6];
-          verts_raw[i*12+7 ]=v[i*9+7];
+          tri_verts_raw[i*12   ]=v[i*9];
+          tri_verts_raw[i*12+1 ]=v[i*9+1];
+          tri_verts_raw[i*12+2 ]=v[i*9+2];
+          tri_verts_raw[i*12+3 ]=v[i*9+3];
+          tri_verts_raw[i*12+4 ]=v[i*9+4];
+          tri_verts_raw[i*12+5 ]=v[i*9+5];
+          tri_verts_raw[i*12+6 ]=v[i*9+6];
+          tri_verts_raw[i*12+7 ]=v[i*9+7];
 
-          verts_raw[i*12+8 ]=v[i*9+8];
-          verts_raw[i*12+9 ]=0; 
-          verts_raw[i*12+10]=0;
-          verts_raw[i*12+11]=0;
+          tri_verts_raw[i*12+8 ]=v[i*9+8];
+          tri_verts_raw[i*12+9 ]=0; 
+          tri_verts_raw[i*12+10]=0;
+          tri_verts_raw[i*12+11]=0;
 
           eavlVector3 norm;
           norm = (b-a)%(c-a);
           //cout<<norm<<endl;
           //if(i==2) cout<<a<<b<<c<<endl;
-          norms_raw[i*9  ]=norm.x;
-          norms_raw[i*9+1]=norm.y;
-          norms_raw[i*9+2]=norm.z;
-          norms_raw[i*9+3]=norm.x;
-          norms_raw[i*9+4]=norm.y;
-          norms_raw[i*9+5]=norm.z;
-          norms_raw[i*9+6]=norm.x;
-          norms_raw[i*9+7]=norm.y;
-          norms_raw[i*9+8]=norm.z;
+          tri_norms_raw[i*9  ]=norm.x;
+          tri_norms_raw[i*9+1]=norm.y;
+          tri_norms_raw[i*9+2]=norm.z;
+          tri_norms_raw[i*9+3]=norm.x;
+          tri_norms_raw[i*9+4]=norm.y;
+          tri_norms_raw[i*9+5]=norm.z;
+          tri_norms_raw[i*9+6]=norm.x;
+          tri_norms_raw[i*9+7]=norm.y;
+          tri_norms_raw[i*9+8]=norm.z;
         }
       }
       //exit(0);
@@ -268,7 +268,7 @@ class eavlRayTracerMutator : public eavlMutator
 
       delete  mats;
 
-      delete  norms;
+      delete  tri_norms;
 
       delete  alphas;
       delete  betas;
@@ -290,8 +290,8 @@ class eavlRayTracerMutator : public eavlMutator
 
       delete frameBuffer;
 
-      delete[] verts_raw;
-      delete[] norms_raw;
+      delete[] tri_verts_raw;
+      delete[] tri_norms_raw;
       delete[] bvhFlatArray_raw;
       delete   zBuffer;
 
@@ -458,16 +458,16 @@ class eavlRayTracerMutator : public eavlMutator
 
     eavlFloatArray        *scalars;         /*lerped intersection scalars */ 
     eavlConstArray<float> *mats;
-    eavlConstArray<int>   *matIdx;
-    eavlConstArray<float> *norms;
+    eavlConstArray<int>   *tri_matIdx;
+    eavlConstArray<float> *tri_norms;
 
     /*  Raw Data Arrays used for eavlConst and eavlConstV2 */
     float     *colorMap_raw;
-    float     *verts_raw;                   /* Triangle verts, currenly scalars are stored with the verts*/
-    float     *norms_raw;
+    float     *tri_verts_raw;                   /* Triangle verts, currenly scalars are stored with the verts*/
+    float     *tri_norms_raw;
     float     *bvhFlatArray_raw;            /* BVH broken up into inner nodes and leaf nodes */
     float     *bvhLeafs;
-    int       *matIdx_raw;
+    int       *tri_matIdx_raw;
     float     *mats_raw;
 
     void Init();

@@ -48,11 +48,18 @@
 #define FILE_LEAF -100001
 
 //declare the texture reference even if we are not using texture memory
-texture<float4> tri_bvh_in_tref;
-texture<float4> tri_verts_tref;
-texture<float>  tri_bvh_lf_tref;
-texture<float4> color_map_tref;
+/* Triangle textures */
+texture<float4> tri_bvh_in_tref;            /* BVH inner nodes */
+texture<float4> tri_verts_tref;             /* vert+ scalar data */
+texture<float>  tri_bvh_lf_tref;            /* BVH leaf nodes */
+/*Sphere Textures */
 texture<float4> sphr_verts_tref;
+texture<float4> sphr_bvh_in_tref;
+texture<float4> sphr_bvh_lf_tref;
+
+
+texture<float4> color_map_tref;
+
 #define USE_TEXTURE_MEM
 template<class T>
 class eavlConstArrayV2
@@ -116,6 +123,11 @@ class eavlConstArrayV2
 eavlConstArrayV2<float4>* tri_bvh_in_array;
 eavlConstArrayV2<float4>* tri_verts_array;
 eavlConstArrayV2<float>*  tri_bvh_lf_array;
+
+eavlConstArrayV2<float4>* sphr_bvh_in_array;
+eavlConstArrayV2<float4>* sphr_verts_array;
+eavlConstArrayV2<float>*  sphr_bvh_lf_array;
+
 eavlConstArrayV2<float4>* color_map_array;
 
 void writeBVHCache(const float *innerNodes, const int innerSize, const float * leafNodes, const int leafSize, const char* filename )
@@ -230,6 +242,19 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     
     color_map_array=NULL;
     colorMap_raw=NULL;
+
+    /*texture array Ptrs */
+    tri_bvh_in_array    =NULL;
+    tri_verts_array     =NULL;
+    tri_bvh_lf_array    =NULL;
+
+    sphr_bvh_in_array   =NULL;
+    sphr_verts_array    =NULL;
+    sphr_bvh_lf_array   =NULL;
+
+    color_map_array     =NULL;
+
+
     setDefaultColorMap();
     cout<<"Construtor Done. Dirty"<<endl;
 }
@@ -1794,9 +1819,9 @@ void eavlRayTracerMutator::extractGeometry()
     
     scene->createRawData();
     numTriangles    = scene->getNumTriangles();
-    verts_raw       = scene->getTrianglePtr();
-    norms_raw       = scene->getTriangleNormPtr();
-    matIdx_raw      = scene->getTriMatIdxsPtr();
+    tri_verts_raw   = scene->getTrianglePtr();
+    tri_norms_raw   = scene->getTriangleNormPtr();
+    tri_matIdx_raw  = scene->getTriMatIdxsPtr();
     numMats         = scene->getNumMaterials();
     mats_raw        = scene->getMatsPtr();
     
@@ -1818,7 +1843,7 @@ void eavlRayTracerMutator::extractGeometry()
     if(!cacheExists)
     {  
         cout<<"Building BVH...."<<endl;
-        SplitBVH *testSplit= new SplitBVH(verts_raw, numTriangles, 0); // 0=triangle
+        SplitBVH *testSplit= new SplitBVH(tri_verts_raw, numTriangles, 0); // 0=triangle
         testSplit->getFlatArray(bvhsize, bvhLeafSize, bvhFlatArray_raw, bvhLeafs);
         if( writeCache) writeBVHCache(bvhFlatArray_raw, bvhsize, bvhLeafs, bvhLeafSize, bvhCacheName.c_str());
         delete testSplit;
@@ -1828,12 +1853,12 @@ void eavlRayTracerMutator::extractGeometry()
 
     tri_bvh_in_array      = new eavlConstArrayV2<float4>((float4*)bvhFlatArray_raw, bvhsize/4,tri_bvh_in_tref);
     tri_bvh_lf_array = new eavlConstArrayV2<float>(bvhLeafs, bvhLeafSize,tri_bvh_lf_tref);
-    tri_verts_array    = new eavlConstArrayV2<float4>((float4*)verts_raw,numTriangles*3, tri_verts_tref);
+    tri_verts_array    = new eavlConstArrayV2<float4>((float4*)tri_verts_raw,numTriangles*3, tri_verts_tref);
 
 
     INIT(eavlConstArray<float>, mats,numMats*12);
-    INIT(eavlConstArray<float>,norms,numTriangles*9);
-    INIT(eavlConstArray<int>, matIdx,numTriangles);
+    INIT(eavlConstArray<float>,tri_norms,numTriangles*9);
+    INIT(eavlConstArray<int>, tri_matIdx,numTriangles);
     
     geomDirty=false;
     defaultMatDirty=false;
@@ -1897,7 +1922,7 @@ void eavlRayTracerMutator::reflect()
 {
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx, primitiveTypeHit),
                                              eavlOpArgs(interX, interY,interZ,rayDirX,rayDirY,rayDirZ,normX,normY,normZ,alphas,betas,scalars),
-                                             ReflectTriFunctor(tri_verts_array,norms)),
+                                             ReflectTriFunctor(tri_verts_array,tri_norms)),
                                              "reflect");
     eavlExecutor::Go();     
 }
@@ -2044,7 +2069,7 @@ void eavlRayTracerMutator::Execute()
         if(verbose) shade = eavlTimer::Start();
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx,shadowHits,interX,interY,interZ,alphas,betas,ambPct,normX,normY,normZ,rayOriginX,rayOriginY,rayOriginZ, scalars),
                                                  eavlOpArgs(r2,g2,b2),
-                                                 ShaderFunctor(numTriangles,light,eye,norms,i,matIdx,mats,lightIntensity, lightCoConst, lightCoLinear, lightCoExponent, color_map_array, colorMapSize)),
+                                                 ShaderFunctor(numTriangles,light,eye,tri_norms,i,tri_matIdx,mats,lightIntensity, lightCoConst, lightCoLinear, lightCoExponent, color_map_array, colorMapSize)),
                                                  "shader");
         eavlExecutor::Go();
         if(verbose) cout<<  "Shading     RUNTIME: "<<eavlTimer::Stop(shade,"")<<endl;
@@ -2659,8 +2684,15 @@ void eavlRayTracerMutator::fpsTest(int warmupRounds, int testRounds)
 
 void eavlRayTracerMutator::cleanUp()
 {
-    delete tri_bvh_lf_array;
-    delete tri_bvh_in_array;
-    delete tri_verts_array;
+    if(tri_bvh_lf_array != NULL) {delete tri_bvh_lf_array; tri_bvh_lf_array  =NULL; }
+    if(tri_bvh_lf_array != NULL) {delete tri_bvh_in_array; tri_bvh_in_array  =NULL; }
+    if(tri_bvh_lf_array != NULL) {delete tri_verts_array;  tri_verts_array   =NULL; }
+
+
+    if(tri_bvh_lf_array != NULL) {delete sphr_bvh_in_array; sphr_bvh_in_array=NULL; }
+    if(tri_bvh_lf_array != NULL) {delete sphr_verts_array;  sphr_verts_array =NULL; }
+    if(tri_bvh_lf_array != NULL) {delete sphr_bvh_lf_array; sphr_bvh_lf_array=NULL; }
+
+    if(tri_bvh_lf_array != NULL) {delete color_map_array;   color_map_array  =NULL; }
 }
 
