@@ -351,6 +351,7 @@ class eavlRayTracerMutator : public eavlMutator
     bool      isOccusionOn;   /*True if ambient occlusion is on*/
     int       currentSize;    /*Current working set size if array compaction is on*/
     int       numTriangles;   /*number of triangles*/
+    int       numSpheres;
     bool      compactOp;      /*True if array compaction is on*/
     bool      antiAlias;      /*True if anti-aliasing is on*/
     bool      cameraDirty;    /*True is camera parameters are dirty. Used to accumulate AO values when the view is the same*/

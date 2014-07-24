@@ -38,7 +38,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setVerbose(true);
         tracer->setAOMax(5);
         tracer->setOccSamples(4);
-        tracer->setAO(true);
+        tracer->setAO(false);
         tracer->setBVHCache(false); // don't use cache
         tracer->setCompactOp(false);
         setLight=true;
@@ -125,6 +125,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         //glBegin(GL_POINTS);
         //canRender=false;
         //cout<<"Starting points"<<endl;
+        tracer->startScene();
     }
 
     virtual void EndPoints()
@@ -136,6 +137,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {
         //glTexCoord1f(s);
         //glVertex3d(x,y,z);
+        tracer->scene->addSphere(r,x,y,z);
     }
 
     // ------------------------------------------------------------------------

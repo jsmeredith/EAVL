@@ -999,7 +999,7 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
                     {
                         float tch = sqrt(r2-d);
                         float t0 = dot1-tch;
-                        float t1 = dot1+tch;
+                        //float t1 = dot1+tch; /* if t1 is > 0 and t0<0 then the ray is inside the sphere.
 
                         if( t0 < minDistance && t0 > 0)
                         {
@@ -1020,18 +1020,19 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
  distance=minDistance;
  return minIndex;
 }
-/*
+/* it is known that there is an intersection */
 EAVL_HOSTDEVICE float intersectSphereDist(eavlVector3 rayDir, eavlVector3 rayOrigin, float4 sphere)
 {
-    float a  = rayDir.x*rayDir.x    + rayDir.y*rayDir.y    + rayDir.z*rayDir.z;
-    float b  = rayOrigin.x*rayDir.x + rayOrigin.y*rayDir.y + rayOrigin.z*rayDir.z;
-    float cc = rayOrigin*rayOrigin  + rayOrigin*rayOrigin  + rayOrigin*rayOrigin - sphere.w*sphere.w;
-    b*=2.f;
-    float d = b*b - 4.f*a*c;
-
+    eavlVector3 center(sphere.x, sphere.y,sphere.z);
+    eavlVector3 l=center-rayOrigin;
+    float dot=l*center;
+    float d=l*l-dot*dot;
+    float r2=sphere.w*sphere.w;
+    float tch=sqrt(r2-d);
+    return d-tch;
 
 }
-*/
+
 EAVL_HOSTDEVICE float getIntersectionDepth(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &tri_bvh_lf_raw,eavlConstArrayV2<float4> &verts,const float &maxDistance)
 {
 
@@ -1284,14 +1285,14 @@ struct ReflectTriFunctor{
         return tuple<float,float,float,float,float,float,float,float,float,float,float,float>(intersect.x, intersect.y,intersect.z,reflection.x,reflection.y,reflection.z,normal.x,normal.y,normal.z,alpha,beta, lerpedScalar);
     }
 };
-/*
+
 struct ReflectSphrFunctor{
 
     eavlConstArrayV2<float4> verts;
 
 
 
-    ReflectSphrFunctor(eavlConstArrayV2<float4> *_verts,eavlConstArray<float> *xnorm)
+    ReflectSphrFunctor(eavlConstArrayV2<float4> *_verts)
         :verts(*_verts)
     {
         
@@ -1310,25 +1311,18 @@ struct ReflectSphrFunctor{
 
         eavlVector3 ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
         float alpha=0, beta=0;
-
-        float4 data=verts.getValue(tri_verts_tref, hitIndex);
-        float4 b4=verts.getValue(tri_verts_tref, hitIndex*3+1);
-        float4 c4=verts.getValue(tri_verts_tref, hitIndex*3+2); //scalars are stored in c.yzw
-        eavlVector3 a(a4.x,a4.y,a4.z);
-        eavlVector3 b(a4.w,b4.x,b4.y);
-        eavlVector3 c(b4.z,b4.w,c4.x);
-        intersect= triangleIntersectionABG(ray, rayOrigin, a,b,c,0.0f,alpha,beta);
-        gamma=1-alpha-beta;
-        eavlVector3 normal(999999.f,0,0);
-
-        eavlVector3* normalPtr=(eavlVector3*)(&norms[0]+hitIndex*9);
-        eavlVector3 aNorm=normalPtr[0];
-        eavlVector3 bNorm=normalPtr[1];
-        eavlVector3 cNorm=normalPtr[2];
-        normal=aNorm*alpha+bNorm*beta+cNorm*gamma;
-        float lerpedScalar = c4.y*alpha+c4.z*beta+c4.w*gamma;
-        //reflect the ray
         ray.normalize();
+        float4 data = verts.getValue(sphr_verts_tref, hitIndex);
+        float distance = intersectSphereDist(ray,rayOrigin, data);
+        intersect = rayOrigin+distance*ray;
+        eavlVector3 normal;
+        normal.x = intersect.x - data.x;
+        normal.y = intersect.y - data.y;
+        normal.z = intersect.z - data.z;
+
+        
+        //reflect the ray
+        
         normal.normalize();
         if ((normal*ray) > 0.0f) normal = -normal; //flip the normal if we hit the back side
         reflection=ray-normal*2.f*(normal*ray);
@@ -1336,11 +1330,11 @@ struct ReflectSphrFunctor{
         intersect=intersect+(-ray*BARY_TOLE);
 
 
-        return tuple<float,float,float,float,float,float,float,float,float,float,float,float>(intersect.x, intersect.y,intersect.z,reflection.x,reflection.y,reflection.z,normal.x,normal.y,normal.z,alpha,beta, lerpedScalar);
+        return tuple<float,float,float,float,float,float,float,float,float,float,float,float>(intersect.x, intersect.y,intersect.z,reflection.x,reflection.y,reflection.z,normal.x,normal.y,normal.z,alpha,beta, 0.f);
     }
 };
 
-*/
+
 struct DepthFunctor{
 
     eavlConstArrayV2<float4> verts;
@@ -1454,14 +1448,14 @@ struct ShadowRayFunctor
     eavlConstArrayV2<float4> verts;
     //eavlConstArray<float> bvh;
     eavlConstArrayV2<float4> bvh;
-    eavlConstArrayV2<float> tri_bvh_lf_raw;
+    eavlConstArrayV2<float> bvh_lf;
     eavlVector3 light;
     primitive_t type;
 
-    ShadowRayFunctor(eavlVector3 theLight,eavlConstArrayV2<float4> *_verts,eavlConstArrayV2<float4> *theBvh,eavlConstArrayV2<float> *thetri_bvh_lf_raw, primitive_t _type)
+    ShadowRayFunctor(eavlVector3 theLight,eavlConstArrayV2<float4> *_verts,eavlConstArrayV2<float4> *theBvh,eavlConstArrayV2<float> *_bvh_lf, primitive_t _type)
         :verts(*_verts),
          bvh(*theBvh),
-         tri_bvh_lf_raw(*thetri_bvh_lf_raw),
+         bvh_lf(*_bvh_lf),
          light(theLight),
          type(_type)
     {}
@@ -1470,7 +1464,7 @@ struct ShadowRayFunctor
     {
         int hitIdx           = get<3>(input);
         bool alreadyOccluded = get<4>(input) == 0 ? false : true;
-        if( hitIdx==-1 || alreadyOccluded ) return tuple<int>(1);// primary ray never hit anything.
+        if( hitIdx ==-1 || alreadyOccluded ) return tuple<int>(1);// primary ray never hit anything.
 
         //float alpha,beta,gamma,d,tempDistance;
         eavlVector3 rayOrigin(get<0>(input),get<1>(input),get<2>(input));
@@ -1480,7 +1474,14 @@ struct ShadowRayFunctor
         shadowRay.normalize();
         int minHit;
         float distance;
-        minHit= getIntersectionTri(shadowRay, rayOrigin, true,bvh, tri_bvh_lf_raw, verts,lightDistance, distance);
+        if(type ==  TRIANGLE )
+        {
+            minHit= getIntersectionTri(shadowRay, rayOrigin, true,bvh, bvh_lf, verts,lightDistance, distance);
+        }
+        else if(type == SPHERE)
+        {
+            minHit= getIntersectionSphere(shadowRay, rayOrigin, true,bvh, bvh_lf, verts,lightDistance, distance);
+        }
         if(minHit!=-1) return tuple<int>(1);//in shadow
         else return tuple<int>(0);//clear view of the light
 
@@ -1504,13 +1505,14 @@ struct ShaderFunctor
     int             size;
     int             colorMapSize;
     eavlConstArray<float>       norms;
-    eavlConstArray<int>         matIds;
+    eavlConstArray<int>         matIds; //tris
+    eavlConstArray<int>         sphr_matIds;
     eavlConstArray<float>       mats;
     eavlConstArrayV2<float4>    colorMap;
 
     ShaderFunctor(int numTris,eavlVector3 theLight,eavlVector3 eyePos,eavlConstArray<float> *xnorm, int dpth,eavlConstArray<int> *_matIds,eavlConstArray<float> *_mats,
-                  int _lightIntensity, float _lightCoConst, float _lightCoLinear, float _lightCoExponent, eavlConstArrayV2<float4>* _colorMap, int _colorMapSize)
-        :norms(*xnorm), matIds(*_matIds), mats(*_mats),colorMap(*_colorMap)
+                  int _lightIntensity, float _lightCoConst, float _lightCoLinear, float _lightCoExponent, eavlConstArrayV2<float4>* _colorMap, int _colorMapSize,eavlConstArray<int>* _sphr_matIds )
+        :norms(*xnorm), matIds(*_matIds), mats(*_mats),colorMap(*_colorMap), sphr_matIds(*_sphr_matIds)
 
     {
         depth=(float)dpth;
@@ -1527,7 +1529,7 @@ struct ShaderFunctor
         lightCoExponent = _lightCoExponent;
     }
 
-    EAVL_FUNCTOR tuple<float,float,float> operator()(tuple<int,int,float,float,float,float,float,float,float,float,float,float,float,float,float > input)
+    EAVL_FUNCTOR tuple<float,float,float> operator()(tuple<int,int,float,float,float,float,float,float,float,float,float,float,float,float,float,float > input)
     {
         int hitIdx=get<0>(input);
         int hit=get<1>(input);
@@ -1535,7 +1537,7 @@ struct ShaderFunctor
 
 
         if(hitIdx==-1 ) return tuple<float,float,float>(1,1,1);// primary ray never hit anything.
-
+        int primitiveType=get<15>(input);
         eavlVector3 normal(get<8>(input), get<9>(input), get<10>(input));
         eavlVector3 rayInt(get<2>(input), get<3>(input), get<4 >(input));
         eavlVector3 rayOrigin(get<11>(input),get<12>(input),get<13>(input));
@@ -1551,7 +1553,10 @@ struct ShaderFunctor
         float ambPct=get<7>(input);
 
 
-        int id=matIds[hitIdx];
+        int id=0;
+        if(primitiveType==TRIANGLE) id =matIds[hitIdx];
+        else if(primitiveType == SPHERE ) id=sphr_matIds[hitIdx];
+
         eavlVector3* matPtr=(eavlVector3*)(&mats[0]+id*12);
         eavlVector3 ka=matPtr[0];//these could be lerped if it is possible that a single tri could be made of several mats
         eavlVector3 kd=matPtr[1];
@@ -1592,10 +1597,12 @@ struct ShaderFunctor
         int   colorIdx = floor(scalar*colorMapSize);
         
         float4 color = colorMap.getValue(color_map_tref, colorIdx); 
-        red   *= color.x;
-        green *= color.y;
-        blue  *= color.z;
-
+        if(primitiveType == TRIANGLE ) 
+        {
+            red   *= color.x;
+            green *= color.y;
+            blue  *= color.z;
+        }
         //cout<<kd<<ks<<id<<endl;
         //cout<<cosTheta<<endl;
         /* Diffuse + ambient light*/
@@ -1886,7 +1893,7 @@ void eavlRayTracerMutator::extractGeometry()
     
 
     if(verbose) cerr<<"Extracting Geometry"<<endl;
-    scene->addSphere(5.f, 22, 33,0,0);
+    /*scene->addSphere(5.f, 22, 33,0,0);
     scene->addSphere(5.f, 22, 33,0,0);
     scene->addSphere(5.f, 26, 33,62,0);
     scene->addSphere(5.f, 22, 33,0,0);
@@ -1896,13 +1903,13 @@ void eavlRayTracerMutator::extractGeometry()
     scene->addSphere(5.f, 22, 33,0,0);
 
     scene->addSphere(.5f, 0, 0,0,0);
-    //scene->addSphere(2.f, 10, .5,0);
+    //scene->addSphere(2.f, 10, .5,0);*/
 
 
 
     scene->createRawData();
     numTriangles    = scene->getNumTriangles();
-    int numSpheres  = scene->getNumSpheres();
+    numSpheres  = scene->getNumSpheres();
     tri_verts_raw   = scene->getTrianglePtr();
     tri_norms_raw   = scene->getTriangleNormPtr();
     tri_matIdx_raw  = scene->getTriMatIdxsPtr();
@@ -2009,18 +2016,22 @@ void eavlRayTracerMutator::intersect()
                                              "init");
     eavlExecutor::Go();
 
-
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
-                                             eavlOpArgs(hitIdx, minDistances, primitiveTypeHit),
-                                             RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array,TRIANGLE)),
-                                                                                                    "intersect");
-    eavlExecutor::Go();
-
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
-                                             eavlOpArgs(hitIdx, minDistances, primitiveTypeHit),
-                                             RayIntersectFunctor(sphr_verts_array,sphr_bvh_in_array,sphr_bvh_lf_array,SPHERE)),
-                                                                                                    "intersect");
-    eavlExecutor::Go();
+    if(numTriangles>0)
+    {
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
+                                                 eavlOpArgs(hitIdx, minDistances, primitiveTypeHit),
+                                                 RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array,TRIANGLE)),
+                                                                                                        "intersect");
+        eavlExecutor::Go();
+    }
+    if(numSpheres>0)
+    {
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
+                                                 eavlOpArgs(hitIdx, minDistances, primitiveTypeHit),
+                                                 RayIntersectFunctor(sphr_verts_array,sphr_bvh_in_array,sphr_bvh_lf_array,SPHERE)),
+                                                                                                        "intersect");
+        eavlExecutor::Go();
+    }
     //for (int i=0 ; i<size; i++) cout<< hitIdx->GetValue(i)<<" ";
 
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx),                /*On primary ray: hits some in as -2, and leave as -1 if it misses everything*/
@@ -2055,11 +2066,24 @@ void eavlRayTracerMutator::occlusionIntersect()
 
 void eavlRayTracerMutator::reflect()
 {
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx, primitiveTypeHit),
-                                             eavlOpArgs(interX, interY,interZ,rayDirX,rayDirY,rayDirZ,normX,normY,normZ,alphas,betas,scalars),
-                                             ReflectTriFunctor(tri_verts_array,tri_norms)),
-                                             "reflect");
-    eavlExecutor::Go();     
+    if(numTriangles > 0)
+    {
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx, primitiveTypeHit),
+                                                 eavlOpArgs(interX, interY,interZ,rayDirX,rayDirY,rayDirZ,normX,normY,normZ,alphas,betas,scalars),
+                                                 ReflectTriFunctor(tri_verts_array,tri_norms)),
+                                                 "reflect");
+        eavlExecutor::Go(); 
+    }
+    if(numSpheres > 0)
+    {
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx, primitiveTypeHit),
+                                                      eavlOpArgs(interX, interY,interZ,rayDirX,rayDirY,rayDirZ,normX,normY,normZ,alphas,betas,scalars),
+                                                      ReflectSphrFunctor(sphr_verts_array)),
+                                                      "reflect");
+        eavlExecutor::Go();
+    }     
+
+   
 }
 
 void eavlRayTracerMutator::shadowIntersect()
@@ -2070,11 +2094,26 @@ void eavlRayTracerMutator::shadowIntersect()
                                              "memset");
     eavlExecutor::Go();
     
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(interX,interY,interZ,hitIdx, shadowHits),
+    
+
+    
+
+    if(numTriangles > 0)
+    {
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(interX,interY,interZ,hitIdx, shadowHits),
                                                  eavlOpArgs(shadowHits),
                                                  ShadowRayFunctor(light,tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array, TRIANGLE)),
                                                  "shadowRays");
-    eavlExecutor::Go();
+        eavlExecutor::Go();
+    }
+    if(numSpheres > 0)
+    {   
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(interX,interY,interZ,hitIdx, shadowHits),
+                                                 eavlOpArgs(shadowHits),
+                                                 ShadowRayFunctor(light,sphr_verts_array,sphr_bvh_in_array,sphr_bvh_lf_array, SPHERE)),
+                                                 "shadowRays");
+        eavlExecutor::Go(); 
+    }     
 }
 
 void eavlRayTracerMutator::Execute()
@@ -2091,6 +2130,7 @@ void eavlRayTracerMutator::Execute()
     //if(verbose) cerr<<"Executing After Init"<<endl;
    
     if(verbose) cerr<<"Number of triangles: "<<numTriangles<<endl;
+    if(verbose) cerr<<"Number of Spheres: "<<numSpheres<<endl;
     
     //Extract the triangles and normals from the isosurface
    
@@ -2202,9 +2242,12 @@ void eavlRayTracerMutator::Execute()
         if(verbose) cout<<  "Shadow      RUNTIME: "<<eavlTimer::Stop(tshadow,"")<<endl;
         int shade ;
         if(verbose) shade = eavlTimer::Start();
-        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx,shadowHits,interX,interY,interZ,alphas,betas,ambPct,normX,normY,normZ,rayOriginX,rayOriginY,rayOriginZ, scalars),
+        cout<<"Going into Shading"<<endl;
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx,shadowHits,interX,interY,interZ,alphas,betas,ambPct,normX,normY,normZ,rayOriginX,rayOriginY,rayOriginZ, scalars, primitiveTypeHit),
                                                  eavlOpArgs(r2,g2,b2),
-                                                 ShaderFunctor(numTriangles,light,eye,tri_norms,i,tri_matIdx,mats,lightIntensity, lightCoConst, lightCoLinear, lightCoExponent, color_map_array, colorMapSize)),
+                                                 ShaderFunctor(numTriangles,light,eye,tri_norms,i,tri_matIdx,mats,lightIntensity,
+                                                               lightCoConst, lightCoLinear, lightCoExponent, color_map_array,
+                                                               colorMapSize, sphr_matIdx)),
                                                  "shader");
         eavlExecutor::Go();
         if(verbose) cout<<  "Shading     RUNTIME: "<<eavlTimer::Stop(shade,"")<<endl;
