@@ -712,7 +712,7 @@ EAVL_HOSTDEVICE eavlVector3 triangleIntersectionABG(const eavlVector3 ray,const 
 
 
 
-EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &bvhLeafs,eavlConstArrayV2<float4> &verts,const float &maxDistance, float &distance)
+EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &tri_bvh_lf_raw,eavlConstArrayV2<float4> &verts,const float &maxDistance, float &distance)
 {
 
 
@@ -816,11 +816,11 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
             
 
             currentNode=-currentNode; //swap the neg address 
-            int numTri=(int)bvhLeafs.getValue(tri_bvh_lf_tref,currentNode)+1;
+            int numTri=(int)tri_bvh_lf_raw.getValue(tri_bvh_lf_tref,currentNode)+1;
 
             for(int i=1;i<numTri;i++)
             {        
-                    int triIndex=(int)bvhLeafs.getValue(tri_bvh_lf_tref,currentNode+i);
+                    int triIndex=(int)tri_bvh_lf_raw.getValue(tri_bvh_lf_tref,currentNode+i);
                    
                     float4 a4=verts.getValue(tri_verts_tref, triIndex*3);
                     float4 b4=verts.getValue(tri_verts_tref, triIndex*3+1);
@@ -872,7 +872,7 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
 }
 
 
-EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &bvhLeafs,eavlConstArrayV2<float4> &verts,const float &maxDistance, float &distance)
+EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &tri_bvh_lf_raw,eavlConstArrayV2<float4> &verts,const float &maxDistance, float &distance)
 {
 
 
@@ -976,7 +976,7 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
             
 
             currentNode=-currentNode; //swap the neg address 
-            int numSheres=(int)bvhLeafs.getValue(tri_bvh_lf_tref,currentNode)+1;
+            int numSheres=(int)tri_bvh_lf_raw.getValue(tri_bvh_lf_tref,currentNode)+1;
             /* a,b  are the same for every sphere */
             float a  = dirx*dirx + diry*diry + dirz*dirz;
             float b  = ox*dirx   + oy*diry   + oz*dirz;
@@ -985,7 +985,7 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
 
             for(int i=1;i<numSheres;i++)
             {        
-                int sphereIndex=(int)bvhLeafs.getValue(tri_bvh_lf_tref,currentNode+i);
+                int sphereIndex=(int)tri_bvh_lf_raw.getValue(tri_bvh_lf_tref,currentNode+i);
                 
                 float4 data=verts.getValue(sphr_verts_tref, sphereIndex);
                 float c = cc  +data.w*data.w;               /* radius squared */
@@ -1026,7 +1026,7 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
 
 
 
-EAVL_HOSTDEVICE float getIntersectionDepth(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &bvhLeafs,eavlConstArrayV2<float4> &verts,const float &maxDistance)
+EAVL_HOSTDEVICE float getIntersectionDepth(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &tri_bvh_lf_raw,eavlConstArrayV2<float4> &verts,const float &maxDistance)
 {
 
 
@@ -1128,11 +1128,11 @@ EAVL_HOSTDEVICE float getIntersectionDepth(const eavlVector3 rayDir, const eavlV
             
 
             currentNode=-currentNode; //swap the neg address 
-            int numTri=(int)bvhLeafs.getValue(tri_bvh_lf_tref,currentNode)+1;
+            int numTri=(int)tri_bvh_lf_raw.getValue(tri_bvh_lf_tref,currentNode)+1;
 
             for(int i=1;i<numTri;i++)
             {        
-                    int triIndex=(int)bvhLeafs.getValue(tri_bvh_lf_tref,currentNode+i);
+                    int triIndex=(int)tri_bvh_lf_raw.getValue(tri_bvh_lf_tref,currentNode+i);
                     float4 a4=verts.getValue(tri_verts_tref, triIndex*3);
                     float4 b4=verts.getValue(tri_verts_tref, triIndex*3+1);
                     float4 c4=verts.getValue(tri_verts_tref, triIndex*3+2);
@@ -1187,13 +1187,13 @@ struct RayIntersectFunctor{
 
     eavlConstArrayV2<float4> verts;
     eavlConstArrayV2<float4> bvh;
-    eavlConstArrayV2<float>  bvhLeafs;
+    eavlConstArrayV2<float>  tri_bvh_lf_raw;
     primitive_t              primitiveType;
 
-    RayIntersectFunctor(eavlConstArrayV2<float4> *_verts, eavlConstArrayV2<float4> *theBvh,eavlConstArrayV2<float> *theBvhLeafs, primitive_t _primitveType)
+    RayIntersectFunctor(eavlConstArrayV2<float4> *_verts, eavlConstArrayV2<float4> *theBvh,eavlConstArrayV2<float> *thetri_bvh_lf_raw, primitive_t _primitveType)
         :verts(*_verts),
          bvh(*theBvh),
-         bvhLeafs(*theBvhLeafs)
+         tri_bvh_lf_raw(*thetri_bvh_lf_raw)
     {}                                                 
     EAVL_HOSTDEVICE tuple<int,float,int> operator()( tuple<float,float,float,float,float,float,int, int, float> rayTuple){
        
@@ -1206,7 +1206,7 @@ struct RayIntersectFunctor{
         float maxDistance = get<8>(rayTuple);
         eavlVector3 rayOrigin(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
         eavlVector3       ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
-        minHit = getIntersectionTri(ray, rayOrigin, false,bvh,bvhLeafs, verts,maxDistance,distance);
+        minHit = getIntersectionTri(ray, rayOrigin, false,bvh,tri_bvh_lf_raw, verts,maxDistance,distance);
     
         if(minHit!=-1) return tuple<int,float,int>(minHit, distance, TRIANGLE);
         else           return tuple<int,float,int>(hitIdx, INFINITE, get<7>(rayTuple));
@@ -1346,14 +1346,14 @@ struct occIntersectFunctor{
     eavlConstArrayV2<float4> verts;
     // /eavlConstArray<float> bvh;
     eavlConstArrayV2<float4> bvh;
-    eavlConstArrayV2<float> bvhLeafs;
+    eavlConstArrayV2<float> tri_bvh_lf_raw;
     primitive_t primitiveType;
 
 
-    occIntersectFunctor(eavlConstArrayV2<float4> *_verts, eavlConstArrayV2<float4> *theBvh, eavlConstArrayV2<float> *theBvhLeafs, float max, primitive_t _primitveType)
+    occIntersectFunctor(eavlConstArrayV2<float4> *_verts, eavlConstArrayV2<float4> *theBvh, eavlConstArrayV2<float> *thetri_bvh_lf_raw, float max, primitive_t _primitveType)
         :verts(*_verts),
          bvh(*theBvh),
-         bvhLeafs(*theBvhLeafs),
+         tri_bvh_lf_raw(*thetri_bvh_lf_raw),
          primitiveType(_primitveType)
     {
 
@@ -1370,7 +1370,7 @@ struct occIntersectFunctor{
         float distance;
         eavlVector3 intersect(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
         eavlVector3 ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
-        minHit= getIntersectionTri(ray, intersect, true,bvh, bvhLeafs, verts,maxDistance, distance);
+        minHit= getIntersectionTri(ray, intersect, true,bvh, tri_bvh_lf_raw, verts,maxDistance, distance);
 
         if(minHit!=-1) return tuple<float>(0.0f);
         else return tuple<float>(1.0f);
@@ -1384,14 +1384,14 @@ struct ShadowRayFunctor
     eavlConstArrayV2<float4> verts;
     //eavlConstArray<float> bvh;
     eavlConstArrayV2<float4> bvh;
-    eavlConstArrayV2<float> bvhLeafs;
+    eavlConstArrayV2<float> tri_bvh_lf_raw;
     eavlVector3 light;
     primitive_t type;
 
-    ShadowRayFunctor(eavlVector3 theLight,eavlConstArrayV2<float4> *_verts,eavlConstArrayV2<float4> *theBvh,eavlConstArrayV2<float> *theBvhLeafs, primitive_t _type)
+    ShadowRayFunctor(eavlVector3 theLight,eavlConstArrayV2<float4> *_verts,eavlConstArrayV2<float4> *theBvh,eavlConstArrayV2<float> *thetri_bvh_lf_raw, primitive_t _type)
         :verts(*_verts),
          bvh(*theBvh),
-         bvhLeafs(*theBvhLeafs),
+         tri_bvh_lf_raw(*thetri_bvh_lf_raw),
          light(theLight),
          type(_type)
     {}
@@ -1410,7 +1410,7 @@ struct ShadowRayFunctor
         shadowRay.normalize();
         int minHit;
         float distance;
-        minHit= getIntersectionTri(shadowRay, rayOrigin, true,bvh, bvhLeafs, verts,lightDistance, distance);
+        minHit= getIntersectionTri(shadowRay, rayOrigin, true,bvh, tri_bvh_lf_raw, verts,lightDistance, distance);
         if(minHit!=-1) return tuple<int>(1);//in shadow
         else return tuple<int>(0);//clear view of the light
 
@@ -1827,14 +1827,14 @@ void eavlRayTracerMutator::extractGeometry()
     
 
     int    bvhsize      =0;
-    int    bvhLeafSize  =0;
+    int    tri_bvh_lf_rawize  =0;
     bool   cacheExists  =false;
     bool   writeCache   =true;
     
 
     if(useBVHCache)
     {
-        cacheExists=readBVHCache(bvhFlatArray_raw, bvhsize, bvhLeafs, bvhLeafSize, bvhCacheName.c_str());
+        cacheExists=readBVHCache(tri_bvh_in_raw, bvhsize, tri_bvh_lf_raw, tri_bvh_lf_rawize, bvhCacheName.c_str());
     }
     else 
     {
@@ -1844,15 +1844,15 @@ void eavlRayTracerMutator::extractGeometry()
     {  
         cout<<"Building BVH...."<<endl;
         SplitBVH *testSplit= new SplitBVH(tri_verts_raw, numTriangles, 0); // 0=triangle
-        testSplit->getFlatArray(bvhsize, bvhLeafSize, bvhFlatArray_raw, bvhLeafs);
-        if( writeCache) writeBVHCache(bvhFlatArray_raw, bvhsize, bvhLeafs, bvhLeafSize, bvhCacheName.c_str());
+        testSplit->getFlatArray(bvhsize, tri_bvh_lf_rawize, tri_bvh_in_raw, tri_bvh_lf_raw);
+        if( writeCache) writeBVHCache(tri_bvh_in_raw, bvhsize, tri_bvh_lf_raw, tri_bvh_lf_rawize, bvhCacheName.c_str());
         delete testSplit;
     }
     
     if(numMats==0) { cerr<<"NO MATS bailing"<<endl; exit(0); }
 
-    tri_bvh_in_array      = new eavlConstArrayV2<float4>((float4*)bvhFlatArray_raw, bvhsize/4,tri_bvh_in_tref);
-    tri_bvh_lf_array = new eavlConstArrayV2<float>(bvhLeafs, bvhLeafSize,tri_bvh_lf_tref);
+    tri_bvh_in_array      = new eavlConstArrayV2<float4>((float4*)tri_bvh_in_raw, bvhsize/4,tri_bvh_in_tref);
+    tri_bvh_lf_array = new eavlConstArrayV2<float>(tri_bvh_lf_raw, tri_bvh_lf_rawize,tri_bvh_lf_tref);
     tri_verts_array    = new eavlConstArrayV2<float4>((float4*)tri_verts_raw,numTriangles*3, tri_verts_tref);
 
 

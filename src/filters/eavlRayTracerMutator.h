@@ -292,7 +292,7 @@ class eavlRayTracerMutator : public eavlMutator
 
       delete[] tri_verts_raw;
       delete[] tri_norms_raw;
-      delete[] bvhFlatArray_raw;
+      delete[] tri_bvh_in_raw;
       delete   zBuffer;
 
       delete redIndexer;
@@ -301,7 +301,7 @@ class eavlRayTracerMutator : public eavlMutator
 
       delete primitiveTypeHit;
       delete scalars;
-      delete bvhLeafs;
+      delete tri_bvh_lf_raw;
       //delete bvhFlatArray;
       //conditional deletes
       if (antiAlias)
@@ -465,8 +465,8 @@ class eavlRayTracerMutator : public eavlMutator
     float     *colorMap_raw;
     float     *tri_verts_raw;                   /* Triangle verts, currenly scalars are stored with the verts*/
     float     *tri_norms_raw;
-    float     *bvhFlatArray_raw;            /* BVH broken up into inner nodes and leaf nodes */
-    float     *bvhLeafs;
+    float     *tri_bvh_in_raw;            /* BVH broken up into inner nodes and leaf nodes */
+    float     *tri_bvh_lf_raw;
     int       *tri_matIdx_raw;
     float     *mats_raw;
 
