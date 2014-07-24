@@ -1537,12 +1537,15 @@ struct ShaderFunctor
 
 
         if(hitIdx==-1 ) return tuple<float,float,float>(1,1,1);// primary ray never hit anything.
+        
         int primitiveType=get<15>(input);
+        
+        return tuple<float,float,float>(1,0,0);
         eavlVector3 normal(get<8>(input), get<9>(input), get<10>(input));
         eavlVector3 rayInt(get<2>(input), get<3>(input), get<4 >(input));
         eavlVector3 rayOrigin(get<11>(input),get<12>(input),get<13>(input));
         eavlVector3 abg(get<5>(input),get<6>(input),1.f); //alpha beta gamma
-
+        return tuple<float,float,float>(1,0,0);
         abg.z=abg.z-abg.x-abg.y; // get gamma
         eavlVector3 lightDir    = light-rayInt;
         eavlVector3 viewDir     = eye-rayOrigin;
@@ -1554,8 +1557,9 @@ struct ShaderFunctor
 
 
         int id=0;
+        
         if(primitiveType==TRIANGLE) id =matIds[hitIdx];
-        else if(primitiveType == SPHERE ) id=sphr_matIds[hitIdx];
+        else if(primitiveType == SPHERE ) id=0;//sphr_matIds[hitIdx];
 
         eavlVector3* matPtr=(eavlVector3*)(&mats[0]+id*12);
         eavlVector3 ka=matPtr[0];//these could be lerped if it is possible that a single tri could be made of several mats
@@ -2878,15 +2882,15 @@ void eavlRayTracerMutator::fpsTest(int warmupRounds, int testRounds)
 
 void eavlRayTracerMutator::cleanUp()
 {
-    if(tri_bvh_lf_array != NULL) {delete tri_bvh_lf_array; tri_bvh_lf_array  =NULL; }
-    if(tri_bvh_lf_array != NULL) {delete tri_bvh_in_array; tri_bvh_in_array  =NULL; }
-    if(tri_bvh_lf_array != NULL) {delete tri_verts_array;  tri_verts_array   =NULL; }
+    //if(tri_bvh_lf_array != NULL) {delete tri_bvh_lf_array; tri_bvh_lf_array  =NULL; }
+    //if(tri_bvh_lf_array != NULL) {delete tri_bvh_in_array; tri_bvh_in_array  =NULL; }
+    //if(tri_bvh_lf_array != NULL) {delete tri_verts_array;  tri_verts_array   =NULL; }
 
 
-    if(tri_bvh_lf_array != NULL) {delete sphr_bvh_in_array; sphr_bvh_in_array=NULL; }
-    if(tri_bvh_lf_array != NULL) {delete sphr_verts_array;  sphr_verts_array =NULL; }
-    if(tri_bvh_lf_array != NULL) {delete sphr_bvh_lf_array; sphr_bvh_lf_array=NULL; }
+    //if(tri_bvh_lf_array != NULL) {delete sphr_bvh_in_array; sphr_bvh_in_array=NULL; }
+    //if(tri_bvh_lf_array != NULL) {delete sphr_verts_array;  sphr_verts_array =NULL; }
+    //if(tri_bvh_lf_array != NULL) {delete sphr_bvh_lf_array; sphr_bvh_lf_array=NULL; }
 
-    if(tri_bvh_lf_array != NULL) {delete color_map_array;   color_map_array  =NULL; }
+    //if(tri_bvh_lf_array != NULL) {delete color_map_array;   color_map_array  =NULL; }
 }
 
