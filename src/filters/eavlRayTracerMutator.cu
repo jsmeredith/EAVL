@@ -55,7 +55,7 @@ texture<float>  tri_bvh_lf_tref;            /* BVH leaf nodes */
 /*Sphere Textures */
 texture<float4> sphr_verts_tref;
 texture<float4> sphr_bvh_in_tref;
-texture<float4> sphr_bvh_lf_tref;
+texture<float> sphr_bvh_lf_tref;
 
 
 texture<float4> color_map_tref;
@@ -903,9 +903,7 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
     float odirz=oz*invDirz;
 
     while(currentNode!=END_FLAG) {
-        
 
-        
         if(currentNode>-1)
         {
 
@@ -913,12 +911,12 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
             float4 n2=bvh.getValue(tri_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
             float4 n3=bvh.getValue(tri_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
             
-            float txmin0 =   n1.x* invDirx -odirx;       
-            float tymin0 =   n1.y* invDiry -odiry;         
-            float tzmin0 =   n1.z* invDirz -odirz;
-            float txmax0 =   n1.w* invDirx -odirx;
-            float tymax0 =   n2.x* invDiry -odiry;
-            float tzmax0 =   n2.y* invDirz -odirz;
+            float txmin0 = n1.x* invDirx -odirx;       
+            float tymin0 = n1.y* invDiry -odiry;         
+            float tzmin0 = n1.z* invDirz -odirz;
+            float txmax0 = n1.w* invDirx -odirx;
+            float tymax0 = n2.x* invDiry -odiry;
+            float tzmax0 = n2.y* invDirz -odirz;
            
             float tmin0=max(max(max(min(tymin0,tymax0),min(txmin0,txmax0)),min(tzmin0,tzmax0)),0.f);
             float tmax0=min(min(min(max(tymin0,tymax0),max(txmin0,txmax0)),max(tzmin0,tzmax0)), minDistance);
@@ -926,49 +924,49 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
             bool traverseChild0=(tmax0>=tmin0);
 
              
-            float txmin1 =   n2.z* invDirx -odirx;       
-            float tymin1 =   n2.w* invDiry -odiry;
-            float tzmin1 =   n3.x* invDirz -odirz;
-            float txmax1 =   n3.y* invDirx -odirx;
-            float tymax1 =   n3.z* invDiry- odiry;
-            float tzmax1 =   n3.w* invDirz -odirz;
+            float txmin1 = n2.z* invDirx -odirx;       
+            float tymin1 = n2.w* invDiry -odiry;
+            float tzmin1 = n3.x* invDirz -odirz;
+            float txmax1 = n3.y* invDirx -odirx;
+            float tymax1 = n3.z* invDiry- odiry;
+            float tzmax1 = n3.w* invDirz -odirz;
             float tmin1=max(max(max(min(tymin1,tymax1),min(txmin1,txmax1)),min(tzmin1,tzmax1)),0.f);
             float tmax1=min(min(min(max(tymin1,tymax1),max(txmin1,txmax1)),max(tzmin1,tzmax1)), minDistance);
             
             bool traverseChild1=(tmax1>=tmin1);
 
-        if(!traverseChild0 && !traverseChild1)
-        {
-
-            currentNode=todo[stackptr]; //go back put the stack
-            stackptr--;
-        }
-        else
-        {
-            float4 n4=bvh.getValue(tri_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
-            int leftChild =(int)n4.x;
-            int rightChild=(int)n4.y;
-
-            currentNode= (traverseChild0) ? leftChild : rightChild;
-            if(traverseChild1 && traverseChild0)
+            if(!traverseChild0 && !traverseChild1)
             {
-                if(tmin0>tmin1)
-                {
 
-                   
-                    currentNode=rightChild;
-                    stackptr++;
-                    todo[stackptr]=leftChild;
-                }
-                else
-                {   
-                    stackptr++;
-                    todo[stackptr]=rightChild;
-                }
-
-
+                currentNode=todo[stackptr]; //go back put the stack
+                stackptr--;
             }
-        }
+            else
+            {
+                float4 n4=bvh.getValue(tri_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
+                int leftChild =(int)n4.x;
+                int rightChild=(int)n4.y;
+
+                currentNode= (traverseChild0) ? leftChild : rightChild;
+                if(traverseChild1 && traverseChild0)
+                {
+                    if(tmin0>tmin1)
+                    {
+
+                       
+                        currentNode=rightChild;
+                        stackptr++;
+                        todo[stackptr]=leftChild;
+                    }
+                    else
+                    {   
+                        stackptr++;
+                        todo[stackptr]=rightChild;
+                    }
+
+
+                }
+            }
         }
         
         if(currentNode < 0 && currentNode != barrier)//check register usage
@@ -1816,25 +1814,40 @@ void eavlRayTracerMutator::extractGeometry()
     
 
     if(verbose) cerr<<"Extracting Geometry"<<endl;
-    
+    scene->addSphere(5.f, 22, 33,0,0);
+    scene->addSphere(5.f, 22, 33,0,0);
+    scene->addSphere(5.f, 26, 33,62,0);
+    scene->addSphere(5.f, 22, 33,0,0);
+    scene->addSphere(5.f, 22, 4,4,0);
+    scene->addSphere(5.f, 4, 33,0,0);
+    scene->addSphere(5.f, 22, 5,0,0);
+    scene->addSphere(5.f, 22, 33,0,0);
+
+    scene->addSphere(5.f, 1, 1,0,0);
+    scene->addSphere(5.f, 0, 0,0),0;
+
+
+
     scene->createRawData();
     numTriangles    = scene->getNumTriangles();
     int numSpheres  = scene->getNumSpheres();
     tri_verts_raw   = scene->getTrianglePtr();
     tri_norms_raw   = scene->getTriangleNormPtr();
     tri_matIdx_raw  = scene->getTriMatIdxsPtr();
+    sphr_verts_raw  = scene->getSpherePtr();
+    sphr_matIdx_raw = scene->getSphrMatIdxPtr();
     numMats         = scene->getNumMaterials();
     mats_raw        = scene->getMatsPtr();
     
 
-    int    tri_bvh_in_size   =0;
-    int    tri_bvh_lf_size   =0;
-    int    sphr_bvh_in_size  =0;
-    int    sphr_bvh_lf_size  =0;
+    int tri_bvh_in_size   = 0;
+    int tri_bvh_lf_size   = 0;
+    int sphr_bvh_in_size  = 0;
+    int sphr_bvh_lf_size  = 0;
 
-    
-    bool   cacheExists  =false;
-    bool   writeCache   =true;
+
+    bool cacheExists  =false;
+    bool writeCache   =true;
     
 
     if(false )//useBVHCache)
@@ -1846,42 +1859,52 @@ void eavlRayTracerMutator::extractGeometry()
         writeCache=false;
     }
 
-    if(numTriangles>0)
+    if(numTriangles > 0)
     {
 
         if(!cacheExists)
         {  
             cout<<"Building BVH...."<<endl;
-            SplitBVH *testSplit= new SplitBVH(tri_verts_raw, numTriangles, 0); // 0=triangle
+            SplitBVH *testSplit= new SplitBVH(tri_verts_raw, numTriangles, TRIANGLE); // 0=triangle
             testSplit->getFlatArray(tri_bvh_in_size, tri_bvh_lf_size, tri_bvh_in_raw, tri_bvh_lf_raw);
             if( writeCache) writeBVHCache(tri_bvh_in_raw, tri_bvh_in_size, tri_bvh_lf_raw, tri_bvh_lf_size, bvhCacheName.c_str());
             delete testSplit;
         }
-    }
 
-    if(numSpheres>0)
+        tri_bvh_in_array   = new eavlConstArrayV2<float4>((float4*)tri_bvh_in_raw, tri_bvh_in_size/4,tri_bvh_in_tref);
+        tri_bvh_lf_array   = new eavlConstArrayV2<float>(tri_bvh_lf_raw, tri_bvh_lf_size,tri_bvh_lf_tref);
+        tri_verts_array    = new eavlConstArrayV2<float4>((float4*)tri_verts_raw,numTriangles*3, tri_verts_tref);
+
+        INIT(eavlConstArray<float>,tri_norms,numTriangles*9);
+        INIT(eavlConstArray<int>, tri_matIdx,numTriangles);
+    }
+    cout<<"NUM SPHERES "<<numSpheres<<endl;
+    if(numSpheres > 0)
     {
 
         if(!cacheExists)
         {  
-            cout<<"Building BVH...."<<endl;
-            SplitBVH *testSplit= new SplitBVH(tri_verts_raw, numTriangles, 0); // 0=triangle
+            cout<<"Building BVH....Spheres"<<endl;
+            SplitBVH *testSplit= new SplitBVH(sphr_verts_raw, numSpheres, SPHERE); 
             testSplit->getFlatArray(sphr_bvh_in_size, sphr_bvh_lf_size, sphr_bvh_in_raw, sphr_bvh_lf_raw);
             delete testSplit;
         }
+
+        sphr_bvh_in_array   = new eavlConstArrayV2<float4>((float4*)sphr_bvh_in_raw, sphr_bvh_in_size/4,sphr_bvh_in_tref);
+        sphr_bvh_lf_array   = new eavlConstArrayV2<float>(sphr_bvh_lf_raw, sphr_bvh_lf_size,sphr_bvh_lf_tref);
+        sphr_verts_array    = new eavlConstArrayV2<float4>((float4*)sphr_verts_raw,numSpheres, sphr_verts_tref);
+        /*no need for normals, trivial calculation */
+        INIT(eavlConstArray<int>, sphr_matIdx,numSpheres);
     }
     
     
-    if(numMats==0) { cerr<<"NO MATS bailing"<<endl; exit(0); }
+    if(numMats == 0) { cerr<<"NO MATS bailing"<<endl; exit(0); }
 
-    tri_bvh_in_array   = new eavlConstArrayV2<float4>((float4*)tri_bvh_in_raw, tri_bvh_in_size/4,tri_bvh_in_tref);
-    tri_bvh_lf_array   = new eavlConstArrayV2<float>(tri_bvh_lf_raw, tri_bvh_lf_size,tri_bvh_lf_tref);
-    tri_verts_array    = new eavlConstArrayV2<float4>((float4*)tri_verts_raw,numTriangles*3, tri_verts_tref);
+    
 
 
     INIT(eavlConstArray<float>, mats,numMats*12);
-    INIT(eavlConstArray<float>,tri_norms,numTriangles*9);
-    INIT(eavlConstArray<int>, tri_matIdx,numTriangles);
+    
     
     geomDirty=false;
     defaultMatDirty=false;

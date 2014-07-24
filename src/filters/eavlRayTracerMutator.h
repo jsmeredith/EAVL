@@ -458,9 +458,11 @@ class eavlRayTracerMutator : public eavlMutator
 
     eavlFloatArray        *scalars;         /*lerped intersection scalars */ 
     eavlConstArray<float> *mats;
+
     eavlConstArray<int>   *tri_matIdx;
     eavlConstArray<float> *tri_norms;
 
+    eavlConstArray<int>   *sphr_matIdx;
     /*  Raw Data Arrays used for eavlConst and eavlConstV2 */
     float     *colorMap_raw;
     float     *tri_verts_raw;                   /* Triangle verts, currenly scalars are stored with the verts*/
@@ -469,6 +471,7 @@ class eavlRayTracerMutator : public eavlMutator
     float     *tri_bvh_lf_raw;
     int       *tri_matIdx_raw;
 
+    float     *sphr_verts_raw;
     float     *sphr_bvh_in_raw;            /* BVH broken up into inner nodes and leaf nodes */
     float     *sphr_bvh_lf_raw;
     int       *sphr_matIdx_raw;

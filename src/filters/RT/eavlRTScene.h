@@ -25,6 +25,7 @@ class eavlRTScene
 		float * 			spheres_raw;
 		float *				mats_raw;
 		int * 			    trisMatIdxs;
+		int *				sphrMatIdx;
 		RTMaterial			defaultMat;
 	public:
 		EAVL_HOSTONLY inline eavlRTScene(RTMaterial defualtMaterial= RTMaterial());
@@ -41,6 +42,7 @@ class eavlRTScene
 													const eavlVector3 &n0 , const eavlVector3 &n1, const eavlVector3 &n2,
 													const  float &scalarV0, const float &scalarV1, const float &scalarV2,  const int &matId);
 		EAVL_HOSTONLY inline void 		addSphere(const float &radius, const float &centerX, const float &centerY, const float &centerZ, string matName="default");
+		EAVL_HOSTONLY inline void 		addSphere(const float &radius, const float &centerX, const float &centerY, const float &centerZ, const int &matId);
 		EAVL_HOSTONLY inline void 		setDefaultMaterial(const RTMaterial &_mat);
 		EAVL_HOSTONLY inline int 		addMaterial( RTMaterial _mat, string matName);
 		EAVL_HOSTONLY inline int 		addMaterial( RTMaterial _mat);
@@ -54,6 +56,7 @@ class eavlRTScene
 		EAVL_HOSTONLY inline float*     getTrianglePtr();
 		EAVL_HOSTONLY inline float*     getTriangleNormPtr();
 		EAVL_HOSTONLY inline float*     getSpherePtr();
+	    EAVL_HOSTONLY inline int*       getSphrMatIdxPtr();
 		EAVL_HOSTONLY inline float*     getMatsPtr();
 		EAVL_HOSTONLY inline int*       getTriMatIdxsPtr();
 		EAVL_HOSTONLY inline float 		getSceneExtentMagnitude();
@@ -171,6 +174,15 @@ EAVL_HOSTONLY  inline void eavlRTScene::addSphere(const float &radius, const flo
 	sceneBbox.expandToInclude(t.getBBox());
 }
 
+EAVL_HOSTONLY  inline void eavlRTScene::addSphere(const float &radius, const float &centerX, const float &centerY, const float &centerZ, const int &matId)
+{
+	
+
+	RTSphere t ( radius, eavlVector3(centerX, centerY, centerZ),matId );
+	spheres->push_back( t );
+	sceneBbox.expandToInclude(t.getBBox());
+}
+
 EAVL_HOSTONLY inline void eavlRTScene::loadObjFile(const char * _filename)
 {
 	ObjReader *objreader= new ObjReader(_filename);
@@ -266,12 +278,14 @@ void inline eavlRTScene::createRawData()
 		{
 			cout<<"Spheres not implemented yet"<<endl;
 			spheres_raw= new float[numSpheres*4];
+			sphrMatIdx = new int[numSpheres];
 			for(int i=0; i< numSpheres ; i++)
 			{
 				spheres_raw[i*4  ]= spheres->at(i).data[0];
 				spheres_raw[i*4+1]= spheres->at(i).data[1];
 				spheres_raw[i*4+2]= spheres->at(i).data[2];
 				spheres_raw[i*4+3]= spheres->at(i).data[3];
+				sphrMatIdx [i    ]= spheres->at(i).getMatIndex();
 			}
 			
 		}
@@ -296,22 +310,31 @@ void inline eavlRTScene::clear()
 
 EAVL_HOSTONLY  inline float*  eavlRTScene::getTrianglePtr()
 {
+	if(getNumTriangles()==0) return NULL;
 	return tris_raw;
 }
 
 EAVL_HOSTONLY  inline float* eavlRTScene::getTriangleNormPtr()
 {
+	if(getNumTriangles()==0) return NULL;
 	return tris_norms_raw;
 }
-EAVL_HOSTONLY inline float* eavlRTScene::getSpherePtr(){ cout<<"sphere ptr not implemented"<<endl; return spheres_raw;};
+EAVL_HOSTONLY inline float* eavlRTScene::getSpherePtr()
+{
+	if(getNumSpheres()==0) return NULL;
+ 	cout<<"sphere ptr not implemented"<<endl; 
+ 	return spheres_raw;
+};
+EAVL_HOSTONLY inline int*   eavlRTScene::getSphrMatIdxPtr()
+{ 
+	if(getNumSpheres()==0) return NULL;
+	cout<<"sphere ptr not implemented"<<endl; 
+	return sphrMatIdx;
+};
 
 EAVL_HOSTONLY inline float* eavlRTScene::getMatsPtr()
 {
-	if(mats_raw!=NULL)
-	{
-		delete mats_raw;
-	}
-
+	if(getNumMaterials() ==0) return NULL;
 	int numMats=mats->size();
 	if(numMats>0)
 	{
@@ -346,6 +369,7 @@ EAVL_HOSTONLY inline float* eavlRTScene::getMatsPtr()
 
 EAVL_HOSTONLY inline int* eavlRTScene::getTriMatIdxsPtr()
 {
+	if(getNumTriangles()==0) return NULL;
 	return trisMatIdxs;
 }
 
