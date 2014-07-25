@@ -175,6 +175,8 @@ class eavlRayTracerMutator : public eavlMutator
       if(zoom != _zoom) cameraDirty = true;
       zoom = _zoom;
     }
+
+    
     void rotateCamera(float xRadians)
     {
       eavlMatrix4x4 rot;

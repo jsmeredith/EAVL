@@ -38,10 +38,10 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setVerbose(true);
         tracer->setAOMax(5);
         tracer->setOccSamples(4);
-        tracer->setAO(false);
+        tracer->setAO(true);
         tracer->setBVHCache(false); // don't use cache
         tracer->setCompactOp(false);
-        tracer->setShadowsOn(false);
+        tracer->setShadowsOn(true);
         setLight=true;
         ctName="";
         tracer->setDefaultMaterial(Ka,Kd,Ks);
@@ -191,12 +191,12 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setZoom(view.view3d.zoom);
 
         eavlVector3 lookdir = (view.view3d.at - view.view3d.from).normalized();
-        tracer->lookAtPos(view.view3d.at.x,view.view3d.at.y,view.view3d.at.z);
-        tracer->setCameraPos(view.view3d.from.x,view.view3d.from.y,view.view3d.from.z);
-
         eavlVector3 right = (lookdir % view.view3d.up).normalized();
         /* Tracer is a lefty, so this is flip so down is not up */
         eavlVector3 up = ( lookdir % right).normalized();  
+
+        tracer->lookAtPos(view.view3d.at.x,view.view3d.at.y,view.view3d.at.z);
+        tracer->setCameraPos(view.view3d.from.x,view.view3d.from.y,view.view3d.from.z);
         tracer->setUp(up.x,up.y,up.z);
         
         /*Otherwise the light will move with the camera*/

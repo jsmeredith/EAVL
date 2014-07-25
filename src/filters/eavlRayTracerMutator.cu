@@ -587,6 +587,7 @@ struct RayGenFunctor
 
         delta_x = ru*(2*thx/(float)w);
         delta_y = rv*(2*thy/(float)h);
+        
         if(_zoom > 0)
         {
             delta_x /= _zoom;
@@ -1415,7 +1416,7 @@ struct ReflectSphrFunctor{
         //reflect the ray
         
         normal.normalize();
-        if ((normal*ray) > 0.0f) normal = -normal; //flip the normal if we hit the back side
+        //if ((normal*ray) > 0.0f) normal = -normal; //flip the normal if we hit the back side
         reflection=ray-normal*2.f*(normal*ray);
         reflection.normalize();
         intersect=intersect+(-ray*BARY_TOLE);
@@ -1501,14 +1502,14 @@ struct occIntersectFunctor{
     eavlConstArrayV2<float4> verts;
     // /eavlConstArray<float> bvh;
     eavlConstArrayV2<float4> bvh;
-    eavlConstArrayV2<float> tri_bvh_lf_raw;
+    eavlConstArrayV2<float> bvh_lf;
     primitive_t primitiveType;
 
 
-    occIntersectFunctor(eavlConstArrayV2<float4> *_verts, eavlConstArrayV2<float4> *theBvh, eavlConstArrayV2<float> *thetri_bvh_lf_raw, float max, primitive_t _primitveType)
+    occIntersectFunctor(eavlConstArrayV2<float4> *_verts, eavlConstArrayV2<float4> *theBvh, eavlConstArrayV2<float> *_bvh_lf, float max, primitive_t _primitveType)
         :verts(*_verts),
          bvh(*theBvh),
-         tri_bvh_lf_raw(*thetri_bvh_lf_raw),
+         bvh_lf(*_bvh_lf),
          primitiveType(_primitveType)
     {
 
@@ -1525,7 +1526,14 @@ struct occIntersectFunctor{
         float distance;
         eavlVector3 intersect(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
         eavlVector3 ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
-        minHit= getIntersectionTri(ray, intersect, true,bvh, tri_bvh_lf_raw, verts,maxDistance, distance);
+        if(primitiveType ==  TRIANGLE )
+        {
+            minHit= getIntersectionTri(ray, intersect, true,bvh, bvh_lf, verts,maxDistance, distance);
+        }
+        else if(primitiveType == SPHERE)
+        {
+            minHit= getIntersectionSphere(ray, intersect, true,bvh, bvh_lf, verts,maxDistance, distance);
+        }
 
         if(minHit!=-1) return tuple<float>(0.0f);
         else return tuple<float>(1.0f);
@@ -2164,20 +2172,38 @@ void eavlRayTracerMutator::occlusionIntersect()
                                              FloatMemsetFunctor(0.f)),
                                              "memset");
     eavlExecutor::Go();
-
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(occX),
-                                                        eavlIndexable<eavlFloatArray>(occY),
-                                                        eavlIndexable<eavlFloatArray>(occZ),
-                                                        eavlIndexable<eavlFloatArray>(interX, *occIndexer),
-                                                        eavlIndexable<eavlFloatArray>(interY, *occIndexer),
-                                                        eavlIndexable<eavlFloatArray>(interZ, *occIndexer),
-                                                        eavlIndexable<eavlIntArray>  (hitIdx, *occIndexer),
-                                                        eavlIndexable<eavlFloatArray>(localHits)),
-                                             eavlOpArgs(localHits),
-                                             occIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array,aoMax, TRIANGLE)),
-                                             "occIntercept");
-            
-    eavlExecutor::Go();
+    if(numTriangles > 0)
+    {
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(occX),
+                                                            eavlIndexable<eavlFloatArray>(occY),
+                                                            eavlIndexable<eavlFloatArray>(occZ),
+                                                            eavlIndexable<eavlFloatArray>(interX, *occIndexer),
+                                                            eavlIndexable<eavlFloatArray>(interY, *occIndexer),
+                                                            eavlIndexable<eavlFloatArray>(interZ, *occIndexer),
+                                                            eavlIndexable<eavlIntArray>  (hitIdx, *occIndexer),
+                                                            eavlIndexable<eavlFloatArray>(localHits)),
+                                                 eavlOpArgs(localHits),
+                                                 occIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array,aoMax, TRIANGLE)),
+                                                 "occIntercept");
+                
+        eavlExecutor::Go();
+    }
+    if(numSpheres > 0)
+    {
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(occX),
+                                                            eavlIndexable<eavlFloatArray>(occY),
+                                                            eavlIndexable<eavlFloatArray>(occZ),
+                                                            eavlIndexable<eavlFloatArray>(interX, *occIndexer),
+                                                            eavlIndexable<eavlFloatArray>(interY, *occIndexer),
+                                                            eavlIndexable<eavlFloatArray>(interZ, *occIndexer),
+                                                            eavlIndexable<eavlIntArray>  (hitIdx, *occIndexer),
+                                                            eavlIndexable<eavlFloatArray>(localHits)),
+                                                 eavlOpArgs(localHits),
+                                                 occIntersectFunctor(sphr_verts_array,sphr_bvh_in_array,sphr_bvh_lf_array,aoMax, SPHERE)),
+                                                 "occIntercept");
+                
+        eavlExecutor::Go();
+    }
 }
 
 void eavlRayTracerMutator::reflect()
