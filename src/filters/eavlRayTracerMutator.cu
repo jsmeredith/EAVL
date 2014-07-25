@@ -88,6 +88,17 @@ class eavlConstArrayV2
 
 #endif
     }
+    ~eavlConstArrayV2()
+    {
+        
+
+#ifdef HAVE_CUDA
+        cudaFree(device);
+        CUDA_CHECK_ERROR();
+#endif
+
+
+    }
 #ifdef __CUDA_ARCH__
 #ifdef USE_TEXTURE_MEM
     EAVL_DEVICEONLY  const T getValue(texture<T> g_textureRef, int index) const
@@ -242,6 +253,7 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     aoMax       = 1.f;
     verbose     = false;
     rayDirX     = NULL;
+
     redIndexer  = new eavlArrayIndexer(3,0);
     greenIndexer= new eavlArrayIndexer(3,1);
     blueIndexer = new eavlArrayIndexer(3,2);
@@ -270,10 +282,63 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     tri_matIdx_raw  = NULL;
     sphr_verts_raw  = NULL;
     sphr_matIdx_raw = NULL;
-    numMats         = NULL;
     mats_raw        = NULL;
 
 
+
+    rayDirX = NULL;
+    rayDirY = NULL;
+    rayDirZ = NULL;
+
+    rayOriginX = NULL;
+    rayOriginY = NULL;
+    rayOriginZ = NULL;
+
+    r = NULL;
+    g = NULL;
+    b = NULL;
+
+    alphas = NULL;
+    betas = NULL;
+
+    interX = NULL;
+    interY = NULL;
+    interZ = NULL;
+
+    normX = NULL;
+    normY = NULL;
+    normZ = NULL;
+
+    hitIdx = NULL;
+    indexes = NULL;
+    mortonIndexes = NULL;
+    shadowHits = NULL;
+
+    r2 = NULL;
+    b2 = NULL;
+    g2 = NULL;
+    ambPct = NULL;
+    zBuffer = NULL;
+    frameBuffer = NULL;
+    scalars = NULL;
+    primitiveTypeHit = NULL;
+    minDistances = NULL;
+
+    compactTempInt = NULL;
+    compactTempFloat = NULL;
+
+    rOut = NULL;
+    gOut = NULL;
+    bOut = NULL;
+    occX = NULL;
+    occY = NULL;
+    occZ = NULL;
+    localHits = NULL;
+    tempAmbPct = NULL;
+    occIndexer = NULL;
+    mask = NULL;
+    count = NULL;
+    indexScan = NULL;
     setDefaultColorMap();
     cout<<"Construtor Done. Dirty"<<endl;
 }
@@ -311,7 +376,7 @@ void eavlRayTracerMutator::setDefaultColorMap()
     }
     if(colorMap_raw!=NULL)
     {
-        delete colorMap_raw;
+        delete[] colorMap_raw;
     }
     //two values all 1s
     colorMapSize=2;
@@ -1239,7 +1304,7 @@ struct RayIntersectFunctor{
         } 
         else if(primitiveType == SPHERE)
         {
-            cout<<"Sphere"<<endl;
+            
             minHit = getIntersectionSphere(ray, rayOrigin, false,bvh,bvh_inner, verts,maxDistance,distance);
         }
         
@@ -1710,74 +1775,77 @@ void eavlRayTracerMutator::writeBMP(int _height, int _width, eavlFloatArray *r, 
 
 void eavlRayTracerMutator::allocateArrays()
 {
-    if(rayDirX!=NULL)
-    {   cout<<"Deleting"<<rayDirX<<endl;
-        delete  rayDirX;
-        delete  rayDirY;
-        delete  rayDirZ;
 
-        delete  rayOriginX;
-        delete  rayOriginY;
-        delete  rayOriginZ;
+    cout<<"Deleting"<<rayDirX<<endl;
+    deleteClassPtr(rayDirX);
+    deleteClassPtr(rayDirY);
+    deleteClassPtr(rayDirZ);
 
-        delete  r;
-        delete  g;
-        delete  b;
+    deleteClassPtr(rayOriginX);
+    deleteClassPtr(rayOriginY);
+    deleteClassPtr(rayOriginZ);
 
-        delete  alphas;
-        delete  betas;
+    deleteClassPtr(r);
+    deleteClassPtr(g);
+    deleteClassPtr(b);
 
-        delete  interX;
-        delete  interY;
-        delete  interZ;
+    deleteClassPtr(alphas);
+    deleteClassPtr(betas);
 
-        delete  normX;
-        delete  normY;
-        delete  normZ;
+    deleteClassPtr(interX);
+    deleteClassPtr(interY);
+    deleteClassPtr(interZ);
 
-        delete hitIdx;
-        delete indexes;
-        delete mortonIndexes;
-        delete shadowHits;
+    deleteClassPtr(normX);
+    deleteClassPtr(normY);
+    deleteClassPtr(normZ);
 
-        delete r2;
-        delete b2;
-        delete g2;
+    deleteClassPtr(hitIdx);
+    deleteClassPtr(indexes);
+    deleteClassPtr(mortonIndexes);
+    deleteClassPtr(shadowHits);
 
-        delete ambPct;
-        delete zBuffer;
-        delete frameBuffer;
-        delete scalars;
-        delete primitiveTypeHit;
-        delete minDistances;
+    deleteClassPtr(r2);
+    deleteClassPtr(b2);
+    deleteClassPtr(g2);
+
+    deleteClassPtr(ambPct);
+    deleteClassPtr(zBuffer);
+    deleteClassPtr(frameBuffer);
+    deleteClassPtr(scalars);
+    deleteClassPtr(primitiveTypeHit);
+    deleteClassPtr(minDistances);
+
+    deleteClassPtr(compactTempInt);
+    deleteClassPtr(compactTempFloat);
         //what happens when someone turns these on and off??? 
         //1. we could just always do it and waste memory
         //2 call allocation if we detect dirty settings/dirtySize <-this is what is being done;
-        if(antiAlias)
-        {
-            
-           delete rOut;
-           delete gOut;
-           delete bOut;
-        }
-
-        if(isOccusionOn)
-        {
-            delete occX;
-            delete occY;
-            delete occZ;
-            delete localHits;
-            delete tempAmbPct;
-            delete occIndexer;
-        }
-        if (compactOp)
-        {
-            delete mask;
-            delete count; 
-            delete indexScan;
-        }
-
+    if(antiAlias)
+    {
+        
+        deleteClassPtr(rOut);
+        deleteClassPtr(gOut);
+        deleteClassPtr(bOut);
     }
+
+    if(isOccusionOn)
+    {
+         deleteClassPtr(occX);
+         deleteClassPtr(occY);
+         deleteClassPtr(occZ);
+         deleteClassPtr(localHits);
+         deleteClassPtr(tempAmbPct);
+         deleteClassPtr(occIndexer);
+    }
+    if (compactOp)
+    {
+         deleteClassPtr(mask);
+         deleteClassPtr(count); 
+         deleteClassPtr(indexScan);
+    }
+
+    
     cout<<"alloc "<<size<<endl;
     /*Temp arrays for compact*/
     compactTempInt   = new eavlIntArray("temp",1,size);
@@ -1942,9 +2010,10 @@ void eavlRayTracerMutator::extractGeometry()
     scene->addSphere(.5f, 0, 0,0,0);
     //scene->addSphere(2.f, 10, .5,0); */
 
+    freeRaw();
 
+    freeTextures();
 
-    scene->createRawData();
     numTriangles    = scene->getNumTriangles();
     numSpheres      = scene->getNumSpheres();
     tri_verts_raw   = scene->getTrianglePtr();
@@ -2450,7 +2519,7 @@ void eavlRayTracerMutator::Execute()
 #else
     //else
     //{
-    
+        cout<<"Transfering to fb"<<endl;
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(r2, g2, b2),
                                                  eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer),
                                                             eavlIndexable<eavlFloatArray>(frameBuffer,*greenIndexer),
@@ -2915,19 +2984,94 @@ void eavlRayTracerMutator::fpsTest(int warmupRounds, int testRounds)
     exit(0);
 #endif
 }
-
-
-void eavlRayTracerMutator::cleanUp()
+void eavlRayTracerMutator::freeRaw()
 {
-    //if(tri_bvh_lf_array != NULL) {delete tri_bvh_lf_array; tri_bvh_lf_array  =NULL; }
-    //if(tri_bvh_lf_array != NULL) {delete tri_bvh_in_array; tri_bvh_in_array  =NULL; }
-    //if(tri_bvh_lf_array != NULL) {delete tri_verts_array;  tri_verts_array   =NULL; }
+    cout<<"Free raw"<<endl;
+    if (tri_verts_raw   != NULL) 
+    {
+        delete[] tri_verts_raw;
+        tri_verts_raw = NULL;
+    }
+    if (tri_norms_raw   != NULL) 
+    {
+        delete[] tri_norms_raw;
+        tri_norms_raw = NULL;
+    }
+    if (tri_matIdx_raw  != NULL) 
+    {
+        delete[] tri_matIdx_raw;
+        tri_matIdx_raw = NULL;
+    }
+    if (sphr_verts_raw  != NULL) 
+    {
+        delete[] sphr_verts_raw;
+        sphr_verts_raw = NULL;
+    }
+    if (sphr_matIdx_raw != NULL) 
+    {
+        delete[] sphr_matIdx_raw;
+        sphr_matIdx_raw = NULL;
+    }
+    if (mats_raw != NULL) 
+    {
+        delete[] mats_raw;
+        mats_raw = NULL;
+    }
 
+}
 
-    //if(tri_bvh_lf_array != NULL) {delete sphr_bvh_in_array; sphr_bvh_in_array=NULL; }
-    //if(tri_bvh_lf_array != NULL) {delete sphr_verts_array;  sphr_verts_array =NULL; }
-    //if(tri_bvh_lf_array != NULL) {delete sphr_bvh_lf_array; sphr_bvh_lf_array=NULL; }
+void eavlRayTracerMutator::freeTextures()
+{
+    cout<<"Free textures"<<endl;
+   if (tri_bvh_in_array != NULL) 
+    {
+        tri_bvh_in_array->unbind(tri_bvh_in_tref);
+        delete tri_bvh_in_array;
+        tri_bvh_in_array = NULL;
+    }
+    if (tri_bvh_lf_array != NULL) 
+    {
+        tri_bvh_lf_array->unbind(tri_bvh_lf_tref);
+        delete tri_bvh_lf_array;
+        tri_bvh_lf_array = NULL;
+    }
+    if (tri_verts_array != NULL) 
+    {
+        tri_verts_array ->unbind(tri_verts_tref);
+        delete tri_verts_array;
+        tri_verts_array = NULL;
 
-    //if(tri_bvh_lf_array != NULL) {delete color_map_array;   color_map_array  =NULL; }
+    }
+    if (tri_matIdx_array != NULL) 
+    {
+        tri_matIdx_array->unbind(tri_matIdx_tref);
+        delete tri_matIdx_array;
+        tri_matIdx_array = NULL;
+    }
+
+    if (sphr_bvh_in_array != NULL) 
+    {
+        sphr_bvh_in_array->unbind(sphr_bvh_in_tref);
+        delete sphr_bvh_in_array;
+        sphr_bvh_in_array = NULL;
+    }
+    if (sphr_bvh_lf_array != NULL) 
+    {
+        sphr_bvh_lf_array->unbind(sphr_bvh_lf_tref);
+        delete sphr_bvh_lf_array;
+        sphr_bvh_lf_array = NULL;
+    }
+    if (sphr_verts_array != NULL) 
+    {
+        sphr_verts_array ->unbind(sphr_verts_tref);
+        delete sphr_verts_array;
+        sphr_verts_array = NULL;
+    }
+    if (tri_matIdx_array != NULL) 
+    {
+        sphr_matIdx_array->unbind(sphr_matIdx_tref);
+        delete sphr_matIdx_array;
+        sphr_matIdx_array = NULL;
+    }
 }
 

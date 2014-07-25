@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
     try
 
     {  
-
+        for(int k=0;k<2;k++){
         char *filename;
         char *outFilename;
         bool forceCPU=false;
@@ -313,7 +313,24 @@ int main(int argc, char *argv[])
             tracer->traversalTest(warmups,tests);
             //tracer->fpsTest(warmups,tests);
         }
-        delete tracer;
+
+        tracer->startScene();
+        tracer->scene->addSphere(1,0,0,0);
+        tracer->scene->addSphere(1,0,4,0);
+        tracer->scene->addSphere(1,2,0,0);
+        tracer->scene->addSphere(1,6,0,0);
+        tracer->scene->addSphere(1,0,5,0);
+        tracer->scene->addSphere(1,0,0,0);
+        tracer->scene->addSphere(1,0,6,0);
+        tracer->scene->addSphere(1,0,0,0);
+        tracer->scene->addSphere(1,0,7,0);
+        tracer->scene->addSphere(1,0,0,7);
+        tracer->scene->addSphere(1,5,0,0);
+
+        tracer->scene->addSphere(1,4,0,0);
+        tracer->Execute();
+
+        delete tracer;}
     }
     catch (const eavlException &e)
     {

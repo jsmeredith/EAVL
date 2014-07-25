@@ -8,6 +8,14 @@
 
 enum primitive_t { TRIANGLE=0, SPHERE=1 };
 
+template <class T>  void deleteClassPtr(T * &ptr)
+{
+    if(ptr != NULL)
+    {
+        delete ptr;
+        ptr = NULL;
+    }
+}
 
 class eavlRayTracerMutator : public eavlMutator
 {
@@ -17,7 +25,7 @@ class eavlRayTracerMutator : public eavlMutator
 
     eavlRayTracerMutator();
     void printMemUsage();
-    void SetField(const string &name)
+    void SetField(const string &name) 
     {
       fieldname = name;
     }
@@ -252,91 +260,79 @@ class eavlRayTracerMutator : public eavlMutator
 
     ~eavlRayTracerMutator()
     {
+      deleteClassPtr(rayDirX);
+      deleteClassPtr(rayDirY);
+      deleteClassPtr(rayDirZ);
 
-      delete scene;
+      deleteClassPtr(rayOriginX);
+      deleteClassPtr(rayOriginY);
+      deleteClassPtr(rayOriginZ);
 
-      delete rayDirX;
-      delete rayDirY;
-      delete rayDirZ;
+      deleteClassPtr(r);
+      deleteClassPtr(g);
+      deleteClassPtr(b);
 
-      delete  rayOriginX;
-      delete  rayOriginY;
-      delete  rayOriginZ; 
+      deleteClassPtr(alphas);
+      deleteClassPtr(betas);
 
-      delete    r;
-      delete    g;
-      delete    b;
+      deleteClassPtr(interX);
+      deleteClassPtr(interY);
+      deleteClassPtr(interZ);
 
-      delete    r2;
-      delete    g2;
-      delete    b2;
+      deleteClassPtr(normX);
+      deleteClassPtr(normY);
+      deleteClassPtr(normZ);
 
-      delete  mats;
+      deleteClassPtr(hitIdx);
+      deleteClassPtr(indexes);
+      deleteClassPtr(mortonIndexes);
+      deleteClassPtr(shadowHits);
 
-      delete  tri_norms;
+      deleteClassPtr(r2);
+      deleteClassPtr(b2);
+      deleteClassPtr(g2);
 
-      delete  alphas;
-      delete  betas;
+      deleteClassPtr(ambPct);
+      deleteClassPtr(zBuffer);
+      deleteClassPtr(frameBuffer);
+      deleteClassPtr(scalars);
+      deleteClassPtr(primitiveTypeHit);
+      deleteClassPtr(minDistances);
 
-      delete  interX;
-      delete  interY;
-      delete  interZ;
-
-      delete  normX;
-      delete  normY;
-      delete  normZ;
-
-      delete  hitIdx;
-      delete  indexes;
-      delete  mortonIndexes;
-
-      delete shadowHits;
-      delete ambPct;
-
-      delete frameBuffer;
-
-      
-      delete   zBuffer;
-
-      delete redIndexer;
-      delete blueIndexer;
-      delete greenIndexer;
-
-      delete primitiveTypeHit;
-      delete scalars;
-
-      /*Raw arrays*/
-      if (tri_verts_raw   != NULL) delete[] tri_verts_raw;
-      if (tri_norms_raw   != NULL) delete[] tri_norms_raw;
-      if (tri_matIdx_raw  != NULL) delete[] tri_matIdx_raw;
-      if (sphr_verts_raw  != NULL) delete[] sphr_verts_raw;
-      if (sphr_matIdx_raw != NULL) delete[] sphr_matIdx_raw;
-      if (mats_raw        != NULL) delete[] mats_raw;
-      //conditional deletes
-      if (antiAlias)
+      deleteClassPtr(compactTempInt);
+      deleteClassPtr(compactTempFloat);
+          //what happens when someone turns these on and off??? 
+          //1. we could just always do it and waste memory
+          //2 call allocation if we detect dirty settings/dirtySize <-this is what is being done;
+      if(antiAlias)
       {
-         //Not using this
-         //delete rOut;
-         //delete gOut;
-         //delete bOut;
+          
+          deleteClassPtr(rOut);
+          deleteClassPtr(gOut);
+          deleteClassPtr(bOut);
       }
+
       if(isOccusionOn)
       {
-        delete localHits;      
-        delete occX;
-        delete occY;
-        delete occZ;
-        delete occIndexer;
-        delete tempAmbPct;
+           deleteClassPtr(occX);
+           deleteClassPtr(occY);
+           deleteClassPtr(occZ);
+           deleteClassPtr(localHits);
+           deleteClassPtr(tempAmbPct);
+           deleteClassPtr(occIndexer);
       }
-
       if (compactOp)
       {
-          delete mask;
-          delete count;
-          delete indexScan;
+           deleteClassPtr(mask);
+           deleteClassPtr(count); 
+           deleteClassPtr(indexScan);
       }
-      cleanUp();
+
+
+      /*Raw arrays*/
+      freeRaw();
+      //conditional deletes
+      freeTextures(); 
     }
     virtual void Execute();
     void setColorMap3f(float*,int);
@@ -500,7 +496,8 @@ class eavlRayTracerMutator : public eavlMutator
     void sort();
     void createRays();
     void allocateArrays();
-    void cleanUp();
+    void freeTextures();
+    void freeRaw();
     void intersect();                        /*find the closest intersection point         */
     void shadowIntersect();                  /*Find any hit between intersect and lights   */
     void occlusionIntersect();               /*Ambient occulsion intersection              */

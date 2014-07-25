@@ -181,6 +181,7 @@ SplitBVHBuilder::SplitBVHBuilder(float *verts, int numPrimitives, const BuildPar
 
 SplitBVHBuilder::~SplitBVHBuilder(void)
 {
+    //delete m_platform;
 }
 
 int SplitBVHBuilder::getSAH(BVHNode *root)

@@ -375,6 +375,7 @@ inline ObjReader::ObjReader(const char *filename)
                 continue;
             }
         }
+        delete defaultMaterial;
     }
     catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;
