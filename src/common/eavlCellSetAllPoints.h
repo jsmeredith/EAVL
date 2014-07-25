@@ -1,4 +1,4 @@
-// Copyright 2010-2014 UT-Battelle, LLC.  See LICENSE.txt for more information.
+// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #ifndef EAVL_CELL_SET_ALL_POINTS_H
 #define EAVL_CELL_SET_ALL_POINTS_H
 
@@ -9,7 +9,7 @@
 ///   The set of cells which is all points of the dataset.
 ///   \todo: this has not been used yet.
 //
-// Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern
+// Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern, James Kress
 // Creation:    February 15, 2011
 //
 // ****************************************************************************
@@ -17,22 +17,24 @@
 class eavlCellSetAllPoints : public eavlCellSet
 {
   public:
-    eavlCellSetAllPoints(const string &n) : eavlCellSet(n, 0) { }
+    eavlCellSetAllPoints(const string &n, int numPoints) : eavlCellSet(n, 0) { 
+    	dataset_numpoints = numPoints;
+    }
     
     virtual string className() const {return "eavlCellSetAllPoints";}
     virtual eavlStream& serialize(eavlStream &s) const
     {
-	s << className();
-	eavlCellSet::serialize(s);
-	return s;
+		s << className();
+		eavlCellSet::serialize(s);
+		return s;
     }
     virtual eavlStream& deserialize(eavlStream &s)
     {
-	eavlCellSet::deserialize(s);
-	return s;
+		eavlCellSet::deserialize(s);
+		return s;
     }
     
-    virtual void PrintSummary(ostream &out) const
+    virtual void PrintSummary(ostream &out)
     {
         out << "    eavlCellSetAllPoints:\n";
         out << "        name = "<<name<<endl;
@@ -42,15 +44,14 @@ class eavlCellSetAllPoints : public eavlCellSet
     virtual eavlCell GetCellNodes(int i)
     {
         eavlCell cell;
-        cell.type = SHAPETYPE_POINT;
+        cell.type = EAVL_POINT;
         cell.numIndices = 1;
         cell.indices[0] = i;
         return cell;
     }
     virtual int GetNumCells()
     {
-        ///\todo: unimplemented
-        throw;
+        return dataset_numpoints;
     }
     virtual long long GetMemoryUsage()
     {
