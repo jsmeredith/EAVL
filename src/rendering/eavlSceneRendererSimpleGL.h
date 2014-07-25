@@ -262,6 +262,7 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
             glEnable(GL_LIGHT0);
             glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, twoSidedLighting?1:0);
             glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient.c);
+            // needed to get white specular highlights on textured polygons
             glLightModeli(GL_LIGHT_MODEL_COLOR_CONTROL, GL_SEPARATE_SPECULAR_COLOR);
             glLightfv(GL_LIGHT0, GL_AMBIENT, eavlColor::black.c);
             glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse.c);

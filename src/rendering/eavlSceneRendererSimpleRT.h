@@ -179,7 +179,7 @@ class Scene
     }
 };
 
-inline eavlColor CastRay(Ray r, Scene &scene, eavlPoint3 &lightpos,
+inline eavlColor CastRay(Ray r, Scene &scene, eavlVector3 &lightvec,
                          float &dist, eavlPoint3 &pt,
                          int ncolors, float *colors,
                          int depth = 0)
@@ -220,8 +220,8 @@ inline eavlColor CastRay(Ray r, Scene &scene, eavlPoint3 &lightpos,
 #if 0
         float bright = 1;
 #else
-        eavlVector3 lightvec = lightpos - pt;
-        float       lightdist = lightvec.norm();
+        //eavlVector3 lightvec = lightpos - pt;
+        //float       lightdist = lightvec.norm();
         eavlVector3 lightdir = lightvec.normalized();
                 
         float bright = lightdir * norm;
@@ -235,8 +235,9 @@ inline eavlColor CastRay(Ray r, Scene &scene, eavlPoint3 &lightpos,
         float lr_d;
         float lr_v;
 #if 1
+        // shadow
         Object *lr_o = scene.Intersect(lightray, lr_d, lr_p, lr_n, lr_v);
-        if (lr_o && lr_d < lightdist)
+        if (lr_o /*&& lr_d < lightdist*/)
             bright *= .5;
 #endif
 
@@ -253,7 +254,7 @@ inline eavlColor CastRay(Ray r, Scene &scene, eavlPoint3 &lightpos,
 
             float ref_dist;
             eavlPoint3 refpt;
-            eavlColor refcolor = CastRay(ref,scene,lightpos,ref_dist,refpt,ncolors,colors,depth-1);
+            eavlColor refcolor = CastRay(ref,scene,lightdir,ref_dist,refpt,ncolors,colors,depth-1);
                     
             if (ref_dist > mindist)
             {
@@ -369,7 +370,13 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
         }
         */
         
-        eavlPoint3 lightpos(20,40,0);
+        eavlVector3 lightdir(Lx,Ly,Lz);
+        if (eyeLight)
+        {
+            eavlMatrix4x4 IV = view.V;
+            IV.Invert();
+            lightdir = IV * lightdir;
+        }
         int w = view.w;
         int h = view.h;
 
@@ -388,6 +395,7 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
         screencenter = vv*screencenter;
         screenx = vv*screenx;
         screeny = vv*screeny;
+        eavlVector3 lookdir = (view.view3d.at - view.view3d.from).normalized();
 #else
         // "direct" way of calculating eye/screen positions in world space
         eavlVector3 lookdir = (view.view3d.at - view.view3d.from).normalized();
@@ -398,6 +406,13 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
         eavlVector3 screenx = right * view.viewportaspect;
         eavlVector3 screeny = up;
 #endif
+
+        screenx /= view.view3d.zoom;
+        screeny /= view.view3d.zoom;
+
+        screencenter -= view.view3d.xpan * screenx;
+        screencenter -= view.view3d.ypan * screeny;
+
 
         // need to find real z buffer values:
         float proj22=view.P(2,2);
@@ -426,7 +441,7 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
         float mind = FLT_MAX;
         float maxd = -FLT_MAX;
 
-        const int skip=15;
+        const int skip=8;
 #pragma omp parallel for schedule(dynamic,1) collapse(2)
         for (int y=0; y<h; y += skip)
         {
@@ -439,7 +454,7 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
 
                 eavlPoint3 pt;
                 float dist;
-                eavlColor c = CastRay(r, scene, lightpos, dist, pt, ncolors,colors, 0);
+                eavlColor c = CastRay(r, scene, lightdir, dist, pt, ncolors,colors, 0);
                 if (dist <= mindist)
                 {
                     //cerr << "no intersection!\n";
