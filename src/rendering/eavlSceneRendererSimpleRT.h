@@ -10,6 +10,11 @@
 
 #define mindist 0.01
 
+// note: kmeans, noiseiso, xcoord polys, default size, plotlist open,
+//       1x1, openmp, no normals, rate = 16 images in 10 seconds
+
+//       bcc lattice, same other parameters, 23 images in 10 seconds
+
 class Ray
 {
   public:
@@ -42,6 +47,59 @@ class Object
     }
     virtual float Intersect(Ray &ray, eavlPoint3 &point, eavlVector3 &normal,
                             float &value) = 0;
+    virtual float GetFurthestDistanceFromPoint(eavlPoint3 &point) = 0;
+    virtual eavlPoint3 GetCentroid() = 0;
+};
+
+class Sphere : public Object
+{
+  protected:
+  public:
+    eavlPoint3 o;
+    float r;
+    float v;
+  public:
+    Sphere(float x, float y, float z, float rad, float val)
+        : Object(), o(x,y,z), r(rad), v(val)
+    {
+    }
+    virtual float Intersect(Ray &ray, eavlPoint3 &point, eavlVector3 &normal,
+                            float &value)
+    {
+        eavlVector3 oc = ray.s - o;
+        float A = ray.v * ray.v;
+        float B = 2 * oc * ray.v;
+        float C = oc*oc - r*r;
+
+        float discr = B*B - 4*A*C;
+        if (discr < 0)
+            return -1;
+
+        float q;
+        if (B<0)
+            q = (-B + sqrt(discr)) * 0.5;
+        else
+            q = (-B - sqrt(discr)) * 0.5;
+
+        float t0 = q/A;
+        float t1 = C/q;
+        // choose the smaller of the two, unless it's negative, in
+        // which case choose the other
+        float t = (t0 < t1) ? (t0 < 0 ? t1 : t0) : (t1 < 0 ? t0 : t1);
+
+        point = ray.s + t*ray.v;
+        normal = (point - o).normalized();
+        value = v;
+        return t;
+    }
+    virtual float GetFurthestDistanceFromPoint(eavlPoint3 &point)
+    {
+        return (o - point).norm() + r;
+    }
+    virtual eavlPoint3 GetCentroid()
+    {
+        return o;
+    }
 };
 
 class Triangle : public Object
@@ -125,38 +183,29 @@ class Triangle : public Object
 
         return t;
     }
+    virtual float GetFurthestDistanceFromPoint(eavlPoint3 &point)
+    {
+        float d0 = (p - point).norm();
+        float d1 = ((p+e1) - point).norm();
+        float d2 = ((p+e2) - point).norm();
+        return (d0 > d1) ? (d0 > d2 ? d0 : d2) : (d1 > d2 ? d1 : d2);
+    }
+    virtual eavlPoint3 GetCentroid()
+    {
+        return p + (e1 + e2)/3.;
+    }
 };
-             
-class Scene
+
+class Container
 {
   public:
     vector<Object*> objects;
+    vector<Container*> containers;
   public:
-    Object *Intersect(Ray &ray, float &dist, eavlPoint3 &point, eavlVector3 &normal,
-                      float &value)
-    {
-        Object *object = NULL;
-        //cerr << "objects.size="<<objects.size()<<endl;
-        for (int i=0; i<objects.size(); ++i)
-        {
-            eavlPoint3 p;
-            eavlVector3 n;
-            float v;
-            float d = objects[i]->Intersect(ray, p, n, v);
-            //cerr << "d="<<d<<endl;
-            if (d > mindist && (!object || d < dist))
-            {
-                //cerr << "HITHITHIT\n";
-                object  = objects[i];
-                dist    = d;
-                point   = p;
-                normal  = n;
-                value   = v;
-            }
-        }
-        return object;
-    }
-    Object *IntersectFarthest(Ray &ray, float &dist, eavlPoint3 &point, eavlVector3 &normal,
+    virtual Object *Intersect(Ray &ray,
+                              float &dist,
+                              eavlPoint3 &point,
+                              eavlVector3 &normal,
                               float &value)
     {
         Object *object = NULL;
@@ -166,9 +215,25 @@ class Scene
             eavlVector3 n;
             float v;
             float d = objects[i]->Intersect(ray, p, n, v);
-            if (d > mindist && (!object || d > dist))
+            if (d > mindist && (!object || d < dist))
             {
                 object  = objects[i];
+                dist    = d;
+                point   = p;
+                normal  = n;
+                value   = v;
+            }
+        }
+        for (int i=0; i<containers.size(); ++i)
+        {
+            eavlPoint3 p;
+            eavlVector3 n;
+            float v;
+            float d = -1;
+            Object *o = containers[i]->Intersect(ray, d, p, n, v);
+            if (o && d > mindist && (!object || d < dist))
+            {
+                object  = o;
                 dist    = d;
                 point   = p;
                 normal  = n;
@@ -179,7 +244,50 @@ class Scene
     }
 };
 
-inline eavlColor CastRay(Ray r, Scene &scene, eavlVector3 &lightvec,
+class BoundingSphere : public Container
+{
+  public:
+    Sphere *sphere;
+    BoundingSphere(float x, float y, float z, float rad, float val)
+        : sphere(new Sphere(x,y,z,rad,val))
+    {
+    }
+    virtual Object *Intersect(Ray &ray,
+                              float &dist,
+                              eavlPoint3 &point,
+                              eavlVector3 &normal,
+                              float &value)
+    {
+        eavlPoint3 p;
+        eavlVector3 n;
+        float v;
+        float d = sphere->Intersect(ray, p, n, v);
+#if 0 // TEST BY PRETENDING CONTAINER IS ACTUALLY ITS SPHERE OBJECT
+        if (d > mindist)
+        {
+            dist = d;
+            point = p;
+            normal = n;
+            value = v;
+            return sphere;
+        }
+#else // REAL CODE HERE:
+        if (d > mindist)
+        {
+            Object *o =  Container::Intersect(ray, dist, point, normal, value);
+            //value = v; // debug: override content color by bounding sphere color
+            return o;
+        }
+#endif
+
+        return NULL;
+    }
+
+};
+             
+
+
+inline eavlColor CastRay(Ray r, Container &scene, eavlVector3 &lightvec,
                          float &dist, eavlPoint3 &pt,
                          int ncolors, float *colors,
                          int depth = 0)
@@ -284,7 +392,7 @@ inline eavlColor CastRay(Ray r, Scene &scene, eavlVector3 &lightvec,
 // ****************************************************************************
 class eavlSceneRendererSimpleRT : public eavlSceneRenderer
 {
-    Scene scene;
+    Container scene;
     vector<byte> rgba;
     vector<float> depth;
   public:
@@ -324,6 +432,9 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
 
     virtual void AddPointVs(double x, double y, double z, double r, double s)
     {
+        Sphere *sph = new Sphere(x,y,z,r,s);
+        sph->color = eavlColor::white;
+        scene.objects.push_back(sph);
     }
     virtual void AddLineVs(double x0, double y0, double z0,
                            double x1, double y1, double z1,
@@ -336,13 +447,188 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
         for (unsigned int i=0; i<scene.objects.size(); ++i)
             delete scene.objects[i];
         scene.objects.clear();
+        for (unsigned int i=0; i<scene.containers.size(); ++i)
+            delete scene.containers[i];
+        scene.containers.clear();
         //cerr << "startscene\n";
     }
 
     virtual void EndScene()
     {
-        // nothing to do here
-        //cerr << "endscene\n";
+        // Create a bounding hierarchy.
+        // Either K-Means or using a fixed BCC sphere lattice.
+        // (BCC seems to win in both construction and performance
+        // for common vis data sets because it's designed to
+        // minimize overlap.)
+
+        int N = scene.objects.size();
+#if 0 // K-Means
+        const int K = 150;
+        if (N < K)
+        {
+            cout << "Too few objects, no clusters\n";
+            return;
+        }
+
+        //
+        // initialize clusters to centroid of first K objects
+        //
+        //cout << "Creating clusters\n";
+        vector<eavlPoint3> clusters(K);
+        for (int k=0; k<K; ++k)
+        {
+            clusters[k] = scene.objects[k]->GetCentroid();
+            //cout << "   k="<<k<<"  " << clusters[k] << endl;
+        }
+
+        //
+        // perform K-means for a number of passes
+        //
+        //cout << "K-means\n";
+        const int npasses = 10;
+        vector<int> id(N);
+        vector<int> counts(K);
+        for (int pass = 0; pass < npasses; ++pass)
+        {
+            //cout << "   pass " << pass << endl;
+            //cout << "      labeling\n";
+            for (int i=0; i<N; ++i)
+            {
+                eavlPoint3 p = scene.objects[i]->GetCentroid();
+                float d = (p - clusters[0]).norm();
+                id[i] = 0;
+                for (int k=1; k<K; ++k)
+                {
+                    float dist = (p - clusters[k]).norm();
+                    if (dist < d)
+                    {
+                        d = dist;
+                        id[i] = k;
+                    }
+                }
+            }
+            //cout << "      adjusting\n";
+            counts.clear();
+            counts.resize(K, 0);
+            for (int k=0; k<K; ++k)
+                clusters[k] = eavlPoint3(0,0,0);
+            for (int i=0; i<N; ++i)
+            {
+                eavlPoint3 c = scene.objects[i]->GetCentroid();
+                clusters[id[i]] = clusters[id[i]] + eavlVector3(c.x,c.y,c.z);
+                counts[id[i]]++;
+            }
+            for (int k=0; k<K; ++k)
+            {
+                if (counts[k] > 0)
+                    clusters[k] /= float(counts[k]);
+            }
+        }
+
+        //
+        // create a bounding sphere for each cluster
+        // and put the old objects into it
+        //
+        vector<BoundingSphere*> spheres;
+        for (int k=0; k<K; ++k)
+        {
+            float rad = 0;
+            for (int i=0; i<N; ++i)
+            {
+                if (id[i] != k)
+                    continue;
+                float d = scene.objects[i]->GetFurthestDistanceFromPoint(clusters[k]);
+                if (d > rad)
+                    rad = d;
+            }
+            //cout << "   k="<<k<<"  " << clusters[k] << " rad="<<rad<<endl;
+            BoundingSphere *b = new BoundingSphere(clusters[k].x,
+                                                   clusters[k].y,
+                                                   clusters[k].z,
+                                                   rad * 1.01, // fuzz factor
+                                                   double(random()) / double(RAND_MAX));
+            for (int i=0; i<N; ++i)
+            {
+                if (id[i] == k)
+                    b->objects.push_back(scene.objects[i]);
+            }
+            spheres.push_back(b);
+        }
+
+        // replace scene
+        scene.objects.clear();
+        for (int i=0; i<K; ++i)
+            scene.containers.push_back(spheres[i]);
+#else
+        vector<BoundingSphere*> spheres;
+        //double l = view.size / 6.5;
+        double l = view.size / 11.5;
+        // 0.56 just barely covers space; we want a little overlap
+        // because we're currently looking for a sphere which contains 
+        // objects in their entirety so we only have to stick them in one
+        double rad1 = 0.6 * l;
+        double rad2 = 0.6 * l;
+        for (double z = view.minextents[2]; z < view.maxextents[2]+l*.5; z += l)
+        {
+            for (double y = view.minextents[1]; y < view.maxextents[1]+l*.5; y += l)
+            {
+                for (double x = view.minextents[0]; x < view.maxextents[0]+l*.5; x += l)
+                {
+                    BoundingSphere *bs1 = new BoundingSphere(x,y,z,rad1,double(random())/double(RAND_MAX));
+                    spheres.push_back(bs1);
+                    if (x<view.maxextents[0] &&
+                        y<view.maxextents[1] &&
+                        z<view.maxextents[2])
+                    {
+                        BoundingSphere *bs2 = new BoundingSphere(x+l*.5,
+                                                                 y+l*.5,
+                                                                 z+l*.5,
+                                                                 rad2,double(random())/double(RAND_MAX));
+                        spheres.push_back(bs2);
+                    }
+                }
+            }
+        }
+        int K = spheres.size();
+        //cerr << "Generated "<<K<<" bounding spheres\n";
+
+        vector<Object*> otherobjects;
+        for (int i=0; i<N; ++i)
+        {
+            bool found = false;
+            for (int k=0; k<K; ++k)
+            {
+                float d = scene.objects[i]->GetFurthestDistanceFromPoint(spheres[k]->sphere->o);
+                if (d <= spheres[k]->sphere->r)
+                {
+                    found = true;
+                    spheres[k]->objects.push_back(scene.objects[i]);
+                    break;
+                }
+            }
+            if (!found)
+            {
+                //cerr << "couldn't find a complete container for some object\n";
+                otherobjects.push_back(scene.objects[i]);
+            }
+        }
+
+        // replace scene
+        scene.objects.clear();
+        for (int i=0; i<K; ++i)
+        {
+            if (spheres[i]->objects.size() > 0)
+                scene.containers.push_back(spheres[i]);
+            else
+                delete spheres[i];
+        }
+        //cerr << "Final bounding spheres: " << scene.containers.size() << endl;
+        scene.objects.insert(scene.objects.end(),
+                             otherobjects.begin(),
+                             otherobjects.end());
+        
+#endif
+        //cout << "endscene N="<<N<<"\n";
     }
 
     virtual void Render()
@@ -441,7 +727,7 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
         float mind = FLT_MAX;
         float maxd = -FLT_MAX;
 
-        const int skip=8;
+        const int skip=3;
 #pragma omp parallel for schedule(dynamic,1) collapse(2)
         for (int y=0; y<h; y += skip)
         {
@@ -463,20 +749,6 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
 
                 if (pt.z < mind) mind = pt.z;
                 if (pt.z > maxd) maxd = pt.z;
-
-                if (false)
-                {
-                    eavlPoint3 backpt;
-                    eavlVector3 backnorm;
-                    float backdist = -1;
-                    float backvalue;
-                    Object *o = scene.IntersectFarthest(r, backdist, backpt, backnorm, backvalue);
-                    if (o && backdist > mindist)
-                    {
-                        if (backdist < mind) mind = backdist;
-                        if (backdist > maxd) maxd = backdist;
-                    }
-                }
 
 
                 //eavlPoint3 pt = r.s + r.v * dist;

@@ -357,7 +357,7 @@ class eavlSceneRenderer
 
         StartPoints();
 
-        double radius = 1.0;
+        double radius = view.size / 500.;
         for (int j=0; j<npts; j++)
         {
             double x0 = pts[j*3+0];
