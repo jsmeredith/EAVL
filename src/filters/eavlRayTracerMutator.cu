@@ -213,24 +213,24 @@ int test;
 eavlRayTracerMutator::eavlRayTracerMutator()
 {
     scene= new eavlRTScene(RTMaterial());
-    height  =1080;         //set up some defaults
-    width   =1920;
-    depth   =0;
- 
-    fovy    =30;
-    fovx    =50;
+    height  = 1080;         //set up some defaults
+    width   = 1920;
+    depth   = 0;
+    zoom    = 1.f;
+    fovy    = 30;
+    fovx    = 50;
     srand (time(NULL));   //currently not used 
-    look.x  =0;
-    look.y  =0;
-    look.z  =-1;
+    look.x  = 0;
+    look.y  = 0;
+    look.z  = -1;
 
-    lookat.x=.001;
-    lookat.y=0;
-    lookat.z=-30;
+    lookat.x= .001;
+    lookat.y= 0;
+    lookat.z= -30;
 
-    eye.x   =0;
-    eye.y   =0;
-    eye.z   =-20;
+    eye.x   = 0;
+    eye.y   = 0;
+    eye.z   = -20;
 
     light.x = 0;
     light.y = 0;
@@ -571,25 +571,32 @@ struct RayGenFunctor
     eavlVector3 nlook;// normalized look
     eavlVector3 delta_x;
     eavlVector3 delta_y;
-    RayGenFunctor(int width, int height, float half_fovX, float half_fovY, eavlVector3 look, eavlVector3 up)
+
+    RayGenFunctor(int width, int height, float half_fovX, float half_fovY, eavlVector3 look, eavlVector3 up, float _zoom)
         : h(height), w(width)
     {
-        float thx=tan(half_fovX*PI/180);
-        float thy=tan(half_fovY*PI/180);
+        float thx = tan(half_fovX*PI/180);
+        float thy = tan(half_fovY*PI/180);
 
         //eavlVector3 ru= look%up;// % == cross
-        eavlVector3 ru= up%look;
+        eavlVector3 ru = up%look;
         ru.normalize();
         //eavlVector3 rv= look%ru;
-        eavlVector3 rv= ru%look;
+        eavlVector3 rv = ru%look;
         rv.normalize();
 
-        delta_x=ru*(2*thx/(float)w);
-        delta_y=rv*(2*thy/(float)h);
+        delta_x = ru*(2*thx/(float)w);
+        delta_y = rv*(2*thy/(float)h);
+        if(_zoom > 0)
+        {
+            delta_x /= _zoom;
+            delta_y /= _zoom;    
+        }
+        
 
-        nlook.x=look.x;
-        nlook.y=look.y;
-        nlook.z=look.z;
+        nlook.x = look.x;
+        nlook.y = look.y;
+        nlook.z = look.z;
         nlook.normalize();
 
     }
@@ -2253,8 +2260,8 @@ void eavlRayTracerMutator::Execute()
     if(verbose) th = eavlTimer::Start();
     //init camera rays
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(indexes),
-                                             eavlOpArgs(rayDirX,rayDirY,rayDirZ),
-                                             RayGenFunctor(width,height,fovx,fovy,look,up)),
+                                             eavlOpArgs(rayDirX ,rayDirY, rayDirZ),
+                                             RayGenFunctor(width, height, fovx, fovy, look, up, zoom)),
                                              "ray gen");
     eavlExecutor::Go();
 
@@ -2776,7 +2783,7 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
     look=lookat-eye;
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(indexes),
                                              eavlOpArgs(rayDirX,rayDirY,rayDirZ),
-                                             RayGenFunctor(width,height,fovx,fovy,look,up)),
+                                             RayGenFunctor(width,height,fovx,fovy,look,up, zoom)),
                                              "ray gen");
     eavlExecutor::Go();
 

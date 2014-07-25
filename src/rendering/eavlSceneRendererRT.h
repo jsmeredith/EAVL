@@ -188,6 +188,8 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setFOVy((view.view3d.fov*(180.f/M_PI))/2.f);
         tracer->setFOVx( fovx/2.f );
 
+        tracer->setZoom(view.view3d.zoom);
+
         eavlVector3 lookdir = (view.view3d.at - view.view3d.from).normalized();
         tracer->lookAtPos(view.view3d.at.x,view.view3d.at.y,view.view3d.at.z);
         tracer->setCameraPos(view.view3d.from.x,view.view3d.from.y,view.view3d.from.z);

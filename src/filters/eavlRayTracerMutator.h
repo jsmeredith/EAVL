@@ -56,6 +56,8 @@ class eavlRayTracerMutator : public eavlMutator
       width=w;
     }
 
+   
+
     void setDepth(const int d)
     {
       depth=d;
@@ -168,7 +170,11 @@ class eavlRayTracerMutator : public eavlMutator
       up.z=z;
 
     }
-
+    void setZoom(float _zoom)
+    {
+      if(zoom != _zoom) cameraDirty = true;
+      zoom = _zoom;
+    }
     void rotateCamera(float xRadians)
     {
       eavlMatrix4x4 rot;
@@ -346,7 +352,8 @@ class eavlRayTracerMutator : public eavlMutator
 
   private:
     int       height;
-    int       width;           
+    int       width;  
+    float     zoom;         
     float     fovy;           /*half vertical field of view in degrees*/
     float     fovx;           /*half horizontal field of view in degrees**/
     int       depth;          /*Number of ray bounces*/
