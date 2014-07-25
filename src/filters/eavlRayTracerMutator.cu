@@ -93,8 +93,8 @@ class eavlConstArrayV2
         
 
 #ifdef HAVE_CUDA
-        cudaFree(device);
-        CUDA_CHECK_ERROR();
+        //cudaFree(device);
+        //CUDA_CHECK_ERROR();
 #endif
 
 
