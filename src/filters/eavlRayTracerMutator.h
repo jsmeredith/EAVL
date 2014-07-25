@@ -68,6 +68,11 @@ class eavlRayTracerMutator : public eavlMutator
       useBVHCache=on;
     }
 
+    void setShadowsOn(bool on)
+    {
+      shadowsOn=on;
+    }
+
     void setRawData(float *v, float *n, int numTri, float* _materials, int * _matIndex, int _numMats)
     {
       //tri_verts_raw=v;
@@ -290,9 +295,7 @@ class eavlRayTracerMutator : public eavlMutator
 
       delete frameBuffer;
 
-      delete[] tri_verts_raw;
-      delete[] tri_norms_raw;
-      delete[] tri_bvh_in_raw;
+      
       delete   zBuffer;
 
       delete redIndexer;
@@ -301,8 +304,14 @@ class eavlRayTracerMutator : public eavlMutator
 
       delete primitiveTypeHit;
       delete scalars;
-      delete tri_bvh_lf_raw;
-      //delete bvhFlatArray;
+
+      /*Raw arrays*/
+      if (tri_verts_raw   != NULL) delete[] tri_verts_raw;
+      if (tri_norms_raw   != NULL) delete[] tri_norms_raw;
+      if (tri_matIdx_raw  != NULL) delete[] tri_matIdx_raw;
+      if (sphr_verts_raw  != NULL) delete[] sphr_verts_raw;
+      if (sphr_matIdx_raw != NULL) delete[] sphr_matIdx_raw;
+      if (mats_raw        != NULL) delete[] mats_raw;
       //conditional deletes
       if (antiAlias)
       {
@@ -360,6 +369,7 @@ class eavlRayTracerMutator : public eavlMutator
     bool      defaultMatDirty;/*Default Material is dirty.*/
     bool      verbose;        /*Turn on print statements*/
     bool      useBVHCache;    /*Turn on print statements*/
+    bool      shadowsOn;      /*use shadows*/
 
     float     aoMax;          /* Maximum ambient occulsion ray length*/
     int       sampleCount;    /* keeps a running total of the number of re-usable ambient occlusion samples ie., the camera is unchanged */

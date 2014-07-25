@@ -41,6 +41,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setAO(false);
         tracer->setBVHCache(false); // don't use cache
         tracer->setCompactOp(false);
+        tracer->setShadowsOn(false);
         setLight=true;
         ctName="";
         tracer->setDefaultMaterial(Ka,Kd,Ks);
@@ -137,7 +138,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {
         //glTexCoord1f(s);
         //glVertex3d(x,y,z);
-        tracer->scene->addSphere(.01,x,y,z);
+        tracer->scene->addSphere(.1,x,y,z, "default");
     }
 
     // ------------------------------------------------------------------------

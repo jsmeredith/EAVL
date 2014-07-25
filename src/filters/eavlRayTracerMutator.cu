@@ -55,9 +55,11 @@ texture<float>  tri_bvh_lf_tref;            /* BVH leaf nodes */
 /*Sphere Textures */
 texture<float4> sphr_verts_tref;
 texture<float4> sphr_bvh_in_tref;
-texture<float> sphr_bvh_lf_tref;
-
-
+texture<float>  sphr_bvh_lf_tref;
+/*material Index textures*/
+texture<int>    tri_matIdx_tref;
+texture<int>    sphr_matIdx_tref;
+/*color map texture */
 texture<float4> color_map_tref;
 
 #define USE_TEXTURE_MEM
@@ -127,6 +129,9 @@ eavlConstArrayV2<float>*  tri_bvh_lf_array;
 eavlConstArrayV2<float4>* sphr_bvh_in_array;
 eavlConstArrayV2<float4>* sphr_verts_array;
 eavlConstArrayV2<float>*  sphr_bvh_lf_array;
+
+eavlConstArrayV2<int>*    sphr_matIdx_array;
+eavlConstArrayV2<int>*    tri_matIdx_array;    
 
 eavlConstArrayV2<float4>* color_map_array;
 
@@ -216,43 +221,57 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     eye.y   =0;
     eye.z   =-20;
 
-    light.x =0;
-    light.y =0;
-    light.z =-20;
+    light.x = 0;
+    light.y = 0;
+    light.z = -20;
 
-    compactOp   =false;
-    geomDirty   =true;
-    antiAlias   =false;
-    sizeDirty   =true;
-    cameraDirty =true;
-    useBVHCache =false;
+    compactOp   = false;
+    geomDirty   = true;
+    antiAlias   = false;
+    sizeDirty   = true;
+    cameraDirty = true;
+    useBVHCache = false;
+    shadowsOn   = true;
 
-    fileprefix  ="output";
-    filetype    =".bmp";
-    outfilename ="output.bmp";
-    frameCounter=0;
-    isOccusionOn=false;
-    occSamples  =4;
-    aoMax       =1.f;
-    verbose     =false;
-    rayDirX     =NULL;
+    fileprefix  = "output";
+    filetype    = ".bmp";
+    outfilename =" output.bmp";
+    frameCounter= 0;
+    isOccusionOn= false;
+    occSamples  = 4;
+    aoMax       = 1.f;
+    verbose     = false;
+    rayDirX     = NULL;
     redIndexer  = new eavlArrayIndexer(3,0);
     greenIndexer= new eavlArrayIndexer(3,1);
     blueIndexer = new eavlArrayIndexer(3,2);
     
-    color_map_array=NULL;
-    colorMap_raw=NULL;
+    color_map_array = NULL;
+    colorMap_raw    = NULL;
 
     /*texture array Ptrs */
-    tri_bvh_in_array    =NULL;
-    tri_verts_array     =NULL;
-    tri_bvh_lf_array    =NULL;
+    tri_bvh_in_array    = NULL;
+    tri_verts_array     = NULL;
+    tri_bvh_lf_array    = NULL;
 
-    sphr_bvh_in_array   =NULL;
-    sphr_verts_array    =NULL;
-    sphr_bvh_lf_array   =NULL;
+    sphr_bvh_in_array   = NULL;
+    sphr_verts_array    = NULL;
+    sphr_bvh_lf_array   = NULL;
 
-    color_map_array     =NULL;
+    sphr_matIdx_array   = NULL;
+    tri_matIdx_array    = NULL;
+
+    color_map_array     = NULL;
+
+
+
+    tri_verts_raw   = NULL;
+    tri_norms_raw   = NULL;
+    tri_matIdx_raw  = NULL;
+    sphr_verts_raw  = NULL;
+    sphr_matIdx_raw = NULL;
+    numMats         = NULL;
+    mats_raw        = NULL;
 
 
     setDefaultColorMap();
@@ -1446,7 +1465,6 @@ struct occIntersectFunctor{
 struct ShadowRayFunctor
 {
     eavlConstArrayV2<float4> verts;
-    //eavlConstArray<float> bvh;
     eavlConstArrayV2<float4> bvh;
     eavlConstArrayV2<float> bvh_lf;
     eavlVector3 light;
@@ -1504,17 +1522,22 @@ struct ShaderFunctor
     float           depth;
     int             size;
     int             colorMapSize;
-    eavlConstArray<float>       norms;
-    eavlConstArray<int>         matIds; //tris
-    eavlConstArray<int>         sphr_matIds;
+
+    eavlConstArrayV2<int>*       matIds; //tris
+    eavlConstArrayV2<int>*       sphr_matIds;
     eavlConstArray<float>       mats;
     eavlConstArrayV2<float4>    colorMap;
 
-    ShaderFunctor(int numTris,eavlVector3 theLight,eavlVector3 eyePos,eavlConstArray<float> *xnorm, int dpth,eavlConstArray<int> *_matIds,eavlConstArray<float> *_mats,
-                  int _lightIntensity, float _lightCoConst, float _lightCoLinear, float _lightCoExponent, eavlConstArrayV2<float4>* _colorMap, int _colorMapSize,eavlConstArray<int>* _sphr_matIds )
-        :norms(*xnorm), matIds(*_matIds), mats(*_mats),colorMap(*_colorMap), sphr_matIds(*_sphr_matIds)
+    ShaderFunctor(int numTris,eavlVector3 theLight,eavlVector3 eyePos, int dpth,eavlConstArrayV2<int> *_matIds,eavlConstArray<float> *_mats,
+                  int _lightIntensity, float _lightCoConst, float _lightCoLinear, float _lightCoExponent, eavlConstArrayV2<float4>* _colorMap, int _colorMapSize,eavlConstArrayV2<int>* _sphr_matIds, int numTri, int numSpheres )
+        : mats(*_mats), colorMap(*_colorMap)
 
     {
+
+
+        matIds=_matIds;
+        sphr_matIds=_sphr_matIds;
+
         depth=(float)dpth;
         light=theLight;
         size=numTris;
@@ -1531,13 +1554,14 @@ struct ShaderFunctor
 
     EAVL_FUNCTOR tuple<float,float,float> operator()(tuple<int,int,float,float,float,float,float,float,float,float,float,float,float,float,float,float > input)
     {
+        //return tuple<float,float,float>(1,0,0);
         int hitIdx=get<0>(input);
         int hit=get<1>(input);
         float specConst;
 
 
-        if(hitIdx==-1 ) return tuple<float,float,float>(1,1,1);// primary ray never hit anything.
-        return tuple<float,float,float>(1,0,0);
+        if(hitIdx==-1 ) return tuple<float,float,float>(0,0,0);// primary ray never hit anything.
+        //return tuple<float,float,float>(1,0,0);
         int primitiveType=get<15>(input);
         
 
@@ -1558,8 +1582,8 @@ struct ShaderFunctor
 
         int id=0;
 
-        if(primitiveType==TRIANGLE) id =matIds[hitIdx];
-        else if(primitiveType == SPHERE ) id=0;//sphr_matIds[hitIdx];
+        if(primitiveType==TRIANGLE)       id = matIds->getValue(tri_matIdx_tref, hitIdx);
+        else if(primitiveType == SPHERE ) id = sphr_matIds->getValue(sphr_matIdx_tref, hitIdx);
 
         eavlVector3* matPtr=(eavlVector3*)(&mats[0]+id*12);
         eavlVector3 ka=matPtr[0];//these could be lerped if it is possible that a single tri could be made of several mats
@@ -1569,9 +1593,9 @@ struct ShaderFunctor
 
 //********************************************************
         //pixel=aColor*abg.x+bColor*abg.y+cColor*abg.z;
-        float red=0;
-        float green=0;
-        float blue=0;
+        float red   = 0;
+        float green = 0;
+        float blue  = 0;
  
         float cosTheta = normal*lightDir; //for diffuse
         cosTheta = min(max(cosTheta,0.f),1.f); //clamp this to [0,1]
@@ -1877,6 +1901,15 @@ void eavlRayTracerMutator::Init()
                                              "init");
     eavlExecutor::Go();
 
+    if( !shadowsOn )
+    {
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(shadowHits),
+                                             eavlOpArgs(shadowHits),
+                                             FloatMemsetFunctor(0.0)),
+                                             "init");
+        eavlExecutor::Go();
+    }
+
     if(geomDirty) extractGeometry();
     /*Need to start seperating functions that are not geometry. This allows the materials to be updated */
     if(defaultMatDirty)
@@ -1907,13 +1940,13 @@ void eavlRayTracerMutator::extractGeometry()
     scene->addSphere(5.f, 22, 33,0,0);
 
     scene->addSphere(.5f, 0, 0,0,0);
-    //scene->addSphere(2.f, 10, .5,0);*/
+    //scene->addSphere(2.f, 10, .5,0); */
 
 
 
     scene->createRawData();
     numTriangles    = scene->getNumTriangles();
-    numSpheres  = scene->getNumSpheres();
+    numSpheres      = scene->getNumSpheres();
     tri_verts_raw   = scene->getTrianglePtr();
     tri_norms_raw   = scene->getTriangleNormPtr();
     tri_matIdx_raw  = scene->getTriMatIdxsPtr();
@@ -1954,12 +1987,13 @@ void eavlRayTracerMutator::extractGeometry()
             delete testSplit;
         }
 
-        tri_bvh_in_array   = new eavlConstArrayV2<float4>((float4*)tri_bvh_in_raw, tri_bvh_in_size/4,tri_bvh_in_tref);
-        tri_bvh_lf_array   = new eavlConstArrayV2<float>(tri_bvh_lf_raw, tri_bvh_lf_size,tri_bvh_lf_tref);
-        tri_verts_array    = new eavlConstArrayV2<float4>((float4*)tri_verts_raw,numTriangles*3, tri_verts_tref);
+        tri_bvh_in_array   = new eavlConstArrayV2<float4>( (float4*)tri_bvh_in_raw, tri_bvh_in_size/4, tri_bvh_in_tref);
+        tri_bvh_lf_array   = new eavlConstArrayV2<float>( tri_bvh_lf_raw, tri_bvh_lf_size, tri_bvh_lf_tref);
+        tri_verts_array    = new eavlConstArrayV2<float4>( (float4*)tri_verts_raw,numTriangles*3, tri_verts_tref);
+        tri_matIdx_array   = new eavlConstArrayV2<int>( tri_matIdx_raw, numTriangles, tri_matIdx_tref );
 
         INIT(eavlConstArray<float>,tri_norms,numTriangles*9);
-        INIT(eavlConstArray<int>, tri_matIdx,numTriangles);
+        //INIT(eavlConstArray<int>, tri_matIdx,numTriangles);
     }
     cout<<"NUM SPHERES "<<numSpheres<<endl;
     if(numSpheres > 0)
@@ -1973,20 +2007,22 @@ void eavlRayTracerMutator::extractGeometry()
             delete testSplit;
         }
 
-        sphr_bvh_in_array   = new eavlConstArrayV2<float4>((float4*)sphr_bvh_in_raw, sphr_bvh_in_size/4,sphr_bvh_in_tref);
-        sphr_bvh_lf_array   = new eavlConstArrayV2<float>(sphr_bvh_lf_raw, sphr_bvh_lf_size,sphr_bvh_lf_tref);
-        sphr_verts_array    = new eavlConstArrayV2<float4>((float4*)sphr_verts_raw,numSpheres, sphr_verts_tref);
+        sphr_bvh_in_array   = new eavlConstArrayV2<float4>( (float4*)sphr_bvh_in_raw, sphr_bvh_in_size/4, sphr_bvh_in_tref);
+        sphr_bvh_lf_array   = new eavlConstArrayV2<float>( sphr_bvh_lf_raw, sphr_bvh_lf_size, sphr_bvh_lf_tref);
+        sphr_verts_array    = new eavlConstArrayV2<float4>( (float4*)sphr_verts_raw,numSpheres, sphr_verts_tref);
+        sphr_matIdx_array   = new eavlConstArrayV2<int>( sphr_matIdx_raw, numSpheres,  sphr_matIdx_tref );
         /*no need for normals, trivial calculation */
-        INIT(eavlConstArray<int>, sphr_matIdx,numSpheres);
+        //INIT(eavlConstArray<int>, sphr_matIdx,numSpheres);
 
         for(int i=0; i<numSpheres;i++)
         {
             //cout<<sphr_verts_raw[i*4]<<" "<<sphr_verts_raw[i*4+1]<<" "<<sphr_verts_raw[i*4+2]<<" "<<sphr_verts_raw[i*4+3]<<" "<<endl;
             //cout<<sphr_verts_array->getValue(sphr_verts_tref,i).x<<" "<<sphr_verts_array->getValue(sphr_verts_tref,i).y<<" "<<sphr_verts_array->getValue(sphr_verts_tref,i).z<<" "<<sphr_verts_array->getValue(sphr_verts_tref,i).w<<endl;
         }
-        for(int i=0; i<sphr_bvh_in_size; i++)
+        for(int i=0; i<numSpheres; i++)
         {
-            //cout<<sphr_bvh_in_raw[i]<<" ";
+            
+            //cout<<sphr_matIdx_raw[i]<<" ";
         }
         //exit(0);
     }
@@ -2241,22 +2277,23 @@ void eavlRayTracerMutator::Execute()
         
         eavlExecutor::Go();
         int tshadow ;
-        if(verbose) tshadow = eavlTimer::Start();
-        shadowIntersect();
-        if(verbose) cout<<  "Shadow      RUNTIME: "<<eavlTimer::Stop(tshadow,"")<<endl;
+        if( shadowsOn )
+        {
+            if(verbose) tshadow = eavlTimer::Start();
+            shadowIntersect();
+            if(verbose) cout<<  "Shadow      RUNTIME: "<<eavlTimer::Stop(tshadow,"")<<endl;
+        }
+        
         int shade ;
         if(verbose) shade = eavlTimer::Start();
-        cout<<"Going into Shading"<<endl;
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx,shadowHits,interX,interY,interZ,alphas,betas,ambPct,normX,normY,normZ,rayOriginX,rayOriginY,rayOriginZ, scalars, primitiveTypeHit),
                                                  eavlOpArgs(r2,g2,b2),
-                                                 ShaderFunctor(numTriangles,light,eye,tri_norms,i,tri_matIdx,mats,lightIntensity,
+                                                 ShaderFunctor(numTriangles,light,eye ,i, tri_matIdx_array, mats, lightIntensity,
                                                                lightCoConst, lightCoLinear, lightCoExponent, color_map_array,
-                                                               colorMapSize, sphr_matIdx)),
+                                                               colorMapSize, sphr_matIdx_array, numTriangles, numSpheres)),
                                                  "shader");
         eavlExecutor::Go();
         if(verbose) cout<<  "Shading     RUNTIME: "<<eavlTimer::Stop(shade,"")<<endl;
-
-        //if(verbose) cerr<<"after delete amb"<<endl;
 
 
         if(!compactOp)
