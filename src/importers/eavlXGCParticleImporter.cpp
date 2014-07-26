@@ -149,10 +149,16 @@ vector<string>
 eavlXGCParticleImporter::GetFieldList(const std::string &mesh)
 {
     vector<string> fields;
-   	fields.push_back("ephase");
-	fields.push_back("iphase");
-	fields.push_back("egid");
-	fields.push_back("igid");
+    if(mesh == "iMesh") 
+    {
+    	fields.push_back("iphase");
+    	fields.push_back("igid");
+    }
+    else if(mesh == "eMesh") 
+    {
+    	fields.push_back("ephase");
+    	fields.push_back("egid");
+    }
 
     return fields;
 }
