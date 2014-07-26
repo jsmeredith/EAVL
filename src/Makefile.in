@@ -84,6 +84,7 @@ endif
 ifneq (@ADIOS@, no)
  OBJ+=importers/eavlADIOSImporter.o
  OBJ+=importers/eavlXGCImporter.o
+ OBJ+=importers/eavlXGCParticleImporter.o
 endif
 
 CPPFLAGS+=-I../config -Icommon/ -Ifonts/ -Iimporters/ -Imath/ -Irendering/ -Iexecutor/ -Ifunctors/ -Ioperations/ -Ifilters/ -Iexporters/ -Ivtk/

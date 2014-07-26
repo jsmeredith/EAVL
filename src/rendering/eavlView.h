@@ -51,6 +51,7 @@ struct eavlView
 
     double minextents[3];
     double maxextents[3];
+    double size;
 
     eavlView()
     {

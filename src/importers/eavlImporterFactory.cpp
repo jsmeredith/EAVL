@@ -1,10 +1,11 @@
-// Copyright 2010-2014 UT-Battelle, LLC.  See LICENSE.txt for more information.
+// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #include "eavl.h"
 #include "eavlImporterFactory.h"
 
 #include "eavlADIOSImporter.h" //This must be before anything that includes mpi
 #include "eavlPixieImporter.h" //This must be before anything that includes mpi
 #include "eavlXGCImporter.h" //This must be before anything that includes mpi
+#include "eavlXGCParticleImporter.h" //This must be before anything that includes mpi
 #include "eavlNetCDFImporter.h"
 #include "eavlNetCDFDecomposingImporter.h"
 #include "eavlVTKImporter.h"
@@ -90,6 +91,8 @@ eavlImporterFactory::GetImporterForFile(const std::string &fn_orig)
     {
 	if (filename.find("xgc.3d") != string::npos)
 	    importer = new eavlXGCImporter(fn_orig);
+	else if (filename.find("xgc.restart") != string::npos)
+		importer = new eavlXGCParticleImporter(fn_orig);
 	else
 	    importer = new eavlADIOSImporter(fn_orig);
     }

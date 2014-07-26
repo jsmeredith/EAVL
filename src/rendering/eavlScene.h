@@ -76,6 +76,10 @@ class eavlScene
         //     << view.minextents[0]<<":"<<view.maxextents[0]<<"  "
         //     << view.minextents[1]<<":"<<view.maxextents[1]<<"  "
         //     << view.minextents[2]<<":"<<view.maxextents[2]<<"\n";
+        view.size = sqrt(pow(view.maxextents[0]-view.minextents[0],2.) +
+                         pow(view.maxextents[1]-view.minextents[1],2.) +
+                         pow(view.maxextents[2]-view.minextents[2],2.));
+                     
     }
 };
 
