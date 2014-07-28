@@ -1117,11 +1117,13 @@ EAVL_HOSTDEVICE float intersectSphereDist(eavlVector3 rayDir, eavlVector3 rayOri
 {
     eavlVector3 center(sphere.x, sphere.y,sphere.z);
     eavlVector3 l=center-rayOrigin;
-    float dot=l*center;
+    //cout<<l<<(l*l)<<endl;
+    float dot=l*rayDir;
     float d=l*l-dot*dot;
     float r2=sphere.w*sphere.w;
     float tch=sqrt(r2-d);
-    return d-tch;
+    //cout<<dot<<" "<<d<<" "<<r2<<" "<<tch<<" "<<d-tch<<endl;
+    return dot-tch;
 
 }
 
@@ -1732,6 +1734,8 @@ struct ShaderFunctor
         //if(specConst==0.0) pixel.z=1;
 
         //}
+        normal.normalize();
+        return tuple<float,float,float>(normal.x,normal.y,normal.z);
         return tuple<float,float,float>(min(red,1.0f),min(green,1.0f),min(blue,1.0f));
 
     }
@@ -2260,6 +2264,23 @@ void eavlRayTracerMutator::shadowIntersect()
 
 void eavlRayTracerMutator::Execute()
 {
+
+    /*float4 data;
+    data.x = 0;
+    data.y = 4;
+    data.z = 0;
+    data.w = 1;
+
+    eavlVector3 rd(0,1,0);
+    eavlVector3 ro(0,-4,0);
+
+    float dist = intersectSphereDist(rd,ro,data);
+    cout<<"Distance "<<dist<<endl;
+    exit(0);*/
+    int th ;
+    int tinit;
+    if(verbose) tinit = eavlTimer::Start();
+    if(verbose) th = eavlTimer::Start();
     if(scene->getTotalPrimitives()==0) 
     {
         cerr<<"Error:  Cannot render 0 primitives"<<endl;
@@ -2278,12 +2299,12 @@ void eavlRayTracerMutator::Execute()
    
 
     clearFrameBuffer(r,g,b);
+
     //light=light+movement;
     look=lookat-eye;
     if(verbose) cerr<<"Look "<<look<<" Eye"<<eye<<"Light"<<light<<endl;
    
-    int th ;
-    if(verbose) th = eavlTimer::Start();
+   
     //init camera rays
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(indexes),
                                              eavlOpArgs(rayDirX ,rayDirY, rayDirZ),
@@ -2291,7 +2312,7 @@ void eavlRayTracerMutator::Execute()
                                              "ray gen");
     eavlExecutor::Go();
 
-
+    if(verbose) cout<<"intit       RUNTIME: "<<eavlTimer::Stop(tinit,"intersect")<<endl;
     for(int i=0; i<depth;i++) 
     {
         int tintersect;
@@ -2550,7 +2571,7 @@ void eavlRayTracerMutator::Execute()
         }
     }
 #else
-    //else
+    //else 
     //{
         cout<<"Transfering to fb"<<endl;
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(r2, g2, b2),

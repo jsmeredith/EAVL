@@ -41,7 +41,7 @@ class eavlRayTracerMutator : public eavlMutator
       if(old_a==ka && old_d == kd && old_s == ks) return;     //no change, do nothing
       scene->setDefaultMaterial(RTMaterial(eavlVector3(ka,ka,ka),
                                            eavlVector3(kd,kd,kd),
-                                           eavlVector3(ks,ks,ks), 10.f,.3));
+                                           eavlVector3(ks,ks,ks), 10.f,1));
       defaultMatDirty=true;
       cout<<"Changing Default mats"<<endl;
     }

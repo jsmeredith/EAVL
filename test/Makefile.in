@@ -15,7 +15,7 @@ ifneq (@VTK@, no)
 VTKTESTS=testvtk
 endif
 
-TESTS = testimport testiso testnormal testrecenter testthreshold testbox testmath testdatamodel testxform testbin testdistancefield testgraphlayout testatompipeline testserialize testray $(VTKTESTS)
+TESTS = testimport testiso testnormal testrecenter testthreshold testbox testmath testdatamodel testxform testbin testdistancefield testgraphlayout testatompipeline testserialize testray testRadixSort $(VTKTESTS)
 OBJ = $(TESTS:=.o)
 LIBDEP=$(TOPDIR)/lib/libeavl.a
 
@@ -78,6 +78,9 @@ testserialize: $(LIBDEP) testserialize.o
 	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
 
 testray: $(LIBDEP) testray.o
+	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
+
+testRadixSort: $(LIBDEP) testRadixSort.o
 	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
 
 LIBS=-lm -L$(TOPDIR)/lib -leavl

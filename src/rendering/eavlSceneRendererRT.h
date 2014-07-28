@@ -38,7 +38,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setVerbose(true);
         tracer->setAOMax(5);
         tracer->setOccSamples(4);
-        tracer->setAO(true);
+        tracer->setAO(false);
         tracer->setBVHCache(false); // don't use cache
         tracer->setCompactOp(false);
         tracer->setShadowsOn(true);
@@ -127,6 +127,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         //canRender=false;
         //cout<<"Starting points"<<endl;
         tracer->startScene();
+        //tracer->scene->addSphere(5,0,-5.f,0, "default");
     }
 
     virtual void EndPoints()
@@ -173,15 +174,15 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {
 
         if(tracer->scene->getTotalPrimitives() == 0) return;
-
+        
         int tframe = eavlTimer::Start();
         tracer->setDefaultMaterial(Ka,Kd,Ks);
         tracer->setResolution(view.h,view.w);
         float magnitude=tracer->scene->getSceneExtentMagnitude();
         //cout<<"Magnitude "<<magnitude<<endl;
-        tracer->setAOMax(magnitude*.2f);
+        //tracer->setAOMax(magnitude*.2f);
 
-
+        tracer->setAOMax(1);
         /*Set up field of view: tracer takes the half FOV in degrees*/
         float fovx= 2.f*atan(tan(view.view3d.fov/2.f)*view.w/view.h);
         fovx*=180.f/M_PI;
