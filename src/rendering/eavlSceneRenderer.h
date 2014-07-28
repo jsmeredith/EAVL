@@ -128,6 +128,7 @@ class eavlSceneRenderer
     }
 
     virtual void Render() = 0;
+    virtual bool ShouldRenderAgain() { return false; }
 
     virtual void StartScene()
     {
@@ -357,7 +358,7 @@ class eavlSceneRenderer
 
         StartPoints();
 
-        double radius = view.size / 500.;
+        double radius = view.size / 300.;
         for (int j=0; j<npts; j++)
         {
             double x0 = pts[j*3+0];
