@@ -253,29 +253,31 @@ class RTSphere : public RTPrimitive
 		
 	public:
 		float data[4]; //center + radius
-		EAVL_HOSTDEVICE RTSphere(const float &_radius, const eavlVector3 &_center, const int &_matIdx )
+		float scalar;
+		EAVL_HOSTDEVICE RTSphere(const float &_radius, const eavlVector3 &_center,const float _scalar, const int &_matIdx )
 		{
-			matIdx=_matIdx;
+			matIdx = _matIdx;
 			eavlVector3 temp(0,0,0);
-			temp.x=_radius;
-			temp.y=0;
-			temp.z=0;
+			temp.x = _radius;
+			temp.y = 0;
+			temp.z = 0;
 			bbox.expandToInclude(_center+temp);
 			bbox.expandToInclude(_center-temp);
-			temp.x=0;
-			temp.y=_radius;
-			temp.z=0;
+			temp.x = 0;
+			temp.y = _radius;
+			temp.z = 0;
 			bbox.expandToInclude(_center+temp);
 			bbox.expandToInclude(_center-temp);
-			temp.x=0;
-			temp.y=0;
-			temp.z=_radius;
+			temp.x = 0;
+			temp.y = 0;
+			temp.z = _radius;
 			bbox.expandToInclude(_center+temp);
 			bbox.expandToInclude(_center-temp);
-			data[0]=_center.x;
-			data[1]=_center.y;
-			data[2]=_center.z;
-			data[3]=_radius;
+			data[0] = _center.x;
+			data[1] = _center.y;
+			data[2] = _center.z;
+			data[3] = _radius;
+			scalar  = _scalar;
 		}
 
 		EAVL_HOSTDEVICE int 		  getRadius() 		const  { return data[3]; }

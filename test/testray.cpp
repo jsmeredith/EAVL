@@ -289,17 +289,33 @@ int main(int argc, char *argv[])
         }
         tracer->setRawData(v,n,objreader->totalTriangles, theMats, mIdx, matCount);
         */
-        tracer->scene->loadObjFile(filename);
-        tracer->setBVHCacheName(filename);
+        //tracer->scene->loadObjFile(filename);
+        //tracer->setBVHCacheName(filename);
         //delete objreader;
         tracer->setCompactOp(false);
         //*************************************Testing****************************
 
         tracer->setBVHCache(true);
         tracer->setVerbose(true);    
-        tracer->setDepth(1);
+        tracer->setDepth(2);
         //eavlVector3 mov(0,0,.01);
         //float m=0.01;
+
+        tracer->startScene();
+        tracer->scene->addSphere(1,0,0,0,1);
+        tracer->scene->addSphere(1,0,4,0,1);
+        tracer->scene->addSphere(1,2,0,0,1);
+        tracer->scene->addSphere(1,6,0,0,1);
+        tracer->scene->addSphere(1,0,5,0,1);
+        tracer->scene->addSphere(1,0,0,0,1);
+        tracer->scene->addSphere(1,0,6,0,1);
+        tracer->scene->addSphere(1,0,0,0,1);
+        tracer->scene->addSphere(1,0,7,0,1);
+        tracer->scene->addSphere(1,0,0,7,1);
+        tracer->scene->addSphere(1,5,0,0,1);
+
+        tracer->scene->addSphere(1,4,0,0,1);
+        tracer->Execute();
         if(!isTest)
         {
             for(int i=0; i<1;i++)
@@ -314,21 +330,7 @@ int main(int argc, char *argv[])
             //tracer->fpsTest(warmups,tests);
         }
 
-        tracer->startScene();
-        tracer->scene->addSphere(1,0,0,0);
-        tracer->scene->addSphere(1,0,4,0);
-        tracer->scene->addSphere(1,2,0,0);
-        tracer->scene->addSphere(1,6,0,0);
-        tracer->scene->addSphere(1,0,5,0);
-        tracer->scene->addSphere(1,0,0,0);
-        tracer->scene->addSphere(1,0,6,0);
-        tracer->scene->addSphere(1,0,0,0);
-        tracer->scene->addSphere(1,0,7,0);
-        tracer->scene->addSphere(1,0,0,7);
-        tracer->scene->addSphere(1,5,0,0);
-
-        tracer->scene->addSphere(1,4,0,0);
-        tracer->Execute();
+        
 
         delete tracer;}
     }

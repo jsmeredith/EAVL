@@ -17,6 +17,15 @@ template <class T>  void deleteClassPtr(T * &ptr)
     }
 }
 
+template <class T>  void deleteArrayPtr(T * &ptr)
+{
+    if(ptr != NULL)
+    {
+        delete[] ptr;
+        ptr = NULL;
+    }
+}
+
 class eavlRayTracerMutator : public eavlMutator
 {
   public:
@@ -490,6 +499,7 @@ class eavlRayTracerMutator : public eavlMutator
     float     *sphr_verts_raw;
     float     *sphr_bvh_in_raw;            /* BVH broken up into inner nodes and leaf nodes */
     float     *sphr_bvh_lf_raw;
+    float     *sphr_scalars_raw;
     int       *sphr_matIdx_raw;
     float     *mats_raw;
 

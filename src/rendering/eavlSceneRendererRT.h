@@ -42,8 +42,8 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setBVHCache(false); // don't use cache
         tracer->setCompactOp(false);
         tracer->setShadowsOn(true);
-        setLight=true;
-        ctName="";
+        setLight = true;
+        ctName = "";
         tracer->setDefaultMaterial(Ka,Kd,Ks);
         cout<<"END rt const"<<endl;
 
@@ -139,7 +139,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {
         //glTexCoord1f(s);
         //glVertex3d(x,y,z);
-        tracer->scene->addSphere(.1,x,y,z, "default");
+        tracer->scene->addSphere(.1,x,y,z,s,"default");
     }
 
     // ------------------------------------------------------------------------
@@ -182,7 +182,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         //cout<<"Magnitude "<<magnitude<<endl;
         //tracer->setAOMax(magnitude*.2f);
 
-        tracer->setAOMax(1);
+       // tracer->setAOMax(.2);
         /*Set up field of view: tracer takes the half FOV in degrees*/
         float fovx= 2.f*atan(tan(view.view3d.fov/2.f)*view.w/view.h);
         fovx*=180.f/M_PI;
@@ -190,7 +190,8 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setFOVx( fovx/2.f );
 
         tracer->setZoom(view.view3d.zoom);
-
+        //tracer->setZoom(5.f);
+        //cout<<"ZOOM : "<<view.view3d.zoom<<endl;
         eavlVector3 lookdir = (view.view3d.at - view.view3d.from).normalized();
         eavlVector3 right = (lookdir % view.view3d.up).normalized();
         /* Tracer is a lefty, so this is flip so down is not up */
@@ -198,6 +199,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
         tracer->lookAtPos(view.view3d.at.x,view.view3d.at.y,view.view3d.at.z);
         tracer->setCameraPos(view.view3d.from.x,view.view3d.from.y,view.view3d.from.z);
+        //tracer->setCameraPos(20,20,20);
         tracer->setUp(up.x,up.y,up.z);
         
         /*Otherwise the light will move with the camera*/

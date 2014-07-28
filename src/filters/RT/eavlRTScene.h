@@ -34,8 +34,8 @@ class eavlRTScene
 		EAVL_HOSTONLY inline void 		addTriangle(const eavlVector3 &v0 , const eavlVector3 &v1, const eavlVector3 &v2,
 													const eavlVector3 &n0 , const eavlVector3 &n1, const eavlVector3 &n2,
 													const  float &scalarV0, const float &scalarV1, const float &scalarV2,  const int &matId);
-		EAVL_HOSTONLY inline void 		addSphere(const float &radius, const float &centerX, const float &centerY, const float &centerZ, string matName="default");
-		EAVL_HOSTONLY inline void 		addSphere(const float &radius, const float &centerX, const float &centerY, const float &centerZ, const int &matId);
+		EAVL_HOSTONLY inline void 		addSphere(const float &radius, const float &centerX, const float &centerY, const float &centerZ, const float _scalar , string matName="default");
+		EAVL_HOSTONLY inline void 		addSphere(const float &radius, const float &centerX, const float &centerY, const float &centerZ, const float _scalar , const int &matId);
 		EAVL_HOSTONLY inline void 		setDefaultMaterial(const RTMaterial &_mat);
 		EAVL_HOSTONLY inline int 		addMaterial( RTMaterial _mat, string matName);
 		EAVL_HOSTONLY inline int 		addMaterial( RTMaterial _mat);
@@ -48,6 +48,7 @@ class eavlRTScene
 		EAVL_HOSTONLY inline float*     getTrianglePtr();
 		EAVL_HOSTONLY inline float*     getTriangleNormPtr();
 		EAVL_HOSTONLY inline float*     getSpherePtr();
+		EAVL_HOSTONLY inline float*     getSphereScalarPtr();
 	    EAVL_HOSTONLY inline int*       getSphrMatIdxPtr();
 		EAVL_HOSTONLY inline float*     getMatsPtr();
 		EAVL_HOSTONLY inline int*       getTriMatIdxsPtr();
@@ -145,7 +146,7 @@ EAVL_HOSTONLY inline void eavlRTScene::addTriangle(const eavlVector3 &v0 , const
 	sceneBbox.expandToInclude(t.getBBox());
 }
 
-EAVL_HOSTONLY  inline void eavlRTScene::addSphere(const float &radius, const float &centerX, const float &centerY, const float &centerZ, string matName)
+EAVL_HOSTONLY  inline void eavlRTScene::addSphere(const float &radius, const float &centerX, const float &centerY, const float &centerZ, const float _scalar, string matName)
 {
 	int matId=0;
 	if(matName!="default")
@@ -156,16 +157,16 @@ EAVL_HOSTONLY  inline void eavlRTScene::addSphere(const float &radius, const flo
 		} 
 	}
 
-	RTSphere t ( radius, eavlVector3(centerX, centerY, centerZ),matId );
+	RTSphere t ( radius, eavlVector3(centerX, centerY, centerZ),_scalar,matId );
 	spheres->push_back( t );
 	sceneBbox.expandToInclude(t.getBBox());
 }
 
-EAVL_HOSTONLY  inline void eavlRTScene::addSphere(const float &radius, const float &centerX, const float &centerY, const float &centerZ, const int &matId)
+EAVL_HOSTONLY  inline void eavlRTScene::addSphere(const float &radius, const float &centerX, const float &centerY, const float &centerZ , const float _scalar, const int &matId)
 {
 	
 
-	RTSphere t ( radius, eavlVector3(centerX, centerY, centerZ),matId );
+	RTSphere t ( radius, eavlVector3(centerX, centerY, centerZ),_scalar, matId );
 	spheres->push_back( t );
 	sceneBbox.expandToInclude(t.getBBox());
 }
@@ -347,5 +348,18 @@ EAVL_HOSTONLY inline float eavlRTScene::getSceneExtentMagnitude()
 EAVL_HOSTONLY  inline int  eavlRTScene::getTotalPrimitives()
 {
 	return getNumTriangles()+getNumSpheres();
+}
+
+EAVL_HOSTONLY inline float* eavlRTScene::getSphereScalarPtr()
+{
+	if(getNumSpheres()==0) return NULL;
+	float* sphrScalars;
+ 	int numSpheres= getNumSpheres();
+	sphrScalars = new float[numSpheres];
+	for(int i=0; i< numSpheres ; i++)
+	{
+		sphrScalars [i]= spheres->at(i).scalar;
+	}
+	return sphrScalars;
 }
 #endif
