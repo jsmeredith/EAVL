@@ -300,8 +300,7 @@ class eavlPlot
                 }
                 else if (cellset->GetDimensionality() == 3)
                 {
-                    // do anything with 3D?
-                    // not right now, now.
+                    r->RenderCells3D(cellset, npts, finalpts, opts);
                 }
             }
         }

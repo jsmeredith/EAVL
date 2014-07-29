@@ -336,7 +336,7 @@ inline eavlColor CastRay(Ray r, Container &scene, eavlVector3 &lightvec,
     //cerr << "HIT\n";
 
 #if 1 // map value to color
-    int colorindex = ncolors * value;
+    int colorindex = float(ncolors-1) * value;
     eavlColor self(colors[colorindex*3+0],
                    colors[colorindex*3+1],
                    colors[colorindex*3+2]);
