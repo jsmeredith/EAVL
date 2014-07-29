@@ -49,9 +49,7 @@
 
 //declare the texture reference even if we are not using texture memory
 #ifndef HAVE_CUDA
-template<class T>
-class texture
-{};
+template<class T> class texture {};
 struct float4
 {
     float x,y,z,w;
@@ -246,6 +244,10 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     light.x = 0;
     light.y = 0;
     light.z = -20;
+    
+    bgColor.x = 1;
+    bgColor.y = 1;
+    bgColor.z = 1;
 
     compactOp   = false;
     geomDirty   = true;
@@ -1620,6 +1622,7 @@ struct ShaderFunctor
     float           depth;
     int             size;
     int             colorMapSize;
+    eavlVector3     bgColor;
 
     eavlConstArrayV2<int>*      matIds; //tris
     eavlConstArrayV2<int>*      sphr_matIds;
@@ -1629,8 +1632,8 @@ struct ShaderFunctor
 
     ShaderFunctor(int numTris,eavlVector3 theLight,eavlVector3 eyePos, int dpth,eavlConstArrayV2<int> *_matIds,eavlConstArray<float> *_mats,
                   int _lightIntensity, float _lightCoConst, float _lightCoLinear, float _lightCoExponent, eavlConstArrayV2<float4>* _colorMap,
-                  int _colorMapSize,eavlConstArrayV2<int>* _sphr_matIds, int numTri, int numSpheres)
-        : mats(*_mats), colorMap(*_colorMap)
+                  int _colorMapSize,eavlConstArrayV2<int>* _sphr_matIds, int numTri, int numSpheres, eavlVector3 _bgColor)
+        : mats(*_mats), colorMap(*_colorMap), bgColor(_bgColor)
 
     {
 
@@ -1660,7 +1663,7 @@ struct ShaderFunctor
         float specConst;
 
 
-        if(hitIdx==-1 ) return tuple<float,float,float>(0,0,0);// primary ray never hit anything.
+        if(hitIdx==-1 ) return tuple<float,float,float>(bgColor.x, bgColor.y,bgColor.z);// primary ray never hit anything.
         //return tuple<float,float,float>(0,0,1);
         int primitiveType=get<15>(input);
         
@@ -2438,7 +2441,7 @@ void eavlRayTracerMutator::Execute()
                                                  eavlOpArgs(r2,g2,b2),
                                                  ShaderFunctor(numTriangles,light,eye ,i, tri_matIdx_array, mats, lightIntensity,
                                                                lightCoConst, lightCoLinear, lightCoExponent, color_map_array,
-                                                               colorMapSize, sphr_matIdx_array, numTriangles, numSpheres)),
+                                                               colorMapSize, sphr_matIdx_array, numTriangles, numSpheres, bgColor)),
                                                  "shader");
         eavlExecutor::Go();
         if(verbose) cout<<  "Shading     RUNTIME: "<<eavlTimer::Stop(shade,"")<<endl;

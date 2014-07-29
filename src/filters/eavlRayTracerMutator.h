@@ -65,7 +65,19 @@ class eavlRayTracerMutator : public eavlMutator
       width=w;
     }
 
-   
+    void setBackgroundColor(float r, float g, float b)
+    {
+      bgColor.x = min(max(r,0.f), 1.f);
+      bgColor.y = min(max(g,0.f), 1.f);
+      bgColor.z = min(max(b,0.f), 1.f);
+    } 
+
+    void setBackgroundColor(int r, int g, int b)
+    {
+      bgColor.x = min(max(r/255.f, 0.f), 1.f);
+      bgColor.y = min(max(g/255.f, 0.f), 1.f);
+      bgColor.z = min(max(b/255.f, 0.f), 1.f);
+    } 
 
     void setDepth(const int d)
     {
@@ -394,6 +406,7 @@ class eavlRayTracerMutator : public eavlMutator
     float     lightCoLinear;
     float     lightCoExponent;
     
+    eavlVector3 bgColor;
 
     std::ostringstream oss;
     string fileprefix;
