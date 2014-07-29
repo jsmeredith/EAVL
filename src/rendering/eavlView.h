@@ -336,6 +336,24 @@ struct eavlView
             view2d.t = yc + ys/factor;
         }
     }
+    /* Moves the camera towards the look at point in 
+       increments porportional to the extent magnitude */
+    void MoveForward3d(double factor)
+    {
+        eavlVector3 look = view3d.at - view3d.from;
+        look.normalize();
+        eavlVector3 extent;
+        extent.x = maxextents[0]-minextents[0];
+        extent.y = maxextents[1]-minextents[1];
+        extent.z = maxextents[2]-minextents[2];
+        float magnitude = sqrt(extent*extent);
+
+        look = look*factor*magnitude;
+  
+        view3d.from.x = view3d.from.x+look.x;
+        view3d.from.y = view3d.from.y+look.y;
+        view3d.from.z = view3d.from.z+look.z;
+    }
 
     // ------------------------------------------------------------------------
     //
