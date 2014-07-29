@@ -22,6 +22,20 @@ struct eavl3DView
     double        xpan, ypan;
 
     //double        xs, ys, zs; ///\todo: would like to add scaling/fullframe
+    bool operator==(const eavl3DView &v) const
+    {
+        return (from == v.from &&
+                at == v.at &&
+                up == v.up &&
+                nearplane == v.nearplane &&
+                farplane == v.farplane &&
+                perspective == v.perspective &&
+                fov == v.fov &&
+                size == v.size &&
+                zoom == v.zoom &&
+                xpan == v.xpan &&
+                ypan == v.ypan);
+    }
 };
 
 struct eavl2DView
@@ -30,6 +44,17 @@ struct eavl2DView
     bool logx, logy;
 
     double xscale; ///< change x scale for non-equal x/y scaling
+    
+    bool operator==(const eavl2DView &v) const
+    {
+        return (l == v.l &&
+                r == v.r &&
+                t == v.t &&
+                b == v.b &&
+                logx == v.logx &&
+                logy == v.logy &&
+                xscale == v.xscale);
+    }
 };
 
 struct eavlView
@@ -55,12 +80,38 @@ struct eavlView
 
     eavlView()
     {
+        w = -1;
+        h = -1;
         view3d.perspective = true;
         view2d.xscale = 1;
         view2d.logx = false;
         view2d.logy = false;
         vl = -1;  vr = +1;
         vb = -1;  vt = +1;
+    }
+
+    bool operator!=(const eavlView &v) const
+    {
+        return !(*this == v);
+    }
+
+    bool operator==(const eavlView &v) const
+    {
+        if (vl != v.vl ||
+            vr != v.vr ||
+            vb != v.vb ||
+            vt != v.vt)
+            return false;
+        if (!(view3d == v.view3d &&
+              view2d == v.view2d))
+            return false;
+        if (w != v.w ||
+            h != v.h)
+            return false;
+        // don't need to check matrices (computed from other params)
+        // don't need to check aspects (computed from other params)
+        // don't need to check extents (should be reflected in other params)
+        return true;
     }
 
     void SetupMatrices()

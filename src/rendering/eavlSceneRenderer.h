@@ -128,6 +128,7 @@ class eavlSceneRenderer
     }
 
     virtual void Render() = 0;
+    virtual bool ShouldRenderAgain() { return false; }
 
     virtual void StartScene()
     {
@@ -141,6 +142,9 @@ class eavlSceneRenderer
 
     virtual void StartTriangles() { }
     virtual void EndTriangles() { }
+
+    virtual void StartTetrahedra() { }
+    virtual void EndTetrahedra() { }
 
     virtual void StartPoints() { }
     virtual void EndPoints() { }
@@ -339,6 +343,42 @@ class eavlSceneRenderer
                            double s0, double s1)
         = 0;
 
+    // ----------------------------------------
+    // Tetrahedron
+    // ----------------------------------------
+    virtual void AddTetrahedron(double x0, double y0, double z0,
+                                double x1, double y1, double z1,
+                                double x2, double y2, double z2,
+                                double x3, double y3, double z3)
+    {
+        AddTetrahedronVs(x0,y0,z0,
+                         x1,y1,z1,
+                         x2,y2,z2,
+                         x3,y3,z3,
+                         0,0,0,0);
+    }
+    virtual void AddTetrahedronCs(double x0, double y0, double z0,
+                                  double x1, double y1, double z1,
+                                  double x2, double y2, double z2,
+                                  double x3, double y3, double z3,
+                                  double s)
+    {
+        AddTetrahedronVs(x0,y0,z0,
+                         x1,y1,z1,
+                         x2,y2,z2,
+                         x3,y3,z3,
+                         s,s,s,s);
+    }
+    virtual void AddTetrahedronVs(double x0, double y0, double z0,
+                                  double x1, double y1, double z1,
+                                  double x2, double y2, double z2,
+                                  double x3, double y3, double z3,
+                                  double s0, double s1, double s2, double s3)
+    {
+        ///\todo: is having this be implemented (no-op) in base class
+        /// the right thing, since most renderers don't do volumes?
+    }
+
     // -----------------------------------------------------------------------
     // -----------------------------------------------------------------------
 
@@ -357,7 +397,7 @@ class eavlSceneRenderer
 
         StartPoints();
 
-        double radius = view.size / 500.;
+        double radius = view.size / 300.;
         for (int j=0; j<npts; j++)
         {
             double x0 = pts[j*3+0];
@@ -633,7 +673,150 @@ class eavlSceneRenderer
     }
     virtual void RenderCells3D(eavlCellSet *cs,
                                int npts, double *pts,
-                               ColorByOptions opts) { }
+                               ColorByOptions opts)
+    {
+        eavlField *f = opts.field;
+        bool NoColors = (opts.field == NULL);
+        bool PointColors = (opts.field &&
+                opts.field->GetAssociation() == eavlField::ASSOC_POINTS);
+        bool CellColors = (opts.field &&
+                opts.field->GetAssociation() == eavlField::ASSOC_CELL_SET &&
+                opts.field->GetAssocCellSet() == cs->GetName());
+
+        if (opts.singleColor)
+            SetActiveColor(opts.color);
+        else
+            SetActiveColorTable(opts.ct);
+
+        StartTetrahedra();
+
+        int ncells = cs->GetNumCells();
+
+        // tetrahedralize all 3d shapes
+        int tet[] = {0,1,2,3};
+
+        int pyr[] = {0,1,2,4,
+                     0,2,3,4};
+
+        int wdg[] = {0,2,1,4,
+                     0,3,2,4,
+                     3,5,2,4};
+
+        int hex[] = {0,1,2,5,
+                     0,2,3,7,
+                     0,7,4,5,
+                     2,6,7,5,
+                     0,5,2,7};
+        
+        int vox[] = {0,1,3,5,
+                     0,3,2,6,
+                     0,6,4,5,
+                     3,7,6,5,
+                     0,5,3,6};
+        
+        for (int j=0; j<ncells; j++)
+        {
+            eavlCell cell = cs->GetCellNodes(j);
+
+            int *shapes = NULL;
+            int nshapes = 0;
+            switch (cell.type)
+            {
+              case EAVL_TET:
+                shapes = tet;
+                nshapes = 1;
+                break;
+              case EAVL_PYRAMID:
+                shapes = pyr;
+                nshapes = 2;
+                break;
+              case EAVL_WEDGE:
+                shapes = wdg;
+                nshapes = 3;
+                break;
+              case EAVL_HEX:
+                shapes = hex;
+                nshapes = 5;
+                break;
+              case EAVL_VOXEL:
+                shapes = vox;
+                nshapes = 5;
+                break;
+              default:
+                shapes = NULL;
+                nshapes = 0;
+                continue;
+            }
+
+            for (int s=0; s<nshapes; ++s)
+            {
+                int i0 = cell.indices[shapes[4*s+0]];
+                int i1 = cell.indices[shapes[4*s+1]];
+                int i2 = cell.indices[shapes[4*s+2]];
+                int i3 = cell.indices[shapes[4*s+3]];
+
+                double x0 = pts[i0*3+0];
+                double y0 = pts[i0*3+1];
+                double z0 = pts[i0*3+2];
+
+                double x1 = pts[i1*3+0];
+                double y1 = pts[i1*3+1];
+                double z1 = pts[i1*3+2];
+
+                double x2 = pts[i2*3+0];
+                double y2 = pts[i2*3+1];
+                double z2 = pts[i2*3+2];
+
+                double x3 = pts[i3*3+0];
+                double y3 = pts[i3*3+1];
+                double z3 = pts[i3*3+2];
+
+                // get scalars (if applicable)
+                double s, s0, s1, s2, s3;
+                if (CellColors)
+                {
+                    s = MapValueToNorm(f->GetArray()->
+                                       GetComponentAsDouble(j,0),
+                                       opts.vmin, opts.vmax);
+                    AddTetrahedronCs(x0,y0,z0,
+                                     x1,y1,z1,
+                                     x2,y2,z2,
+                                     x3,y3,z3,
+                                     s);
+                }
+                else if (PointColors)
+                {
+                    s0 = MapValueToNorm(f->GetArray()->
+                                        GetComponentAsDouble(i0,0),
+                                        opts.vmin, opts.vmax);
+                    s1 = MapValueToNorm(f->GetArray()->
+                                        GetComponentAsDouble(i1,0),
+                                        opts.vmin, opts.vmax);
+                    s2 = MapValueToNorm(f->GetArray()->
+                                        GetComponentAsDouble(i2,0),
+                                        opts.vmin, opts.vmax);
+                    s3 = MapValueToNorm(f->GetArray()->
+                                        GetComponentAsDouble(i3,0),
+                                        opts.vmin, opts.vmax);
+                    AddTetrahedronVs(x0,y0,z0,
+                                     x1,y1,z1,
+                                     x2,y2,z2,
+                                     x3,y3,z3,
+                                     s0,s1,s2,s3);
+                }
+                else
+                {
+                    AddTetrahedron(x0,y0,z0,
+                                   x1,y1,z1,
+                                   x2,y2,z2,
+                                   x3,y3,z3);
+                }
+            }
+
+        }
+
+        EndTetrahedra();
+    }
 };
 
 
