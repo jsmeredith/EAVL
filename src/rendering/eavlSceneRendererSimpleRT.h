@@ -10,6 +10,10 @@
 
 #define mindist 0.01
 
+#ifdef _WIN32
+#define random rand
+#endif
+
 // note: kmeans, noiseiso, xcoord polys, default size, plotlist open,
 //       1x1, openmp, no normals, rate = 16 images in 10 seconds
 
@@ -566,15 +570,15 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
         // 0.56 just barely covers space; we want a little overlap
         // because we're currently looking for a sphere which contains 
         // objects in their entirety so we only have to stick them in one
-        double rad1 = 0.6 * l;
-        double rad2 = 0.6 * l;
+        double radius1 = 0.6 * l;
+        double radius2 = 0.6 * l;
         for (double z = view.minextents[2]; z < view.maxextents[2]+l*.5; z += l)
         {
             for (double y = view.minextents[1]; y < view.maxextents[1]+l*.5; y += l)
             {
                 for (double x = view.minextents[0]; x < view.maxextents[0]+l*.5; x += l)
                 {
-                    BoundingSphere *bs1 = new BoundingSphere(x,y,z,rad1,double(random())/double(RAND_MAX));
+                    BoundingSphere *bs1 = new BoundingSphere(x,y,z,radius1,double(random())/double(RAND_MAX));
                     spheres.push_back(bs1);
                     if (x<view.maxextents[0] &&
                         y<view.maxextents[1] &&
@@ -583,7 +587,7 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
                         BoundingSphere *bs2 = new BoundingSphere(x+l*.5,
                                                                  y+l*.5,
                                                                  z+l*.5,
-                                                                 rad2,double(random())/double(RAND_MAX));
+                                                                 radius2,double(random())/double(RAND_MAX));
                         spheres.push_back(bs2);
                     }
                 }
