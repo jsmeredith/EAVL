@@ -773,17 +773,17 @@ class eavlSceneRenderer
                 double z3 = pts[i3*3+2];
 
                 // get scalars (if applicable)
-                double s, s0, s1, s2, s3;
+                double ss, s0, s1, s2, s3;
                 if (CellColors)
                 {
-                    s = MapValueToNorm(f->GetArray()->
+                    ss = MapValueToNorm(f->GetArray()->
                                        GetComponentAsDouble(j,0),
                                        opts.vmin, opts.vmax);
                     AddTetrahedronCs(x0,y0,z0,
                                      x1,y1,z1,
                                      x2,y2,z2,
                                      x3,y3,z3,
-                                     s);
+                                     ss);
                 }
                 else if (PointColors)
                 {
