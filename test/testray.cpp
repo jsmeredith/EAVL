@@ -302,19 +302,19 @@ int main(int argc, char *argv[])
         //float m=0.01;
 
         tracer->startScene();
-        tracer->scene->addSphere(1,0,0,0,1);
-        tracer->scene->addSphere(1,0,4,0,1);
-        tracer->scene->addSphere(1,2,0,0,1);
-        tracer->scene->addSphere(1,6,0,0,1);
-        tracer->scene->addSphere(1,0,5,0,1);
-        tracer->scene->addSphere(1,0,0,0,1);
-        tracer->scene->addSphere(1,0,6,0,1);
-        tracer->scene->addSphere(1,0,0,0,1);
-        tracer->scene->addSphere(1,0,7,0,1);
-        tracer->scene->addSphere(1,0,0,7,1);
-        tracer->scene->addSphere(1,5,0,0,1);
+        //tracer->scene->addSphere(1,0,0,0,1);
+        //tracer->scene->addSphere(1,0,4,0,1);
+        //tracer->scene->addSphere(1,2,0,0,1);
+        //tracer->scene->addSphere(1,6,0,0,1);
+        //tracer->scene->addSphere(1,0,5,0,1);
+        //tracer->scene->addSphere(1,0,0,0,1);
+        //tracer->scene->addSphere(1,0,6,0,1);
+        //tracer->scene->addSphere(1,0,0,0,1);
+        //tracer->scene->addSphere(1,0,7,0,1);
+        //tracer->scene->addSphere(1,0,0,7,1);
+        //tracer->scene->addSphere(1,5,0,0,1);
 
-        tracer->scene->addSphere(1,4,0,0,1);
+        tracer->scene->addSphere(1,0,0,0,1);
         tracer->Execute();
         if(!isTest)
         {

@@ -261,7 +261,7 @@ BVHNode* SplitBVHBuilder::run(void)
     root->computeSubtreeProbabilities(m_platform,1.f,s);
     cout<<" ------------------BVH Stats--------------------------------"<<endl;
     cout<<"Bounds "<<rootSpec.bounds.area()<<"   SAH : "<<s<<endl;
-    cout<<"Num Triangles Refs "<<m_numPrimitives+m_numDuplicates<<" InnerNodes "<<m_innerNodeCount<<" leaf nodes "<<m_leafNodeCount<<" Max Depth "<<m_maxDepth<<endl;
+    cout<<"Num Primitive Refs "<<m_numPrimitives+m_numDuplicates<<" InnerNodes "<<m_innerNodeCount<<" leaf nodes "<<m_leafNodeCount<<" Max Depth "<<m_maxDepth<<endl;
 
     if (m_params.enablePrints)
         printf("duplicates %.0f%% Spacial Splits %d\n" , (float)m_numDuplicates / (float)m_numPrimitives * 100.0f, numSpacialSplits);
@@ -787,133 +787,163 @@ void SplitBVHBuilder::assignParentPointers(BVHNode* root)
 
 void SplitBVHBuilder::bvhToFlatArray(BVHNode * root, int &innerSize, int &leafSize, float*& innerNodes, float*& leafNodes)
 {
-    vector<float> *flat_inner_array= new vector<float>(m_innerNodeCount*16+1);// allocate some space.
+    vector<float> *flat_inner_array = new vector<float>(m_innerNodeCount*16+16);// allocate some space.
+    cout<<"Inner node array size "<<m_innerNodeCount*16+1<<endl;
     vector<float> *flat_leaf_array = new vector<float>(m_leafNodeCount*(m_platform.getMaxLeafSize()+1));
     assignParentPointers(root);
    
-    root->m_index=0;
+    root->m_index = 0;
     stack<BVHNode*> tree;
     tree.push(root);
     BVHNode *current;
-    int currentIndex=0;
-    int currentLeafIndex=-1; //negative values indicate this is a leaf
+    int currentIndex = 0;
+    int currentLeafIndex = -1; //negative values indicate this is a leaf
     while(!tree.empty())
     {
-        //cout<<"Beg"<<endl;
-        current=tree.top();
+ 
+        current = tree.top();
         tree.pop();
-        //cout<<"In"<<endl;
         
         if(!current->isLeaf())
         {
-            //cerr<<"making inner"<<currentIndex;
-            current->m_index=currentIndex;
-            flat_inner_array->at(currentIndex)=(current->getChildNode(0)->m_bounds.min().x);
+            current->m_index = currentIndex;
+            flat_inner_array->at(currentIndex) = (current->getChildNode(0)->m_bounds.min().x);
             ++currentIndex;
-            flat_inner_array->at(currentIndex)=(current->getChildNode(0)->m_bounds.min().y);
+            flat_inner_array->at(currentIndex) = (current->getChildNode(0)->m_bounds.min().y);
             ++currentIndex;
-            flat_inner_array->at(currentIndex)=(current->getChildNode(0)->m_bounds.min().z);
+            flat_inner_array->at(currentIndex) = (current->getChildNode(0)->m_bounds.min().z);
             ++currentIndex;
-            flat_inner_array->at(currentIndex)=(current->getChildNode(0)->m_bounds.max().x);
+            flat_inner_array->at(currentIndex) = (current->getChildNode(0)->m_bounds.max().x);
             ++currentIndex;
-            flat_inner_array->at(currentIndex)=(current->getChildNode(0)->m_bounds.max().y);
+            flat_inner_array->at(currentIndex) = (current->getChildNode(0)->m_bounds.max().y);
             ++currentIndex;
-            flat_inner_array->at(currentIndex)=(current->getChildNode(0)->m_bounds.max().z);
+            flat_inner_array->at(currentIndex) = (current->getChildNode(0)->m_bounds.max().z);
             ++currentIndex;
             //cerr<<"bbox 2"<<endl;
-            flat_inner_array->at(currentIndex)=(current->getChildNode(1)->m_bounds.min().x);
+            flat_inner_array->at(currentIndex) = (current->getChildNode(1)->m_bounds.min().x);
             ++currentIndex;
-            flat_inner_array->at(currentIndex)=(current->getChildNode(1)->m_bounds.min().y);
+            flat_inner_array->at(currentIndex) = (current->getChildNode(1)->m_bounds.min().y);
             ++currentIndex;
-            flat_inner_array->at(currentIndex)=(current->getChildNode(1)->m_bounds.min().z);
+            flat_inner_array->at(currentIndex) = (current->getChildNode(1)->m_bounds.min().z);
             ++currentIndex;
-            flat_inner_array->at(currentIndex)=(current->getChildNode(1)->m_bounds.max().x);
+            flat_inner_array->at(currentIndex) = (current->getChildNode(1)->m_bounds.max().x);
             ++currentIndex;
-            flat_inner_array->at(currentIndex)=(current->getChildNode(1)->m_bounds.max().y);
+            flat_inner_array->at(currentIndex) = (current->getChildNode(1)->m_bounds.max().y);
             ++currentIndex;
-            flat_inner_array->at(currentIndex)=(current->getChildNode(1)->m_bounds.max().z);
+            flat_inner_array->at(currentIndex) = (current->getChildNode(1)->m_bounds.max().z);
             ++currentIndex;
             //cerr<<"other"<<endl;
-            flat_inner_array->at(currentIndex)=-1;//leftchild
+            flat_inner_array->at(currentIndex) = -1;//leftchild
             ++currentIndex;
-            flat_inner_array->at(currentIndex)=-1;//rightchild Index
+            flat_inner_array->at(currentIndex) = -1;//rightchild Index
             ++currentIndex;
-            flat_inner_array->at(currentIndex)=-2;//pad
+            flat_inner_array->at(currentIndex) = -2;//pad
             ++currentIndex;
-            flat_inner_array->at(currentIndex)=-2;//pad
+            flat_inner_array->at(currentIndex) = -2;//pad
             ++currentIndex;
             //cout<<" Done"<<endl;
         }
         else
-        {   //cout<<"Making leaf "<<currentLeafIndex<<" Size "<<flat_leaf_array->size()<<endl;
-            current->m_index=currentLeafIndex;
-            flat_leaf_array->at(-currentLeafIndex)=(current->getNumTriangles());
+        {   
+            current->m_index = currentLeafIndex;
+            flat_leaf_array->at(-currentLeafIndex) = (current->getNumTriangles());
             --currentLeafIndex;
             
-            LeafNode* leaf=(LeafNode*)current;
-            for(int i=0;i<leaf->getNumTriangles();i++)
+            LeafNode* leaf = (LeafNode*)current;
+            for(int i=0; i < leaf->getNumTriangles();i++)
             {
-                //cout<<currentLeafIndex<<endl;
-                flat_leaf_array->at(-currentLeafIndex)=(m_triIndices[leaf->m_lo+i]);
+                flat_leaf_array->at(-currentLeafIndex) = (m_triIndices[leaf->m_lo+i]);
                 --currentLeafIndex;
             }
-            //cout<<" Done"<<endl;
         }
         
-        //tell your parent where you are
-        //cout<<"Where is your parent"<<endl;
-        if(current->m_index!=0) //root has no parents 
+        //tell your parent where you are 
+        if(current->m_index != 0) //root has no parents 
         {
 
             int nodeIdx=0;
-            if(current->m_index>-1) nodeIdx=current->m_index/4; // this is needed since we are loading the bvh inner nodes as float4s
-            else nodeIdx=current->m_index;
-            if(current->m_parent->getChildNode(0)==current)
+            if(current->m_index > -1) nodeIdx = current->m_index/4; // this is needed since we are loading the bvh inner nodes as float4s
+            else nodeIdx = current->m_index;
+            
+            /* Special case where leaf is only node in the tree (i.e one primitive). Must create parent node so nothing segfaults.*/
+            if( current->m_parent == NULL)
             {
-                //cerr<<"I am the left child updating my location"<<current->m_parent->m_index+12<<" "<<current->m_index<<" "<<flat_inner_array->size()<<endl;
-                flat_inner_array->at(current->m_parent->m_index+12)=nodeIdx;
+                currentIndex = 0;
+                flat_inner_array->at(currentIndex) = (current->m_bounds.min().x);
+                ++currentIndex;
+                flat_inner_array->at(currentIndex) = (current->m_bounds.min().y);
+                ++currentIndex;
+                flat_inner_array->at(currentIndex) = (current->m_bounds.min().z);
+                ++currentIndex;
+                flat_inner_array->at(currentIndex) = (current->m_bounds.max().x);
+                ++currentIndex;
+                flat_inner_array->at(currentIndex) = (current->m_bounds.max().y);
+                ++currentIndex;
+                flat_inner_array->at(currentIndex) = (current->m_bounds.max().z);
+                ++currentIndex;
 
+                flat_inner_array->at(currentIndex) = 0;
+                ++currentIndex;
+                flat_inner_array->at(currentIndex) = 0;
+                ++currentIndex;
+                flat_inner_array->at(currentIndex) = 0;
+                ++currentIndex;
+                flat_inner_array->at(currentIndex) = 0;
+                ++currentIndex;
+                flat_inner_array->at(currentIndex) = 0;
+                ++currentIndex;
+                flat_inner_array->at(currentIndex) = 0;
+                ++currentIndex;
+                flat_inner_array->at(currentIndex)=-1;//leftchild
+                ++currentIndex;
+                flat_inner_array->at(currentIndex)=-1;//rightchild Index
+                ++currentIndex;
+                flat_inner_array->at(currentIndex)=-2;//pad
+                ++currentIndex;
+                flat_inner_array->at(currentIndex)=-2;//pad
+                ++currentIndex;
 
             }
-            else if(current->m_parent->getChildNode(1)==current)
+            else
             {
-                //cerr<<"I am the right child updating my location"<<current->m_parent->m_index+13<<" "<<current->m_index<<" "<<flat_inner_array->size()<<endl;
-                flat_inner_array->at(current->m_parent->m_index+13)=nodeIdx;
+                if(current->m_parent->getChildNode(0) == current)
+                {
+                    flat_inner_array->at(current->m_parent->m_index+12) = nodeIdx;
+                }
+                else if(current->m_parent->getChildNode(1) == current)
+                {
+                    flat_inner_array->at(current->m_parent->m_index+13) = nodeIdx;
+                }
+
             }
-            else cerr<<"Node "<<current->m_index<<" is an oprhan"<<endl;
+           
         }
-        //++currentIndex;
-        //cout<<"H"<<endl;
+
         if (current->getChildNode(0)!=NULL) tree.push(current->getChildNode(0));
         if (current->getChildNode(1)!=NULL) tree.push(current->getChildNode(1));
-        //cout<<"Hi"<<endl;
+
     }
-    //cout<<"After a while"<<endl;
+
     float *innerraw = new float[currentIndex];
     float *leafraw = new float[-currentLeafIndex];
     int numLeafVals=-currentLeafIndex;
-    //cout<<"BVH address : "<<raw<<endl;
-    //exit(0);
-    cout<<"Dumping raw vals"<<endl;
-    for (int i=0; i<currentIndex;i++)
+
+
+    for (int i=0; i < currentIndex;i++)
     {
-        innerraw[i]=flat_inner_array->at(i);
-        //cout<<innerraw[i]<<" ";
+        innerraw[i] = flat_inner_array->at(i);
     }
-    cout<<"Doing leaves"<<endl;
-    for (int i=0; i<numLeafVals;i++)
+    for (int i=0; i < numLeafVals;i++)
     {
-        leafraw[i]=flat_leaf_array->at(i);
-        //cout<<leafraw[i]<<" ";
+        leafraw[i] = flat_leaf_array->at(i);
     }
-    innerNodes=innerraw;
-    leafNodes=leafraw;
+    innerNodes = innerraw;
+    leafNodes = leafraw;
     delete flat_inner_array;
     delete flat_leaf_array;
-    innerSize=currentIndex;
-    leafSize=numLeafVals;
-    cerr<<"Done.. Inner Size "<<innerSize<<" leaf size "<<numLeafVals<<endl;
-    //for (int i=0; i< m_numPrimitives;i++) cerr<<"Root acess test "<<m_triIndices[i]<<endl;
+    innerSize = currentIndex;
+    leafSize = numLeafVals;
+
 }
 
 //---------
