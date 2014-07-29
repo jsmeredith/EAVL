@@ -48,6 +48,15 @@
 #define FILE_LEAF -100001
 
 //declare the texture reference even if we are not using texture memory
+#ifndef HAVE_CUDA
+template<class T>
+class texture
+{};
+struct float4
+{
+    float x,y,z,w;
+};
+#endif
 /* Triangle textures */
 texture<float4> tri_bvh_in_tref;            /* BVH inner nodes */
 texture<float4> tri_verts_tref;             /* vert+ scalar data */
