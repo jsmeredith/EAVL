@@ -6,7 +6,7 @@
 #include "eavlCellSet.h"
 #include "eavlColor.h"
 #include "eavlColorTable.h"
-
+#include "eavlView.h"
 
 static inline eavlColor MapValueToColor(double value,
                                  double vmin, double vmax,
