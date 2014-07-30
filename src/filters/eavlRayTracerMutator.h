@@ -5,26 +5,9 @@
 #include "eavlVector3.h"
 #include "eavlMatrix4x4.h"
 #include "RT/eavlRTScene.h"
+#include "RT/eavlRTUtil.h"
 
 enum primitive_t { TRIANGLE=0, SPHERE=1 };
-
-template <class T>  void deleteClassPtr(T * &ptr)
-{
-    if(ptr != NULL)
-    {
-        delete ptr;
-        ptr = NULL;
-    }
-}
-
-template <class T>  void deleteArrayPtr(T * &ptr)
-{
-    if(ptr != NULL)
-    {
-        delete[] ptr;
-        ptr = NULL;
-    }
-}
 
 class eavlRayTracerMutator : public eavlMutator
 {
@@ -518,7 +501,6 @@ class eavlRayTracerMutator : public eavlMutator
 
     void Init();
     void setDefaultColorMap();
-    void writeBMP(int, int, eavlFloatArray*,eavlFloatArray*,eavlFloatArray*,const char*);
     int  compact();
     void compactFloatArray(eavlFloatArray*& input, eavlIntArray* reverseIndex, int nitems);
     void compactIntArray(eavlIntArray*& input, eavlIntArray* reverseIndex, int nitems);

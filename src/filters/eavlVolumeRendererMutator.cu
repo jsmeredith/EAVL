@@ -1,3 +1,4 @@
+#include "eavlVolumeRendererMutator.h"
 #include "eavlException.h"
 #include "eavlExecutor.h"
 
@@ -86,11 +87,11 @@ class eavlConstArrayV2
 };
 
 
-void eavlVolumeRendererMutator()
+eavlVolumeRendererMutator::eavlVolumeRendererMutator()
 {
 	height = 1080;
 	width = 1920;
-
+	size = height * width;
 	camera.position.x = 10;
 	camera.position.y = 0;
 	camera.position.z = 0;
@@ -111,6 +112,6 @@ void eavlVolumeRendererMutator()
 
 void eavlVolumeRendererMutator::Execute()
 {
-	
+
 }
 

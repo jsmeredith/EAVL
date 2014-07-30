@@ -29,9 +29,19 @@ class eavlVolumeRendererMutator : public eavlMutator
     
     int 	height;
     int 	width;
+    int 	size;
 
+    Camera  camera;
 
-    Camera  camera
+    eavlFloatArray*		rayOriginX;
+    eavlFloatArray*		rayOriginY;
+    eavlFloatArray*		rayOriginZ;
+    eavlFloatArray*		rayDirX;
+    eavlFloatArray*		rayDirY;
+    eavlFloatArray*		rayDirZ;
+    eavlIntArray*		indexes;
+    eavlIntArray*		mortonIndexes;
+
 
 
 
