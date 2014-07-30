@@ -72,6 +72,34 @@ class Sphere : public Object
         float C = oc*oc - r*r;
 
         float discr = B*B - 4*A*C;
+
+        /*
+        float ocx = ray.s.x - o.x;
+        float ocy = ray.s.y - o.y;
+        float ocz = ray.s.z - o.z;
+
+        float rvx = ray.v.x;
+        float rvy = ray.v.y;
+        float rvz = ray.v.z;
+
+        float A = rvx*rvx + rvy*rvy + rvz*rvz;
+        float B = 2 * (ocx*rvx + ocy*rvy + ocz*rvz);
+        float C = (ocx*ocx + ocy*ocy + ocz*ocz) - r*r;
+
+        float d1 = B*B;
+        float d2 = 4*A*C;
+        float discr = d1 - d2;
+        */
+
+        /*
+        cerr << "A="<<A<<endl;
+        cerr << "B="<<B<<endl;
+        cerr << "C="<<C<<endl;
+        cerr << "d1="<<d1<<endl;
+        cerr << "d2="<<d2<<endl;
+        cerr << "d1-d2="<<d1-d2<<endl;
+        cerr << endl;
+        */
         if (discr < 0)
             return -1;
 
@@ -308,7 +336,7 @@ inline eavlColor CastRay(Ray r, Container &scene, eavlVector3 &lightvec,
     //cerr << "HIT\n";
 
 #if 1 // map value to color
-    int colorindex = ncolors * value;
+    int colorindex = float(ncolors-1) * value;
     eavlColor self(colors[colorindex*3+0],
                    colors[colorindex*3+1],
                    colors[colorindex*3+2]);
@@ -395,7 +423,16 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
     Container scene;
     vector<byte> rgba;
     vector<float> depth;
+
+    int firstskip;
+    int skip;
+    eavlView lastview;
   public:
+
+    eavlSceneRendererSimpleRT() : eavlSceneRenderer()
+    {
+        skip = firstskip = 16;
+    }
 
     virtual void AddTriangleVnVs(double x0, double y0, double z0,
                                  double x1, double y1, double z1,
@@ -452,6 +489,12 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
             delete scene.containers[i];
         scene.containers.clear();
         //cerr << "startscene\n";
+
+        skip = firstskip;
+        rgba.clear();
+        depth.clear();
+        rgba.resize(4*view.w*view.h, 0);
+        depth.resize(view.w*view.h, 1.0f);
     }
 
     virtual void EndScene()
@@ -564,9 +607,10 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
         vector<BoundingSphere*> spheres;
         //double l = view.size / 6.5;
         double l = view.size / 11.5;
-        // 0.56 just barely covers space; we want a little overlap
-        // because we're currently looking for a sphere which contains 
-        // objects in their entirety so we only have to stick them in one
+        // radius of 0.56 on both sphere locations just barely covers space;
+        // we want a little overlap because we're currently looking
+        // for a sphere which contains objects in their entirety,
+        // so we only have to stick them in one
         double rad1 = 0.6 * l;
         double rad2 = 0.6 * l;
         for (double z = view.minextents[2]; z < view.maxextents[2]+l*.5; z += l)
@@ -632,12 +676,61 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
         //cout << "endscene N="<<N<<"\n";
     }
 
+    virtual bool ShouldRenderAgain()
+    {
+        return false;
+    }
+
+    void DrawToScreen()
+    {
+        glColor3f(1,1,1);
+        glDisable(GL_BLEND);
+        glDisable(GL_LIGHTING);
+        glDisable(GL_DEPTH_TEST);
+
+        // draw the pixel colors
+        glDrawPixels(view.w, view.h, GL_RGBA, GL_UNSIGNED_BYTE, &rgba[0]);
+
+        // drawing the Z buffer will overwrite the pixel colors
+        // unless you actively prevent it....
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+        glDepthMask(GL_TRUE);
+        // For some bizarre reason, you need GL_DEPTH_TEST enabled for
+        // it to write into the Z buffer. 
+        glEnable(GL_DEPTH_TEST);
+
+        // draw the z buffer
+        glDrawPixels(view.w, view.h, GL_DEPTH_COMPONENT, GL_FLOAT, &depth[0]);
+
+        // set the various masks back to "normal"
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glDepthMask(GL_TRUE);
+    }
+
     virtual void Render()
     {
-        rgba.clear();
-        depth.clear();
-        rgba.resize(4*view.w*view.h, 0);
-        depth.resize(view.w*view.h, 1.0f);
+        if (view != lastview)
+        {
+            rgba.clear();
+            depth.clear();
+            rgba.resize(4*view.w*view.h, 0);
+            depth.resize(view.w*view.h, 1.0f);
+            skip = firstskip;
+            lastview = view;
+        }
+        else if (skip > 0)
+        {
+            rgba.clear();
+            depth.clear();
+            rgba.resize(4*view.w*view.h, 0);
+            depth.resize(view.w*view.h, 1.0f);
+        }
+
+        if (skip == 0)
+        {
+            DrawToScreen();
+            return;
+        }
 
         view.SetupForWorldSpace();
 
@@ -728,14 +821,13 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
         float mind = FLT_MAX;
         float maxd = -FLT_MAX;
 
-        const int skip=3;
 #pragma omp parallel for schedule(dynamic,1) collapse(2)
         for (int y=0; y<h; y += skip)
         {
             for (int x=0; x<w; x += skip)
             {
-                float xx = (float(x)/float(w-1)) * 2 - 1;
-                float yy = (float(y)/float(h-1)) * 2 - 1;
+                float xx = (float(x+skip/2)/float(w-1)) * 2 - 1;
+                float yy = (float(y+skip/2)/float(h-1)) * 2 - 1;
                 eavlPoint3 screenpt = screencenter + screenx*xx + screeny*yy;
                 Ray r(eye, screenpt);
 
@@ -798,29 +890,9 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
         cerr << "RT drange="<<fabs(mind-maxd)<<endl;
         */
 
+        DrawToScreen();
 
-        glColor3f(1,1,1);
-        glDisable(GL_BLEND);
-        glDisable(GL_LIGHTING);
-        glDisable(GL_DEPTH_TEST);
-
-        // draw the pixel colors
-        glDrawPixels(view.w, view.h, GL_RGBA, GL_UNSIGNED_BYTE, &rgba[0]);
-
-        // drawing the Z buffer will overwrite the pixel colors
-        // unless you actively prevent it....
-        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        glDepthMask(GL_TRUE);
-        // For some bizarre reason, you need GL_DEPTH_TEST enabled for
-        // it to write into the Z buffer. 
-        glEnable(GL_DEPTH_TEST);
-
-        // draw the z buffer
-        glDrawPixels(view.w, view.h, GL_DEPTH_COMPONENT, GL_FLOAT, &depth[0]);
-
-        // set the various masks back to "normal"
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glDepthMask(GL_TRUE);
+        skip /= 2;
     }
 };
 

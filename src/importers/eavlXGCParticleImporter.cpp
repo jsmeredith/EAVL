@@ -31,6 +31,36 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(const string &filename)
     Initialize();
 }
 
+//Reads a staged adios file
+eavlXGCParticleImporter::eavlXGCParticleImporter(	const string &filename, 
+													ADIOS_READ_METHOD method, 
+													MPI_Comm comm, 
+													ADIOS_LOCKMODE mode, 
+													int timeout_sec
+												)
+{
+    timestep = 0;
+    maxnum = 0;
+    enphase = 0;
+    inphase = 0;
+    emaxgid = 0;
+    imaxgid = 0;
+    nvars = 0;
+    time = 0;
+    fp = NULL;
+    
+    string::size_type i0 = filename.rfind("xgc.");
+    string::size_type i1 = filename.rfind(".bp");
+    
+    fp = adios_read_open(filename.c_str(), method, comm, mode, timeout_sec);
+    
+    if(fp == NULL)
+		THROW(eavlException, "XGC variable file not found.");
+
+    Initialize();
+}
+
+
 eavlXGCParticleImporter::~eavlXGCParticleImporter()
 {
     if(fp)

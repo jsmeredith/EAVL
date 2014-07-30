@@ -142,6 +142,47 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
         glDisable(GL_TEXTURE_1D);
     }
 
+//#define CONVERT_TETS_TO_TRIANGLES
+#ifdef CONVERT_TETS_TO_TRIANGLES 
+    virtual void StartTetrahedra()
+    {
+        //glCullFace(GL_BACK);
+        glEnable(GL_CULL_FACE);
+        StartTriangles();
+    }
+
+    virtual void EndTetrahedra()
+    {
+        EndTriangles();
+        glDisable(GL_CULL_FACE);
+    }
+
+
+    virtual void AddTetrahedronVs(double x0, double y0, double z0,
+                                  double x1, double y1, double z1,
+                                  double x2, double y2, double z2,
+                                  double x3, double y3, double z3,
+                                  double s0, double s1, double s2, double s3)
+    {
+        AddTriangleVs(x1,y1,z1,
+                      x0,y0,z0,
+                      x2,y2,z2,
+                      s1,s0,s2);
+        AddTriangleVs(x0,y0,z0,
+                      x1,y1,z1,
+                      x3,y3,z3,
+                      s0,s1,s3);
+        AddTriangleVs(x1,y1,z1,
+                      x2,y2,z2,
+                      x3,y3,z3,
+                      s1,s2,s3);
+        AddTriangleVs(x2,y2,z2,
+                      x0,y0,z0,
+                      x3,y3,z3,
+                      s2,s0,s3);
+    }
+#endif
+
     virtual void AddTriangleVnVs(double x0, double y0, double z0,
                                  double x1, double y1, double z1,
                                  double x2, double y2, double z2,

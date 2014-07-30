@@ -6,8 +6,7 @@
 // Class:  eavlCellSetAllPoints
 //
 // Purpose:
-///   The set of cells which is all points of the dataset.
-///   \todo: this has not been used yet.
+//   The set of cells which is all points of the dataset.
 //
 // Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern, James Kress
 // Creation:    February 15, 2011
