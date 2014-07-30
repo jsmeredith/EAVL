@@ -28,13 +28,19 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
     vector<float> samples;
     vector<byte> rgba;
     vector<float> depth;
+    vector<eavlPoint3> p[4];
+    vector<float> values;
     double mindepth, maxdepth;
-    int th;
     eavlMatrix4x4 XFORM;
+    eavlMatrix4x4 IXFORM;
+    eavlView lastview;
+
+    bool PartialDeterminantMode;
   public:
     eavlSceneRendererSimpleVR()
     {
-        nsamples = 250;
+        nsamples = 400;
+        PartialDeterminantMode = true;
     }
     virtual ~eavlSceneRendererSimpleVR()
     {
@@ -42,48 +48,40 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
 
     virtual void StartScene()
     {
+        //cerr << "StartScene\n";
         eavlSceneRenderer::StartScene();
-        rgba.clear();
-        depth.clear();
-        rgba.resize(4*view.w*view.h, 0);
-        depth.resize(view.w*view.h, 1.0f);
 
-        samples.clear();
-        samples.resize(view.w * view.h * nsamples,-1.0f);
-
-        float dist = (view.view3d.from - view.view3d.at).norm();
-
-        eavlPoint3 closest(0,0,-dist+view.size*.5);
-        eavlPoint3 farthest(0,0,-dist-view.size*.5);
-        mindepth = (view.P * closest).z;
-        maxdepth = (view.P * farthest).z;
-
-        eavlMatrix4x4 T,S;
-        T.CreateTranslate(1,1,-mindepth);
-        S.CreateScale(0.5 * view.w, 0.5*view.h, nsamples/(maxdepth-mindepth));
-        XFORM = S * T * view.P * view.V;
-
-        th = eavlTimer::Start();
+        p[0].clear();
+        p[1].clear();
+        p[2].clear();
+        p[3].clear();
+        values.clear();
+        lastview = eavlView(); // force re-composite
     }
 
     virtual void EndScene()
     {
-        double frametime = eavlTimer::Stop(th,"vr");
-        //cerr << "time per frame = " << frametime << endl;
-
         eavlSceneRenderer::EndScene();
 
+    }
+
+    void Composite()
+    {
+        //cerr << "Composite\n";
         //
         // composite all samples back-to-front
         // 
+        //cerr << "color[0] = " <<eavlColor(colors[0],colors[1],colors[2]) << endl;
+
         int w = view.w;
         int h = view.h;
-#pragma omp parallel for schedule(dynamic,1) collapse(2)
+#pragma omp parallel for collapse(2)
         for (int x=0; x<w; ++x)
         {
             for (int y=0; y<h; ++y)
             {
                 eavlColor color(0,0,0,0);
+                int minz = nsamples;
                 for (int z=nsamples-1; z>=0; --z)
                 {
                     int index3d = (y*view.w + x)*nsamples + z;
@@ -98,39 +96,32 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
                     // use a gaussian density function as the opactiy
                     float center = 0.5;
                     float sigma = 0.13;
-                    float attenuation = 0.03;
+                    float attenuation = 0.02;
                     float alpha = exp(-(value-center)*(value-center)/(2*sigma*sigma));
                     alpha *= attenuation;
                     color.c[0] = color.c[0] * (1.-alpha) + c.c[0] * alpha;
                     color.c[1] = color.c[1] * (1.-alpha) + c.c[1] * alpha;
                     color.c[2] = color.c[2] * (1.-alpha) + c.c[2] * alpha;
+
+                    minz = z;
                 }
 
                 int index = (y*view.w + x);
-                //depth[index] = d;
+                if (minz < nsamples)
+                {
+                    float projdepth = float(minz)*(maxdepth-mindepth)/float(nsamples) + mindepth;
+                    depth[index] = .5 * projdepth + .5;
+                }
                 rgba[index*4 + 0] = color.c[0]*255.;
                 rgba[index*4 + 1] = color.c[1]*255.;
                 rgba[index*4 + 2] = color.c[2]*255.;
+                rgba[index*4 + 3] = 0;
             }
         }
 
     }
 
-    virtual bool NeedsGeometryForPlot(int)
-    {
-        // we're not caching anything; always say we need it
-        return true;
-    }
-
     // ------------------------------------------------------------------------
-
-    virtual void StartTetrahedra()
-    {
-    }
-
-    virtual void EndTetrahedra()
-    {
-    }
 
     bool TetBarycentricCoords(eavlPoint3 p0,
                               eavlPoint3 p1,
@@ -190,132 +181,32 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
         return true;
     }
 
-    virtual void AddTetrahedronVs(double x0, double y0, double z0,
-                                  double x1, double y1, double z1,
-                                  double x2, double y2, double z2,
-                                  double x3, double y3, double z3,
-                                  double s0, double s1, double s2, double s3)
+    void TetPartialDeterminants(eavlPoint3 s0,
+                                eavlPoint3 s1,
+                                eavlPoint3 s2,
+                                eavlPoint3 s3,
+                                float &d_yz1_123,
+                                float &d_xz1_123,
+                                float &d_xy1_123,
+                                float &d_xyz_123,
+                                float &d_yz1_023,
+                                float &d_xz1_023,
+                                float &d_xy1_023,
+                                float &d_xyz_023,
+                                float &d_yz1_013,
+                                float &d_xz1_013,
+                                float &d_xy1_013,
+                                float &d_xyz_013,
+                                float &d_yz1_012,
+                                float &d_xz1_012,
+                                float &d_xy1_012,
+                                float &d_xyz_012,
+                                float &Dn)
     {
-        // translate the tet into image space
-        eavlPoint3 p[4] = {eavlPoint3(x0,y0,z0),
-                           eavlPoint3(x1,y1,z1),
-                           eavlPoint3(x2,y2,z2),
-                           eavlPoint3(x3,y3,z3)};
-        eavlPoint3 s[4];
-        eavlPoint3 mine(FLT_MAX,FLT_MAX,FLT_MAX);
-        eavlPoint3 maxe(-FLT_MAX,-FLT_MAX,-FLT_MAX);
-        for (int i=0; i<4; ++i)
-        {
-            s[i] = XFORM * p[i];
-            for (int d=0; d<3; ++d)
-            {
-                if (s[i][d] < mine[d])
-                    mine[d] = s[i][d];
-                if (s[i][d] > maxe[d])
-                    maxe[d] = s[i][d];
-            }
-        }
-
-        // discard tets outside the view
-        if (maxe[0] < 0)
-            return;
-        if (maxe[1] < 0)
-            return;
-        if (maxe[2] < 0)
-            return;
-        if (mine[0] >= view.w)
-            return;
-        if (mine[1] >= view.h)
-            return;
-        if (mine[2] >= nsamples)
-            return;
-
-        // clamp extents to what's inside the view
-        if (mine[0] < 0)
-            mine[0] = 0;
-        if (mine[1] < 0)
-            mine[1] = 0;
-        if (mine[2] < 0)
-            mine[2] = 0;
-        if (maxe[0] >= view.w)
-            maxe[0] = view.w-1;
-        if (maxe[1] >= view.h)
-            maxe[1] = view.h-1;
-        if (maxe[2] >= nsamples)
-            maxe[2] = nsamples-1;
-
-        int xmin = ceil(mine[0]);
-        int xmax = floor(maxe[0]);
-        int ymin = ceil(mine[1]);
-        int ymax = floor(maxe[1]);
-        int zmin = ceil(mine[2]);
-        int zmax = floor(maxe[2]);
-
-        // ignore tet if it doesn't intersect any sample points
-        if (xmin > xmax || ymin > ymax || zmin > zmax)
-            return;
-
-
-        // faster: precalculate partial determinants used for finding barycentric coords
-
-        // From: http://steve.hollasch.net/cgindex/geometry/ptintet.html
-        // From: herron@cs.washington.edu (Gary Herron)
-        //  Let the tetrahedron have vertices
-        //
-        //         V0 = (x0, y0, z0)
-        //         V1 = (x1, y1, z1)
-        //         V2 = (x2, y2, z2)
-        //         V3 = (x3, y3, z3)
-        //
-        // and your test point be
-        //
-        //         P = (x, y, z).
-        //
-        // Then the point P is in the tetrahedron if following five determinants all have the same sign.
-        //
-        //              |x0 y0 z0 1|
-        //         Dn = |x1 y1 z1 1|
-        //              |x2 y2 z2 1|
-        //              |x3 y3 z3 1|
-        //
-        //              |x  y  z  1|
-        //         D0 = |x1 y1 z1 1|
-        //              |x2 y2 z2 1|
-        //              |x3 y3 z3 1|
-        //
-        //              |x0 y0 z0 1|
-        //         D1 = |x  y  z  1|
-        //              |x2 y2 z2 1|
-        //              |x3 y3 z3 1|
-        //
-        //              |x0 y0 z0 1|
-        //         D2 = |x1 y1 z1 1|
-        //              |x2 y2 z2 1|
-        //              |x3 y3 z3 1|
-        //
-        //              |x0 y0 z0 1|
-        //         D3 = |x1 y1 z1 1|
-        //              |x3 y3 z3 1|
-        //              |x  y  z  1|
-        //
-        // Some additional notes:
-        //     If by chance the D0=0, then your tetrahedron is degenerate (the points are coplanar).
-        //     If any other Di=0, then P lies on boundary i (boundary i being that boundary formed by the three points other than Vi).
-        //     If the sign of any Di differs from that of D0 then P is outside boundary i.
-        //     If the sign of any Di equals that of D0 then P is inside boundary i.
-        //     If P is inside all 4 boundaries, then it is inside the tetrahedron.
-        //     As a check, it must be that D0 = D1+D2+D3+D4.
-        //     The pattern here should be clear; the computations can be extended to simplicies of any dimension. (The 2D and 3D case are the triangle and the tetrahedron).
-        //     If it is meaningful to you, the quantities bi = Di/D0 are the usual barycentric coordinates.
-        //     Comparing signs of Di and D0 is only a check that P and Vi are on the same side of boundary i. 
-
-
-        // we genuinely need double precision for some of these calculations, by the way:
-        // change these next four to float, and you see obvious artifacts.
-        double sx0 = s[0].x, sy0 = s[0].y, sz0 = s[0].z;
-        double sx1 = s[1].x, sy1 = s[1].y, sz1 = s[1].z;
-        double sx2 = s[2].x, sy2 = s[2].y, sz2 = s[2].z;
-        double sx3 = s[3].x, sy3 = s[3].y, sz3 = s[3].z;
+        double sx0 = s0.x, sy0 = s0.y, sz0 = s0.z;
+        double sx1 = s1.x, sy1 = s1.y, sz1 = s1.z;
+        double sx2 = s2.x, sy2 = s2.y, sz2 = s2.z;
+        double sx3 = s3.x, sy3 = s3.y, sz3 = s3.z;
 
         float d_yz_01 = sy0*sz1 - sy1*sz0;
         float d_yz_02 = sy0*sz2 - sy2*sz0;
@@ -338,78 +229,216 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
         float d_z1_13 = sz1     - sz3   ;
         float d_z1_23 = sz2     - sz3   ;
  
-        float d_yz1_123 = sy1 * d_z1_23 - sy2 * d_z1_13 + sy3 * d_z1_12;
-        float d_xz1_123 = sx1 * d_z1_23 - sx2 * d_z1_13 + sx3 * d_z1_12;
-        float d_xy1_123 = sx1 * d_y1_23 - sx2 * d_y1_13 + sx3 * d_y1_12;
-        float d_xyz_123 = sx1 * d_yz_23 - sx2 * d_yz_13 + sx3 * d_yz_12;
+        d_yz1_123 = sy1 * d_z1_23 - sy2 * d_z1_13 + sy3 * d_z1_12;
+        d_xz1_123 = sx1 * d_z1_23 - sx2 * d_z1_13 + sx3 * d_z1_12;
+        d_xy1_123 = sx1 * d_y1_23 - sx2 * d_y1_13 + sx3 * d_y1_12;
+        d_xyz_123 = sx1 * d_yz_23 - sx2 * d_yz_13 + sx3 * d_yz_12;
 
-        float d_yz1_023 = sy0 * d_z1_23 - sy2 * d_z1_03 + sy3 * d_z1_02;
-        float d_xz1_023 = sx0 * d_z1_23 - sx2 * d_z1_03 + sx3 * d_z1_02;
-        float d_xy1_023 = sx0 * d_y1_23 - sx2 * d_y1_03 + sx3 * d_y1_02;
-        float d_xyz_023 = sx0 * d_yz_23 - sx2 * d_yz_03 + sx3 * d_yz_02;
+        d_yz1_023 = sy0 * d_z1_23 - sy2 * d_z1_03 + sy3 * d_z1_02;
+        d_xz1_023 = sx0 * d_z1_23 - sx2 * d_z1_03 + sx3 * d_z1_02;
+        d_xy1_023 = sx0 * d_y1_23 - sx2 * d_y1_03 + sx3 * d_y1_02;
+        d_xyz_023 = sx0 * d_yz_23 - sx2 * d_yz_03 + sx3 * d_yz_02;
 
-        float d_yz1_013 = sy0 * d_z1_13 - sy1 * d_z1_03 + sy3 * d_z1_01;
-        float d_xz1_013 = sx0 * d_z1_13 - sx1 * d_z1_03 + sx3 * d_z1_01;
-        float d_xy1_013 = sx0 * d_y1_13 - sx1 * d_y1_03 + sx3 * d_y1_01;
-        float d_xyz_013 = sx0 * d_yz_13 - sx1 * d_yz_03 + sx3 * d_yz_01;
+        d_yz1_013 = sy0 * d_z1_13 - sy1 * d_z1_03 + sy3 * d_z1_01;
+        d_xz1_013 = sx0 * d_z1_13 - sx1 * d_z1_03 + sx3 * d_z1_01;
+        d_xy1_013 = sx0 * d_y1_13 - sx1 * d_y1_03 + sx3 * d_y1_01;
+        d_xyz_013 = sx0 * d_yz_13 - sx1 * d_yz_03 + sx3 * d_yz_01;
 
-        float d_yz1_012 = sy0 * d_z1_12 - sy1 * d_z1_02 + sy2 * d_z1_01;
-        float d_xz1_012 = sx0 * d_z1_12 - sx1 * d_z1_02 + sx2 * d_z1_01;
-        float d_xy1_012 = sx0 * d_y1_12 - sx1 * d_y1_02 + sx2 * d_y1_01;
-        float d_xyz_012 = sx0 * d_yz_12 - sx1 * d_yz_02 + sx2 * d_yz_01;
+        d_yz1_012 = sy0 * d_z1_12 - sy1 * d_z1_02 + sy2 * d_z1_01;
+        d_xz1_012 = sx0 * d_z1_12 - sx1 * d_z1_02 + sx2 * d_z1_01;
+        d_xy1_012 = sx0 * d_y1_12 - sx1 * d_y1_02 + sx2 * d_y1_01;
+        d_xyz_012 = sx0 * d_yz_12 - sx1 * d_yz_02 + sx2 * d_yz_01;
 
-        float Dn =  sx0 * d_yz1_123 - sy0 * d_xz1_123 + sz0 * d_xy1_123 - 1 * d_xyz_123;
-        // walk over samples covering the tet in each dimension
-        // and sample onto our regular grid
-//#pragma omp parallel for schedule(dynamic,1) collapse(2)
-        for(int x=xmin; x<=xmax; ++x)
+        Dn =  sx0 * d_yz1_123 - sy0 * d_xz1_123 + sz0 * d_xy1_123 - 1 * d_xyz_123;
+    }
+
+    virtual void AddTetrahedronVs(double x0, double y0, double z0,
+                                  double x1, double y1, double z1,
+                                  double x2, double y2, double z2,
+                                  double x3, double y3, double z3,
+                                  double s0, double s1, double s2, double s3)
+    {
+        p[0].push_back(eavlPoint3(x0,y0,z0));
+        p[1].push_back(eavlPoint3(x1,y1,z1));
+        p[2].push_back(eavlPoint3(x2,y2,z2));
+        p[3].push_back(eavlPoint3(x3,y3,z3));
+        values.push_back(s0);
+        values.push_back(s1);
+        values.push_back(s2);
+        values.push_back(s3);
+    }
+
+    void ChangeView()
+    {
+        //cerr << "ChangeView\n";
+        rgba.clear();
+        depth.clear();
+        rgba.resize(4*view.w*view.h, 0);
+        depth.resize(view.w*view.h, 1.0f);
+
+        samples.clear();
+        samples.resize(view.w * view.h * nsamples,-1.0f);
+
+        float dist = (view.view3d.from - view.view3d.at).norm();
+
+        eavlPoint3 closest(0,0,-dist+view.size*.5);
+        eavlPoint3 farthest(0,0,-dist-view.size*.5);
+        mindepth = (view.P * closest).z;
+        maxdepth = (view.P * farthest).z;
+
+        eavlMatrix4x4 T,S;
+        T.CreateTranslate(1,1,-mindepth);
+        S.CreateScale(0.5 * view.w, 0.5*view.h, nsamples/(maxdepth-mindepth));
+        XFORM = S * T * view.P * view.V;
+        IXFORM = XFORM;
+        IXFORM.Invert();
+    }
+
+
+    void Sample()
+    {
+        //cerr << "Sample\n";
+        int th = eavlTimer::Start();
+        int n = p[0].size();
+
+#pragma omp parallel for schedule(dynamic,1)
+        for (int tet = 0; tet < n ; tet++)
         {
-            for(int y=ymin; y<=ymax; ++y)
+            // translate the tet into image space
+            eavlPoint3 s[4];
+            eavlPoint3 mine(FLT_MAX,FLT_MAX,FLT_MAX);
+            eavlPoint3 maxe(-FLT_MAX,-FLT_MAX,-FLT_MAX);
+            for (int i=0; i<4; ++i)
             {
-                for(int z=zmin; z<=zmax; ++z)
+                s[i] = XFORM * p[i][tet];
+                for (int d=0; d<3; ++d)
                 {
-                    // raw version: D22 = 2m 1a, d33 = 6m 3a 3m 2a = 9m 5a, d44 = 36m 20a 4m 3a = 40m 23a,
-                    //              and five of them = 200m 115a
-                    // new version: 12m 18a (d22) 48m 32a (d33) 20m 15a (d44x5) = 80m 65a (2x fewer)
-                    //              and with optimization, it's only 16m 12a per sample point (10x fewer)
-                    eavlPoint3 test(x,y,z);
-                    float value;
-                    if (false) // old version
+                    if (s[i][d] < mine[d])
+                        mine[d] = s[i][d];
+                    if (s[i][d] > maxe[d])
+                        maxe[d] = s[i][d];
+                }
+            }
+
+            // discard tets outside the view
+            if (maxe[0] < 0)
+                continue;
+            if (maxe[1] < 0)
+                continue;
+            if (maxe[2] < 0)
+                continue;
+            if (mine[0] >= view.w)
+                continue;
+            if (mine[1] >= view.h)
+                continue;
+            if (mine[2] >= nsamples)
+                continue;
+
+            // clamp extents to what's inside the view
+            if (mine[0] < 0)
+                mine[0] = 0;
+            if (mine[1] < 0)
+                mine[1] = 0;
+            if (mine[2] < 0)
+                mine[2] = 0;
+            if (maxe[0] >= view.w)
+                maxe[0] = view.w-1;
+            if (maxe[1] >= view.h)
+                maxe[1] = view.h-1;
+            if (maxe[2] >= nsamples)
+                maxe[2] = nsamples-1;
+
+            int xmin = ceil(mine[0]);
+            int xmax = floor(maxe[0]);
+            int ymin = ceil(mine[1]);
+            int ymax = floor(maxe[1]);
+            int zmin = ceil(mine[2]);
+            int zmax = floor(maxe[2]);
+
+            // ignore tet if it doesn't intersect any sample points
+            if (xmin > xmax || ymin > ymax || zmin > zmax)
+                continue;
+
+            // we genuinely need double precision for some of these calculations, by the way:
+            // change these next four to float, and you see obvious artifacts.
+
+            float d_yz1_123=0, d_xz1_123=0, d_xy1_123=0, d_xyz_123=0;
+            float d_yz1_023=0, d_xz1_023=0, d_xy1_023=0, d_xyz_023=0;
+            float d_yz1_013=0, d_xz1_013=0, d_xy1_013=0, d_xyz_013=0;
+            float d_yz1_012=0, d_xz1_012=0, d_xy1_012=0, d_xyz_012=0;
+            float Dn=1;
+            if (PartialDeterminantMode)
+            {
+                TetPartialDeterminants(s[0],s[1],s[2],s[3],
+                                   d_yz1_123, d_xz1_123, d_xy1_123, d_xyz_123,
+                                   d_yz1_023, d_xz1_023, d_xy1_023, d_xyz_023,
+                                   d_yz1_013, d_xz1_013, d_xy1_013, d_xyz_013,
+                                   d_yz1_012, d_xz1_012, d_xy1_012, d_xyz_012,
+                                   Dn);
+            }
+
+            // walk over samples covering the tet in each dimension
+            // and sample onto our regular grid
+            //#pragma omp parallel for schedule(dynamic,1) collapse(2)
+            for(int x=xmin; x<=xmax; ++x)
+            {
+                for(int y=ymin; y<=ymax; ++y)
+                {
+                    for(int z=zmin; z<=zmax; ++z)
                     {
-                        float b0,b1,b2,b3;
-                        bool isInside = TetBarycentricCoords(s[0],s[1],s[2],s[3],
-                                                             test,b0,b1,b2,b3);
-                        if (!isInside)
-                            continue;
-                        value = b0*s0 + b1*s1 + b2*s2 + b3*s3;
-                    }
-                    else
-                    {
-                        float D0 =  x *  d_yz1_123 - y *  d_xz1_123 + z *  d_xy1_123 - 1. * d_xyz_123;
-                        float D1 = -x *  d_yz1_023 + y *  d_xz1_023 - z *  d_xy1_023 + 1. * d_xyz_023;
-                        float D2 =  x *  d_yz1_013 - y *  d_xz1_013 + z *  d_xy1_013 - 1. * d_xyz_013;
-                        float D3 = -x *  d_yz1_012 + y *  d_xz1_012 - z *  d_xy1_012 + 1. * d_xyz_012;
-                        if (Dn<0)
+                        // raw version: D22 = 2m 1a, d33 = 6m 3a 3m 2a = 9m 5a, d44 = 36m 20a 4m 3a = 40m 23a,
+                        //              and five of them = 200m 115a
+                        // new version: 12m 18a (d22) 48m 32a (d33) 20m 15a (d44x5) = 80m 65a (2x fewer)
+                        //              and with optimization, it's only 16m 12a per sample point (10x fewer)
+                        eavlPoint3 test(x,y,z);
+                        float value;
+                        float s0 = values[tet*4+0];
+                        float s1 = values[tet*4+1];
+                        float s2 = values[tet*4+2];
+                        float s3 = values[tet*4+3];
+                        if (!PartialDeterminantMode)
                         {
-                            // should NEVER fire unless there's a numerical precision error
-                            cerr << "Dn negative\n";
-                            if (D0>0 || D1>0 || D2>0 || D3>0)
+                            // Mode where we calculate the full barycentric
+                            // coordinates from scratch each time.
+                            float b0,b1,b2,b3;
+                            bool isInside =
+                                TetBarycentricCoords(s[0],s[1],s[2],s[3],
+                                                     test,b0,b1,b2,b3);
+                            if (!isInside)
                                 continue;
+                            value = b0*s0 + b1*s1 + b2*s2 + b3*s3;
                         }
                         else
                         {
-                            //cerr << "Dn positive\n";
-                            if (D0<0 || D1<0 || D2<0 || D3<0)
-                                continue;
+                            // Mode where we pre-calculate partial determinants
+                            // to avoid a bunch of redundant arithmetic.
+                            float D0 =  x *  d_yz1_123 - y *  d_xz1_123 + z *  d_xy1_123 - 1. * d_xyz_123;
+                            float D1 = -x *  d_yz1_023 + y *  d_xz1_023 - z *  d_xy1_023 + 1. * d_xyz_023;
+                            float D2 =  x *  d_yz1_013 - y *  d_xz1_013 + z *  d_xy1_013 - 1. * d_xyz_013;
+                            float D3 = -x *  d_yz1_012 + y *  d_xz1_012 - z *  d_xy1_012 + 1. * d_xyz_012;
+                            if (Dn<0)
+                            {
+                                // should NEVER fire unless there's a numerical precision error
+                                //cerr << "Dn negative\n";
+                                if (D0>0 || D1>0 || D2>0 || D3>0)
+                                    continue;
+                            }
+                            else
+                            {
+                                //cerr << "Dn positive\n";
+                                if (D0<0 || D1<0 || D2<0 || D3<0)
+                                    continue;
+                            }
+                            value = (D0*s0 + D1*s1 + D2*s2 + D3*s3) / Dn;
                         }
-                        value = (D0*s0 + D1*s1 + D2*s2 + D3*s3) / Dn;
-                    }
 
-                    int index3d = (y*view.w + x)*nsamples + z;
-                    samples[index3d] = value;
+                        int index3d = (y*view.w + x)*nsamples + z;
+                        samples[index3d] = value;
+                    }
                 }
             }
         }
+        //cerr << "Sample time = "<<eavlTimer::Stop(th,"sample") << endl;
     }
 
     // ------------------------------------------------------------------------
@@ -443,6 +472,13 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
     // ------------------------------------------------------------------------
     virtual void Render()
     {
+        if (lastview != view)
+        {
+            ChangeView();
+            Sample();
+            lastview = view;
+        }
+        Composite();
         DrawToScreen();
     }
 
