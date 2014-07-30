@@ -1,7 +1,6 @@
 #ifndef EAVL_VOLUME_RENDERER_MUTATOR_H
 #define EAVL_VOLUME_RENDERER_MUTATOR_H
 #include "eavlFilter.h"
-
 struct Camera
 {
 	eavlVector3 	look;
@@ -13,8 +12,6 @@ struct Camera
     float			zoom;
 };
 
-
-
 class eavlVolumeRendererMutator : public eavlMutator
 {
   public:
@@ -23,6 +20,27 @@ class eavlVolumeRendererMutator : public eavlMutator
     {
         fieldname = name;
     }
+    void setFOVx(const float d)
+    {
+      camera.fovx=d; 
+    }
+
+    void setFOVy(const float d)
+    {
+      camera.fovy=d;
+    }
+
+    void setResolution(const int h, const int w)
+    {
+      if(h!=height || width !=w) 
+      {
+        sizeDirty = true;
+      }
+      height = h;
+      width = w;
+    }
+
+    
     virtual void Execute();
   protected:
     string fieldname;
@@ -30,6 +48,12 @@ class eavlVolumeRendererMutator : public eavlMutator
     int 	height;
     int 	width;
     int 	size;
+
+    int 	numTets;
+
+    bool	sizeDirty;
+    bool 	geomDirty;
+    bool    verbose;
 
     Camera  camera;
 
@@ -42,7 +66,10 @@ class eavlVolumeRendererMutator : public eavlMutator
     eavlIntArray*		indexes;
     eavlIntArray*		mortonIndexes;
 
-
+    void init();
+    void allocateArrays();
+    void extractGeometry();
+    void createRays();
 
 
 };

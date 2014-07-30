@@ -211,9 +211,6 @@ bool readBVHCache(float *&innerNodes, int &innerSize, float *&leafNodes, int &le
 }
 
 
-EAVL_HOSTDEVICE float rcp(float f){ return 1.0f/f;}
-EAVL_HOSTDEVICE float rcp_safe(float f) { return rcp((fabs(f) < 1e-8f) ? 1e-8f : f); }
-
 int test;
 eavlRayTracerMutator::eavlRayTracerMutator()
 {
@@ -615,13 +612,13 @@ EAVL_HOSTDEVICE eavlVector3 triangleIntersectionABG(const eavlVector3 ray,const 
 EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &tri_bvh_lf_raw,eavlConstArrayV2<float4> &verts,const float &maxDistance, float &distance)
 {
 
-
+    cout<<endl<<"New ray ------------------------------------"<<endl;
     float minDistance =maxDistance;
     int   minIndex    =-1;
     
     float dirx=rayDir.x;
     float diry=rayDir.y;
-    float dirz=rayDir.z;
+    float dirz=rayDir.z; 
 
     float invDirx=rcp_safe(dirx);
     float invDiry=rcp_safe(diry);
@@ -750,10 +747,11 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
                             if(v>= (0.f- EPSILON) && v<=(1.f+EPSILON))
                             {
                                 float dist=(e2*q)*dot;
+                                
                                 if((dist>EPSILON && dist<minDistance) && !(u+v>1) )
-                                {
-                                    minDistance=dist;
-                                    minIndex=triIndex;
+                                {   cout<<"Dist "<<dist<<" ";
+                                    //minDistance=dist;
+                                    //minIndex=triIndex;
                                     if(occlusion) return minIndex;//or set todo to -1
                                 }
                             }
@@ -1716,7 +1714,7 @@ void eavlRayTracerMutator::allocateArrays()
 
 void eavlRayTracerMutator::Init()
 {   if(verbose) cerr<<"INIT"<<endl;
-    size=height*width;
+    size = height*width;
 #if 0    
     if(antiAlias) size=(width+1)*(height+1);
 #endif
@@ -2385,25 +2383,6 @@ void eavlRayTracerMutator::printMemUsage()
 */
 
 
-
-
-struct ThreshFunctor
-{
-    int thresh;
-    ThreshFunctor(int t)
-        : thresh(t)
-    {}
-
-    EAVL_FUNCTOR tuple<int> operator()(int in){
-        int out;
-        if(in<thresh) out=0;
-        else out=1;
-        return tuple<int>(out);
-    }
-
-};
-
-
 int  eavlRayTracerMutator::compact()
 {
     cout<<"COMPACTING"<<endl;
@@ -2521,7 +2500,7 @@ void eavlRayTracerMutator::createRays()
     float  w,h;
 
     raySort *rayArray= new raySort[size]; // since this is happening every frame it should not be allocated and deleted constantly.
-                                          //Fix: this only has to be generated once, then just memset the indexes every frame.
+                                          
     for(int i=0; i<size;i++)
     {
         rayArray[i].id=i;

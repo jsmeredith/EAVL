@@ -7,8 +7,6 @@
 #include "RT/eavlRTScene.h"
 #include "RT/eavlRTUtil.h"
 
-enum primitive_t { TRIANGLE=0, SPHERE=1 };
-
 class eavlRayTracerMutator : public eavlMutator
 {
   public:

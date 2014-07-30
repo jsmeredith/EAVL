@@ -289,7 +289,7 @@ int main(int argc, char *argv[])
         }
         tracer->setRawData(v,n,objreader->totalTriangles, theMats, mIdx, matCount);
         */
-        //tracer->scene->loadObjFile(filename);
+        tracer->scene->loadObjFile(filename);
         //tracer->setBVHCacheName(filename);
         //delete objreader;
         tracer->setCompactOp(false);
@@ -301,7 +301,7 @@ int main(int argc, char *argv[])
         //eavlVector3 mov(0,0,.01);
         //float m=0.01;
 
-        tracer->startScene();
+        //tracer->startScene();
         //tracer->scene->addSphere(1,0,0,0,1);
         //tracer->scene->addSphere(1,0,4,0,1);
         //tracer->scene->addSphere(1,2,0,0,1);
@@ -314,13 +314,13 @@ int main(int argc, char *argv[])
         //tracer->scene->addSphere(1,0,0,7,1);
         //tracer->scene->addSphere(1,5,0,0,1);
 
-        tracer->scene->addSphere(1,0,0,0,1);
+        //tracer->scene->addSphere(1,0,0,0,1);
         tracer->Execute();
         if(!isTest)
         {
             for(int i=0; i<1;i++)
             {
-                //tracer->Execute();
+                tracer->Execute();
             }
         }
         else 

@@ -4,6 +4,11 @@
 
 #define PI          3.14159265359f
 
+EAVL_HOSTDEVICE float rcp(float f){ return 1.0f/f;}
+EAVL_HOSTDEVICE float rcp_safe(float f) { return rcp((fabs(f) < 1e-8f) ? 1e-8f : f); }
+
+enum primitive_t { TRIANGLE=0, SPHERE=1 , TET = 3};
+
 template <class T>  void deleteClassPtr(T * &ptr)
 {
     if(ptr != NULL)
@@ -21,6 +26,7 @@ template <class T>  void deleteArrayPtr(T * &ptr)
         ptr = NULL;
     }
 }
+
 
 struct RayGenFunctor
 {
@@ -73,6 +79,22 @@ struct RayGenFunctor
 
 };
 /*----------------------Utility Functors---------------------------------- */
+struct ThreshFunctor
+{
+    int thresh;
+    ThreshFunctor(int t)
+        : thresh(t)
+    {}
+
+    EAVL_FUNCTOR tuple<int> operator()(int in){
+        int out;
+        if(in<thresh) out=0;
+        else out=1;
+        return tuple<int>(out);
+    }
+
+};
+
 // 1 value to 3 arrays this uses a dummy array as input;
 struct FloatMemsetFunctor1to3
 {
