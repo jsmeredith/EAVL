@@ -350,7 +350,64 @@ struct tri
 
 };
 
+inline bool readBVHCache(float *&innerNodes, int &innerSize, float *&leafNodes, int &leafSize, const char* filename )
+{
+    ifstream bvhcache(filename, ios::in |ios::binary);
+    if(bvhcache.is_open())
+    {
+        cout<<"Reading BVH Cache"<<endl;
+        bvhcache.read((char*)&innerSize, sizeof(innerSize));
+        if(innerSize<0) 
+        {
+            cerr<<"Invalid inner node array size "<<innerSize<<endl;
+            bvhcache.close();
+            return false;
+        }
+        innerNodes= new float[innerSize];
+        bvhcache.read((char*)innerNodes, sizeof(float)*innerSize);
 
+        bvhcache.read((char*)&leafSize, sizeof(leafSize));
+        if(leafSize<0) 
+        {
+            cerr<<"Invalid leaf array size "<<leafSize<<endl;
+            bvhcache.close();
+            delete innerNodes;
+            return false;
+        }
+
+        leafNodes= new float[leafSize];
+        bvhcache.read((char*)leafNodes, sizeof(float)*leafSize);
+    }
+    else
+    {
+        cerr<<"Could not open file "<<filename<<" for reading bvh cache. Rebuilding..."<<endl;
+        bvhcache.close();
+        return false;
+    }
+
+    bvhcache.close();
+    return true;
+}
+
+inline void writeBVHCache(const float *innerNodes, const int innerSize, const float * leafNodes, const int leafSize, const char* filename )
+{
+    cout<<"Writing BVH to cache"<<endl;
+    ofstream bvhcache(filename, ios::out |ios::binary);
+    if(bvhcache.is_open())
+    {
+        bvhcache.write((char*)&innerSize, sizeof(innerSize));
+        bvhcache.write((const char*)innerNodes, sizeof(float)*innerSize);
+
+        bvhcache.write((char*)&leafSize, sizeof(leafSize));
+        bvhcache.write((const char*)leafNodes, sizeof(float)*leafSize);
+    }
+    else
+    {
+        cerr<<"Error. Could not open file "<<filename<<" for storing bvh cache."<<endl;
+    }
+    bvhcache.close();
+    
+}
 
 inline bool spacialCompare(const raySort &lhs,const raySort &rhs)
 {

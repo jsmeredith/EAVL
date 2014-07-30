@@ -151,64 +151,7 @@ eavlConstArrayV2<int>*    tri_matIdx_array;
 
 eavlConstArrayV2<float4>* color_map_array;
 
-void writeBVHCache(const float *innerNodes, const int innerSize, const float * leafNodes, const int leafSize, const char* filename )
-{
-    cout<<"Writing BVH to cache"<<endl;
-    ofstream bvhcache(filename, ios::out |ios::binary);
-    if(bvhcache.is_open())
-    {
-        bvhcache.write((char*)&innerSize, sizeof(innerSize));
-        bvhcache.write((const char*)innerNodes, sizeof(float)*innerSize);
 
-        bvhcache.write((char*)&leafSize, sizeof(leafSize));
-        bvhcache.write((const char*)leafNodes, sizeof(float)*leafSize);
-    }
-    else
-    {
-        cerr<<"Error. Could not open file "<<filename<<" for storing bvh cache."<<endl;
-    }
-    bvhcache.close();
-    
-}
-
-bool readBVHCache(float *&innerNodes, int &innerSize, float *&leafNodes, int &leafSize, const char* filename )
-{
-    ifstream bvhcache(filename, ios::in |ios::binary);
-    if(bvhcache.is_open())
-    {
-        cout<<"Reading BVH Cache"<<endl;
-        bvhcache.read((char*)&innerSize, sizeof(innerSize));
-        if(innerSize<0) 
-        {
-            cerr<<"Invalid inner node array size "<<innerSize<<endl;
-            bvhcache.close();
-            return false;
-        }
-        innerNodes= new float[innerSize];
-        bvhcache.read((char*)innerNodes, sizeof(float)*innerSize);
-
-        bvhcache.read((char*)&leafSize, sizeof(leafSize));
-        if(leafSize<0) 
-        {
-            cerr<<"Invalid leaf array size "<<leafSize<<endl;
-            bvhcache.close();
-            delete innerNodes;
-            return false;
-        }
-
-        leafNodes= new float[leafSize];
-        bvhcache.read((char*)leafNodes, sizeof(float)*leafSize);
-    }
-    else
-    {
-        cerr<<"Could not open file "<<filename<<" for reading bvh cache. Rebuilding..."<<endl;
-        bvhcache.close();
-        return false;
-    }
-
-    bvhcache.close();
-    return true;
-}
 
 
 int test;
@@ -612,13 +555,13 @@ EAVL_HOSTDEVICE eavlVector3 triangleIntersectionABG(const eavlVector3 ray,const 
 EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &tri_bvh_lf_raw,eavlConstArrayV2<float4> &verts,const float &maxDistance, float &distance)
 {
 
-    cout<<endl<<"New ray ------------------------------------"<<endl;
+
     float minDistance =maxDistance;
     int   minIndex    =-1;
     
     float dirx=rayDir.x;
     float diry=rayDir.y;
-    float dirz=rayDir.z; 
+    float dirz=rayDir.z;
 
     float invDirx=rcp_safe(dirx);
     float invDiry=rcp_safe(diry);
@@ -747,11 +690,10 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
                             if(v>= (0.f- EPSILON) && v<=(1.f+EPSILON))
                             {
                                 float dist=(e2*q)*dot;
-                                
                                 if((dist>EPSILON && dist<minDistance) && !(u+v>1) )
-                                {   cout<<"Dist "<<dist<<" ";
-                                    //minDistance=dist;
-                                    //minIndex=triIndex;
+                                {
+                                    minDistance=dist;
+                                    minIndex=triIndex;
                                     if(occlusion) return minIndex;//or set todo to -1
                                 }
                             }
@@ -2739,6 +2681,9 @@ void eavlRayTracerMutator::freeRaw()
     
     deleteArrayPtr(tri_verts_raw);
     deleteArrayPtr(tri_norms_raw);
+    deleteArrayPtr(tri_matIdx_raw);
+    deleteArrayPtr(tri_bvh_in_raw);
+    deleteArrayPtr(tri_bvh_lf_raw);
     deleteArrayPtr(tri_matIdx_raw);
     deleteArrayPtr(sphr_verts_raw);
     deleteArrayPtr(sphr_matIdx_raw);

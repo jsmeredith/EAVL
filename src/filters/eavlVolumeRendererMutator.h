@@ -66,10 +66,17 @@ class eavlVolumeRendererMutator : public eavlMutator
     eavlIntArray*		indexes;
     eavlIntArray*		mortonIndexes;
 
+
+    float     *tet_verts_raw;
+    float     *tet_bvh_in_raw;            /* BVH broken up into inner nodes and leaf nodes */
+    float     *tet_bvh_lf_raw;
+
     void init();
     void allocateArrays();
     void extractGeometry();
     void createRays();
+    void freeRaw();
+    void freeTextures();
 
 
 };

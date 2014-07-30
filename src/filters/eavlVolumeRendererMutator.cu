@@ -12,9 +12,9 @@
 #define EPSILON     0.001f
 
 /* Triangle textures */
-texture<float4> tri_bvh_in_tref;            /* BVH inner nodes */
-texture<float4> tri_verts_tref;             /* vert+ scalar data */
-texture<float>  tri_bvh_lf_tref;            /* BVH leaf nodes */
+texture<float4> tet_bvh_in_tref;            /* BVH inner nodes */
+texture<float4> tet_verts_tref;              /* vert+ scalar data */
+texture<float>  tet_bvh_lf_tref;            /* BVH leaf nodes */
 
 #ifndef HAVE_CUDA
 template<class T> class texture {};
@@ -95,9 +95,9 @@ class eavlConstArrayV2
 };
 
 
-eavlConstArrayV2<float4>* tri_bvh_in_array;
-eavlConstArrayV2<float4>* tri_verts_array;
-eavlConstArrayV2<float>*  tri_bvh_lf_array;
+eavlConstArrayV2<float4>* tet_bvh_in_array;
+eavlConstArrayV2<float4>* tet_verts_array;
+eavlConstArrayV2<float>*  tet_bvh_lf_array;
 
 eavlVolumeRendererMutator::eavlVolumeRendererMutator()
 {
@@ -130,11 +130,18 @@ eavlVolumeRendererMutator::eavlVolumeRendererMutator()
     sizeDirty = true;
     verbose = true;
 
+    tet_verts_raw = NULL;
+    tet_bvh_in_raw = NULL;     
+    tet_bvh_lf_raw = NULL;
+
+    tet_bvh_in_array = NULL;
+    tet_verts_array = NULL;
+    tet_bvh_lf_array = NULL;
     numTets = 0;
 }
 
 
-EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &tri_bvh_lf_raw,eavlConstArrayV2<float4> &verts,const float &maxDistance, float &distance)
+EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &tet_bvh_lf_raw,eavlConstArrayV2<float4> &verts,const float &maxDistance, float &distance)
 {
 
 
@@ -171,9 +178,9 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
         if(currentNode>-1)
         {
 
-            float4 n1=bvh.getValue(tri_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
-            float4 n2=bvh.getValue(tri_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
-            float4 n3=bvh.getValue(tri_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
+            float4 n1=bvh.getValue(tet_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
+            float4 n2=bvh.getValue(tet_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
+            float4 n3=bvh.getValue(tet_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
             
             float txmin0 =   n1.x* invDirx -odirx;       
             float tymin0 =   n1.y* invDiry -odiry;         
@@ -207,7 +214,7 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
         }
         else
         {
-            float4 n4=bvh.getValue(tri_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
+            float4 n4=bvh.getValue(tet_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
             int leftChild =(int)n4.x;
             int rightChild=(int)n4.y;
 
@@ -238,15 +245,15 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
             
 
             currentNode=-currentNode; //swap the neg address 
-            int numTri=(int)tri_bvh_lf_raw.getValue(tri_bvh_lf_tref,currentNode)+1;
+            int numTri=(int)tet_bvh_lf_raw.getValue(tet_bvh_lf_tref,currentNode)+1;
 
             for(int i=1;i<numTri;i++)
             {        
-                    int triIndex=(int)tri_bvh_lf_raw.getValue(tri_bvh_lf_tref,currentNode+i);
+                    int triIndex=(int)tet_bvh_lf_raw.getValue(tet_bvh_lf_tref,currentNode+i);
                    
-                    float4 a4=verts.getValue(tri_verts_tref, triIndex*3);
-                    float4 b4=verts.getValue(tri_verts_tref, triIndex*3+1);
-                    float4 c4=verts.getValue(tri_verts_tref, triIndex*3+2);
+                    float4 a4=verts.getValue(tet_verts_tref, triIndex*3);
+                    float4 b4=verts.getValue(tet_verts_tref, triIndex*3+1);
+                    float4 c4=verts.getValue(tet_verts_tref, triIndex*3+2);
                     eavlVector3 e1( a4.w-a4.x , b4.x-a4.y, b4.y-a4.z ); 
                     eavlVector3 e2( b4.z-a4.x , b4.w-a4.y, c4.x-a4.z );
 
@@ -348,7 +355,19 @@ void eavlVolumeRendererMutator::init()
 
 void eavlVolumeRendererMutator::extractGeometry()
 {
+    if(verbose) cerr<<"Extracting Geometry"<<endl;
+    freeRaw();
+    freeTextures();
 
+    cout<<"Building BVH...."<<endl;
+    ///SplitBVH *testSplit= new SplitBVH(tri_verts_raw, numTriangles, TRIANGLE); // 0=triangle
+    //testSplit->getFlatArray(tri_bvh_in_size, tri_bvh_lf_size, tri_bvh_in_raw, tri_bvh_lf_raw);
+    //if( writeCache) writeBVHCache(tri_bvh_in_raw, tri_bvh_in_size, tri_bvh_lf_raw, tri_bvh_lf_size, bvhCacheName.c_str());
+    //delete testSplit;
+
+    //tri_bvh_in_array   = new eavlConstArrayV2<float4>( (float4*)tri_bvh_in_raw, tri_bvh_in_size/4, tri_bvh_in_tref);
+    //tri_bvh_lf_array   = new eavlConstArrayV2<float>( tri_bvh_lf_raw, tri_bvh_lf_size, tri_bvh_lf_tref);
+    //tri_verts_array    = new eavlConstArrayV2<float4>( (float4*)tri_verts_raw,numTriangles*3, tri_verts_tref);
 }
 
 
@@ -381,3 +400,38 @@ void eavlVolumeRendererMutator::createRays()
     }
     delete[] rayArray; 
 } 
+
+
+void eavlVolumeRendererMutator::freeRaw()
+{
+    
+    deleteArrayPtr(tet_verts_raw);
+    deleteArrayPtr(tet_bvh_in_raw);
+    deleteArrayPtr(tet_bvh_lf_raw);
+    cout<<"Free raw"<<endl;
+
+}
+
+
+void eavlVolumeRendererMutator::freeTextures()
+{
+    cout<<"Free textures"<<endl;
+   if (tet_bvh_in_array != NULL) 
+    {
+        tet_bvh_in_array->unbind(tet_bvh_in_tref);
+        delete tet_bvh_in_array;
+        tet_bvh_in_array = NULL;
+    }
+    if (tet_bvh_lf_array != NULL) 
+    {
+        tet_bvh_lf_array->unbind(tet_bvh_lf_tref);
+        delete tet_bvh_lf_array;
+        tet_bvh_lf_array = NULL;
+    }
+    if (tet_verts_array != NULL) 
+    {
+        tet_verts_array ->unbind(tet_verts_tref);
+        delete tet_verts_array;
+        tet_verts_array = NULL;
+    }
+}
