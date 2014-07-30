@@ -6,7 +6,7 @@
 #include "eavlCellSet.h"
 #include "eavlColor.h"
 #include "eavlColorTable.h"
-
+#include "eavlView.h"
 
 static inline eavlColor MapValueToColor(double value,
                                  double vmin, double vmax,
@@ -720,6 +720,7 @@ class eavlSceneRenderer
                      3,7,6,5,
                      0,5,3,6};
         
+//#pragma omp parallel for
         for (int j=0; j<ncells; j++)
         {
             eavlCell cell = cs->GetCellNodes(j);
