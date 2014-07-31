@@ -5,6 +5,7 @@
 #include "eavlMapOp.h"
 #include "eavlFilter.h"
 #include "eavlTimer.h" 
+#include "RT/SplitBVH.h"
 
 #define USE_TEXTURE_MEM
 #define END_FLAG    -1000000000
@@ -125,6 +126,9 @@ eavlVolumeRendererMutator::eavlVolumeRendererMutator()
     rayDirZ = NULL;
     indexes = NULL;
     mortonIndexes = NULL;
+    r = NULL;
+    g = NULL;
+    b = NULL;
 
     geomDirty = true;
     sizeDirty = true;
@@ -138,38 +142,40 @@ eavlVolumeRendererMutator::eavlVolumeRendererMutator()
     tet_verts_array = NULL;
     tet_bvh_lf_array = NULL;
     numTets = 0;
+
+    gpu = true;
 }
 
 
-EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &tet_bvh_lf_raw,eavlConstArrayV2<float4> &verts,const float &maxDistance, float &distance)
+EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVector3 rayOrigin, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &tet_bvh_lf_raw,eavlConstArrayV2<float4> &verts,const float &maxDistance, float &distance, float sampleDelta)
 {
+    cout<<"New ray --------------------------------------------------------"<<endl;
 
+    float minDistance = maxDistance;
+    int   minIndex    = -1;
+    float nextSampleDistance = 0;
+    float dirx = rayDir.x;
+    float diry = rayDir.y;
+    float dirz = rayDir.z;
 
-    float minDistance =maxDistance;
-    int   minIndex    =-1;
-    
-    float dirx=rayDir.x;
-    float diry=rayDir.y;
-    float dirz=rayDir.z;
-
-    float invDirx=rcp_safe(dirx);
-    float invDiry=rcp_safe(diry);
-    float invDirz=rcp_safe(dirz);
+    float invDirx = rcp_safe(dirx);
+    float invDiry = rcp_safe(diry);
+    float invDirz = rcp_safe(dirz);
     int currentNode;
   
     int todo[64]; //num of nodes to process
     int stackptr = 0;
-    int barrier=(int)END_FLAG;
-    currentNode=0;
+    int barrier  = (int)END_FLAG;
+    currentNode  = 0;
 
     todo[stackptr] = barrier;
 
-    float ox=rayOrigin.x;
-    float oy=rayOrigin.y;
-    float oz=rayOrigin.z;
-    float odirx=ox*invDirx;
-    float odiry=oy*invDiry;
-    float odirz=oz*invDirz;
+    float ox = rayOrigin.x;
+    float oy = rayOrigin.y;
+    float oz = rayOrigin.z;
+    float odirx = ox*invDirx;
+    float odiry = oy*invDiry;
+    float odirz = oz*invDirz;
 
     while(currentNode!=END_FLAG) {
         
@@ -182,57 +188,57 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
             float4 n2=bvh.getValue(tet_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
             float4 n3=bvh.getValue(tet_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
             
-            float txmin0 =   n1.x* invDirx -odirx;       
-            float tymin0 =   n1.y* invDiry -odiry;         
-            float tzmin0 =   n1.z* invDirz -odirz;
-            float txmax0 =   n1.w* invDirx -odirx;
-            float tymax0 =   n2.x* invDiry -odiry;
-            float tzmax0 =   n2.y* invDirz -odirz;
+            float txmin0 =   n1.x*invDirx - odirx;       
+            float tymin0 =   n1.y*invDiry - odiry;         
+            float tzmin0 =   n1.z*invDirz - odirz;
+            float txmax0 =   n1.w*invDirx - odirx;
+            float tymax0 =   n2.x*invDiry - odiry;
+            float tzmax0 =   n2.y*invDirz - odirz;
            
-            float tmin0=max(max(max(min(tymin0,tymax0),min(txmin0,txmax0)),min(tzmin0,tzmax0)),0.f);
-            float tmax0=min(min(min(max(tymin0,tymax0),max(txmin0,txmax0)),max(tzmin0,tzmax0)), minDistance);
+            float tmin0 = max(max(max(min(tymin0,tymax0),min(txmin0,txmax0)),min(tzmin0,tzmax0)),0.f); //maxDistance, how will this effect travseral if we change it on the fly
+            float tmax0 = min(min(min(max(tymin0,tymax0),max(txmin0,txmax0)),max(tzmin0,tzmax0)), minDistance);
             
-            bool traverseChild0=(tmax0>=tmin0);
+            bool traverseChild0 = (tmax0 >= tmin0); 
 
              
-            float txmin1 =   n2.z* invDirx -odirx;       
-            float tymin1 =   n2.w* invDiry -odiry;
-            float tzmin1 =   n3.x* invDirz -odirz;
-            float txmax1 =   n3.y* invDirx -odirx;
-            float tymax1 =   n3.z* invDiry- odiry;
-            float tzmax1 =   n3.w* invDirz -odirz;
-            float tmin1=max(max(max(min(tymin1,tymax1),min(txmin1,txmax1)),min(tzmin1,tzmax1)),0.f);
-            float tmax1=min(min(min(max(tymin1,tymax1),max(txmin1,txmax1)),max(tzmin1,tzmax1)), minDistance);
+            float txmin1 =   n2.z*invDirx - odirx;       
+            float tymin1 =   n2.w*invDiry - odiry;
+            float tzmin1 =   n3.x*invDirz - odirz;
+            float txmax1 =   n3.y*invDirx - odirx;
+            float tymax1 =   n3.z*invDiry - odiry;
+            float tzmax1 =   n3.w*invDirz - odirz;
+            float tmin1 = max(max(max(min(tymin1,tymax1),min(txmin1,txmax1)),min(tzmin1,tzmax1)),0.f);
+            float tmax1 = min(min(min(max(tymin1,tymax1),max(txmin1,txmax1)),max(tzmin1,tzmax1)), minDistance);
             
-            bool traverseChild1=(tmax1>=tmin1);
+            bool traverseChild1 = (tmax1 >= tmin1);
 
         if(!traverseChild0 && !traverseChild1)
         {
 
-            currentNode=todo[stackptr]; //go back put the stack
+            currentNode = todo[stackptr]; //go back put the stack
             stackptr--;
         }
         else
         {
-            float4 n4=bvh.getValue(tet_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
-            int leftChild =(int)n4.x;
-            int rightChild=(int)n4.y;
+            float4 n4 = bvh.getValue(tet_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
+            int leftChild  = (int)n4.x;
+            int rightChild = (int)n4.y;
 
-            currentNode= (traverseChild0) ? leftChild : rightChild;
+            currentNode = (traverseChild0) ? leftChild : rightChild;
             if(traverseChild1 && traverseChild0)
             {
-                if(tmin0>tmin1)
+                if(tmin0 > tmin1)
                 {
 
                    
-                    currentNode=rightChild;
+                    currentNode = rightChild;
                     stackptr++;
-                    todo[stackptr]=leftChild;
+                    todo[stackptr] = leftChild;
                 }
                 else
                 {   
                     stackptr++;
-                    todo[stackptr]=rightChild;
+                    todo[stackptr] = rightChild;
                 }
 
 
@@ -243,47 +249,72 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
         if(currentNode < 0 && currentNode != barrier)//check register usage
         {
             
-
-            currentNode=-currentNode; //swap the neg address 
-            int numTri=(int)tet_bvh_lf_raw.getValue(tet_bvh_lf_tref,currentNode)+1;
-
-            for(int i=1;i<numTri;i++)
+            
+            currentNode = -currentNode; //swap the neg address 
+            int numTri = (int)tet_bvh_lf_raw.getValue(tet_bvh_lf_tref,currentNode)+1;
+            int tetIndex=(int)tet_bvh_lf_raw.getValue(tet_bvh_lf_tref,currentNode+1); /*only one tet per leaf, we can get rid of the entire inner array */
+            //cout<<"Checking primitive "<<tetIndex<<" "<< numTri<<endl;
+            int hitCount = 0;
+            float dist1 = 0;
+            float dist2 = 0;
+            float scalar1 = 0;
+            float scalar2 = 0;
+            for(int i=0;i<4;i++) /* Iterate over the triangles in the tetrahedron */
             {        
-                    int triIndex=(int)tet_bvh_lf_raw.getValue(tet_bvh_lf_tref,currentNode+i);
-                   
-                    float4 a4=verts.getValue(tet_verts_tref, triIndex*3);
-                    float4 b4=verts.getValue(tet_verts_tref, triIndex*3+1);
-                    float4 c4=verts.getValue(tet_verts_tref, triIndex*3+2);
-                    eavlVector3 e1( a4.w-a4.x , b4.x-a4.y, b4.y-a4.z ); 
-                    eavlVector3 e2( b4.z-a4.x , b4.w-a4.y, c4.x-a4.z );
+                     float4 a4 = verts.getValue(tet_verts_tref, (tetIndex*4+i%4)  ); /*Figure out a better way to do this*/
+                     float4 b4 = verts.getValue(tet_verts_tref, (tetIndex*4+(1+i)%4));
+                     float4 c4 = verts.getValue(tet_verts_tref, (tetIndex*4+(2+i)%4));
+                     //cout<<(tetIndex*4+i%4  )<<" "<<(tetIndex*4+(1+i)%4)<<" "<<(tetIndex*4+(2+i)%4)<<endl;
+                     //float4 d4 = verts.getValue(tet_verts_tref, ((tetIndex*4+3)+i)%4);
+                     //cout<<a4.x<<" "<<a4.y<<" "<<a4.z<<endl;
+                     //cout<<b4.x<<" "<<b4.y<<" "<<b4.z<<endl;
+                     //cout<<c4.x<<" "<<c4.y<<" "<<c4.z<<endl;
+                    eavlVector3 e1( b4.x-a4.x , b4.y-a4.y, b4.z-a4.z );
+                    eavlVector3 e2( c4.x-a4.x , c4.y-a4.y, c4.z-a4.z ); 
+                    
 
 
                     eavlVector3 p;
-                    p.x=diry*e2.z-dirz*e2.y;
-                    p.y=dirz*e2.x-dirx*e2.z;
-                    p.z=dirx*e2.y-diry*e2.x;
-                    float dot=e1*p;
-                    if(dot!=0.f)
-                    {
-                        dot=1.f/dot;
+                    p.x = diry*e2.z - dirz*e2.y;
+                    p.y = dirz*e2.x - dirx*e2.z;
+                    p.z = dirx*e2.y - diry*e2.x;
+                    float dot = e1*p;
+                    if(dot != 0.f)
+                    {   //cout<<" dot ";
+                        dot = 1.f/dot;
                         eavlVector3 t;
-                        t.x=ox-a4.x;
-                        t.y=oy-a4.y;
-                        t.z=oz-a4.z;
+                        t.x = ox - a4.x;
+                        t.y = oy - a4.y;
+                        t.z = oz - a4.z;
 
-                        float u=(t*p)*dot;
-                        if(u>= (0.f- EPSILON) && u<=(1.f+EPSILON))
-                        {
-                            eavlVector3 q=t%e1;
-                            float v=(dirx*q.x+diry*q.y+dirz*q.z)*dot;
-                            if(v>= (0.f- EPSILON) && v<=(1.f+EPSILON))
-                            {
-                                float dist=(e2*q)*dot;
-                                if((dist>EPSILON && dist<minDistance) && !(u+v>1) )
+                        float u = (t*p)*dot;
+                        if(u >= 0.f && u <= 1.f)
+                        {//cout<<" u ";
+                            eavlVector3 q = t%e1;
+                            float v = (dirx*q.x + diry*q.y + dirz*q.z)*dot;
+                            if(v >= 0.f && v <= 1.f)  //hits 3 or 1 
+                            {//cout<<" v ";
+                                float dist = (e2*q)*dot;
+                                //if((dist > EPSILON && dist < minDistance) && !(u+v>1) )
+                                if((dist < minDistance) && !(u+v>1) )
                                 {
-                                    minDistance=dist;
-                                    minIndex=triIndex;
-                                    if(occlusion) return minIndex;//or set todo to -1
+                                    float scalar = a4.w*u + b4.w*v + c4.w*(1 - u - v); //lerp
+                                    hitCount++;
+                                    if(nextSampleDistance == 0) { nextSampleDistance = dist; break; }
+                                    if(hitCount == 1)
+                                    {
+                                      dist1 = dist; //we are looking for two distances  
+                                      scalar1 =scalar;
+                                    } 
+                                    else
+                                    {
+                                      dist2 = dist;
+                                      scalar2 = scalar;  
+                                    } 
+                                    //minDistance = dist;
+                                    //minIndex = triIndex;
+                                    //cout<<"Hit t "<<i<<" at tet "<<tetIndex<<endl;
+                
                                 }
                             }
                         }
@@ -291,6 +322,25 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
                     }
                    
             }
+            /* now see if the sample point in within this range */
+            if(hitCount == 2)
+            {   if(dist1 > dist2)
+                {
+                    float t = dist1;
+                    dist1 = dist2;
+                    dist2 = t;
+                    t = scalar1;
+                    scalar2 = scalar1;
+                    scalar1 = t;
+                } 
+                cout<<"D1 "<<dist1<<" next Sample "<<nextSampleDistance<<" D2 "<<dist2<<endl;
+                while (nextSampleDistance >= dist1 && nextSampleDistance <= dist2)
+                {
+                    cout<<"SAMPLE "<<nextSampleDistance<<" ";
+                    nextSampleDistance+=sampleDelta;
+                }
+            }
+
             currentNode=todo[stackptr];
             stackptr--;
         }
@@ -299,6 +349,39 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
  distance=minDistance;
  return minIndex;
 }
+
+struct RayIntersectFunctor{
+
+
+    eavlConstArrayV2<float4> verts;
+    eavlConstArrayV2<float4> bvh;
+    eavlConstArrayV2<float>  bvh_inner;
+    primitive_t              primitiveType;
+    float                    sampleDelta;
+
+    RayIntersectFunctor(eavlConstArrayV2<float4> *_verts, eavlConstArrayV2<float4> *theBvh,eavlConstArrayV2<float> *_bvh_inner, primitive_t _primitveType, float _sampleDelta)
+        :verts(*_verts),
+         bvh(*theBvh),
+         bvh_inner(*_bvh_inner),
+         primitiveType(_primitveType),
+         sampleDelta(_sampleDelta)
+    {}                                                 
+    EAVL_HOSTDEVICE tuple<float,float,float> operator()( tuple<float,float,float,float,float,float> rayTuple){
+
+        int   minHit = -1; 
+        float distance;
+        eavlVector3 rayOrigin(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
+        eavlVector3       ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
+        if(primitiveType == TET)
+        {
+            minHit = getIntersectionTet(ray, rayOrigin,bvh,bvh_inner, verts,INFINITE,distance,sampleDelta);
+        } 
+        
+        
+        return tuple<float,float,float>(0,0,0);
+    }
+};
+
 
 void eavlVolumeRendererMutator::allocateArrays()
 {
@@ -309,6 +392,10 @@ void eavlVolumeRendererMutator::allocateArrays()
     deleteClassPtr(rayOriginX);
     deleteClassPtr(rayOriginY);
     deleteClassPtr(rayOriginZ);
+
+    deleteClassPtr(r);
+    deleteClassPtr(g);
+    deleteClassPtr(b);
 
     deleteClassPtr(indexes);
     deleteClassPtr(mortonIndexes);
@@ -323,6 +410,10 @@ void eavlVolumeRendererMutator::allocateArrays()
     rayOriginX       = new eavlFloatArray("x",1,size);
     rayOriginY       = new eavlFloatArray("y",1,size);
     rayOriginZ       = new eavlFloatArray("z",1,size);
+
+    r                = new eavlFloatArray("r",1,size);
+    g                = new eavlFloatArray("b",1,size);
+    b                = new eavlFloatArray("g",1,size);
 
     sizeDirty = false;
 }
@@ -358,22 +449,54 @@ void eavlVolumeRendererMutator::extractGeometry()
     if(verbose) cerr<<"Extracting Geometry"<<endl;
     freeRaw();
     freeTextures();
-
+    //nunTets = scene.getNumTets();
+    tet_verts_raw = scene.getTetPtr();
+    int tet_bvh_in_size = 0;
+    int tet_bvh_lf_size = 0;
     cout<<"Building BVH...."<<endl;
-    ///SplitBVH *testSplit= new SplitBVH(tri_verts_raw, numTriangles, TRIANGLE); // 0=triangle
-    //testSplit->getFlatArray(tri_bvh_in_size, tri_bvh_lf_size, tri_bvh_in_raw, tri_bvh_lf_raw);
+    SplitBVH *testSplit= new SplitBVH(tet_verts_raw, numTets, TET); // 0=triangle
+    cout<<"Done building."<<endl;
+    testSplit->getFlatArray(tet_bvh_in_size, tet_bvh_lf_size, tet_bvh_in_raw, tet_bvh_lf_raw);
     //if( writeCache) writeBVHCache(tri_bvh_in_raw, tri_bvh_in_size, tri_bvh_lf_raw, tri_bvh_lf_size, bvhCacheName.c_str());
-    //delete testSplit;
+    delete testSplit;
 
-    //tri_bvh_in_array   = new eavlConstArrayV2<float4>( (float4*)tri_bvh_in_raw, tri_bvh_in_size/4, tri_bvh_in_tref);
-    //tri_bvh_lf_array   = new eavlConstArrayV2<float>( tri_bvh_lf_raw, tri_bvh_lf_size, tri_bvh_lf_tref);
-    //tri_verts_array    = new eavlConstArrayV2<float4>( (float4*)tri_verts_raw,numTriangles*3, tri_verts_tref);
+    tet_bvh_in_array   = new eavlConstArrayV2<float4>( (float4*)tet_bvh_in_raw, tet_bvh_in_size/4, tet_bvh_in_tref);
+    tet_bvh_lf_array   = new eavlConstArrayV2<float>( tet_bvh_lf_raw, tet_bvh_lf_size, tet_bvh_lf_tref);
+    tet_verts_array    = new eavlConstArrayV2<float4>( (float4*) tet_verts_raw, numTets*4, tet_verts_tref);
+
+    geomDirty=false;
 }
 
 
 
 void eavlVolumeRendererMutator::Execute()
 {
+    numTets = scene.getNumTets();
+    if(numTets == 0 ) 
+    {  
+        cout<<"No primitives to render. "<<endl;
+        return;
+    }
+
+    init();
+    camera.look = camera.lookat - camera.position;
+    //init camera rays
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(indexes),
+                                             eavlOpArgs(rayDirX ,rayDirY, rayDirZ),
+                                             RayGenFunctor(width, height, camera.fovx, camera.fovy, camera.look, camera.up, camera.zoom)),
+                                             "ray gen");
+    eavlExecutor::Go();
+
+    int ttraverse;
+    if(verbose) ttraverse = eavlTimer::Start();
+    eavlExecutor::SetExecutionMode(eavlExecutor::ForceCPU);
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ),
+                                             eavlOpArgs(r,g,b),
+                                             RayIntersectFunctor(tet_verts_array,tet_bvh_in_array,tet_bvh_lf_array,TET,sampleDelta)),
+                                                                                                        "intersect");
+    eavlExecutor::Go();
+    eavlExecutor::SetExecutionMode(eavlExecutor::ForceGPU);
+    if(verbose) cout<<"Traversal   RUNTIME: "<<eavlTimer::Stop(ttraverse,"traverse")<<endl;
 
 }
 

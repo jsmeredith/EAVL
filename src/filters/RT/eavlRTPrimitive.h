@@ -30,16 +30,16 @@ struct BBox {
 
 	EAVL_HOSTDEVICE void clear()
 	{
-		min.x=1000000;
-		min.y=1000000;
-		min.z=1000000;
-		max.x=-1000000;
-		max.y=-1000000;
-		max.z=-1000000; 
-		extent.x=0;
-		extent.y=0;
-		extent.z=0;
-		count=0;
+		min.x = 1000000;
+		min.y = 1000000;
+		min.z = 1000000;
+		max.x = -1000000;
+		max.y = -1000000;
+		max.z = -1000000; 
+		extent.x = 0;
+		extent.y = 0;
+		extent.z = 0;
+		count = 0;
 
 
 	}
@@ -72,47 +72,47 @@ struct RTMaterial
 	float 		rs;			//percentage of refected specular light
 	EAVL_HOSTDEVICE RTMaterial()
 	{
-		ka.x=.7f;
-		ka.y=.7f;
-		ka.z=.7f;
+		ka.x = .7f;
+		ka.y = .7f;
+		ka.z = .7f;
 
-		kd.x=.7f;			// I just made these values up
-		kd.y=.7f;
-		kd.z=.7f;
+		kd.x = .7f;			// I just made these values up
+		kd.y = .7f;
+		kd.z = .7f;
 
-		ks.x=.7f;
-		ks.y=.7f;
-		ks.z=.7f;
+		ks.x = .7f;
+		ks.y = .7f;
+		ks.z = .7f;
 
-		shiny=10.f;
-		rs=.2f;
+		shiny = 10.f;
+		rs = .2f;
 	}
 
 	EAVL_HOSTDEVICE RTMaterial(float r, float g, float b)
 	{
-		ka.x=r;
-		ka.y=g;
-		ka.z=b;
+		ka.x = r;
+		ka.y = g;
+		ka.z = b;
 
-		kd.x=r;			// I just made these values up
-		kd.y=g;
-		kd.z=b;
+		kd.x = r;			// I just made these values up
+		kd.y = g;
+		kd.z = b;
 
-		ks.x=r;
-		ks.y=g;
-		ks.z=b;
+		ks.x = r;
+		ks.y = g;
+		ks.z = b;
 
-		shiny=5.f;
-		rs=.2f;
+		shiny = 5.f;
+		rs = .2f;
 	}
 
 	EAVL_HOSTDEVICE RTMaterial(eavlVector3 _ka, eavlVector3 _kd, eavlVector3 _ks, float _shiny, float _rs)
 	{
-		ka=_ka;
-		kd=_kd;
-		ks=_ks;
-		shiny=_shiny;
-		rs=_rs;
+		ka = _ka;
+		kd = _kd;
+		ks = _ks;
+		shiny = _shiny;
+		rs = _rs;
 	}
 };
 
@@ -144,17 +144,17 @@ class RTTriangle : public RTPrimitive
 			bbox.expandToInclude(_v0);
 			bbox.expandToInclude(_v1);
 			bbox.expandToInclude(_v2);
-			verts[0]=_v0;
-			verts[1]=_v1;
-			verts[2]=_v2;
+			verts[0] = _v0;
+			verts[1] = _v1;
+			verts[2] = _v2;
 			eavlVector3 normal=(verts[1]-verts[0])%(verts[2]-verts[0]);
 			normal.normalize();
-			norms[0]= normal;
-			norms[1]= normal;
-			norms[2]= normal;
-			scalars[0]=_scalarV0;
-			scalars[1]=_scalarV1;
-			scalars[2]=_scalarV2;
+			norms[0] = normal;
+			norms[1] = normal;
+			norms[2] = normal;
+			scalars[0] = _scalarV0;
+			scalars[1] = _scalarV1;
+			scalars[2] = _scalarV2;
 
 
 		}
@@ -162,19 +162,19 @@ class RTTriangle : public RTPrimitive
 								   const eavlVector3 &_n0, const eavlVector3 &_n1, const eavlVector3 &_n2,
 								   const float &_scalarV0, const float &_scalarV1, const float &_scalarV2, const int &_matIdx=0)
 		{
-			matIdx=_matIdx; 
+			matIdx = _matIdx; 
 			bbox.expandToInclude(_v0);
 			bbox.expandToInclude(_v1);
 			bbox.expandToInclude(_v2);
-			verts[0]=_v0;
-			verts[1]=_v1;
-			verts[2]=_v2;
-			norms[0]=_n0;
-			norms[1]=_n1;
-			norms[2]=_n2;
-			scalars[0]=_scalarV0;
-			scalars[1]=_scalarV1;
-			scalars[2]=_scalarV2;
+			verts[0] = _v0;
+			verts[1] = _v1;
+			verts[2] = _v2;
+			norms[0] = _n0;
+			norms[1] = _n1;
+			norms[2] = _n2;
+			scalars[0] = _scalarV0;
+			scalars[1] = _scalarV1;
+			scalars[2] = _scalarV2;
 
 		}
 		/*
@@ -290,5 +290,54 @@ class RTSphere : public RTPrimitive
 
 };
 
+class VRTetrahedron : public RTPrimitive
+{
+	public:
+		eavlVector3 verts[4];
+		float 		scalars[4];
+		EAVL_HOSTDEVICE VRTetrahedron(const eavlVector3 &v0, const eavlVector3 &v1, const eavlVector3 &v2, const eavlVector3 &v3,
+									  const float &s0, const float &s1, const float &s2, const float &s3, const int &_matIdx = 0)
+		{
+			matIdx = _matIdx;
+			bbox.expandToInclude(v0);
+			bbox.expandToInclude(v1);
+			bbox.expandToInclude(v2);
+			bbox.expandToInclude(v3);
+
+			verts[0] = v0;
+			verts[1] = v1;
+			verts[2] = v2;
+			verts[3] = v3;
+
+			scalars[0] = s0;
+			scalars[1] = s1;
+			scalars[2] = s2;
+			scalars[3] = s3;
+		}
+
+		EAVL_HOSTDEVICE float getSurfaceArea() const 
+		{
+			float result = 0;
+			eavlVector3 norm = (verts[2] - verts[0])%(verts[1] - verts[0]);
+			float mag = sqrt(norm.x*norm.x + norm.y*norm.y + norm.z*norm.z);
+			result += .5f * mag;
+
+			norm = (verts[3] - verts[1])%(verts[2] - verts[1]);
+			mag = sqrt(norm.x*norm.x + norm.y*norm.y + norm.z*norm.z);
+			result += .5f * mag;
+
+			norm = (verts[3] - verts[0])%(verts[2] - verts[0]);
+			mag = sqrt(norm.x*norm.x + norm.y*norm.y + norm.z*norm.z);
+			result += .5f * mag;
+
+			norm = (verts[3] - verts[0])%(verts[1] - verts[0]);
+			mag = sqrt(norm.x*norm.x + norm.y*norm.y + norm.z*norm.z);
+			result += .5f * mag;
+
+			return result;
+		}
+
+
+};
 
 #endif

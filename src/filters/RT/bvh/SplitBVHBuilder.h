@@ -174,6 +174,11 @@ SplitBVHBuilder::SplitBVHBuilder(float *verts, int numPrimitives, const BuildPar
 
     if      ( m_primitiveType == 0 ) m_doSpacialSplits=true;
     else if ( m_primitiveType == 1 ) m_doSpacialSplits=false;
+    else if ( m_primitiveType == 2 ) 
+    {
+        m_doSpacialSplits=false;
+        m_platform=*(new Platform(1)); /* Only one cell per leafNode */
+    }
     //todo remove
     megaCounter=0;
 }
@@ -211,6 +216,7 @@ BVHNode* SplitBVHBuilder::run(void)
     m_refStack.resize(rootSpec.numRef);
     eavlVector3 *triPtr    = (eavlVector3 *)&m_verts[0];
     eavlVector4 *spherePtr = (eavlVector4 *)&m_verts[0];
+    eavlVector4 *tetPtr    = (eavlVector4 *)&m_verts[0];
     for (int i = 0; i < rootSpec.numRef; i++)
     {
         m_refStack[i].triIdx = i;
@@ -240,6 +246,15 @@ BVHNode* SplitBVHBuilder::run(void)
             temp.z=radius;
             m_refStack[i].bounds.grow(center+temp);
             m_refStack[i].bounds.grow(center-temp);
+        }
+        else if ( m_primitiveType == 2 )
+        {
+            for(int j = 0; j < 4; j++)
+            {
+                eavlVector3 v( tetPtr[i*4 + j].x, tetPtr[i*4 + j].y, tetPtr[i*4 + j].z );
+                m_refStack[i].bounds.grow(v);
+            }
+            
         }
         
         
@@ -788,8 +803,9 @@ void SplitBVHBuilder::assignParentPointers(BVHNode* root)
 void SplitBVHBuilder::bvhToFlatArray(BVHNode * root, int &innerSize, int &leafSize, float*& innerNodes, float*& leafNodes)
 {
     vector<float> *flat_inner_array = new vector<float>(m_innerNodeCount*16+16);// allocate some space.
-    cout<<"Inner node array size "<<m_innerNodeCount*16+1<<endl;
-    vector<float> *flat_leaf_array = new vector<float>(m_leafNodeCount*(m_platform.getMaxLeafSize()+1));
+    //cout<<"Inner node array size "<<m_innerNodeCount*16+1<<endl;
+    vector<float> *flat_leaf_array = new vector<float>(m_leafNodeCount*(m_platform.getMaxLeafSize()*2+1));
+    //cout<<"leaf array size "<<m_leafNodeCount*(m_platform.getMaxLeafSize()+1)<<endl;
     assignParentPointers(root);
    
     root->m_index = 0;
@@ -881,8 +897,8 @@ void SplitBVHBuilder::bvhToFlatArray(BVHNode * root, int &innerSize, int &leafSi
                 ++currentIndex;
                 flat_inner_array->at(currentIndex) = (current->m_bounds.max().z);
                 ++currentIndex;
-
-                flat_inner_array->at(currentIndex) = 0;
+ 
+                flat_inner_array->at(currentIndex) = 0; /*TODO: maybe make this some really large value */
                 ++currentIndex;
                 flat_inner_array->at(currentIndex) = 0;
                 ++currentIndex;
@@ -928,7 +944,7 @@ void SplitBVHBuilder::bvhToFlatArray(BVHNode * root, int &innerSize, int &leafSi
     float *leafraw = new float[-currentLeafIndex];
     int numLeafVals=-currentLeafIndex;
 
-
+    cout<<"Dumping Flat Array"<<endl;
     for (int i=0; i < currentIndex;i++)
     {
         innerraw[i] = flat_inner_array->at(i);

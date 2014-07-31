@@ -7,7 +7,7 @@
 EAVL_HOSTDEVICE float rcp(float f){ return 1.0f/f;}
 EAVL_HOSTDEVICE float rcp_safe(float f) { return rcp((fabs(f) < 1e-8f) ? 1e-8f : f); }
 
-enum primitive_t { TRIANGLE=0, SPHERE=1 , TET = 3};
+enum primitive_t { TRIANGLE = 0, SPHERE = 1 , TET = 2};
 
 template <class T>  void deleteClassPtr(T * &ptr)
 {
