@@ -92,17 +92,19 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
                     int colorindex = float(ncolors-1) * value;
                     eavlColor c(colors[colorindex*3+0],
                                 colors[colorindex*3+1],
-                                colors[colorindex*3+2]);
+                                colors[colorindex*3+2],
+                                1.0);
                     // use a gaussian density function as the opactiy
                     float center = 0.5;
                     float sigma = 0.13;
                     float attenuation = 0.02;
                     float alpha = exp(-(value-center)*(value-center)/(2*sigma*sigma));
+                    //float alpha = value;
                     alpha *= attenuation;
                     color.c[0] = color.c[0] * (1.-alpha) + c.c[0] * alpha;
                     color.c[1] = color.c[1] * (1.-alpha) + c.c[1] * alpha;
                     color.c[2] = color.c[2] * (1.-alpha) + c.c[2] * alpha;
-
+                    color.c[3] = color.c[3] * (1.-alpha) + c.c[3] * alpha;
                     minz = z;
                 }
 
@@ -115,7 +117,7 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
                 rgba[index*4 + 0] = color.c[0]*255.;
                 rgba[index*4 + 1] = color.c[1]*255.;
                 rgba[index*4 + 2] = color.c[2]*255.;
-                rgba[index*4 + 3] = 0;
+                rgba[index*4 + 3] = color.c[2]*255.;
             }
         }
 

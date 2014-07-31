@@ -714,7 +714,6 @@ class eavlSceneRenderer
                      3,7,6,5,
                      0,5,3,6};
         
-//#pragma omp parallel for
         for (int j=0; j<ncells; j++)
         {
             eavlCell cell = cs->GetCellNodes(j);

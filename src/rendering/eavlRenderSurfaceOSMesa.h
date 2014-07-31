@@ -1,16 +1,16 @@
 #ifndef EAVL_RENDER_SURFACE_OSMESA_H
 #define EAVL_RENDER_SURFACE_OSMESA_H
 
-#include "eavlRenderSurface.h"
-#include "eavlException.h"
-
 #include "GL/gl_mangle.h"
 #include "GL/osmesa.h"
 #include "GL/gl.h"
 
+#include "eavlRenderSurfaceGL.h"
+#include "eavlException.h"
+
 #include <climits>
 
-class eavlRenderSurfaceOSMesa : public eavlRenderSurface
+class eavlRenderSurfaceOSMesa : public eavlRenderSurfaceGL
 {
   protected:
     OSMesaContext ctx;
@@ -18,7 +18,7 @@ class eavlRenderSurfaceOSMesa : public eavlRenderSurface
     vector<float> zbuff;
     int width, height;
   public:
-    eavlRenderSurfaceOSMesa() : eavlRenderSurface(), width(0),height(0)
+    eavlRenderSurfaceOSMesa() : eavlRenderSurfaceGL(), width(0),height(0)
     {
         ctx = NULL;
     }

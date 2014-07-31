@@ -42,31 +42,18 @@ class eavlColorLegendAnnotation : public eavlAnnotation
     {
         view.SetupForScreenSpace();
 
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_LIGHTING);
-
         float l = -0.95, r = -0.90;
         float b = +0.90, t = +0.95;
-
-        glBegin(GL_QUADS);
+        float spacing = 0.07;
 
         for (unsigned int i=0; i<colors.size(); ++i)
         {
-            glColor3fv(colors[i].c);
-
-            glTexCoord1f(0);
-            glVertex3f(l, b, .99);
-            glVertex3f(l, t, .99);
-            
-            glTexCoord1f(1);
-            glVertex3f(r, t, .99);
-            glVertex3f(r, b, .99);
-
-            b -= .07;
-            t -= .07;
+            win->surface->AddRectangle(l,
+                                       t - spacing*float(i),
+                                       r-l,
+                                       b-t,
+                                       colors[i]);
         }
-
-        glEnd();
 
         // reset positions
         l = -0.95; r = -0.90;
@@ -87,14 +74,10 @@ class eavlColorLegendAnnotation : public eavlAnnotation
         {
             eavlScreenTextAnnotation *txt = annot[i];
             txt->SetText(labels[i]);
-            txt->SetPosition(r + .02, (b+t)/2.);
+            txt->SetPosition(r + .02, (b+t)/2. - spacing*float(i));
             txt->SetAlignment(eavlTextAnnotation::Left,
                               eavlTextAnnotation::VCenter);
             txt->Render(view);
-        
-            b -= .07;
-            t -= .07;
-
         }
 
     }

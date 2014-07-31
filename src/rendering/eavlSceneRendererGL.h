@@ -46,7 +46,6 @@ void eavlRenderCells1D(eavlCellSet *cs,
                   int , double *pts,
                   eavlField *f, double vmin, double vmax)
 {
-    cerr << "render cells 1d\n";
     glDisable(GL_LIGHTING);
     if (PointColors || CellColors)
     {

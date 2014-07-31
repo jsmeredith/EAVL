@@ -34,6 +34,7 @@ class eavlWindow
     std::vector<eavlAnnotation*> annotations;
 
   public: /// todo: hack, should not be public
+    ///\todo: no longer allow a NULL surface!
     eavlRenderSurface *surface;
     eavlView view;
 
