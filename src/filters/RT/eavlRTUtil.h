@@ -393,6 +393,7 @@ inline void writeBVHCache(const float *innerNodes, const int innerSize, const fl
 {
     cout<<"Writing BVH to cache"<<endl;
     ofstream bvhcache(filename, ios::out |ios::binary);
+    
     if(bvhcache.is_open())
     {
         bvhcache.write((char*)&innerSize, sizeof(innerSize));

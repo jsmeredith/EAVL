@@ -162,7 +162,7 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
     float invDiry = rcp_safe(diry);
     float invDirz = rcp_safe(dirz);
     int currentNode;
-  
+    
     int todo[64]; //num of nodes to process
     int stackptr = 0;
     int barrier  = (int)END_FLAG;
@@ -180,7 +180,7 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
     while(currentNode!=END_FLAG) {
         
 
-        
+
         if(currentNode>-1)
         {
 
@@ -215,7 +215,7 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
         if(!traverseChild0 && !traverseChild1)
         {
 
-            currentNode = todo[stackptr]; //go back put the stack
+            currentNode = todo[stackptr]; 
             stackptr--;
         }
         else
@@ -241,7 +241,7 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
                     todo[stackptr] = rightChild;
                 }
 
-
+ 
             }
         }
         }
@@ -300,7 +300,7 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
                                 {
                                     float scalar = a4.w*u + b4.w*v + c4.w*(1 - u - v); //lerp
                                     hitCount++;
-                                    if(nextSampleDistance == 0) { nextSampleDistance = dist; break; }
+                                    if(nextSampleDistance == 0) { nextSampleDistance = dist; } //??????
                                     if(hitCount == 1)
                                     {
                                       dist1 = dist; //we are looking for two distances  
@@ -323,6 +323,7 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
                    
             }
             /* now see if the sample point in within this range */
+            bool gotSample = false;
             if(hitCount == 2)
             {   if(dist1 > dist2)
                 {
@@ -333,22 +334,33 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
                     scalar2 = scalar1;
                     scalar1 = t;
                 } 
-                cout<<"D1 "<<dist1<<" next Sample "<<nextSampleDistance<<" D2 "<<dist2<<endl;
-                while (nextSampleDistance >= dist1 && nextSampleDistance <= dist2)
+                //cout<<"Current Node "<<currentNode<<endl;
+                cout<<"Node Range: "<<dist1<<"- "<<dist2<<" Looking for "<<nextSampleDistance<< endl;
+                if(dist1 <= nextSampleDistance && nextSampleDistance <= dist2)
                 {
-                    cout<<"SAMPLE "<<nextSampleDistance<<" ";
-                    nextSampleDistance+=sampleDelta;
+                    cout<<"######### SAMPLE ###########"<<endl;
+                    nextSampleDistance += sampleDelta;
                 }
             }
+            
+            
+            
+           
 
-            currentNode=todo[stackptr];
-            stackptr--;
+                currentNode=todo[stackptr];
+                stackptr--;
+            
+            
+            
+            
         }
 
     }
  distance=minDistance;
  return minIndex;
 }
+
+
 
 struct RayIntersectFunctor{
 
