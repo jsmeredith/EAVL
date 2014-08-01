@@ -111,7 +111,7 @@ class eavlTexture
                      GL_RGB,
                      GL_FLOAT,
                      colors);
-        delete colors;
+        delete[] colors;
     }
     void CreateFromDataSet(eavlDataSet *ds,
                            bool cr, bool cg, bool cb, bool ca)

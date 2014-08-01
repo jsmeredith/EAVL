@@ -100,6 +100,9 @@ class eavl3DGLScene : public eavlScene
     eavl3DGLScene() : eavlScene()
     {
     }
+    virtual ~eavl3DGLScene()
+    {
+    }
 
   protected:
     virtual void ResetView(eavlWindow *win)
@@ -189,6 +192,9 @@ class eavl2DGLScene : public eavlScene
     eavl2DGLScene() : eavlScene()
     {
     }
+    virtual ~eavl2DGLScene()
+    {
+    }
 
   protected:
     virtual void ResetView(eavlWindow *win)
@@ -255,6 +261,9 @@ class eavlPolarGLScene : public eavlScene
 {
   public:
     eavlPolarGLScene() : eavlScene()
+    {
+    }
+    virtual ~eavlPolarGLScene()
     {
     }
 
@@ -337,6 +346,9 @@ class eavl1DGLScene : public eavlScene
 {
   public:
     eavl1DGLScene() : eavlScene()
+    {
+    }
+    virtual ~eavl1DGLScene()
     {
     }
 
@@ -456,6 +468,9 @@ class eavl2DParallelGLScene : public eavl2DGLScene
         eavl2DGLScene(), comm(c)
     {
     }
+    virtual ~eavl2DParallelGLScene()
+    {
+    }
     virtual void ResetView(eavlWindow *win)
     {
         eavlView &view = win->view;
@@ -501,6 +516,9 @@ class eavl3DParallelGLScene : public eavl3DGLScene
   public:
     eavl3DParallelGLScene(const MPI_Comm &c) :
         eavl3DGLScene(), comm(c)
+    {
+    }
+    virtual ~eavl3DParallelGLScene()
     {
     }
     virtual void ResetView(eavlWindow *win)

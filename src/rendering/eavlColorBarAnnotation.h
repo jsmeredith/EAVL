@@ -29,6 +29,9 @@ class eavlColorBarAnnotation : public eavlAnnotation
         texid = 0;
         axis = new eavl2DAxisAnnotation(win);
     }
+    virtual ~eavlColorBarAnnotation()
+    {
+    }
     void SetColorTable(const string &colortablename)
     {
         if (ctname == colortablename)

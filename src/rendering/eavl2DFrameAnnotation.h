@@ -25,6 +25,9 @@ class eavl2DFrameAnnotation : public eavlAnnotation
         dmax[0] = dmax[1] = +1;
         color = eavlColor(.5,.5,.5);
     }
+    virtual ~eavl2DFrameAnnotation()
+    {
+    }
     void SetExtents(double xmin, double xmax,
                     double ymin, double ymax)
     {

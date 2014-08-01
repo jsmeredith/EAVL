@@ -35,6 +35,9 @@ class eavl3DAxisAnnotation : public eavlAnnotation
         axis = 0;
         color = eavlColor::white;
     }
+    virtual ~eavl3DAxisAnnotation()
+    {
+    }
     void SetMoreOrLessTickAdjustment(int offset)
     {
         moreOrLessTickAdjustment = offset;

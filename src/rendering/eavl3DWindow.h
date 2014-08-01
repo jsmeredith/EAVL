@@ -29,7 +29,7 @@ class eavl3DWindow : public eavlWindow
         yaxis = new eavl3DAxisAnnotation(this);
         zaxis = new eavl3DAxisAnnotation(this);
     }
-    ~eavl3DWindow()
+    virtual ~eavl3DWindow()
     {
         delete colorbar;
         delete bbox;
