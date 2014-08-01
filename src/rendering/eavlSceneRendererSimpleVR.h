@@ -304,14 +304,15 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
 
     void Sample()
     {
-        //int samples_tried = 0;
-        //int samples_eval = 0;
-        //int tets_eval = 0;
+        int samples_tried = 0;
+        int samples_eval = 0;
+        int tets_eval = 0;
+        double zdepth_sum = 0;
         //cerr << "Sample\n";
         int th = eavlTimer::Start();
         int n = p[0].size();
 
-#pragma omp parallel for schedule(dynamic,1)
+//#pragma omp parallel for schedule(dynamic,1)
         for (int tet = 0; tet < n ; tet++)
         {
             // translate the tet into image space
@@ -369,7 +370,7 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
             if (xmin > xmax || ymin > ymax || zmin > zmax)
                 continue;
 
-            //tets_eval++;
+            tets_eval++;
 
             // we genuinely need double precision for some of these calculations, by the way:
             // change these next four to float, and you see obvious artifacts.
@@ -378,7 +379,7 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
             float d_yz1_023=0, d_xz1_023=0, d_xy1_023=0, d_xyz_023=0;
             float d_yz1_013=0, d_xz1_013=0, d_xy1_013=0, d_xyz_013=0;
             float d_yz1_012=0, d_xz1_012=0, d_xy1_012=0, d_xyz_012=0;
-            float Dn=1;
+            float Dn=1, iDn=1;
             if (PartialDeterminantMode)
             {
                 TetPartialDeterminants(s[0],s[1],s[2],s[3],
@@ -387,7 +388,36 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
                                    d_yz1_013, d_xz1_013, d_xy1_013, d_xyz_013,
                                    d_yz1_012, d_xz1_012, d_xy1_012, d_xyz_012,
                                    Dn);
+                if (Dn == 0)
+                {
+                    // degenerate
+                    continue;
+                }
+                iDn = 1. / Dn;
             }
+
+            zdepth_sum += 1+zmax-zmin;
+
+            // in theory, we know whether or not CLAMP_Z_EXTENTS
+            // is useful for every tetrahedron based on the 
+            // z depth of this tet's bounding box.  I think
+            // it has to be 2 or more to be helpful.  we can
+            // make this a per-tet decision
+#define CLAMP_Z_EXTENTS
+#ifdef CLAMP_Z_EXTENTS
+            float i123 = 1. / d_xy1_123;
+            float i023 = 1. / d_xy1_023;
+            float i013 = 1. / d_xy1_013;
+            float i012 = 1. / d_xy1_012;
+#endif
+
+            // also, don't necessarily need to pull the samples
+            // from memory here; might be better to do them
+            // later and assume they're cached if necessary
+            float s0 = values[tet*4+0];
+            float s1 = values[tet*4+1];
+            float s2 = values[tet*4+2];
+            float s3 = values[tet*4+3];
 
             // walk over samples covering the tet in each dimension
             // and sample onto our regular grid
@@ -396,19 +426,47 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
             {
                 for(int y=ymin; y<=ymax; ++y)
                 {
+                    int startindex = (y*view.w + x)*nsamples;
+
+                    float t0 =  x *  d_yz1_123 - y *  d_xz1_123 - 1. * d_xyz_123;
+                    float t1 = -x *  d_yz1_023 + y *  d_xz1_023 + 1. * d_xyz_023;
+                    float t2 =  x *  d_yz1_013 - y *  d_xz1_013 - 1. * d_xyz_013;
+                    float t3 = -x *  d_yz1_012 + y *  d_xz1_012 + 1. * d_xyz_012;
+
+                    // timing note:
+                    // without updating Z extents and just using bounding box,
+                    // we accepted only about 10-15% of samples.  (makes sense,
+                    // given the size of a tet within a bounding cube)
+                    // noise.silo, 400 samples, sample time = .080 to 0.087 with clamping
+                    //                                      = .083 to 0.105 without clamping
+                    // without omp, max 1.0 (no clamp) drops to max 0.75 (clamp)
+                    // in other words, CLAMP_Z_EXTENTS is a factor of 20-25% faster on noise, best case
+                    // but on rect_cube, it's a factor of 270% faster (2.7x) on rect_cube!
+                    // on noise_256, it's a small slowdown, 7%.  (i think we're doing more divisions)
+                    // maxes sense; once we're about 1 sample per tet, the extra divisions we need to do
+                    // are only used about once, so it's better to just try out the samples
+#ifdef CLAMP_Z_EXTENTS
+                    float newzmin = zmin;
+                    float newzmax = zmax;
+                    
+                    float z0 = -t0 * i123;
+                    float z1 = +t1 * i023;
+                    float z2 = -t2 * i013;
+                    float z3 = +t3 * i012;
+
+                    if (-i123 < 0) { newzmin = std::max(newzmin,z0); } else { newzmax = std::min(newzmax,z0); }
+                    if (+i023 < 0) { newzmin = std::max(newzmin,z1); } else { newzmax = std::min(newzmax,z1); }
+                    if (-i013 < 0) { newzmin = std::max(newzmin,z2); } else { newzmax = std::min(newzmax,z2); }
+                    if (+i012 < 0) { newzmin = std::max(newzmin,z3); } else { newzmax = std::min(newzmax,z3); }
+                    newzmin = ceil(newzmin);
+                    newzmax = floor(newzmax);
+                    for(int z=newzmin; z<=newzmax; ++z)
+#else
                     for(int z=zmin; z<=zmax; ++z)
+#endif
                     {
-                        //samples_tried++;
-                        // raw version: D22 = 2m 1a, d33 = 6m 3a 3m 2a = 9m 5a, d44 = 36m 20a 4m 3a = 40m 23a,
-                        //              and five of them = 200m 115a
-                        // new version: 12m 18a (d22) 48m 32a (d33) 20m 15a (d44x5) = 80m 65a (2x fewer)
-                        //              and with optimization, it's only 16m 12a per sample point (10x fewer)
-                        eavlPoint3 test(x,y,z);
+                        samples_tried++;
                         float value;
-                        float s0 = values[tet*4+0];
-                        float s1 = values[tet*4+1];
-                        float s2 = values[tet*4+2];
-                        float s3 = values[tet*4+3];
                         if (!PartialDeterminantMode)
                         {
                             // Mode where we calculate the full barycentric
@@ -416,7 +474,7 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
                             float b0,b1,b2,b3;
                             bool isInside =
                                 TetBarycentricCoords(s[0],s[1],s[2],s[3],
-                                                     test,b0,b1,b2,b3);
+                                                     eavlPoint3(x,y,z),b0,b1,b2,b3);
                             if (!isInside)
                                 continue;
                             value = b0*s0 + b1*s1 + b2*s2 + b3*s3;
@@ -425,16 +483,20 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
                         {
                             // Mode where we pre-calculate partial determinants
                             // to avoid a bunch of redundant arithmetic.
-                            float D0 =  x *  d_yz1_123 - y *  d_xz1_123 + z *  d_xy1_123 - 1. * d_xyz_123;
-                            float D1 = -x *  d_yz1_023 + y *  d_xz1_023 - z *  d_xy1_023 + 1. * d_xyz_023;
-                            float D2 =  x *  d_yz1_013 - y *  d_xz1_013 + z *  d_xy1_013 - 1. * d_xyz_013;
-                            float D3 = -x *  d_yz1_012 + y *  d_xz1_012 - z *  d_xy1_012 + 1. * d_xyz_012;
-                            if (Dn == 0)
-                            {
-                                // degenerate
-                                continue;
-                            }
-                            else if (Dn<0)
+                            float D0 = t0 + z *  d_xy1_123;
+                            float D1 = t1 - z *  d_xy1_023;
+                            float D2 = t2 + z *  d_xy1_013;
+                            float D3 = t3 - z *  d_xy1_012;
+
+                            // explicit calculation, without precalculating the constant and x/y terms
+                            //float D0 =  x *  d_yz1_123 - y *  d_xz1_123 + z *  d_xy1_123 - 1. * d_xyz_123;
+                            //float D1 = -x *  d_yz1_023 + y *  d_xz1_023 - z *  d_xy1_023 + 1. * d_xyz_023;
+                            //float D2 =  x *  d_yz1_013 - y *  d_xz1_013 + z *  d_xy1_013 - 1. * d_xyz_013;
+                            //float D3 = -x *  d_yz1_012 + y *  d_xz1_012 - z *  d_xy1_012 + 1. * d_xyz_012;
+#ifndef CLAMP_Z_EXTENTS
+                            // if we already clamped the Z extents, we know every sample
+                            // is already inside the tetrahedron!
+                            if (Dn<0)
                             {
                                 // should NEVER fire unless there's a numerical precision error
                                 //cerr << "Dn negative\n";
@@ -447,22 +509,30 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
                                 if (D0<0 || D1<0 || D2<0 || D3<0)
                                     continue;
                             }
-                            value = (D0*s0 + D1*s1 + D2*s2 + D3*s3) / Dn;
+#endif                            
+                            value = (D0*s0 + D1*s1 + D2*s2 + D3*s3) * iDn;
                         }
 
-                        int index3d = (y*view.w + x)*nsamples + z;
+                        int index3d = startindex + z;
                         samples[index3d] = value;
-                        //samples_eval++;
+                        samples_eval++;
                     }
                 }
             }
         }
-        // NOTE: These values should be ignored if OpenMP was enabled above:
-        //cerr << samples_eval << " out of " << samples_tried << " ("
-        //     << (100.*double(samples_eval)/double(samples_tried)) << "%) samples\n";
-        //cerr << tets_eval << " out of " << n << " ("
-        //     << (100.*double(tets_eval)/double(n)) << "%) tetrahedra\n";
-        //cerr << "Sample time = "<<eavlTimer::Stop(th,"sample") << endl;
+        double sampletime = eavlTimer::Stop(th,"sample");
+
+        if (false)
+        {
+            // NOTE: These values should be ignored if OpenMP was enabled above:
+            cerr << zdepth_sum/double(n) << " average z samples per tet\n";
+            cerr << samples_eval << " out of " << samples_tried << " ("
+                 << (100.*double(samples_eval)/double(samples_tried)) << "%) samples\n";
+            cerr << tets_eval << " out of " << n << " ("
+                 << (100.*double(tets_eval)/double(n)) << "%) tetrahedra\n";
+
+            cerr << "Sample time = "<<sampletime << endl;
+        }
     }
 
     // ------------------------------------------------------------------------
