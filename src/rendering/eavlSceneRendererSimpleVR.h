@@ -163,7 +163,12 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
         float D2 = M2.Determinant();
         float D3 = M3.Determinant();
 
-        if (Dn<0)
+        if (Dn==0)
+        {
+            // degenerate tet
+            return false;
+        }
+        else if (Dn<0)
         {
             //cerr << "Dn negative\n";
             if (D0>0 || D1>0 || D2>0 || D3>0)
@@ -299,6 +304,9 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
 
     void Sample()
     {
+        //int samples_tried = 0;
+        //int samples_eval = 0;
+        //int tets_eval = 0;
         //cerr << "Sample\n";
         int th = eavlTimer::Start();
         int n = p[0].size();
@@ -361,6 +369,8 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
             if (xmin > xmax || ymin > ymax || zmin > zmax)
                 continue;
 
+            //tets_eval++;
+
             // we genuinely need double precision for some of these calculations, by the way:
             // change these next four to float, and you see obvious artifacts.
 
@@ -388,6 +398,7 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
                 {
                     for(int z=zmin; z<=zmax; ++z)
                     {
+                        //samples_tried++;
                         // raw version: D22 = 2m 1a, d33 = 6m 3a 3m 2a = 9m 5a, d44 = 36m 20a 4m 3a = 40m 23a,
                         //              and five of them = 200m 115a
                         // new version: 12m 18a (d22) 48m 32a (d33) 20m 15a (d44x5) = 80m 65a (2x fewer)
@@ -418,7 +429,12 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
                             float D1 = -x *  d_yz1_023 + y *  d_xz1_023 - z *  d_xy1_023 + 1. * d_xyz_023;
                             float D2 =  x *  d_yz1_013 - y *  d_xz1_013 + z *  d_xy1_013 - 1. * d_xyz_013;
                             float D3 = -x *  d_yz1_012 + y *  d_xz1_012 - z *  d_xy1_012 + 1. * d_xyz_012;
-                            if (Dn<0)
+                            if (Dn == 0)
+                            {
+                                // degenerate
+                                continue;
+                            }
+                            else if (Dn<0)
                             {
                                 // should NEVER fire unless there's a numerical precision error
                                 //cerr << "Dn negative\n";
@@ -436,10 +452,16 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
 
                         int index3d = (y*view.w + x)*nsamples + z;
                         samples[index3d] = value;
+                        //samples_eval++;
                     }
                 }
             }
         }
+        // NOTE: These values should be ignored if OpenMP was enabled above:
+        //cerr << samples_eval << " out of " << samples_tried << " ("
+        //     << (100.*double(samples_eval)/double(samples_tried)) << "%) samples\n";
+        //cerr << tets_eval << " out of " << n << " ("
+        //     << (100.*double(tets_eval)/double(n)) << "%) tetrahedra\n";
         //cerr << "Sample time = "<<eavlTimer::Stop(th,"sample") << endl;
     }
 
