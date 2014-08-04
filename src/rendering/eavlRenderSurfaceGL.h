@@ -128,8 +128,14 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
         mtx.CreateRotateZ(angle * M_PI / 180.);
         glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 
-        // ------------------------------------------------------------------
+        glColor3fv(color.c);
 
+        RenderText(scale, anchorx, anchory, text);
+    }
+
+  private:
+    void RenderText(float scale, float anchorx, float anchory, string text)
+    {
         // set up a texture for the font if needed
         eavlBitmapFont *fnt = eavlBitmapFontFactory::GetDefaultFont();
         eavlTexture *tex = GetTexture(fnt->name);
@@ -177,8 +183,6 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
         glDisable(GL_LIGHTING);
         glTexEnvf(GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -.5);
         //glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
-
-        glColor3fv(color.c);
 
         glBegin(GL_QUADS);
 

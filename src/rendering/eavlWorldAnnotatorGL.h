@@ -6,6 +6,18 @@
 
 class eavlWorldAnnotatorGL : public eavlWorldAnnotator
 {
+  protected:
+    ///\todo: duplication with render surface
+    std::map<std::string,eavlTexture*> textures;
+    eavlTexture *GetTexture(const std::string &s)
+    {
+        return textures[s];
+    }
+    void SetTexture(const std::string &s, eavlTexture *tex)
+    {
+        textures[s] = tex;
+    }
+
   public:
     eavlWorldAnnotatorGL() : eavlWorldAnnotator()
     {
@@ -34,6 +46,134 @@ class eavlWorldAnnotatorGL : public eavlWorldAnnotator
             glDepthRange(0,1);
 
     }
+    virtual void AddText(float ox, float oy, float oz,
+                         float nx, float ny, float nz,
+                         float ux, float uy, float uz,
+                         float scale,
+                         float xscale_2d, ///\todo: ugly
+                         float anchorx, float anchory,
+                         eavlColor color,
+                         string text)
+    {
+        //cerr << "eavlWorldAnnotator::AddText\n";
+        eavlMatrix4x4 mtx;
+        mtx.CreateRBT(eavlPoint3(ox,oy,oz),
+                      eavlPoint3(ox,oy,oz) - eavlVector3(nx,ny,nz),
+                      eavlVector3(ux,uy,uz));
+
+        glPushMatrix();
+        glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+
+        //if (view.viewtype == eavlView::EAVL_VIEW_2D)
+        {
+            eavlMatrix4x4 S;
+            //S.CreateScale(1. / view.view2d.xscale, 1, 1);
+            S.CreateScale(1. / xscale_2d, 1, 1);
+            glMultMatrixf(S.GetOpenGLMatrix4x4());
+        }
+
+        glColor3fv(color.c);
+
+        RenderText(scale, anchorx, anchory, text);
+    }
+
+
+  private:
+    ///\todo: duplication with render surface
+    void RenderText(float scale, float anchorx, float anchory, string text)
+    {
+        // set up a texture for the font if needed
+        eavlBitmapFont *fnt = eavlBitmapFontFactory::GetDefaultFont();
+        eavlTexture *tex = GetTexture(fnt->name);
+        if (!tex)
+        {
+            eavlDataSet *img = (eavlDataSet*)fnt->userPointer;
+            if (!img)
+            {
+                string ftype;
+                vector<unsigned char> &rawpngdata = fnt->GetRawImageData(ftype);
+                if (ftype != "png")
+                    cerr << "Error: expected PNG type for font image data\n";
+                eavlPNGImporter *pngimp = new eavlPNGImporter(&rawpngdata[0],
+                                                          rawpngdata.size());
+                img = pngimp->GetMesh("mesh",0);
+                img->AddField(pngimp->GetField("a","mesh",0));
+                fnt->userPointer = img;
+            }
+
+            tex = new eavlTexture;
+            tex->CreateFromDataSet(img, false,false,false,true);
+            SetTexture(fnt->name, tex);
+        }
+
+        // Kerning causes overlapping polygons.  Ideally only draw
+        // pixels where alpha>0, though this causes problems for alpha
+        // between 0 and 1 (unless can solve with different blend
+        // func??) when text isn't rendered last.  Simpler is to just
+        // disable z-writing entirely, but then must draw all text
+        // last anyway.  Or maybe draw text with two passes, once to
+        // update Z (when alpha==1) and once to draw pixels (when alpha>0).
+        if (true)
+        {
+            glDepthMask(GL_FALSE);
+        }
+        else
+        {
+            glAlphaFunc(GL_GREATER, 0);
+            glEnable(GL_ALPHA_TEST);
+        }
+
+        tex->Enable();
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_BLEND);
+        glDisable(GL_LIGHTING);
+        glTexEnvf(GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -.5);
+        //glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+
+        glBegin(GL_QUADS);
+
+        double textwidth = fnt->GetTextWidth(text);
+
+        double fx = -(.5 + .5*anchorx) * textwidth;
+        double fy = -(.5 + .5*anchory);
+        double fz = 0;
+        for (unsigned int i=0; i<text.length(); ++i)
+        {
+            char c = text[i];
+            char nextchar = (i < text.length()-1) ? text[i+1] : 0;
+
+            double vl,vr,vt,vb;
+            double tl,tr,tt,tb;
+            fnt->GetCharPolygon(c, fx, fy,
+                                vl, vr, vt, vb,
+                                tl, tr, tt, tb, nextchar);
+
+            glTexCoord2f(tl, 1-tt);
+            glVertex3f(scale*vl, scale*vt, fz);
+
+            glTexCoord2f(tl, 1-tb);
+            glVertex3f(scale*vl, scale*vb, fz);
+
+            glTexCoord2f(tr, 1-tb);
+            glVertex3f(scale*vr, scale*vb, fz);
+
+            glTexCoord2f(tr, 1-tt);
+            glVertex3f(scale*vr, scale*vt, fz);
+            /*cerr << "tl="<<tl<<endl;
+              cerr << "tr="<<tr<<endl;
+              cerr << "tt="<<tt<<endl;
+              cerr << "tb="<<tb<<endl;*/
+        }
+
+        glEnd();
+
+        glTexEnvf(GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, 0);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_ALPHA_TEST);
+        tex->Disable();
+        
+    }
+
 };
 
 #endif

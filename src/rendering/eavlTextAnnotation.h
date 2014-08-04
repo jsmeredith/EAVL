@@ -50,6 +50,7 @@ class eavlTextAnnotation : public eavlAnnotation
     eavlTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, double s)
         : eavlAnnotation(w), text(txt), color(c), scale(s)
     {
+        // default anchor: bottom-left
         anchorx = -1;
         anchory = -1;
     }
@@ -248,36 +249,49 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
 class eavlWorldTextAnnotation : public eavlTextAnnotation
 {
   protected:
-    eavlMatrix4x4 mtx;
+    double ox,oy,oz;
+    double nx,ny,nz;
+    double ux,uy,uz;
   public:
     eavlWorldTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, double s,
                             double ox, double oy, double oz,
                             double nx, double ny, double nz,
                             double ux, double uy, double uz)
-        : eavlTextAnnotation(w,txt,c,s)
+        : eavlTextAnnotation(w,txt,c,s),
+          ox(ox),oy(oy),oz(oz),
+          nx(nx),ny(ny),nz(nz),
+          ux(ux),uy(uy),uz(uz)
     {
-        mtx.CreateRBT(eavlPoint3(ox,oy,oz),
-                      eavlPoint3(ox,oy,oz) - eavlVector3(nx,ny,nz),
-                      eavlVector3(ux,uy,uz));
 
     }
     virtual void Render(eavlView &view)
     {
         view.SetupForWorldSpace();
 
-        eavlMatrix4x4 M = view.V * mtx;
+#if 1 // new way using world annotator
+        win->worldannotator->AddText(ox,oy,oz,
+                                     nx,ny,nz,
+                                     ux,uy,uz,
+                                     scale,
+           view.viewtype == eavlView::EAVL_VIEW_2D ? view.view2d.xscale : 1.0,
+                                     anchorx,anchory,
+                                     color,text);
+#else
+        glPushMatrix();
+
+        glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 
         if (view.viewtype == eavlView::EAVL_VIEW_2D)
         {
             eavlMatrix4x4 S;
             S.CreateScale(1. / view.view2d.xscale, 1, 1);
-            M = view.V * mtx * S;
+            glMultMatrixf(S.GetOpenGLMatrix4x4());
         }
 
-        glMatrixMode( GL_MODELVIEW );
-        glLoadMatrixf(M.GetOpenGLMatrix4x4());
-
         RenderText();
+
+        glPopMatrix();
+#endif
     }
 };
 
@@ -361,7 +375,7 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
             if (view.viewtype == eavlView::EAVL_VIEW_2D)
             {
                 mtx.CreateRBT(eavlPoint3(x,y,z),
-                              eavlPoint3(x,y,z) - eavlVector3(0,0,-1),
+                              eavlPoint3(x,y,z) - eavlVector3(0,0,1),
                               eavlVector3(0,1,0));
                 glMultMatrixf(mtx.GetOpenGLMatrix4x4());
 

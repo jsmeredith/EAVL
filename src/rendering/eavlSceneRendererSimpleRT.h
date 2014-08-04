@@ -136,9 +136,9 @@ class Triangle : public Object
   public:
     eavlPoint3 p;
     eavlVector3 n;
-    eavlVector3 n0, n1, n2;
     eavlVector3 e1, e2;
     float v0, v1, v2;
+    eavlVector3 n0, n1, n2;
     float d;
   public:
     Triangle(float ax, float ay, float az,

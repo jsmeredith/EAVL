@@ -419,12 +419,15 @@ class eavlSceneRenderer
         EndPoints();
     }
     virtual void RenderCells0D(eavlCellSet *cs,
-                               int npts, double *pts,
+                               int , double *pts,
                                ColorByOptions opts)
     {
+        (void)cs;
+        (void)pts;
+        (void)opts;
     }
     virtual void RenderCells1D(eavlCellSet *cs,
-                               int npts, double *pts,
+                               int , double *pts,
                                ColorByOptions opts)
     {
         eavlField *f = opts.field;
@@ -463,7 +466,7 @@ class eavlSceneRenderer
 
 
             // get scalars (if applicable)
-            double s, s0, s1;
+            double s=0, s0=0, s1=0;
             if (CellColors)
             {
                 s = MapValueToNorm(f->GetArray()->
@@ -499,7 +502,7 @@ class eavlSceneRenderer
 
     }
     virtual void RenderCells2D(eavlCellSet *cs,
-                               int npts, double *pts,
+                               int , double *pts,
                                ColorByOptions opts,
                                bool wireframe,
                                eavlField *normals)
@@ -567,7 +570,7 @@ class eavlSceneRenderer
                 double z2 = pts[i2*3+2];
 
                 // get scalars (if applicable)
-                double s, s0, s1, s2;
+                double s=0, s0=0, s1=0, s2=0;
                 if (CellColors)
                 {
                     s = MapValueToNorm(f->GetArray()->
@@ -588,7 +591,7 @@ class eavlSceneRenderer
                 }
 
                 // get normals (if applicable)
-                double u,v,w, u0,v0,w0, u1,v1,w1, u2,v2,w2;
+                double u=0,v=0,w=0, u0=0,v0=0,w0=0, u1=0,v1=0,w1=0, u2=0,v2=0,w2=0;
                 if (CellNormals)
                 {
                     u = normals->GetArray()->GetComponentAsDouble(j,0);
@@ -672,7 +675,7 @@ class eavlSceneRenderer
         EndTriangles();
     }
     virtual void RenderCells3D(eavlCellSet *cs,
-                               int npts, double *pts,
+                               int , double *pts,
                                ColorByOptions opts)
     {
         eavlField *f = opts.field;

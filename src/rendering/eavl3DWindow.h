@@ -57,8 +57,6 @@ class eavl3DWindow : public eavlWindow
                                (view.maxextents[1]-view.minextents[1])*(view.maxextents[1]-view.minextents[1]) +
                                (view.maxextents[2]-view.minextents[2])*(view.maxextents[2]-view.minextents[2]) );
 
-        glDepthRange(-.0001,.9999);
-
         eavlVector3 viewdir = view.view3d.at - view.view3d.from;
         bool xtest = (viewdir * eavlVector3(1,0,0)) >= 0;
         bool ytest = (viewdir * eavlVector3(0,1,0)) >= 0;
@@ -130,8 +128,6 @@ class eavl3DWindow : public eavlWindow
         zaxis->SetLabelFontScale(ds_size / 30.);
         zaxis->SetMoreOrLessTickAdjustment(zrel < .3 ? -1 : 0);
         zaxis->Render(view);
-
-        glDepthRange(0,1);
 
         if (scene->plots.size() > 0)
         {
