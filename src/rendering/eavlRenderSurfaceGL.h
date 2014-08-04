@@ -1,3 +1,4 @@
+// Copyright 2010-2014 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #ifndef EAVL_RENDER_SURFACE_GL_H
 #define EAVL_RENDER_SURFACE_GL_H
 
@@ -34,12 +35,19 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
     }
     virtual void Finish()
     {
+        glFinish();
+    }
+    virtual void Clear(eavlColor bg)
+    {
+        glClearColor(bg.c[0], bg.c[1], bg.c[2], 1.0); ///< c[3] instead of 1.0?
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     }
 
     virtual void AddRectangle(float x, float y, 
                               float w, float h,
                               eavlColor c)
     {
+        glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
         glColor3fv(c.c);
 
@@ -56,6 +64,7 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
                          float linewidth,
                          eavlColor c)
     {
+        glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
         glColor3fv(c.c);
 
@@ -71,6 +80,8 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
                              string ctname,
                              bool horizontal)
     {
+        glDisable(GL_DEPTH_TEST);
+
         eavlTexture *tex = GetTexture(ctname);
         if (!tex )
         {
@@ -97,6 +108,120 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
         glEnd();
 
         tex->Disable();
+    }
+
+    virtual void AddText(float x, float y,
+                         float scale,
+                         float angle,
+                         float windowaspect,
+                         float anchorx, float anchory,
+                         eavlColor color,
+                         string text) ///<\todo: better way to get view here!
+    {
+        eavlMatrix4x4 mtx;
+        mtx.CreateTranslate(x, y, 0);
+        glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+
+        mtx.CreateScale(1./windowaspect, 1, 1);
+        glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+
+        mtx.CreateRotateZ(angle * M_PI / 180.);
+        glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+
+        // ------------------------------------------------------------------
+
+        // set up a texture for the font if needed
+        eavlBitmapFont *fnt = eavlBitmapFontFactory::GetDefaultFont();
+        eavlTexture *tex = GetTexture(fnt->name);
+        if (!tex)
+        {
+            eavlDataSet *img = (eavlDataSet*)fnt->userPointer;
+            if (!img)
+            {
+                string ftype;
+                vector<unsigned char> &rawpngdata = fnt->GetRawImageData(ftype);
+                if (ftype != "png")
+                    cerr << "Error: expected PNG type for font image data\n";
+                eavlPNGImporter *pngimp = new eavlPNGImporter(&rawpngdata[0],
+                                                          rawpngdata.size());
+                img = pngimp->GetMesh("mesh",0);
+                img->AddField(pngimp->GetField("a","mesh",0));
+                fnt->userPointer = img;
+            }
+
+            tex = new eavlTexture;
+            tex->CreateFromDataSet(img, false,false,false,true);
+            SetTexture(fnt->name, tex);
+        }
+
+        // Kerning causes overlapping polygons.  Ideally only draw
+        // pixels where alpha>0, though this causes problems for alpha
+        // between 0 and 1 (unless can solve with different blend
+        // func??) when text isn't rendered last.  Simpler is to just
+        // disable z-writing entirely, but then must draw all text
+        // last anyway.  Or maybe draw text with two passes, once to
+        // update Z (when alpha==1) and once to draw pixels (when alpha>0).
+        if (true)
+        {
+            glDepthMask(GL_FALSE);
+        }
+        else
+        {
+            glAlphaFunc(GL_GREATER, 0);
+            glEnable(GL_ALPHA_TEST);
+        }
+
+        tex->Enable();
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_BLEND);
+        glDisable(GL_LIGHTING);
+        glTexEnvf(GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -.5);
+        //glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+
+        glColor3fv(color.c);
+
+        glBegin(GL_QUADS);
+
+        double textwidth = fnt->GetTextWidth(text);
+
+        double fx = -(.5 + .5*anchorx) * textwidth;
+        double fy = -(.5 + .5*anchory);
+        double fz = 0;
+        for (unsigned int i=0; i<text.length(); ++i)
+        {
+            char c = text[i];
+            char nextchar = (i < text.length()-1) ? text[i+1] : 0;
+
+            double vl,vr,vt,vb;
+            double tl,tr,tt,tb;
+            fnt->GetCharPolygon(c, fx, fy,
+                                vl, vr, vt, vb,
+                                tl, tr, tt, tb, nextchar);
+
+            glTexCoord2f(tl, 1-tt);
+            glVertex3f(scale*vl, scale*vt, fz);
+
+            glTexCoord2f(tl, 1-tb);
+            glVertex3f(scale*vl, scale*vb, fz);
+
+            glTexCoord2f(tr, 1-tb);
+            glVertex3f(scale*vr, scale*vb, fz);
+
+            glTexCoord2f(tr, 1-tt);
+            glVertex3f(scale*vr, scale*vt, fz);
+            /*cerr << "tl="<<tl<<endl;
+              cerr << "tr="<<tr<<endl;
+              cerr << "tt="<<tt<<endl;
+              cerr << "tb="<<tb<<endl;*/
+        }
+
+        glEnd();
+
+        glTexEnvf(GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, 0);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_ALPHA_TEST);
+        tex->Disable();
+        
     }
 };
 

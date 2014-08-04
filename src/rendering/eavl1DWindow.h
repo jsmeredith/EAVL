@@ -41,9 +41,6 @@ class eavl1DWindow : public eavlWindow
         // render the plots
         scene->Render(this);
 
-        // render the annotations
-        glDisable(GL_DEPTH_TEST);
-
         double vl, vr, vt, vb;
         view.GetRealViewport(vl,vr,vb,vt);
         frame->SetExtents(vl,vr, vb,vt);
@@ -81,8 +78,6 @@ class eavl1DWindow : public eavlWindow
             legend->AddItem(p->GetName(), p->GetColor());
         }
         legend->Render(view);
-
-        glFinish();
     }
 };
 

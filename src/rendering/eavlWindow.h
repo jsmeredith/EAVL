@@ -80,25 +80,21 @@ class eavlWindow
     void Initialize()
     {
         ///\todo: we want to make sure initialize called before resize/paint?
-        if (surface)
-            surface->Initialize();
+        surface->Initialize();
     }
     void Resize(int w, int h)
     {
-        if (surface)
-            surface->Resize(w,h);
+        surface->Resize(w,h);
 
         view.w = w;
         view.h = h;
     }
     void Paint()
     {
-        if (surface)
-            surface->Activate();
+        surface->Activate();
+        surface->Clear(bg);
 
         view.SetupMatrices();
-        glClearColor(bg.c[0], bg.c[1], bg.c[2], 1.0); ///< c[3] instead of 1.0?
-        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
         // render the plots and annotations
         Render();
@@ -106,10 +102,7 @@ class eavlWindow
         for (unsigned int i=0; i<annotations.size(); ++i)
             annotations[i]->Render(view);
 
-        glFinish();
-
-        if (surface)
-            surface->Finish();
+        surface->Finish();
     }
 
     virtual void Render() = 0;
@@ -125,8 +118,7 @@ class eavlWindow
 
     void SaveWindowAsPNM(const std::string &fn)
     {
-        if (surface)
-            surface->Activate();
+        surface->Activate();
 
         int w = view.w, h = view.h;
         vector<byte> rgba(w*h*4);

@@ -39,13 +39,8 @@ class eavl2DWindow : public eavlWindow
     }
     virtual void Render()
     {
-        glDisable(GL_DEPTH_TEST);
-
         // render the plots
         scene->Render(this);
-
-        // render the annotations
-        glDisable(GL_DEPTH_TEST);
 
         double vl, vr, vt, vb;
         view.GetRealViewport(vl,vr,vb,vt);
@@ -83,8 +78,6 @@ class eavl2DWindow : public eavlWindow
             colorbar->SetColorTable(scene->plots[0]->GetColorTableName());
             colorbar->Render(view);
         }
-
-        glFinish();
     }
 };
 

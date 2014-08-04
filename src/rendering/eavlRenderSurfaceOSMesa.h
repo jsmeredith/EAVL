@@ -29,6 +29,8 @@ class eavlRenderSurfaceOSMesa : public eavlRenderSurfaceGL
     }
     virtual void Initialize()
     {
+        eavlRenderSurfaceGL::Initialize();
+
         ctx = OSMesaCreateContextExt( OSMESA_RGBA, 32, 0, 0, NULL );
         if (!ctx)
             THROW(eavlException, "Could not create OSMesa context");
@@ -36,12 +38,16 @@ class eavlRenderSurfaceOSMesa : public eavlRenderSurfaceGL
     }
     virtual void Resize(int w, int h)
     {
+        eavlRenderSurfaceGL::Resize(w,h);
+
         width = w;
         height = h;
         rgba.resize(w*h*4);
     }
     virtual void Activate()
     {
+        eavlRenderSurfaceGL::Activate();
+
         if (!OSMesaMakeCurrent( ctx, &rgba[0], GL_UNSIGNED_BYTE, width, height))
             THROW(eavlException,
                   "Couldn't make framebuffer current for osmesa context");

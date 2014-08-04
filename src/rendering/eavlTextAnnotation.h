@@ -222,18 +222,12 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
     virtual void Render(eavlView &view)
     {
         view.SetupForScreenSpace();
-
-        eavlMatrix4x4 mtx;
-        mtx.CreateTranslate(x, y, 0);
-        glMultMatrixf(mtx.GetOpenGLMatrix4x4());
-
-        mtx.CreateScale(1./view.windowaspect, 1, 1);
-        glMultMatrixf(mtx.GetOpenGLMatrix4x4());
-
-        mtx.CreateRotateZ(angle * M_PI / 180.);
-        glMultMatrixf(mtx.GetOpenGLMatrix4x4());
-
-        RenderText();
+        win->surface->AddText(x,y,
+                              scale,
+                              angle,
+                              view.windowaspect,
+                              anchorx, anchory,
+                              color, text);
     }
 };
 

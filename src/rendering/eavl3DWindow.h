@@ -39,8 +39,6 @@ class eavl3DWindow : public eavlWindow
     }
     virtual void Render()
     {
-        glEnable(GL_DEPTH_TEST);
-
         // render the plots
         scene->Render(this);
 
@@ -143,8 +141,6 @@ class eavl3DWindow : public eavlWindow
             colorbar->SetColorTable(scene->plots[0]->GetColorTableName());
             colorbar->Render(view);
         }
-
-        glFinish();
     }
 
     /*
