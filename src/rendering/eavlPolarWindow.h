@@ -34,7 +34,7 @@ class eavlPolarWindow : public eavlWindow
         raxis = new eavl2DAxisAnnotation(this);
         frame = new eavl2DFrameAnnotation(this);
     }
-    ~eavlPolarWindow()
+    virtual ~eavlPolarWindow()
     {
         delete colorbar;
         delete aaxis;

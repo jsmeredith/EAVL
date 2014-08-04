@@ -1,6 +1,6 @@
 // Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
-#ifndef EAVL_XGC_Particle_IMPORTER_H
-#define EAVL_XGC_Particle_IMPORTER_H
+#ifndef EAVL_XGC_PARTICLE_IMPORTER_H
+#define EAVL_XGC_PARTICLE_IMPORTER_H
 
 #include "STL.h"
 #include "eavlDataSet.h"
@@ -26,7 +26,7 @@ extern "C"
 // Purpose:
 ///   Import a XGC ADIOS restart file.
 //
-// Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern, James Kress
+// Programmer:  James Kress
 // Creation:    July 1, 2014
 //
 // ****************************************************************************
@@ -35,6 +35,11 @@ class eavlXGCParticleImporter : public eavlImporter
 {
   public:
     eavlXGCParticleImporter(const string &filename);
+    eavlXGCParticleImporter(const string &filename, 
+    						ADIOS_READ_METHOD method, 
+    						MPI_Comm comm, 
+    						ADIOS_LOCKMODE mode, 
+    						int timeout_sec);
     virtual ~eavlXGCParticleImporter();
 
     int            GetNumChunks(const std::string &mesh) {return 1;}
@@ -50,7 +55,7 @@ class eavlXGCParticleImporter : public eavlImporter
     ADIOS_SELECTION *MakeSelection(ADIOS_VARINFO *avi, uint64_t *s, uint64_t *c);
     ADIOS_FILE *fp;
 
-    int timestep, maxnum, enphase, inphase, nvars;
+    int timestep, maxnum, enphase, inphase, nvars, retVal;
     long long emaxgid, imaxgid;
     double time;
 
@@ -66,4 +71,4 @@ class eavlXGCParticleImporter : public eavlMissingImporter
 };
 
 #endif //HAVE_ADIOS
-#endif //EAVL_XGC_Particle_IMPORTER_H
+#endif //EAVL_XGC_PARTICLE_IMPORTER_H

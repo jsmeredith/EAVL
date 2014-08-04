@@ -27,6 +27,9 @@ class eavlPoint3
     EAVL_HOSTDEVICE eavlPoint3(const eavlPoint3&);
     EAVL_HOSTDEVICE eavlPoint3(float,float,float);
 
+    // equality operator
+    EAVL_HOSTDEVICE bool        operator==(const eavlPoint3&) const;
+
     // assignment operator
     EAVL_HOSTDEVICE void        operator=(const eavlPoint3&);
 
@@ -97,6 +100,14 @@ eavlPoint3::operator=(const eavlPoint3 &r)
     x=r.x;
     y=r.y;
     z=r.z;
+}
+
+EAVL_HOSTDEVICE bool
+eavlPoint3::operator==(const eavlPoint3 &r) const
+{
+    return (x == r.x &&
+            y == r.y &&
+            z == r.z);
 }
 
 // point subtraction results in vector

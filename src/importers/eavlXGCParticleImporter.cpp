@@ -13,6 +13,7 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(const string &filename)
     imaxgid = 0;
     nvars = 0;
     time = 0;
+    retVal = 0;
     fp = NULL;
     
     string::size_type i0 = filename.rfind("xgc.");
@@ -31,25 +32,55 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(const string &filename)
     Initialize();
 }
 
+//Reads a staged adios file
+eavlXGCParticleImporter::eavlXGCParticleImporter(	const string &filename, 
+													ADIOS_READ_METHOD method, 
+													MPI_Comm comm, 
+													ADIOS_LOCKMODE mode, 
+													int timeout_sec
+												)
+{
+    timestep = 0;
+    maxnum = 0;
+    enphase = 0;
+    inphase = 0;
+    emaxgid = 0;
+    imaxgid = 0;
+    nvars = 0;
+    time = 0;
+    retVal = 0;
+    fp = NULL;
+    
+    string::size_type i0 = filename.rfind("xgc.");
+    string::size_type i1 = filename.rfind(".bp");
+    
+    fp = adios_read_open(filename.c_str(), method, comm, mode, timeout_sec);
+    
+    if(fp == NULL)
+		THROW(eavlException, "XGC variable file not found.");
+	
+    Initialize();
+}
+
 eavlXGCParticleImporter::~eavlXGCParticleImporter()
 {
-    if(fp)
-        adios_read_close(fp);
-    fp = NULL;
+	if(fp)
+	    adios_read_close(fp);
+	fp = NULL;
 
-    map<string, ADIOS_VARINFO*>::const_iterator it;
-    for(it = ephase.begin(); it != ephase.end(); it++)
+	map<string, ADIOS_VARINFO*>::const_iterator it;
+	for(it = ephase.begin(); it != ephase.end(); it++)
 		adios_free_varinfo(it->second);
-    ephase.clear();
-    for(it = iphase.begin(); it != iphase.end(); it++)
+	ephase.clear();
+	for(it = iphase.begin(); it != iphase.end(); it++)
 		adios_free_varinfo(it->second);
-    iphase.clear();
-    for(it = egid.begin(); it != egid.end(); it++)
+	iphase.clear();
+	for(it = egid.begin(); it != egid.end(); it++)
 		adios_free_varinfo(it->second);
-    egid.clear();
-    for(it = igid.begin(); it != igid.end(); it++)
+	egid.clear();
+	for(it = igid.begin(); it != igid.end(); it++)
 		adios_free_varinfo(it->second);
-    igid.clear();
+	igid.clear();
 }
 
 void
@@ -62,7 +93,7 @@ eavlXGCParticleImporter::Initialize()
     
     nvars = fp->nvars;
     
-    for(int i = 0; i < fp->nvars; i++)
+    for(int i = 0; i < nvars; i++)
     {
     	ADIOS_VARINFO *avi = adios_inq_var_byid(fp, i);
 		string longvarNm(&fp->var_namelist[i][1]);
@@ -195,7 +226,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 		
 		uint64_t s[3], c[3];
 		double *buff, R, Z, phi;
-		int nt = 1, idx = 0, retval;
+		int nt = 1, idx = 0;
 		map<string, ADIOS_VARINFO*>::const_iterator it;
 		for(it = iphase.begin(); it != iphase.end(); it++) 
 		{
@@ -206,7 +237,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 			
 			buff = new double[nt];
 			adios_schedule_read_byid(fp, sel, it->second->varid, 0, 1, buff);
-			retval = adios_perform_reads(fp, 1);
+			adios_perform_reads(fp, 1);
 			adios_selection_delete(sel);
 			
 			string nodeNum = it->first.substr(it->first.find("_",1,1)+1, 5);
@@ -247,7 +278,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 			
 			idBuff = new long long[nt];
 			adios_schedule_read_byid(fp, sel, it->second->varid, 0, 1, idBuff);
-			retval = adios_perform_reads(fp, 1);
+			adios_perform_reads(fp, 1);
 			adios_selection_delete(sel);
 
 			for(int i = 0; i < nt; i++) 
@@ -283,11 +314,11 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 		axisValues[2]->SetNumberOfTuples(emaxgid);
 
 		//Set all of the axis values to the x, y, z coordinates of the 
-		//iphase particles; set computational node origin
+		//ephase particles; set computational node origin
 		eavlIntArray *originNode = new eavlIntArray("originNode", 1, emaxgid);
 		
 		uint64_t s[3], c[3];
-		int nt = 1, idx = 0, retval;
+		int nt = 1, idx = 0;
 		double *buff, R, Z, phi;
 		map<string, ADIOS_VARINFO*>::const_iterator it;
 		for(it = ephase.begin(); it != ephase.end(); it++) 
@@ -299,7 +330,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 			
 			buff = new double[nt];
 			adios_schedule_read_byid(fp, sel, it->second->varid, 0, 1, buff);
-			retval = adios_perform_reads(fp, 1);
+			adios_perform_reads(fp, 1);
 			adios_selection_delete(sel);
 			
 			string nodeNum = it->first.substr(it->first.find("_",1,1)+1, 5);
@@ -342,7 +373,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 			
 			idBuff = new long long[nt];
 			adios_schedule_read_byid(fp, sel, it->second->varid, 0, 1, idBuff);
-			retval = adios_perform_reads(fp, 1);
+			adios_perform_reads(fp, 1);
 			adios_selection_delete(sel);
 
 			for(int i = 0; i < nt; i++) 

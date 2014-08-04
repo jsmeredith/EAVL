@@ -26,6 +26,9 @@ class eavlVector3
     EAVL_HOSTDEVICE eavlVector3(const eavlVector3&);
     EAVL_HOSTDEVICE eavlVector3(float,float,float);
 
+    // equality operator
+    EAVL_HOSTDEVICE bool        operator==(const eavlVector3&) const;
+
     // assignment operator
     EAVL_HOSTDEVICE void        operator=(const eavlVector3&);
 
@@ -100,6 +103,14 @@ eavlVector3::operator=(const eavlVector3 &r)
     x=r.x;
     y=r.y;
     z=r.z;
+}
+
+EAVL_HOSTDEVICE bool
+eavlVector3::operator==(const eavlVector3 &r) const
+{
+    return (x == r.x &&
+            y == r.y &&
+            z == r.z);
 }
 
 // vector addition/subtraction
