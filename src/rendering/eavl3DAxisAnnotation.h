@@ -96,9 +96,10 @@ class eavl3DAxisAnnotation : public eavlAnnotation
         view.SetupForWorldSpace();
 
         float linewidth = 1.0;
+        bool infront = true;
         win->worldannotator->AddLine(x0,y0,z0,
                                      x1,y1,z1,
-                                     linewidth, color);
+                                     linewidth, color, infront);
 
         vector<double> positions;
         vector<double> proportions;
@@ -138,7 +139,7 @@ class eavl3DAxisAnnotation : public eavlAnnotation
 
                 win->worldannotator->AddLine(xs,ys,zs,
                                              xe,ye,ze,
-                                             linewidth, color);
+                                             linewidth, color, infront);
             }
 
             float tx=0, ty=0, tz=0;
@@ -191,7 +192,7 @@ class eavl3DAxisAnnotation : public eavlAnnotation
 
                 win->worldannotator->AddLine(xs,ys,zs,
                                              xe,ye,ze,
-                                             linewidth, color);
+                                             linewidth, color, infront);
             }
         }
 

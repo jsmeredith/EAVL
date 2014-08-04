@@ -11,7 +11,7 @@ class eavlWorldAnnotator
     virtual void AddLine(float x0, float y0, float z0,
                          float x1, float y1, float z1,
                          float linewidth,
-                         eavlColor c) = 0;
+                         eavlColor c, bool infront=false) = 0;
 };
 
 #endif
