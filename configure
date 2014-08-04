@@ -4979,9 +4979,9 @@ if test "$ADIOS" != "yes" -a "$ADIOS" != "no"; then
           fi
 
    if test "$MPI" != "no"; then
-     ADIOS_LIBS="`adios_config -lr`"
+     ADIOS_LIBS="-ladios -ladiosread -lmpi"
    else
-     ADIOS_LIBS="`adios_config -lr`"
+     ADIOS_LIBS="-ladios_nompi -ladiosread_nompi"
    fi
 fi
 
