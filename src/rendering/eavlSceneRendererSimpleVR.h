@@ -312,7 +312,7 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
         int th = eavlTimer::Start();
         int n = p[0].size();
 
-//#pragma omp parallel for schedule(dynamic,1)
+#pragma omp parallel for schedule(dynamic,1)
         for (int tet = 0; tet < n ; tet++)
         {
             // translate the tet into image space
@@ -405,6 +405,15 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
             // make this a per-tet decision
 #define CLAMP_Z_EXTENTS
 #ifdef CLAMP_Z_EXTENTS
+            if (d_xy1_123==0 ||
+                d_xy1_023==0 ||
+                d_xy1_013==0 ||
+                d_xy1_012==0)
+            {
+                // degenerate tetrahedron
+                continue;
+            }
+
             float i123 = 1. / d_xy1_123;
             float i023 = 1. / d_xy1_023;
             float i013 = 1. / d_xy1_013;
