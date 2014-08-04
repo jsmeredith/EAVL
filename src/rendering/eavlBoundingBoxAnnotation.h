@@ -28,6 +28,9 @@ class eavlBoundingBoxAnnotation : public eavlAnnotation
         dmax[0] = dmax[1] = dmax[2] = +1;
         color = eavlColor(.5,.5,.5);
     }
+    virtual ~eavlBoundingBoxAnnotation()
+    {
+    }
     void SetExtents(double xmin, double xmax,
                     double ymin, double ymax,
                     double zmin, double zmax)

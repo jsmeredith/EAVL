@@ -53,6 +53,9 @@ class eavl2DAxisAnnotation : public eavlAnnotation
         moreOrLessTickAdjustment = 0;
         worldSpace = false;
     }
+    virtual ~eavl2DAxisAnnotation()
+    {
+    }
     void SetLogarithmic(bool l)
     {
         logarithmic = l;

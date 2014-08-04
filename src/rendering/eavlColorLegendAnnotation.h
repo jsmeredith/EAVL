@@ -28,6 +28,9 @@ class eavlColorLegendAnnotation : public eavlAnnotation
     eavlColorLegendAnnotation(eavlWindow *win) : eavlAnnotation(win)
     {
     }
+    virtual ~eavlColorLegendAnnotation()
+    {
+    }
     void Clear()
     {
         labels.clear();

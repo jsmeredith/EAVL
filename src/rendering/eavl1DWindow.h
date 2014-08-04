@@ -31,7 +31,7 @@ class eavl1DWindow : public eavlWindow
         frame = new eavl2DFrameAnnotation(this);
         legend = new eavlColorLegendAnnotation(this);
     }
-    ~eavl1DWindow()
+    virtual ~eavl1DWindow()
     {
         delete haxis;
         delete vaxis;

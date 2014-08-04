@@ -53,6 +53,9 @@ class eavlTextAnnotation : public eavlAnnotation
         anchorx = -1;
         anchory = -1;
     }
+    virtual ~eavlTextAnnotation()
+    {
+    }
     void SetText(const string &txt)
     {
         text = txt;

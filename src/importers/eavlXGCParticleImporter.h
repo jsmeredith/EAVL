@@ -55,7 +55,7 @@ class eavlXGCParticleImporter : public eavlImporter
     ADIOS_SELECTION *MakeSelection(ADIOS_VARINFO *avi, uint64_t *s, uint64_t *c);
     ADIOS_FILE *fp;
 
-    int timestep, maxnum, enphase, inphase, nvars;
+    int timestep, maxnum, enphase, inphase, nvars, retVal;
     long long emaxgid, imaxgid;
     double time;
 

@@ -31,7 +31,7 @@ class eavl2DWindow : public eavlWindow
         vaxis = new eavl2DAxisAnnotation(this);
         frame = new eavl2DFrameAnnotation(this);
     }
-    ~eavl2DWindow()
+    virtual ~eavl2DWindow()
     {
         delete colorbar;
         delete haxis;
