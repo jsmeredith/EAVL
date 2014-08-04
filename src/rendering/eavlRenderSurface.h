@@ -1,3 +1,4 @@
+// Copyright 2010-2014 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #ifndef EAVL_RENDER_SURFACE_H
 #define EAVL_RENDER_SURFACE_H
 

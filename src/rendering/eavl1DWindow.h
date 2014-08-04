@@ -17,8 +17,9 @@ class eavl1DWindow : public eavlWindow
     eavlColorLegendAnnotation *legend;
   public:
     eavl1DWindow(eavlColor bg, eavlRenderSurface *surf,
-                 eavlScene *s, eavlSceneRenderer *r)
-        : eavlWindow(bg,surf,s,r)
+                 eavlScene *s, eavlSceneRenderer *r,
+                 eavlWorldAnnotator *w)
+        : eavlWindow(bg,surf,s,r,w)
     {
         view.vl = -.7;
         view.vr = +.7;

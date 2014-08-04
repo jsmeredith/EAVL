@@ -47,25 +47,45 @@ class eavlBoundingBoxAnnotation : public eavlAnnotation
     {
         view.SetupForWorldSpace();
 
-        glDisable(GL_LIGHTING);
-        glLineWidth(1);
-        glColor3fv(color.c);
-        glBegin(GL_LINES);
-        glVertex3d(dmin[0],dmin[1],dmin[2]); glVertex3d(dmin[0],dmin[1],dmax[2]);
-        glVertex3d(dmin[0],dmax[1],dmin[2]); glVertex3d(dmin[0],dmax[1],dmax[2]);
-        glVertex3d(dmax[0],dmin[1],dmin[2]); glVertex3d(dmax[0],dmin[1],dmax[2]);
-        glVertex3d(dmax[0],dmax[1],dmin[2]); glVertex3d(dmax[0],dmax[1],dmax[2]);
+        float linewidth = 1.0;
+        win->worldannotator->AddLine(dmin[0],dmin[1],dmin[2],
+                                     dmin[0],dmin[1],dmax[2],
+                                     linewidth, color);
+        win->worldannotator->AddLine(dmin[0],dmax[1],dmin[2],
+                                     dmin[0],dmax[1],dmax[2],
+                                     linewidth, color);
+        win->worldannotator->AddLine(dmax[0],dmin[1],dmin[2],
+                                     dmax[0],dmin[1],dmax[2],
+                                     linewidth, color);
+        win->worldannotator->AddLine(dmax[0],dmax[1],dmin[2],
+                                     dmax[0],dmax[1],dmax[2],
+                                     linewidth, color);
 
-        glVertex3d(dmin[0],dmin[1],dmin[2]); glVertex3d(dmin[0],dmax[1],dmin[2]);
-        glVertex3d(dmin[0],dmin[1],dmax[2]); glVertex3d(dmin[0],dmax[1],dmax[2]);
-        glVertex3d(dmax[0],dmin[1],dmin[2]); glVertex3d(dmax[0],dmax[1],dmin[2]);
-        glVertex3d(dmax[0],dmin[1],dmax[2]); glVertex3d(dmax[0],dmax[1],dmax[2]);
+        win->worldannotator->AddLine(dmin[0],dmin[1],dmin[2],
+                                     dmin[0],dmax[1],dmin[2],
+                                     linewidth, color);
+        win->worldannotator->AddLine(dmin[0],dmin[1],dmax[2],
+                                     dmin[0],dmax[1],dmax[2],
+                                     linewidth, color);
+        win->worldannotator->AddLine(dmax[0],dmin[1],dmin[2],
+                                     dmax[0],dmax[1],dmin[2],
+                                     linewidth, color);
+        win->worldannotator->AddLine(dmax[0],dmin[1],dmax[2],
+                                     dmax[0],dmax[1],dmax[2],
+                                     linewidth, color);
 
-        glVertex3d(dmin[0],dmin[1],dmin[2]); glVertex3d(dmax[0],dmin[1],dmin[2]);
-        glVertex3d(dmin[0],dmin[1],dmax[2]); glVertex3d(dmax[0],dmin[1],dmax[2]);
-        glVertex3d(dmin[0],dmax[1],dmin[2]); glVertex3d(dmax[0],dmax[1],dmin[2]);
-        glVertex3d(dmin[0],dmax[1],dmax[2]); glVertex3d(dmax[0],dmax[1],dmax[2]);
-        glEnd();
+        win->worldannotator->AddLine(dmin[0],dmin[1],dmin[2],
+                                     dmax[0],dmin[1],dmin[2],
+                                     linewidth, color);
+        win->worldannotator->AddLine(dmin[0],dmin[1],dmax[2],
+                                     dmax[0],dmin[1],dmax[2],
+                                     linewidth, color);
+        win->worldannotator->AddLine(dmin[0],dmax[1],dmin[2],
+                                     dmax[0],dmax[1],dmin[2],
+                                     linewidth, color);
+        win->worldannotator->AddLine(dmin[0],dmax[1],dmax[2],
+                                     dmax[0],dmax[1],dmax[2],
+                                     linewidth, color);
     }    
 };
 

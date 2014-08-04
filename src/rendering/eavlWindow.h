@@ -9,6 +9,7 @@
 #include "eavlRenderSurface.h"
 #include "eavlSceneRenderer.h"
 #include "eavlAnnotation.h"
+#include "eavlWorldAnnotator.h"
 
 class eavlScene;
 
@@ -36,12 +37,14 @@ class eavlWindow
   public: /// todo: hack, should not be public
     ///\todo: no longer allow a NULL surface!
     eavlRenderSurface *surface;
+    eavlWorldAnnotator *worldannotator;
     eavlView view;
 
   public:
     eavlWindow(eavlColor bgcolor, eavlRenderSurface *surf,
-               eavlScene *s, eavlSceneRenderer *r)
-        : bg(bgcolor), scene(s), renderer(r), surface(surf)
+               eavlScene *s, eavlSceneRenderer *r,
+               eavlWorldAnnotator *w)
+        : bg(bgcolor), scene(s), renderer(r), surface(surf), worldannotator(w)
     {
     }
     virtual ~eavlWindow()

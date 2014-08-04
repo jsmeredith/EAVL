@@ -19,8 +19,9 @@ class eavlPolarWindow : public eavlWindow
     eavl2DFrameAnnotation *frame;
   public:
     eavlPolarWindow(eavlColor bg, eavlRenderSurface *surf,
-                    eavlScene *s, eavlSceneRenderer *r)
-        : eavlWindow(bg,surf,s,r)
+                    eavlScene *s, eavlSceneRenderer *r,
+                    eavlWorldAnnotator *w)
+        : eavlWindow(bg,surf,s,r,w)
     {
         /*
         view.vl = -.7;
