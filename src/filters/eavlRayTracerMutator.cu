@@ -35,6 +35,8 @@
 
 #include "RT/eavlRTUtil.h"
 
+#include "eavlSegmentedScanOp.h"
+
 #define TOLERANCE   0.00001
 #define BARY_TOLE   0.0001f
 #define EPSILON     0.01f
@@ -1976,6 +1978,36 @@ void eavlRayTracerMutator::shadowIntersect()
 void eavlRayTracerMutator::Execute()
 {
 
+    int size = 512;
+    eavlIntArray * ins =  new eavlIntArray("",1,size);
+    eavlIntArray * outs =  new eavlIntArray("",1,size);
+    eavlIntArray * flags =  new eavlIntArray("",1,size);
+    for( int i = 0; i<size ; i++)
+    {
+        ins->SetValue(i,1);
+        //if(i%16 == 0 ) flags->SetValue(i,1);
+        //else flags->SetValue(i,0);
+        flags->SetValue(i,0);
+        if(i%129==0) flags->SetValue(i,1);
+    }
+
+    
+    eavlExecutor::AddOperation(new_eavlSegScanOp(eavlOpArgs(ins),
+                                                 eavlOpArgs(outs),
+                                                 eavlOpArgs(flags)),
+                                                 "");
+    eavlExecutor::Go();
+    //for( int i = 0; i<size ; i++)
+    //{
+    //    cout<<ins->GetValue(i)<<" ";
+    //}
+    cout<<endl;
+    for( int i = 0; i<size ; i++)
+    {
+        cout<<outs->GetValue(i)<<" ";
+    }
+
+    exit(0);
     /*float4 data;
     data.x = 0;
     data.y = 4;
