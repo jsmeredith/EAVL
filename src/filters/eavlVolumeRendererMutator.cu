@@ -16,6 +16,7 @@
 texture<float4> tet_bvh_in_tref;            /* BVH inner nodes */
 texture<float4> tet_verts_tref;              /* vert+ scalar data */
 texture<float>  tet_bvh_lf_tref;            /* BVH leaf nodes */
+texture<float4>  color_map_tref;
 
 #ifndef HAVE_CUDA
 template<class T> class texture {};
@@ -99,6 +100,7 @@ class eavlConstArrayV2
 eavlConstArrayV2<float4>* tet_bvh_in_array;
 eavlConstArrayV2<float4>* tet_verts_array;
 eavlConstArrayV2<float>*  tet_bvh_lf_array;
+eavlConstArrayV2<float4>*  color_map_array;
 
 eavlVolumeRendererMutator::eavlVolumeRendererMutator()
 {
@@ -126,28 +128,52 @@ eavlVolumeRendererMutator::eavlVolumeRendererMutator()
     rayDirZ = NULL;
     indexes = NULL;
     mortonIndexes = NULL;
+    tempFloat = NULL;
     r = NULL;
     g = NULL;
     b = NULL;
+    a = NULL;
 
+    frameBuffer = NULL;
     geomDirty = true;
     sizeDirty = true;
     verbose = true;
 
-    tet_verts_raw = NULL;
-    tet_bvh_in_raw = NULL;     
-    tet_bvh_lf_raw = NULL;
+    tet_verts_raw   = NULL;
+    tet_bvh_in_raw  = NULL;     
+    tet_bvh_lf_raw  = NULL;
+    color_map_raw   = NULL;
 
     tet_bvh_in_array = NULL;
-    tet_verts_array = NULL;
+    tet_verts_array  = NULL;
     tet_bvh_lf_array = NULL;
+    color_map_array = NULL;
     numTets = 0;
-
+    setDefaultColorMap();
     gpu = true;
+
+    redIndexer   = new eavlArrayIndexer(4,0);
+    greenIndexer = new eavlArrayIndexer(4,1);
+    blueIndexer  = new eavlArrayIndexer(4,2);
+    alphaIndexer = new eavlArrayIndexer(4,3);
 }
 
+struct Sample
+{
+    Sample()
+    {
+        open = 0;
+    }
 
-EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVector3 rayOrigin, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &tet_bvh_lf_raw,eavlConstArrayV2<float4> &verts,const float &maxDistance, float &distance, float sampleDelta)
+    int open;
+    float d1;
+    float d2;
+    float s1;
+    float s2; 
+};
+
+#define CACHE_MAX_SIZE 6
+EAVL_HOSTDEVICE eavlVector4 getIntersectionTet(const eavlVector3 rayDir, const eavlVector3 rayOrigin, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &tet_bvh_lf_raw,eavlConstArrayV2<float4> &verts,const float &maxDistance, float &distance, float sampleDelta, eavlConstArrayV2<float4> &cmap, int cmapSize)
 {
     cout<<"New ray --------------------------------------------------------"<<endl;
 
@@ -163,6 +189,8 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
     float invDirz = rcp_safe(dirz);
     int currentNode;
     
+    int cacheSize = 0;
+    Sample sampleCache[CACHE_MAX_SIZE];
     int todo[64]; //num of nodes to process
     int stackptr = 0;
     int barrier  = (int)END_FLAG;
@@ -176,6 +204,11 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
     float odirx = ox*invDirx;
     float odiry = oy*invDiry;
     float odirz = oz*invDirz;
+    eavlVector4 color;
+    color.x=0;
+    color.y=0;
+    color.z=0;
+    color.w=0;
 
     while(currentNode!=END_FLAG) {
         
@@ -299,8 +332,9 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
                                 if((dist < minDistance) && !(u+v>1) )
                                 {
                                     float scalar = a4.w*u + b4.w*v + c4.w*(1 - u - v); //lerp
+                                    //scalar =.5f;
                                     hitCount++;
-                                    if(nextSampleDistance == 0) { nextSampleDistance = dist; } //??????
+                                    
                                     if(hitCount == 1)
                                     {
                                       dist1 = dist; //we are looking for two distances  
@@ -324,7 +358,7 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
             }
             /* now see if the sample point in within this range */
             bool gotSample = false;
-            if(hitCount == 2)
+            if(hitCount == 2) /*not sure what to so about degenerates*/
             {   if(dist1 > dist2)
                 {
                     float t = dist1;
@@ -333,13 +367,90 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
                     t = scalar1;
                     scalar2 = scalar1;
                     scalar1 = t;
+                    if(nextSampleDistance == 0) { nextSampleDistance = dist1; } //??????
                 } 
+
+                if(cacheSize > 0)
+                {
+                    bool entryFound = true;
+                    while(entryFound)
+                    {   
+                        entryFound = false;
+                        for(int j=0; j< CACHE_MAX_SIZE; j++)
+                        {
+                            //cout<<"Searching cache "<<j<<" isOpen "<<sampleCache[j].open<<endl;
+                            if(sampleCache[j].open == 1)
+                            {
+                                if(sampleCache[j].d2<nextSampleDistance) {sampleCache[j].open = 0; cacheSize--;}
+                                gotSample =false;
+                                while(sampleCache[j].d1<=nextSampleDistance && sampleCache[j].d2>=nextSampleDistance)
+                                {
+                                    cout<<"######### CACHE SAMPLE ###########  "<<nextSampleDistance<<endl;
+                                    //cout<<sampleCache[j].d1<<" "<<sampleCache[j].d2<<" "<<nextSampleDistance<<endl;
+                                    float s = lerp(sampleCache[j].s1,sampleCache[j].s2, clamp((nextSampleDistance - sampleCache[j].s1) / (sampleCache[j].s2 - sampleCache[j].s1), 0.0f, 1.0f));
+                                    cout<<"S "<<s<<endl;  
+                                    int   colorIdx = floor(s*cmapSize);
+                                    float4 c = cmap.getValue(color_map_tref, colorIdx); //divide by number of samples
+                                    return eavlVector4(c.x,c.y,c.z,c.w);
+                                    color.x += c.x * (1.-color.w)*c.w;
+                                    color.y += c.y * (1.-color.w)*c.w;
+                                    color.z += c.z * (1.-color.w)*c.w;
+                                    color.w += c.w * (1.-color.w)*c.w;
+                                    nextSampleDistance += sampleDelta;
+                                    gotSample = true;
+                                }
+                                if(gotSample)
+                               { 
+                                   sampleCache[j].open = 0;
+                                   entryFound = true; // keep scanning for another entry
+                                   cacheSize--;
+                               }
+                            }
+                        }
+                    }
+                }
                 //cout<<"Current Node "<<currentNode<<endl;
-                cout<<"Node Range: "<<dist1<<"- "<<dist2<<" Looking for "<<nextSampleDistance<< endl;
+                //cout<<"Node Range: "<<dist1<<" - "<<dist2<<" Looking for "<<nextSampleDistance<< endl;
                 if(dist1 <= nextSampleDistance && nextSampleDistance <= dist2)
                 {
-                    cout<<"######### SAMPLE ###########"<<endl;
-                    nextSampleDistance += sampleDelta;
+                    while(dist1 <= nextSampleDistance && nextSampleDistance <= dist2)
+                    {
+                        cout<<"######### SAMPLE ###########   "<<nextSampleDistance<<endl;
+                        float s = lerp(scalar1,scalar2, clamp((nextSampleDistance - scalar1) / (scalar2 - scalar1), 0.0f, 1.0f)); 
+                        cout<<"S "<<s<<endl;             
+                        int   colorIdx = floor(s*cmapSize);
+                        float4 c = cmap.getValue(color_map_tref, colorIdx); //divide by number of samples
+                        return eavlVector4(c.x,c.y,c.z,c.w);
+                        cout<<"Color "<<c.x<<" "<<c.y<<" "<<c.z<<" "<<c.w<<endl;
+                        color.x += c.x * (1.-color.w)*c.w;
+                        color.y += c.y * (1.-color.w)*c.w;
+                        color.z += c.z * (1.-color.w)*c.w;
+                        color.w += c.w * (1.-color.w)*c.w;
+                         cout<<"Color Acc "<<color.x<<" "<<color.y<<" "<<color.z<<" "<<color.w<<endl;
+                        nextSampleDistance += sampleDelta;
+                    }
+                }
+                else
+                {
+                    if(dist1 > nextSampleDistance) //cahce future entry range
+                    {
+                        for(int j=0; j<= CACHE_MAX_SIZE; j++)
+                        {
+                            if(j == CACHE_MAX_SIZE) {cout<<"@@@@@@ Cache blown @@@@@@@@@"<<endl; break;}
+                            if(sampleCache[j].open == 0)
+                            {   //cout<<"Caching sample : "<<dist1<<" - "<<dist2<<" "<<j<<endl;
+                                sampleCache[j].d1 = dist1;
+                                sampleCache[j].d2 = dist2;
+                                sampleCache[j].s1 = scalar1;
+                                sampleCache[j].s2 = scalar2;
+                                sampleCache[j].open = 1;
+                                cacheSize++;
+                                break;
+                            }
+                        }
+
+
+                    }
                 }
             }
             
@@ -357,7 +468,14 @@ EAVL_HOSTDEVICE int getIntersectionTet(const eavlVector3 rayDir, const eavlVecto
 
     }
  distance=minDistance;
- return minIndex;
+ //f(color.x!=0)
+ //{
+ //   color.x = 1;
+ //   color.y = 1;
+  //  color.z = 0;
+  //  color.w = 1;
+ //}
+ return color;
 }
 
 
@@ -366,34 +484,109 @@ struct RayIntersectFunctor{
 
 
     eavlConstArrayV2<float4> verts;
+    eavlConstArrayV2<float4> cmap;
     eavlConstArrayV2<float4> bvh;
     eavlConstArrayV2<float>  bvh_inner;
     primitive_t              primitiveType;
     float                    sampleDelta;
+    int                      colorMapSize;
 
-    RayIntersectFunctor(eavlConstArrayV2<float4> *_verts, eavlConstArrayV2<float4> *theBvh,eavlConstArrayV2<float> *_bvh_inner, primitive_t _primitveType, float _sampleDelta)
+    RayIntersectFunctor(eavlConstArrayV2<float4> *_verts, eavlConstArrayV2<float4> *theBvh,eavlConstArrayV2<float> *_bvh_inner, primitive_t _primitveType, float _sampleDelta,int _colorMapSize,eavlConstArrayV2<float4> *_cmap)
         :verts(*_verts),
          bvh(*theBvh),
          bvh_inner(*_bvh_inner),
          primitiveType(_primitveType),
-         sampleDelta(_sampleDelta)
+         sampleDelta(_sampleDelta),
+         colorMapSize(_colorMapSize),
+         cmap(*_cmap)
     {}                                                 
-    EAVL_HOSTDEVICE tuple<float,float,float> operator()( tuple<float,float,float,float,float,float> rayTuple){
+    EAVL_HOSTDEVICE tuple<float,float,float,float> operator()( tuple<float,float,float,float,float,float> rayTuple){
 
         int   minHit = -1; 
         float distance;
         eavlVector3 rayOrigin(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
         eavlVector3       ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
+        eavlVector4 c;
         if(primitiveType == TET)
         {
-            minHit = getIntersectionTet(ray, rayOrigin,bvh,bvh_inner, verts,INFINITE,distance,sampleDelta);
+            c = getIntersectionTet(ray, rayOrigin,bvh,bvh_inner, verts,INFINITE,distance,sampleDelta, cmap, colorMapSize);
         } 
         
         
-        return tuple<float,float,float>(0,0,0);
+        return tuple<float,float,float,float>(c.x,c.y,c.z,c.w);
     }
 };
 
+
+void eavlVolumeRendererMutator::setColorMap3f(float* cmap,int size)
+{
+    colorMapSize = size;
+    if(color_map_array != NULL)
+    {
+        color_map_array->unbind(color_map_tref);
+        delete color_map_array;
+    }
+    if(color_map_raw!=NULL)
+    {
+        delete color_map_raw;
+    }
+    color_map_raw= new float[size*4];
+    
+    for(int i=0;i<size;i++)
+    {
+        color_map_raw[i*4  ] = cmap[i*3  ];
+        color_map_raw[i*4+1] = cmap[i*3+1];
+        color_map_raw[i*4+2] = cmap[i*3+2];
+        color_map_raw[i*4+3] = .05;          //test Alpha
+        //cout<<cmap[i*3]<<" "<<cmap[i*3+1]<<" "<<cmap[i*3+2]<<endl;
+    }
+    color_map_array = new eavlConstArrayV2<float4>((float4*)color_map_raw, colorMapSize, color_map_tref);
+}
+
+void eavlVolumeRendererMutator::setDefaultColorMap()
+{   cout<<"setting defaul color map"<<endl;
+    if(color_map_array!=NULL)
+    {
+        color_map_array->unbind(color_map_tref);
+        delete color_map_array;
+    }
+    if(color_map_raw!=NULL)
+    {
+        delete[] color_map_raw;
+    }
+    //two values all 1s
+    colorMapSize=2;
+    color_map_raw= new float[8];
+    for(int i=0;i<8;i++) color_map_raw[i]=1.f;
+    color_map_array = new eavlConstArrayV2<float4>((float4*)color_map_raw, colorMapSize, color_map_tref);
+    cout<<"Done setting defaul color map"<<endl;
+
+}
+
+void eavlVolumeRendererMutator::clearFrameBuffer(eavlFloatArray *r,eavlFloatArray *g,eavlFloatArray *b,eavlFloatArray *a)
+{
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(r),
+                                            eavlOpArgs(r),
+                                            FloatMemsetFunctor(0)),
+                                            "memset");
+    eavlExecutor::Go();
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(g),
+                                            eavlOpArgs(g),
+                                            FloatMemsetFunctor(0)),
+                                            "memset");
+    eavlExecutor::Go();
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(b),
+                                            eavlOpArgs(b),
+                                            FloatMemsetFunctor(0)),
+                                            "memset");
+    eavlExecutor::Go();
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(a),
+                                            eavlOpArgs(a),
+                                            FloatMemsetFunctor(0)),
+                                            "memset");
+    eavlExecutor::Go();
+
+}
 
 void eavlVolumeRendererMutator::allocateArrays()
 {
@@ -408,9 +601,11 @@ void eavlVolumeRendererMutator::allocateArrays()
     deleteClassPtr(r);
     deleteClassPtr(g);
     deleteClassPtr(b);
-
+    deleteClassPtr(a);
+    deleteClassPtr(frameBuffer);
     deleteClassPtr(indexes);
     deleteClassPtr(mortonIndexes);
+    deleteClassPtr(tempFloat);
 
     indexes          = new eavlIntArray("indexes",1,size);
     mortonIndexes    = new eavlIntArray("mortonIdxs",1,size);
@@ -426,12 +621,15 @@ void eavlVolumeRendererMutator::allocateArrays()
     r                = new eavlFloatArray("r",1,size);
     g                = new eavlFloatArray("b",1,size);
     b                = new eavlFloatArray("g",1,size);
+    a                = new eavlFloatArray("g",1,size);
+    tempFloat        = new eavlFloatArray("g",1,size);
 
+    frameBuffer      = new eavlFloatArray("",1, width*height*4);
     sizeDirty = false;
 }
 
 void eavlVolumeRendererMutator::init()
-{
+{   cout<<"Init"<<endl;
 	size = height*width;
 	if(sizeDirty) 
     {
@@ -489,8 +687,9 @@ void eavlVolumeRendererMutator::Execute()
         cout<<"No primitives to render. "<<endl;
         return;
     }
-
+    
     init();
+    clearFrameBuffer(r,g,b,a);
     camera.look = camera.lookat - camera.position;
     //init camera rays
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(indexes),
@@ -501,13 +700,22 @@ void eavlVolumeRendererMutator::Execute()
 
     int ttraverse;
     if(verbose) ttraverse = eavlTimer::Start();
-    eavlExecutor::SetExecutionMode(eavlExecutor::ForceCPU);
+    //eavlExecutor::SetExecutionMode(eavlExecutor::ForceCPU);
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ),
-                                             eavlOpArgs(r,g,b),
-                                             RayIntersectFunctor(tet_verts_array,tet_bvh_in_array,tet_bvh_lf_array,TET,sampleDelta)),
+                                             eavlOpArgs(r,g,b,a),
+                                             RayIntersectFunctor(tet_verts_array,tet_bvh_in_array,tet_bvh_lf_array,TET,sampleDelta, colorMapSize, color_map_array)),
                                                                                                         "intersect");
     eavlExecutor::Go();
-    eavlExecutor::SetExecutionMode(eavlExecutor::ForceGPU);
+    //eavlExecutor::SetExecutionMode(eavlExecutor::ForceGPU);
+
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(r, g, b,a),
+                                                 eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer),
+                                                            eavlIndexable<eavlFloatArray>(frameBuffer,*greenIndexer),
+                                                            eavlIndexable<eavlFloatArray>(frameBuffer,*blueIndexer),
+                                                            eavlIndexable<eavlFloatArray>(frameBuffer,*alphaIndexer)),
+                                                 FloatMemcpyFunctor4to4()),
+                                                 "memcopy");
+     eavlExecutor::Go();
     if(verbose) cout<<"Traversal   RUNTIME: "<<eavlTimer::Stop(ttraverse,"traverse")<<endl;
 
 }
@@ -527,7 +735,7 @@ void eavlVolumeRendererMutator::createRays()
         h = (float) (i/width)/fheight;
         rayArray[i].mortonCode=morton2D(w,h);
     }
-    std::sort(rayArray,rayArray+size,spacialCompare);
+    //std::sort(rayArray,rayArray+size,spacialCompare);
     cout<<endl;
     for(int i=0; i<size;i++)
     {

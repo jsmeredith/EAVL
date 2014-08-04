@@ -203,8 +203,11 @@ __device__ T segScanGrid(volatile T *data, volatile int *flags)
     unsigned int blockLastThread  = blockFirstThread + 127;
     
     bool openSegment = (flags[blockFirstThread] == 0);                /* open segment running into block(carry in if blockIdx !=0)*/ 
+    if(threadID == 129) printf("129 Blockid: %d   %d %d  %d\n",blockId, data[threadID], threadID,  flags[threadID] );
+    if(threadID == 128) printf("128 Blockid: %d   data %d thread id %d flag %d \n",blockId, data[threadID], threadID,  flags[threadID] );
     __syncthreads();                                                  /* stroe it now since segscan will overwrite flags */
 
+    
     
     T result = segScanBlock<OP,INCLUSIVE>(data,flags);
     T lastVal = data[blockLastThread];
@@ -212,29 +215,48 @@ __device__ T segScanGrid(volatile T *data, volatile int *flags)
     bool blockHasFlag = flags[blockLastThread] != 0 || !openSegment;      /* were there any segment flags in the block*/
     bool acc = (openSegment && flags[threadID] == 0);                     /*this thread should add the carry in to its current result */   
     
+    if(threadID == 128) printf("128 Blockid: %d   data %d thread id %d flag %d \n",blockId, data[threadID], threadID,  flags[threadID] );
     __syncthreads();
 
     /* the last thread in the block stores the final value and a flag, if there was one in the block, into a value in block 0*/
     /* block 0 is a storage location since all values are already correct(no carry in) and stored in result */
-    if(threadID == blockLastThread) 
+    if(threadID == blockLastThread) /*this is not getting called with the block that ends early*/
     {
         data[blockId]  = lastVal;
         flags[blockId] = blockHasFlag;
-        //printf("Blockid: %d   %d\n",blockIdx,data[blockIdx] );
+        printf("Last Blockid: %d   %d\n",blockId,threadID );
     }
 
-    if(threadID == blockFirstThread) printf("Blockid: %d   %d %d\n",blockId, data[blockId], threadID );
+    
+    if(threadID == blockFirstThread) printf("Blockid: %d   %d %d %d %d\n",blockId, data[blockId], threadID,acc,  flags[threadID] );
     __syncthreads();
     /*The first block in each block now seg scans(inclusive) all the block totals and flags */
     if(blockId == 0) segScanBlock<OP,true>(data,flags);
     __syncthreads();
-    if(threadID == blockFirstThread) printf("Blockid: %d   %d %d %d %d\n",blockId, data[blockId], threadID,acc,  flags[threadID] );
-    //if(idx == 35 ) printf("Thread 35 : %d %d", acc, result);
-    /* Now add carry over from the previous block into the individually scanned blocks */
     if(blockId != 0 && acc)
     {
-        result = OP::op(data[blockId-1], result);
+        if(threadID == 128) printf("128 accing %d %d %d\n", result,data[blockId-1], blockId );
+        //result = OP::op(data[blockId-1], result);
+        if(threadID == 128) printf("128 accing %d %d %d\n", result,data[blockId-1], blockId );
+        if(threadID == 123) printf("123 Should not happen accing %d\n", result);
     }
+    __syncthreads();
+    if(threadID == 1) printf(" 1 Blockid: %d   %d %d %d %d\n",blockId, data[blockId], threadID,acc,  flags[threadID] );
+    if(threadID == 2) printf(" 2 Blockid: %d   %d %d %d %d\n",blockId, data[blockId], threadID,acc,  flags[threadID] );
+    if(threadID == 0)   printf("0 Data : %d %d %d \n", data[0], data[1], data[2]);
+    if(threadID == 0)   printf("0 flags : %d %d %d \n", flags[0], flags[1], flags[2]);
+    if(threadID == 128) printf("**Data : %d %d %d \n", data[0], data[1], data[2]);
+    if(threadID == 128) printf("**flags : %d %d %d \n", flags[0], flags[1], flags[2]);
+    if(threadID == 128) printf("128 Blockid: %d   data %d thread id %d flag %d result %d, acc %d\n",blockId, data[threadID], threadID,  flags[threadID], result,acc );
+    __syncthreads();
+
+    /* Now add carry over from the previous block into the individually scanned blocks */
+     __syncthreads();
+    if(threadID == 128) printf("A Data : %d %d %d \n", data[0], data[1], data[2]);
+    if(threadID == 128) printf("A flags : %d %d %d \n", flags[0], flags[1], flags[2]);
+     
+    if(threadID == 128) printf("B Data : %d %d %d \n", data[0], data[1], data[2]);
+    if(threadID == 128) printf("B flags : %d %d %d \n", flags[0], flags[1], flags[2]);
      __syncthreads();
 
     data[threadID] = result;

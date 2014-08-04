@@ -85,11 +85,14 @@ class eavlVolumeRendererMutator : public eavlMutator
         gpu = onGPU;
     }
 
+    eavlFloatArray* getFrameBuffer() { return frameBuffer; }
+
     void setSampleDelta(float delta)
     {
         sampleDelta = delta;
     }
-
+    void setColorMap3f(float* cmap,int size);
+    void setDefaultColorMap();
     
     virtual void Execute();
      eavlVRScene         scene;
@@ -101,7 +104,7 @@ class eavlVolumeRendererMutator : public eavlMutator
     int 	size;
     float   sampleDelta;
     int 	numTets;
-
+    int     colorMapSize;
     bool	sizeDirty;
     bool 	geomDirty;
     bool    verbose;
@@ -117,16 +120,22 @@ class eavlVolumeRendererMutator : public eavlMutator
     eavlFloatArray*     r;
     eavlFloatArray*     g;
     eavlFloatArray*     b;
+    eavlFloatArray*     a;
+    eavlFloatArray*     frameBuffer;
     eavlIntArray*		indexes;
     eavlIntArray*		mortonIndexes;
 
-
-
+    eavlArrayIndexer      *redIndexer;
+    eavlArrayIndexer      *greenIndexer;
+    eavlArrayIndexer      *blueIndexer;
+    eavlArrayIndexer      *alphaIndexer;
+    eavlFloatArray        *tempFloat;
    
 
     float     *tet_verts_raw;
     float     *tet_bvh_in_raw;            /* BVH broken up into inner nodes and leaf nodes */
     float     *tet_bvh_lf_raw;
+    float     *color_map_raw;
 
     void init();
     void allocateArrays();
@@ -134,6 +143,8 @@ class eavlVolumeRendererMutator : public eavlMutator
     void createRays();
     void freeRaw();
     void freeTextures();
+    void clearFrameBuffer(eavlFloatArray *r,eavlFloatArray *g,eavlFloatArray *b, eavlFloatArray* a);
+    void scatter();
 
 
 };

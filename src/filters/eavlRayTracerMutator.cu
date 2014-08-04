@@ -314,10 +314,10 @@ void eavlRayTracerMutator::setColorMap3f(float* cmap,int size)
     
     for(int i=0;i<size;i++)
     {
-        colorMap_raw[i*4  ]=cmap[i*3  ];
-        colorMap_raw[i*4+1]=cmap[i*3+1];
-        colorMap_raw[i*4+2]=cmap[i*3+2];
-        colorMap_raw[i*4+3]=0;
+        colorMap_raw[i*4  ] = cmap[i*3  ];
+        colorMap_raw[i*4+1] = cmap[i*3+1];
+        colorMap_raw[i*4+2] = cmap[i*3+2];
+        colorMap_raw[i*4+3] = 0;
         //cout<<cmap[i*3]<<" "<<cmap[i*3+1]<<" "<<cmap[i*3+2]<<endl;
     }
     color_map_array = new eavlConstArrayV2<float4>((float4*)colorMap_raw, colorMapSize, color_map_tref);
@@ -1978,7 +1978,7 @@ void eavlRayTracerMutator::shadowIntersect()
 void eavlRayTracerMutator::Execute()
 {
 
-    int size = 512;
+    int size = 150;
     eavlIntArray * ins =  new eavlIntArray("",1,size);
     eavlIntArray * outs =  new eavlIntArray("",1,size);
     eavlIntArray * flags =  new eavlIntArray("",1,size);
@@ -1988,7 +1988,8 @@ void eavlRayTracerMutator::Execute()
         //if(i%16 == 0 ) flags->SetValue(i,1);
         //else flags->SetValue(i,0);
         flags->SetValue(i,0);
-        if(i%129==0) flags->SetValue(i,1);
+        if(i==129) flags->SetValue(i,1);
+        if(i==66) flags->SetValue(i,1);
     }
 
     
@@ -2471,7 +2472,7 @@ void eavlRayTracerMutator::createRays()
 {
     float fwidth=(float)width;
     float fheight=(float)height;
-    float  w,h;
+    float w,h;
 
     raySort *rayArray= new raySort[size]; // since this is happening every frame it should not be allocated and deleted constantly.
                                           

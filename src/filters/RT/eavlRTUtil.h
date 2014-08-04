@@ -171,6 +171,18 @@ struct FloatMemcpyFunctor3to3
 
 };
 
+struct FloatMemcpyFunctor4to4
+{
+    FloatMemcpyFunctor4to4(){}
+
+    EAVL_FUNCTOR tuple<float,float,float,float> operator()(tuple<float,float,float,float> input){
+        return tuple<float,float,float,float>(get<0>(input),get<1>(input),get<2>(input),get<3>(input));
+    }
+
+   
+
+};
+
 struct FloatMemcpyFunctor1to1
 {
     FloatMemcpyFunctor1to1(){}
