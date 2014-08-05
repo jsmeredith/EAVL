@@ -47,34 +47,31 @@ class eavlWorldAnnotatorGL : public eavlWorldAnnotator
 
     }
     virtual void AddText(float ox, float oy, float oz,
-                         float nx, float ny, float nz,
+                         float rx, float ry, float rz,
                          float ux, float uy, float uz,
                          float scale,
-                         float xscale_2d, ///\todo: ugly
                          float anchorx, float anchory,
                          eavlColor color,
                          string text)
     {
-        //cerr << "eavlWorldAnnotator::AddText\n";
-        eavlMatrix4x4 mtx;
-        mtx.CreateRBT(eavlPoint3(ox,oy,oz),
-                      eavlPoint3(ox,oy,oz) - eavlVector3(nx,ny,nz),
-                      eavlVector3(ux,uy,uz));
+        eavlPoint3 o(ox,oy,oz);
+        eavlVector3 r(rx,ry,rz);
+        eavlVector3 u(ux,uy,uz);
+        eavlVector3 n = (r % u).normalized();
 
+        eavlMatrix4x4 mtx;
+        mtx.CreateWorld(o, r, u, n);
+        //cerr << "scale="<<scale<<" anchor="<<anchorx<<","<<anchory<<"  mtx=\n"<<mtx<<endl;
+
+        glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glMultMatrixf(mtx.GetOpenGLMatrix4x4());
-
-        //if (view.viewtype == eavlView::EAVL_VIEW_2D)
-        {
-            eavlMatrix4x4 S;
-            //S.CreateScale(1. / view.view2d.xscale, 1, 1);
-            S.CreateScale(1. / xscale_2d, 1, 1);
-            glMultMatrixf(S.GetOpenGLMatrix4x4());
-        }
 
         glColor3fv(color.c);
 
         RenderText(scale, anchorx, anchory, text);
+
+        glPopMatrix();
     }
 
 

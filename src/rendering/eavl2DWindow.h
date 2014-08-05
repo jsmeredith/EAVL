@@ -25,6 +25,7 @@ class eavl2DWindow : public eavlWindow
         view.vr = +.7;
         view.vb = -.7;
         view.vt = +.7;
+        //view.view2d.xscale = .5; // for testing....
 
         colorbar = new eavlColorBarAnnotation(this);
         haxis = new eavl2DAxisAnnotation(this);

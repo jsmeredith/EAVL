@@ -13,10 +13,9 @@ class eavlWorldAnnotator
                          float linewidth,
                          eavlColor c, bool infront=false) = 0;
     virtual void AddText(float ox, float oy, float oz,
-                         float nx, float ny, float nz,
+                         float rx, float ry, float rz,
                          float ux, float uy, float uz,
                          float scale,
-                         float xscale_2d, ///\todo: ugly
                          float anchorx, float anchory,
                          eavlColor color,
                          string text) = 0;
