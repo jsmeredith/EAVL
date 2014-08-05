@@ -5,7 +5,6 @@
 #include "eavl.h"
 #include "eavlView.h"
 #include "eavlColor.h"
-#include "eavlTexture.h"
 #include "eavlRenderSurface.h"
 #include "eavlSceneRenderer.h"
 #include "eavlAnnotation.h"
@@ -30,7 +29,6 @@ class eavlWindow
     eavlColor bg;
     eavlScene *scene;
     eavlSceneRenderer *renderer;
-    std::map<std::string,eavlTexture*> textures;
 
     std::vector<eavlAnnotation*> annotations;
 
@@ -50,10 +48,6 @@ class eavlWindow
     virtual ~eavlWindow()
     {
         //delete scene;
-        for (std::map<std::string,eavlTexture*>::iterator i = textures.begin();
-             i != textures.end() ; ++i)
-            delete i->second;
-        textures.clear();
     }
 
     void SetSceneRenderer(eavlSceneRenderer *sr)
@@ -109,15 +103,6 @@ class eavlWindow
     }
 
     virtual void Render() = 0;
-
-    eavlTexture *GetTexture(const std::string &s)
-    {
-        return textures[s];
-    }
-    void SetTexture(const std::string &s, eavlTexture *tex)
-    {
-        textures[s] = tex;
-    }
 
     void SaveWindowAsPNM(const std::string &fn)
     {
