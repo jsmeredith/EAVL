@@ -55,10 +55,10 @@ class eavlScene
 
             for (int d=0; d<3; d++)
             {
-                double vmin = p->GetMinCoordExtentFinal(d);
+                double vmin = p->GetMinCoordExtentOrig(d);
                 if (vmin < view.minextents[d])
                     view.minextents[d] = vmin;
-                double vmax = p->GetMaxCoordExtentFinal(d);
+                double vmax = p->GetMaxCoordExtentOrig(d);
                 if (vmax > view.maxextents[d])
                     view.maxextents[d] = vmax;
             }
