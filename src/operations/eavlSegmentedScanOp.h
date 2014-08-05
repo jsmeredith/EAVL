@@ -134,8 +134,8 @@ __device__ T segScanWarp(volatile T *data, volatile int *flags, const unsigned i
 template<class OP, bool INCLUSIVE, class T>
 __device__ T segScanBlock(volatile T *data, volatile int *flags, const unsigned int idx = threadIdx.x)
 {
-    __shared__ int sm_data[128];
-    __shared__ int sm_flags[128];
+    __shared__ int sm_data[256];
+    __shared__ int sm_flags[256];
 
 
     const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
@@ -194,105 +194,167 @@ __device__ T segScanBlock(volatile T *data, volatile int *flags, const unsigned 
 }
 
 
-template<class OP, bool INCLUSIVE, class T>
-__device__ T segScanGrid(volatile T *data, volatile int *flags)
+template<class OP, class T>
+__device__ T scanFlagsBlock(volatile T *flags, const unsigned int idx = threadIdx.x)
 {
-    const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;    
-    unsigned int blockId = blockIdx.x ;                              
-    unsigned int blockFirstThread = blockIdx.x << 7;                  /* first block thread idx, put some zeros back on */
-    unsigned int blockLastThread  = blockFirstThread + 127;
     
-    bool openSegment = (flags[blockFirstThread] == 0);                /* open segment running into block(carry in if blockIdx !=0)*/ 
-    if(threadID == 129) printf("129 Blockid: %d   %d %d  %d\n",blockId, data[threadID], threadID,  flags[threadID] );
-    if(threadID == 128) printf("128 Blockid: %d   data %d thread id %d flag %d \n",blockId, data[threadID], threadID,  flags[threadID] );
-    __syncthreads();                                                  /* stroe it now since segscan will overwrite flags */
-
+    unsigned int warpIdx = idx >> 5;                              /*drop the first 32 bits */
     
-    
-    T result = segScanBlock<OP,INCLUSIVE>(data,flags);
-    T lastVal = data[blockLastThread];
-
-    bool blockHasFlag = flags[blockLastThread] != 0 || !openSegment;      /* were there any segment flags in the block*/
-    bool acc = (openSegment && flags[threadID] == 0);                     /*this thread should add the carry in to its current result */   
-    
-    if(threadID == 128) printf("128 Blockid: %d   data %d thread id %d flag %d \n",blockId, data[threadID], threadID,  flags[threadID] );
     __syncthreads();
 
-    /* the last thread in the block stores the final value and a flag, if there was one in the block, into a value in block 0*/
-    /* block 0 is a storage location since all values are already correct(no carry in) and stored in result */
-    if(threadID == blockLastThread) /*this is not getting called with the block that ends early*/
-    {
-        data[blockId]  = lastVal;
-        flags[blockId] = blockHasFlag;
-        printf("Last Blockid: %d   %d\n",blockId,threadID );
-    }
-
+    T result = scanWarp<OP,true>(flags);
     
-    if(threadID == blockFirstThread) printf("Blockid: %d   %d %d %d %d\n",blockId, data[blockId], threadID,acc,  flags[threadID] );
-    __syncthreads();
-    /*The first block in each block now seg scans(inclusive) all the block totals and flags */
-    if(blockId == 0) segScanBlock<OP,true>(data,flags);
-    __syncthreads();
-    if(blockId != 0 && acc)
-    {
-        if(threadID == 128) printf("128 accing %d %d %d\n", result,data[blockId-1], blockId );
-        //result = OP::op(data[blockId-1], result);
-        if(threadID == 128) printf("128 accing %d %d %d\n", result,data[blockId-1], blockId );
-        if(threadID == 123) printf("123 Should not happen accing %d\n", result);
-    }
-    __syncthreads();
-    if(threadID == 1) printf(" 1 Blockid: %d   %d %d %d %d\n",blockId, data[blockId], threadID,acc,  flags[threadID] );
-    if(threadID == 2) printf(" 2 Blockid: %d   %d %d %d %d\n",blockId, data[blockId], threadID,acc,  flags[threadID] );
-    if(threadID == 0)   printf("0 Data : %d %d %d \n", data[0], data[1], data[2]);
-    if(threadID == 0)   printf("0 flags : %d %d %d \n", flags[0], flags[1], flags[2]);
-    if(threadID == 128) printf("**Data : %d %d %d \n", data[0], data[1], data[2]);
-    if(threadID == 128) printf("**flags : %d %d %d \n", flags[0], flags[1], flags[2]);
-    if(threadID == 128) printf("128 Blockid: %d   data %d thread id %d flag %d result %d, acc %d\n",blockId, data[threadID], threadID,  flags[threadID], result,acc );
     __syncthreads();
 
-    /* Now add carry over from the previous block into the individually scanned blocks */
+    if(idx !=0 ) result = OP::op(flags[warpIdx-1], result);
+    
+    __syncthreads();
+
+    flags[idx] = result;
+
      __syncthreads();
-    if(threadID == 128) printf("A Data : %d %d %d \n", data[0], data[1], data[2]);
-    if(threadID == 128) printf("A flags : %d %d %d \n", flags[0], flags[1], flags[2]);
+
      
-    if(threadID == 128) printf("B Data : %d %d %d \n", data[0], data[1], data[2]);
-    if(threadID == 128) printf("B flags : %d %d %d \n", flags[0], flags[1], flags[2]);
-     __syncthreads();
-
-    data[threadID] = result;
-    
-    __syncthreads();
-
     return result;
 }
 
-template <class IN, class OUT, class FLAGS>
+
+template <class OP,bool INCLUSIVE, class T, class FLAGS>
 __global__ void
-eavlSegScanOp_kernel(int nitems,
-                     IN inputs, OUT outputs,
-                    FLAGS _flags)
+SegScanBlock_kernel(int nitems,
+                          T* input,
+                          FLAGS* flags)
 {
-    int *flags  = get<0>(_flags).array;
-    int *input  = get<0>(inputs).array;
-    int *output = get<0>(outputs).array;
     const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
-    //const int numThreads = blockDim.x * gridDim.x;
-    
-    
     if(threadID > nitems) return;
-    /*load arrays into share memory */
+    segScanBlock< OP, INCLUSIVE >(input,flags);
+}
+
+template <class OP, bool INCLUSIVE, class T, class FLAGS>
+__global__ void
+SegScanBlockSum_kernel(int nblocks, T* inputs, FLAGS* flags, T* blockSums)
+{
+    //T *flags  = get<0>(_flags).array;                     
+    //T *input  = get<0>(inputs).array;
+    //T *output = get<0>(outputs).array;
+    //const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
+    //const int numThreads = blockDim.x * gridDim.x;
+    //if(threadID > nblocks) return;
+    unsigned int blockId = threadIdx.x;
+    int carry = 0;
+    int iterations  = nblocks / 256;
+    if (nblocks % 256 > 0) iterations++;
+    
+    __shared__ T sm_data[256];
+    __shared__ T sm_flags[256];
+
+    for(int i = 0; i < iterations ; i++)
+    {
+
+        if(blockId >= nblocks) return;
+        //printf("Doing the looop blockId: %d of %d \n", blockId, nblocks);
+        unsigned int blockFirstIdx = blockId << 8;
+        unsigned int blockLastIdx  = blockFirstIdx + 255;
+
+        bool openSegment = flags[blockFirstIdx] == 0;
+        __syncthreads();
+
+        bool blockHasFlag = flags[blockLastIdx] != 0 || !openSegment;
+        bool acc =  (openSegment && flags[blockId] == 0);
+        
+        __syncthreads();
+
+        /* load block totals and carry flags into shared memory */
+        sm_data[threadIdx.x ] = inputs[blockLastIdx];
+        sm_flags[threadIdx.x] = blockHasFlag;
+
+        __syncthreads();
+
+        /*Need to carry in previous values from the last group of blocks */
+        if(blockId != 0 && acc) 
+        {
+            if(blockId % 256 == 0) sm_data[threadIdx.x] = OP::op(carry , sm_data[threadIdx.x]);
+        }
+
+        __syncthreads();
+        /* seg scan the results */
+        segScanBlock<OP,true>(sm_data,sm_flags);
+
+        __syncthreads();
+
+        if(blockId % 256 == 255) carry = sm_data[255];  
+        __syncthreads();
+        /*copy the sums into the block sums array */
+
+        blockSums[blockId] = sm_data[threadIdx.x];
+        __syncthreads();
+
+        /*shift the block ids */
+        blockId = blockId + 256; 
+        __syncthreads();
+        
+
+    }
     
 
-    
-    
-    //sm_data[threadIdx.x] = segScanGrid< SegAddFunctor<int>, false >(data,flags);
-    output[threadID] =  segScanGrid< SegAddFunctor<int>, false >(input,flags);
 
-    /*copy results into the output*/
-    //output[threadID] = sm_data[threadIdx.x];
-    __syncthreads();
+    
 
 }
+
+
+template <class OP, class T, class FLAGS>
+__global__ void
+SegScanAddSum_kernel(int nitems, T* inputs, T* outputs,T* blockSums, FLAGS* flags)
+{
+    __shared__ T sm_data[256];
+    __shared__ T sm_flags[256];
+
+    const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int blockId = blockIdx.x ;
+    unsigned int blockFirstThread = blockIdx.x << 8;
+
+    if(threadID > nitems) return; 
+
+    T originalVal = inputs[threadID];
+    
+    sm_flags[threadIdx.x] = flags[threadID];
+
+    __syncthreads();
+    
+    scanFlagsBlock< SegMaxFunctor<int> >(sm_flags);
+    __syncthreads();
+
+    //if(threadID == 290 ) printf("290 sm_Flag %d \n", sm_flags[threadIdx.x] );
+    //if(threadID == 291 ) printf("291 sm_Flag %d \n", sm_flags[threadIdx.x] );
+    //if(threadID == 292 ) printf("292 sm_Flag %d \n", sm_flags[threadIdx.x] );
+
+    bool openSegment = (flags[blockFirstThread] == 0);
+    bool acc = (openSegment && sm_flags[threadIdx.x] == 0);
+    
+
+    __syncthreads();
+    
+    sm_data[threadIdx.x]  = outputs[threadID];
+    //sm_flags[threadIdx.x] = flags[threadID];
+    
+    __syncthreads();
+    
+    if(blockId != 0 && acc)
+    {
+        sm_data[threadIdx.x] = OP::op(blockSums[blockId - 1], sm_data[threadIdx.x]+ originalVal);
+    }
+
+    __syncthreads();
+
+    outputs[threadID] =  sm_data[threadIdx.x];
+    
+    __syncthreads();
+    
+
+}
+
+
 
 
 
@@ -302,16 +364,45 @@ struct eavlSegScanOp_GPU
     static inline eavlArray::Location location() { return eavlArray::DEVICE; }
     template <class F, class IN, class OUT, class FLAGS>
     static void call(int nitems, int,
-                     const IN inputs, OUT outputs,
+                     IN inputs, OUT outputs,
                      FLAGS flags, F&)
     {
-        int numThreads = 128;
+        SegAddFunctor<int> op;
+        //bool inclusive = true;
+        /*create some temp space as not to destroy the input arrays*/
+        int *_flags   = get<0>(flags).array;                     
+        int *_inputs  = get<0>(inputs).array;
+        int *_outputs = get<0>(outputs).array;
+        //int *tempIn;
+        int *blockSums;
+        //cudaMalloc((void**)&tempIn, nitems*sizeof(int));
+        //CUDA_CHECK_ERROR();
+        cudaMemcpy(_outputs, &(_inputs[0]),
+                   nitems*sizeof(int), cudaMemcpyDeviceToDevice);
+        CUDA_CHECK_ERROR();
+        
+
+         
+        int numThreads = 256;
         dim3 threads(numThreads,   1, 1);
         dim3 blocks (64,           1, 1);
-        eavlSegScanOp_kernel<<< blocks, threads >>>(nitems,
-                                                   inputs, outputs,
-                                                   flags);
+        SegScanBlock_kernel< SegAddFunctor<int> ,false,int > <<< blocks, threads >>>(nitems, _outputs,_flags);
         CUDA_CHECK_ERROR();
+        
+        int numBlocks = nitems / 256;
+        if(nitems%256 > 0) numBlocks++;
+        
+        cudaMalloc((void**)&blockSums, numBlocks*sizeof(int));
+        CUDA_CHECK_ERROR();
+
+        cout<<"Num blocks "<<numBlocks<<endl;
+        dim3 one(1,1,1);
+        SegScanBlockSum_kernel< SegAddFunctor<int> ,false,int > <<< one, threads >>>(numBlocks, _outputs, _flags, blockSums);
+        CUDA_CHECK_ERROR();
+
+        SegScanAddSum_kernel< SegAddFunctor<int> > <<<blocks, threads >>>(nitems, _inputs, _outputs, blockSums, _flags );
+        CUDA_CHECK_ERROR();
+
     }
 };
 
