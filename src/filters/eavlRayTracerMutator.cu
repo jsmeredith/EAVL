@@ -1978,7 +1978,7 @@ void eavlRayTracerMutator::shadowIntersect()
 void eavlRayTracerMutator::Execute()
 {
 
-    int size = 300;
+    int size = 512;
     eavlIntArray * ins =  new eavlIntArray("",1,size);
     eavlIntArray * outs =  new eavlIntArray("",1,size);
     eavlIntArray * flags =  new eavlIntArray("",1,size);
@@ -1988,9 +1988,9 @@ void eavlRayTracerMutator::Execute()
         //if(i%16 == 0 ) flags->SetValue(i,1);
         //else flags->SetValue(i,0);
         flags->SetValue(i,0);
-        if(i==129) flags->SetValue(i,1);
-        if(i==66) flags->SetValue(i,1);
-        if(i==290) flags->SetValue(i,1);
+        //if(i==129) flags->SetValue(i,1);
+        //if(i==66) flags->SetValue(i,1);
+        //if(i%254 == 0) flags->SetValue(i,1);
     }
 
     
@@ -2006,7 +2006,7 @@ void eavlRayTracerMutator::Execute()
     cout<<endl;
     for( int i = 0; i<size ; i++)
     {
-        if(i%256 == 0) cout<<endl<<"#";
+        if(i%256 == 0) cout<<endl<<i<<" # ";
         cout<<outs->GetValue(i)<<" ";
 
     }

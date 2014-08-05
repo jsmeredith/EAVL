@@ -197,15 +197,15 @@ __device__ T segScanBlock(volatile T *data, volatile int *flags, const unsigned 
 template<class OP, class T>
 __device__ T scanFlagsBlock(volatile T *flags, const unsigned int idx = threadIdx.x)
 {
-    
+    const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int warpIdx = idx >> 5;                              /*drop the first 32 bits */
-    
+    if(threadID== 257) printf("257 flag %d \n", flags[idx]);
     __syncthreads();
 
     T result = scanWarp<OP,true>(flags);
     
     __syncthreads();
-
+    if(threadID== 257) printf(" 257 Result %d \n", result);
     if(idx !=0 ) result = OP::op(flags[warpIdx-1], result);
     
     __syncthreads();
@@ -214,7 +214,7 @@ __device__ T scanFlagsBlock(volatile T *flags, const unsigned int idx = threadId
 
      __syncthreads();
 
-     
+     if(threadID== 257) printf(" 257 flags %d %d\n", flags[idx], idx);
     return result;
 }
 
@@ -322,17 +322,17 @@ SegScanAddSum_kernel(int nitems, T* inputs, T* outputs,T* blockSums, FLAGS* flag
 
     __syncthreads();
     
-    scanFlagsBlock< SegMaxFunctor<int> >(sm_flags);
+    T result = scanFlagsBlock< SegMaxFunctor<int> >(sm_flags);
     __syncthreads();
 
     //if(threadID == 290 ) printf("290 sm_Flag %d \n", sm_flags[threadIdx.x] );
-    //if(threadID == 291 ) printf("291 sm_Flag %d \n", sm_flags[threadIdx.x] );
-    //if(threadID == 292 ) printf("292 sm_Flag %d \n", sm_flags[threadIdx.x] );
+    
 
     bool openSegment = (flags[blockFirstThread] == 0);
     bool acc = (openSegment && sm_flags[threadIdx.x] == 0);
     
-
+    if(threadID == 256 ) printf("256 sm_Flag %d blockid %d openSegment %d acc %d\n", sm_flags[threadIdx.x], blockId, openSegment, acc );
+    if(threadID == 257 ) printf("257 sm_Flag %d blockid %d openSegment %d acc %d result %d \n", sm_flags[threadIdx.x], blockId, openSegment, acc, result );
     __syncthreads();
     
     sm_data[threadIdx.x]  = outputs[threadID];
