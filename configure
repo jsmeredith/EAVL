@@ -4970,8 +4970,8 @@ fi
 
 if test "$ADIOS" != "yes" -a "$ADIOS" != "no"; then
    # specified path
-   ADIOS_CPPFLAGS="-I""$ADIOS""/include"
-   ADIOS_LDFLAGS="-L""$ADIOS""/lib"
+   ADIOS_CPPFLAGS="-I""$ADIOS""/include $MPI_CPPFLAGS"
+   ADIOS_LDFLAGS="-L""$ADIOS""/lib $MPI_LDFLAGS"
    if test "$UNAME" = "Darwin"; then
              ADIOS_LDFLAGS="$ADIOS_LDFLAGS"
           else
@@ -4979,9 +4979,9 @@ if test "$ADIOS" != "yes" -a "$ADIOS" != "no"; then
           fi
 
    if test "$MPI" != "no"; then
-     ADIOS_LIBS="-ladios -ladiosread -lmpi"
+     ADIOS_LIBS="-ladiosread $MPI_LIBS"
    else
-     ADIOS_LIBS="-ladios_nompi -ladiosread_nompi"
+     ADIOS_LIBS="-ladiosread_nompi"
    fi
 fi
 

@@ -9,7 +9,7 @@
 #ifdef HAVE_ADIOS
 
 //NOTE: #include <mpi.h> *MUST* become before the adios includes.
-#ifdef PARALLEL
+#ifdef HAVE_MPI
 #include <mpi.h>
 #else
 #define _NOMPI
