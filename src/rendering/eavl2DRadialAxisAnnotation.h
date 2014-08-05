@@ -110,12 +110,8 @@ class eavl2DRadialAxisAnnotation : public eavlAnnotation
     {
         view.SetupForWorldSpace();
 
-        glDisable(GL_LIGHTING);
-        glColor3fv(color.c);
         if (linewidth > 0)
         {
-            glLineWidth(linewidth);
-            glBegin(GL_LINES);
             for (int i=0; i<nsegments; i++)
             {
                 double a0 = double(i)/double(nsegments);
@@ -126,14 +122,10 @@ class eavl2DRadialAxisAnnotation : public eavlAnnotation
                 double x1 = xorigin + radius * cos(q1*M_PI/180.);
                 double y0 = yorigin + radius * sin(q0*M_PI/180.);
                 double y1 = yorigin + radius * sin(q1*M_PI/180.);
-                glVertex2d(x0, y0);
-                glVertex2d(x1, y1);
+                win->surface->AddLine(x0,y0, x1,y1, linewidth, color);
             }
-            glEnd();
         }
 
-        glLineWidth(1);
-        glBegin(GL_LINES);
         // major ticks
         int nmajor = maj_proportions.size();
         while ((int)labels.size() < nmajor)
@@ -160,8 +152,7 @@ class eavl2DRadialAxisAnnotation : public eavlAnnotation
             float ys = yc - radius*dy*maj_ts*maj_toff;
             float ye = yc + radius*dy*maj_ts*(1. - maj_toff);
 
-            glVertex2d(xs, ys);
-            glVertex2d(xe, ye);
+            win->surface->AddLine(xs,ys, xe,ye, 1.0, color);
 
             // a little extra space for the label
             xe += radius*dx*fontscale*.2;
@@ -218,11 +209,9 @@ class eavl2DRadialAxisAnnotation : public eavlAnnotation
                 float ys = yc - radius*dy*min_ts*min_toff;
                 float ye = yc + radius*dy*min_ts*(1. - min_toff);
 
-                glVertex2d(xs, ys);
-                glVertex2d(xe, ye);
+                win->surface->AddLine(xs,ys, xe,ye, 1.0, color);
             }
         }
-        glEnd();
 
         for (int i=0; i<nmajor; ++i)
         {
