@@ -43,6 +43,7 @@ OBJ=\
  filters/eavlPointDistanceFieldFilter.o \
  filters/eavlRayTracerMutator.o \
  filters/eavlVolumeRendererMutator.o \
+ filters/eavlSimpleVRMutator.o \
  filters/eavlScalarBinFilter.o \
  filters/eavlSubsetMutator.o \
  filters/eavlSurfaceNormalMutator.o \
