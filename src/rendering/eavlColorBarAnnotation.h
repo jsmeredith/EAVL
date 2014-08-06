@@ -23,10 +23,8 @@ class eavlColorBarAnnotation : public eavlAnnotation
     string ctname;
     eavl2DAxisAnnotation *axis;
   public:
-    GLuint texid;
     eavlColorBarAnnotation(eavlWindow *win) : eavlAnnotation(win)
     {
-        texid = 0;
         axis = new eavl2DAxisAnnotation(win);
     }
     virtual ~eavlColorBarAnnotation()
@@ -57,7 +55,7 @@ class eavlColorBarAnnotation : public eavlAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupForScreenSpace();
+        win->SetupForScreenSpace();
 
         float l = -0.88, r = +0.88;
         float b = +0.87, t = +0.92;

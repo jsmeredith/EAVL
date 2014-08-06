@@ -93,7 +93,7 @@ class eavl3DAxisAnnotation : public eavlAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupForWorldSpace();
+        win->SetupForWorldSpace();
 
         float linewidth = 1.0;
         bool infront = true;

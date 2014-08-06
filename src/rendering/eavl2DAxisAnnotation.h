@@ -148,9 +148,9 @@ class eavl2DAxisAnnotation : public eavlAnnotation
     virtual void Render(eavlView &view)
     {
         if (worldSpace)
-            view.SetupForWorldSpace();
+            win->SetupForWorldSpace();
         else
-            view.SetupForScreenSpace();
+            win->SetupForScreenSpace();
 
         win->surface->AddLine(x0,y0, x1,y1, linewidth, color);
 

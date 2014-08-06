@@ -18,6 +18,9 @@ class eavlRenderSurface
     virtual void Activate() = 0;
     virtual void Finish() = 0;
     virtual void Clear(eavlColor) = 0;
+
+    virtual void SetView(eavlView &v) = 0;
+    virtual void SetViewportClipping(eavlView &v, bool clip) = 0;
     //virtual unsigned char *GetRGBA()
 
     virtual void AddLine(float x0, float y0,

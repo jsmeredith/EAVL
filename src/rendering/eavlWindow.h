@@ -33,7 +33,6 @@ class eavlWindow
     std::vector<eavlAnnotation*> annotations;
 
   public: /// todo: hack, should not be public
-    ///\todo: no longer allow a NULL surface!
     eavlRenderSurface *surface;
     eavlWorldAnnotator *worldannotator;
     eavlView view;
@@ -100,6 +99,36 @@ class eavlWindow
             annotations[i]->Render(view);
 
         surface->Finish();
+    }
+
+    void EnableViewportClipping()
+    {
+        surface->SetViewportClipping(view, true);
+    }
+    void DisableViewportClipping()
+    {
+        surface->SetViewportClipping(view, false);
+    }
+    void SetupMatricesForWorld()
+    {
+        view.SetupMatricesForWorld();
+        surface->SetView(view);
+    }
+    void SetupMatricesForScreen()
+    {
+        view.SetupMatricesForScreen();
+        surface->SetView(view);
+    }
+
+    void SetupForWorldSpace()
+    {
+        SetupMatricesForWorld();
+        EnableViewportClipping();
+    }
+    void SetupForScreenSpace()
+    {
+        SetupMatricesForScreen();
+        DisableViewportClipping();
     }
 
     virtual void Render() = 0;

@@ -48,7 +48,7 @@ class eavlBoundingBoxAnnotation : public eavlAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupForWorldSpace();
+        win->SetupForWorldSpace();
 
         float linewidth = 1.0;
         win->worldannotator->AddLine(dmin[0],dmin[1],dmin[2],

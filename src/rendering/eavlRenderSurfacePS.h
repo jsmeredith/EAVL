@@ -51,6 +51,13 @@ class eavlRenderSurfacePS : public eavlRenderSurface
         ps << "fill" << endl;
     }
 
+    virtual void SetView(eavlView &v)
+    {
+    }
+    virtual void SetViewportClipping(eavlView &v, bool clip)
+    {
+    }
+
     virtual void AddRectangle(float x, float y, 
                               float w, float h,
                               eavlColor c)

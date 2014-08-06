@@ -731,8 +731,6 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
             return;
         }
 
-        view.SetupForWorldSpace();
-
         /*
           // we used to transform geometry into view space;
           // not a very efficient method.....

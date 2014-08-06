@@ -108,7 +108,7 @@ class eavl2DRadialAxisAnnotation : public eavlAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupForWorldSpace();
+        win->SetupForWorldSpace();
 
         if (linewidth > 0)
         {

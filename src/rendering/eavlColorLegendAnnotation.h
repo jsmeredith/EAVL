@@ -43,7 +43,7 @@ class eavlColorLegendAnnotation : public eavlAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupForScreenSpace();
+        win->SetupForScreenSpace();
 
         float l = -0.95, r = -0.90;
         float b = +0.90, t = +0.95;

@@ -42,7 +42,7 @@ class eavl2DFrameAnnotation : public eavlAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupForScreenSpace();
+        win->SetupForScreenSpace();
 
         win->surface->AddLine(dmin[0],dmin[1],
                               dmin[0],dmax[1],

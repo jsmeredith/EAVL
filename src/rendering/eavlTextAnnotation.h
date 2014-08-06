@@ -126,7 +126,7 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupForScreenSpace();
+        win->SetupForScreenSpace();
         win->surface->AddText(x,y,
                               scale,
                               angle,
@@ -175,7 +175,7 @@ class eavlWorldTextAnnotation : public eavlTextAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupForWorldSpace();
+        win->SetupForWorldSpace();
 
         eavlVector3 right = (up % normal).normalized();
         win->worldannotator->AddText(origin.x,origin.y,origin.z,
@@ -230,18 +230,18 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupViewportForWorld();
+        win->EnableViewportClipping();
 
         if (fixed2Dscale)
         {
             // first, do the world, so we can translate a world
             // point to the screen
-            view.SetupMatricesForWorld();
+            win->SetupMatricesForWorld();
 
             eavlPoint3 p = view.P * view.V * eavlPoint3(x,y,z);
 
             // everything else is now in world space
-            view.SetupMatricesForScreen();
+            win->SetupMatricesForScreen();
 
             eavlMatrix4x4 T;
             T.CreateTranslate(p.x, p.y, -p.z);
@@ -281,7 +281,7 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
         }
         else
         {
-            view.SetupMatricesForWorld();
+            win->SetupMatricesForWorld();
 
             eavlMatrix4x4 W;
             if (view.viewtype == eavlView::EAVL_VIEW_2D)
@@ -358,7 +358,7 @@ class eavlViewportAnchoredScreenTextAnnotation : public eavlScreenTextAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupForScreenSpace();
+        win->SetupForScreenSpace();
 
         double vl, vr, vb, vt;
         view.GetRealViewport(vl,vr,vb,vt);

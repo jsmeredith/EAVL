@@ -49,6 +49,31 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
         glClearColor(bg.c[0], bg.c[1], bg.c[2], 1.0); ///< c[3] instead of 1.0?
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     }
+    virtual void SetView(eavlView &v)
+    {
+        glMatrixMode( GL_PROJECTION );
+        glLoadMatrixf(v.P.GetOpenGLMatrix4x4());
+
+        glMatrixMode( GL_MODELVIEW );
+        glLoadMatrixf(v.V.GetOpenGLMatrix4x4());
+    }
+    virtual void SetViewportClipping(eavlView &v, bool clip)
+    {
+        int w = v.w, h=v.h;
+        if (clip)
+        {
+            double vl, vr, vt, vb;
+            v.GetRealViewport(vl,vr,vb,vt);
+            glViewport(double(w)*(1.+vl)/2.,
+                       double(h)*(1.+vb)/2.,
+                       double(w)*(vr-vl)/2.,
+                       double(h)*(vt-vb)/2.);
+        }
+        else
+        {
+            glViewport(0, 0, w, h);
+        }
+    }
 
     virtual void AddRectangle(float x, float y, 
                               float w, float h,

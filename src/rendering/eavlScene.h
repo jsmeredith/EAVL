@@ -142,7 +142,7 @@ class eavl3DScene : public eavlScene
         if (plots.size() == 0)
             return;
 
-        view.SetupForWorldSpace();
+        win->SetupForWorldSpace();
 
         eavlSceneRenderer *sr = win->GetSceneRenderer();
         sr->SetView(view);
@@ -219,7 +219,7 @@ class eavl2DScene : public eavlScene
         if (plots.size() == 0)
             return;
 
-        view.SetupForWorldSpace();
+        win->SetupForWorldSpace();
 
         eavlSceneRenderer *sr = win->GetSceneRenderer();
         sr->SetView(view);
@@ -293,7 +293,7 @@ class eavlPolarScene : public eavlScene
         if (plots.size() == 0)
             return;
 
-        view.SetupForWorldSpace();
+        win->SetupForWorldSpace();
 
         eavlSceneRenderer *sr = win->GetSceneRenderer();
         sr->SetView(view);
@@ -418,7 +418,7 @@ class eavl1DScene : public eavlScene
         if (plots.size() == 0)
             return;
 
-        view.SetupForWorldSpace();
+        win->SetupForWorldSpace();
 
         eavlSceneRenderer *sr = win->GetSceneRenderer();
         sr->SetView(view);
