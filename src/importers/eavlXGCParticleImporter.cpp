@@ -18,13 +18,9 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(const string &filename)
     
     string::size_type i0 = filename.rfind("xgc.");
     string::size_type i1 = filename.rfind(".bp");
-    
-#ifdef HAVE_MPI
-    fp = adios_read_open_file(filename.c_str(), ADIOS_READ_METHOD_BP, (MPI_Comm)MPI_COMM_WORLD);
-#else
+
     MPI_Comm comm_dummy = 0;
     fp = adios_read_open_file(filename.c_str(), ADIOS_READ_METHOD_BP, comm_dummy);
-#endif
     
     if(fp == NULL)
 		THROW(eavlException, "XGC variable file not found.");
@@ -32,12 +28,15 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(const string &filename)
     Initialize();
 }
 
-//Reads a staged adios file
+
+//Reads an adios restart file :: can only be instantiated if EAVL was built
+//with MPI enabled!
 eavlXGCParticleImporter::eavlXGCParticleImporter(	const string &filename, 
 													ADIOS_READ_METHOD method, 
-													MPI_Comm comm, 
+													MPI_Comm communicator, 
 													ADIOS_LOCKMODE mode, 
-													int timeout_sec
+													int timeout_sec,
+													int fromDataspaces
 												)
 {
     timestep = 0;
@@ -53,11 +52,27 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(	const string &filename,
     
     string::size_type i0 = filename.rfind("xgc.");
     string::size_type i1 = filename.rfind(".bp");
+    comm = communicator;
     
-    fp = adios_read_open(filename.c_str(), method, comm, mode, timeout_sec);
+    char 		hostname[MPI_MAX_PROCESSOR_NAME];
+    char        str [256];
+    int len = 0;
     
+    //Set local mpi vars so we know how many minions there are, and wich we are
+    MPI_Comm_size(comm,&numMPITasks);
+	MPI_Comm_rank(comm,&mpiRank);
+	MPI_Get_processor_name(hostname, &len);
+    
+    if(fromDataspaces)
+	    fp = adios_read_open(filename.c_str(), method, comm, mode, timeout_sec);
+    else
+    	fp = adios_read_open_file(filename.c_str(), method, comm);
+    	
     if(fp == NULL)
-		THROW(eavlException, "XGC variable file not found.");
+    {
+    	fprintf (stderr, "Error at opening adios stream: %s\n", adios_errmsg());
+		THROW(eavlException, "Adios stream error, or XGC variable file not found.");
+	}
 	
     Initialize();
 }
@@ -93,13 +108,26 @@ eavlXGCParticleImporter::Initialize()
     
     nvars = fp->nvars;
     
-    for(int i = 0; i < nvars; i++)
+    int endIndex;
+    int startIndex = (nvars / numMPITasks) * mpiRank;
+  	if (nvars % numMPITasks > mpiRank)
+  	{
+    	startIndex += mpiRank;
+    	endIndex = startIndex + (nvars / numMPITasks) + 1;
+  	}
+  	else
+  	{
+    	startIndex += nvars % numMPITasks;
+    	endIndex = startIndex + (nvars / numMPITasks);
+  	}
+   
+    for(int i = startIndex; i < endIndex; i++)
     {
     	ADIOS_VARINFO *avi = adios_inq_var_byid(fp, i);
 		string longvarNm(&fp->var_namelist[i][1]);
 		string varNm = longvarNm.substr(longvarNm.find("/",1,1)+1,longvarNm.length());
 	    string nodeNum = longvarNm.substr(longvarNm.find("_",1,1)+1, 5);	
-	
+		
 		if(varNm == "ephase") 
 		{
 			ephase[longvarNm] = avi;
@@ -116,7 +144,7 @@ eavlXGCParticleImporter::Initialize()
 		{
 			igid[longvarNm] = avi;
 		} 
-		else if(i < 13) 
+		else if(i < startIndex + 13) 
 		{
 			if (varNm == "timestep") 
 			{
@@ -198,6 +226,7 @@ eavlDataSet *
 eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 {
     eavlDataSet *ds = new eavlDataSet;
+    
     if(name == "iMesh") 
     {
     	ds->SetNumPoints(imaxgid);
@@ -218,8 +247,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 		axisValues[0]->SetNumberOfTuples(imaxgid);
 		axisValues[1]->SetNumberOfTuples(imaxgid);
 		axisValues[2]->SetNumberOfTuples(imaxgid);
-
-	
+		
 		//Set all of the axis values to the x, y, z coordinates of the 
 		//iphase particles; set computational node origin
 		eavlIntArray *originNode = new eavlIntArray("originNode", 1, imaxgid);
