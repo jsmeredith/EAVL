@@ -3,10 +3,15 @@
 #define EAVL_RENDER_SURFACE_GL_H
 
 #include "eavlRenderSurface.h"
-#include "eavlTexture.h"
+
+#include <eavlBitmapFont.h>
+#include <eavlBitmapFontFactory.h>
+#include <eavlPNGImporter.h>
+#include <eavlTexture.h>
 
 class eavlRenderSurfaceGL : public eavlRenderSurface
 {
+    int width, height;
   protected:
     std::map<std::string,eavlTexture*> textures;
     eavlTexture *GetTexture(const std::string &s)
@@ -29,6 +34,8 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
     }
     virtual void Resize(int w, int h)
     {
+        width = w;
+        height = h;
     }
     virtual void Activate()
     {
@@ -226,6 +233,32 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
         glDisable(GL_ALPHA_TEST);
         tex->Disable();
         
+    }
+    virtual void SaveAs(string fn, FileType ft)
+    {
+        if (ft != PNM)
+        {
+            THROW(eavlException, "Can only save GL images as PNM");
+        }
+
+        Activate();
+
+        int w = width, h = height;
+        vector<byte> rgba(w*h*4);
+        glReadPixels(0,0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, &rgba[0]);
+
+        ofstream out(fn.c_str());
+        out<<"P6"<<endl<<w<<" "<<h<<endl<<255<<endl;
+        for(int i = h-1; i >= 0; i--)
+        {
+            for(int j = 0; j < w; j++)
+            {
+                const byte *tuple = &(rgba[i*w*4 + j*4]);
+                out<<tuple[0]<<tuple[1]<<tuple[2];
+            }
+        }
+        out.close();
+
     }
 };
 

@@ -103,27 +103,6 @@ class eavlWindow
     }
 
     virtual void Render() = 0;
-
-    void SaveWindowAsPNM(const std::string &fn)
-    {
-        surface->Activate();
-
-        int w = view.w, h = view.h;
-        vector<byte> rgba(w*h*4);
-        glReadPixels(0,0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, &rgba[0]);
-
-        ofstream out(fn.c_str());
-        out<<"P6"<<endl<<w<<" "<<h<<endl<<255<<endl;
-        for(int i = h-1; i >= 0; i--)
-        {
-            for(int j = 0; j < w; j++)
-            {
-                const byte *tuple = &(rgba[i*w*4 + j*4]);
-                out<<tuple[0]<<tuple[1]<<tuple[2];
-            }
-        }
-        out.close();
-    }
 };
 
 #endif

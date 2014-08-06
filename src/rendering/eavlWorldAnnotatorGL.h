@@ -4,6 +4,11 @@
 
 #include "eavlWorldAnnotator.h"
 
+#include <eavlBitmapFont.h>
+#include <eavlBitmapFontFactory.h>
+#include <eavlPNGImporter.h>
+#include <eavlTexture.h>
+
 class eavlWorldAnnotatorGL : public eavlWorldAnnotator
 {
   protected:

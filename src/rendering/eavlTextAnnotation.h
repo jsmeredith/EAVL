@@ -2,10 +2,6 @@
 #ifndef EAVL_TEXT_ANNOTATION_H
 #define EAVL_TEXT_ANNOTATION_H
 
-#include <eavlBitmapFont.h>
-#include <eavlBitmapFontFactory.h>
-#include <eavlPNGImporter.h>
-#include <eavlTexture.h>
 #include <eavlMatrix4x4.h>
 #include <eavlAnnotation.h>
 

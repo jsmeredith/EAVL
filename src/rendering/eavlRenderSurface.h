@@ -6,6 +6,8 @@
 
 class eavlRenderSurface
 {
+  public:
+    enum FileType { PNM, EPS };
   protected:
   public:
     eavlRenderSurface()
@@ -36,6 +38,7 @@ class eavlRenderSurface
                          float anchorx, float anchory,
                          eavlColor c,
                          string text) = 0;
+    virtual void SaveAs(string filename, FileType ft) = 0;
 };
 
 #endif
