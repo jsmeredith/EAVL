@@ -3,6 +3,7 @@
 #define EAVL_RENDER_SURFACE_H
 
 #include "eavlColor.h"
+#include "eavlView.h"
 
 class eavlRenderSurface
 {
