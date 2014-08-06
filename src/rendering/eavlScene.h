@@ -55,10 +55,10 @@ class eavlScene
 
             for (int d=0; d<3; d++)
             {
-                double vmin = p->GetMinCoordExtentFinal(d);
+                double vmin = p->GetMinCoordExtentOrig(d);
                 if (vmin < view.minextents[d])
                     view.minextents[d] = vmin;
-                double vmax = p->GetMaxCoordExtentFinal(d);
+                double vmax = p->GetMaxCoordExtentOrig(d);
                 if (vmax > view.maxextents[d])
                     view.maxextents[d] = vmax;
             }
@@ -84,23 +84,23 @@ class eavlScene
 };
 
 // ****************************************************************************
-// Class:  eavl3DGLScene
+// Class:  eavl3DScene
 //
 // Purpose:
-///   A 3D output scene with OpenGL/MesaGL rendering.
+///   A 3D output scene.
 //
 // Programmer:  Jeremy Meredith
 // Creation:    December 27, 2012
 //
 // Modifications:
 // ****************************************************************************
-class eavl3DGLScene : public eavlScene
+class eavl3DScene : public eavlScene
 {
   public:
-    eavl3DGLScene() : eavlScene()
+    eavl3DScene() : eavlScene()
     {
     }
-    virtual ~eavl3DGLScene()
+    virtual ~eavl3DScene()
     {
     }
 
@@ -142,7 +142,7 @@ class eavl3DGLScene : public eavlScene
         if (plots.size() == 0)
             return;
 
-        view.SetupForWorldSpace();
+        win->SetupForWorldSpace();
 
         eavlSceneRenderer *sr = win->GetSceneRenderer();
         sr->SetView(view);
@@ -176,23 +176,23 @@ class eavl3DGLScene : public eavlScene
 
 
 // ****************************************************************************
-// Class:  eavl2DGLScene
+// Class:  eavl2DScene
 //
 // Purpose:
-///   A 2D output scene with OpenGL/MesaGL rendering.
+///   A 2D output scene.
 //
 // Programmer:  Jeremy Meredith
 // Creation:    January 10, 2013
 //
 // Modifications:
 // ****************************************************************************
-class eavl2DGLScene : public eavlScene
+class eavl2DScene : public eavlScene
 {
   public:
-    eavl2DGLScene() : eavlScene()
+    eavl2DScene() : eavlScene()
     {
     }
-    virtual ~eavl2DGLScene()
+    virtual ~eavl2DScene()
     {
     }
 
@@ -219,7 +219,7 @@ class eavl2DGLScene : public eavlScene
         if (plots.size() == 0)
             return;
 
-        view.SetupForWorldSpace();
+        win->SetupForWorldSpace();
 
         eavlSceneRenderer *sr = win->GetSceneRenderer();
         sr->SetView(view);
@@ -257,13 +257,13 @@ class eavl2DGLScene : public eavlScene
 };
 
 
-class eavlPolarGLScene : public eavlScene
+class eavlPolarScene : public eavlScene
 {
   public:
-    eavlPolarGLScene() : eavlScene()
+    eavlPolarScene() : eavlScene()
     {
     }
-    virtual ~eavlPolarGLScene()
+    virtual ~eavlPolarScene()
     {
     }
 
@@ -293,7 +293,7 @@ class eavlPolarGLScene : public eavlScene
         if (plots.size() == 0)
             return;
 
-        view.SetupForWorldSpace();
+        win->SetupForWorldSpace();
 
         eavlSceneRenderer *sr = win->GetSceneRenderer();
         sr->SetView(view);
@@ -332,23 +332,23 @@ class eavlPolarGLScene : public eavlScene
 
 
 // ****************************************************************************
-// Class:  eavl1DGLScene
+// Class:  eavl1DScene
 //
 // Purpose:
-///   A 1D output scene with OpenGL/MesaGL rendering.
+///   A 1D output scene.
 //
 // Programmer:  Jeremy Meredith
 // Creation:    January 16, 2013
 //
 // Modifications:
 // ****************************************************************************
-class eavl1DGLScene : public eavlScene
+class eavl1DScene : public eavlScene
 {
   public:
-    eavl1DGLScene() : eavlScene()
+    eavl1DScene() : eavlScene()
     {
     }
-    virtual ~eavl1DGLScene()
+    virtual ~eavl1DScene()
     {
     }
 
@@ -418,7 +418,7 @@ class eavl1DGLScene : public eavlScene
         if (plots.size() == 0)
             return;
 
-        view.SetupForWorldSpace();
+        win->SetupForWorldSpace();
 
         eavlSceneRenderer *sr = win->GetSceneRenderer();
         sr->SetView(view);
@@ -459,22 +459,22 @@ class eavl1DGLScene : public eavlScene
 
 #ifdef HAVE_MPI
 
-class eavl2DParallelGLScene : public eavl2DGLScene
+class eavl2DParallelScene : public eavl2DScene
 {
   protected:
     MPI_Comm comm;
   public:
-    eavl2DParallelGLScene(const MPI_Comm &c) :
-        eavl2DGLScene(), comm(c)
+    eavl2DParallelScene(const MPI_Comm &c) :
+        eavl2DScene(), comm(c)
     {
     }
-    virtual ~eavl2DParallelGLScene()
+    virtual ~eavl2DParallelScene()
     {
     }
     virtual void ResetView(eavlWindow *win)
     {
         eavlView &view = win->view;
-        eavl2DGLScene::ResetView(win);
+        eavl2DScene::ResetView(win);
 
         double tmp;
         MPI_Allreduce(&view.minextents[0], &tmp, 1, MPI_DOUBLE, MPI_MIN, comm);
@@ -509,22 +509,22 @@ class eavl2DParallelGLScene : public eavl2DGLScene
 };
 
 
-class eavl3DParallelGLScene : public eavl3DGLScene
+class eavl3DParallelScene : public eavl3DScene
 {
   protected:
     MPI_Comm comm;
   public:
-    eavl3DParallelGLScene(const MPI_Comm &c) :
-        eavl3DGLScene(), comm(c)
+    eavl3DParallelScene(const MPI_Comm &c) :
+        eavl3DScene(), comm(c)
     {
     }
-    virtual ~eavl3DParallelGLScene()
+    virtual ~eavl3DParallelScene()
     {
     }
     virtual void ResetView(eavlWindow *win)
     {
         eavlView &view = win->view;
-        eavl3DGLScene::ResetView(win);
+        eavl3DScene::ResetView(win);
 
         double tmp;
         MPI_Allreduce(&view.minextents[0], &tmp, 1, MPI_DOUBLE, MPI_MIN, comm);

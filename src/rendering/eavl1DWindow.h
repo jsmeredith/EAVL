@@ -17,8 +17,9 @@ class eavl1DWindow : public eavlWindow
     eavlColorLegendAnnotation *legend;
   public:
     eavl1DWindow(eavlColor bg, eavlRenderSurface *surf,
-                 eavlScene *s, eavlSceneRenderer *r)
-        : eavlWindow(bg,surf,s,r)
+                 eavlScene *s, eavlSceneRenderer *r,
+                 eavlWorldAnnotator *w)
+        : eavlWindow(bg,surf,s,r,w)
     {
         view.vl = -.7;
         view.vr = +.7;
@@ -40,9 +41,6 @@ class eavl1DWindow : public eavlWindow
     {
         // render the plots
         scene->Render(this);
-
-        // render the annotations
-        glDisable(GL_DEPTH_TEST);
 
         double vl, vr, vt, vb;
         view.GetRealViewport(vl,vr,vb,vt);
@@ -81,8 +79,6 @@ class eavl1DWindow : public eavlWindow
             legend->AddItem(p->GetName(), p->GetColor());
         }
         legend->Render(view);
-
-        glFinish();
     }
 };
 

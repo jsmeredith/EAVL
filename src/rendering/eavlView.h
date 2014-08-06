@@ -409,59 +409,17 @@ struct eavlView
     
     // ------------------------------------------------------------------------
     //
-    // Set up ONLY the viewport for world/screen space
-    //
-    void SetupViewportForWorld()
-    {
-        double vl, vr, vt, vb;
-        GetRealViewport(vl,vr,vb,vt);
-        glViewport(double(w)*(1.+vl)/2.,
-                   double(h)*(1.+vb)/2.,
-                   double(w)*(vr-vl)/2.,
-                   double(h)*(vt-vb)/2.);
-    }
-    void SetupViewportForScreen()
-    {
-        glViewport(0, 0, w, h);
-    }
-
-
-    //
-    // Set up ONLY the matrices for world/screen space
+    // Set up the matrices for world/screen space
     //
     void SetupMatricesForWorld()
     {
-        glMatrixMode( GL_PROJECTION );
-        glLoadMatrixf(P.GetOpenGLMatrix4x4());
-
-        glMatrixMode( GL_MODELVIEW );
-        glLoadMatrixf(V.GetOpenGLMatrix4x4());
+        SetupMatrices();
     }
     void SetupMatricesForScreen()
     {
-        glMatrixMode( GL_PROJECTION );
-        glLoadIdentity();
-        glOrtho(-1,1, -1,1, -1,1);
-
-        glMatrixMode( GL_MODELVIEW );
-        glLoadIdentity();
+        P.CreateOrthographicProjection(2, -1, +1, 1.0);
+        V.CreateIdentity();
     }
-
-
-    //
-    // Set up BOTH the matrices and viewport for world/screen space
-    //
-    void SetupForWorldSpace()
-    {
-        SetupMatricesForWorld();
-        SetupViewportForWorld();
-    }
-    void SetupForScreenSpace()
-    {
-        SetupMatricesForScreen();
-        SetupViewportForScreen();
-    }
-
 };
 
 #endif

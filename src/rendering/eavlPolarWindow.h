@@ -19,8 +19,9 @@ class eavlPolarWindow : public eavlWindow
     eavl2DFrameAnnotation *frame;
   public:
     eavlPolarWindow(eavlColor bg, eavlRenderSurface *surf,
-                    eavlScene *s, eavlSceneRenderer *r)
-        : eavlWindow(bg,surf,s,r)
+                    eavlScene *s, eavlSceneRenderer *r,
+                    eavlWorldAnnotator *w)
+        : eavlWindow(bg,surf,s,r,w)
     {
         /*
         view.vl = -.7;
@@ -43,13 +44,8 @@ class eavlPolarWindow : public eavlWindow
     }
     virtual void Render()
     {
-        glDisable(GL_DEPTH_TEST);
-
         // render the plots
         scene->Render(this);
-
-        // render the annotations
-        glDisable(GL_DEPTH_TEST);
 
         double vl, vr, vt, vb;
         view.GetRealViewport(vl,vr,vb,vt);
@@ -85,8 +81,6 @@ class eavlPolarWindow : public eavlWindow
             colorbar->SetColorTable(scene->plots[0]->GetColorTableName());
             colorbar->Render(view);
         }
-
-        glFinish();
     }
 };
 

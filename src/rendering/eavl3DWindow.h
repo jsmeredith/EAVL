@@ -18,8 +18,9 @@ class eavl3DWindow : public eavlWindow
     eavl3DAxisAnnotation *xaxis, *yaxis, *zaxis;
   public:
     eavl3DWindow(eavlColor bg, eavlRenderSurface *surf,
-                 eavlScene *s, eavlSceneRenderer *r)
-        : eavlWindow(bg,surf,s,r)
+                 eavlScene *s, eavlSceneRenderer *r,
+                 eavlWorldAnnotator *w)
+        : eavlWindow(bg,surf,s,r,w)
     {
         //view.vt = +.8; // save room for legend (and prove 3D viewports work)
 
@@ -39,8 +40,6 @@ class eavl3DWindow : public eavlWindow
     }
     virtual void Render()
     {
-        glEnable(GL_DEPTH_TEST);
-
         // render the plots
         scene->Render(this);
 
@@ -57,8 +56,6 @@ class eavl3DWindow : public eavlWindow
         double ds_size = sqrt( (view.maxextents[0]-view.minextents[0])*(view.maxextents[0]-view.minextents[0]) +
                                (view.maxextents[1]-view.minextents[1])*(view.maxextents[1]-view.minextents[1]) +
                                (view.maxextents[2]-view.minextents[2])*(view.maxextents[2]-view.minextents[2]) );
-
-        glDepthRange(-.0001,.9999);
 
         eavlVector3 viewdir = view.view3d.at - view.view3d.from;
         bool xtest = (viewdir * eavlVector3(1,0,0)) >= 0;
@@ -132,8 +129,6 @@ class eavl3DWindow : public eavlWindow
         zaxis->SetMoreOrLessTickAdjustment(zrel < .3 ? -1 : 0);
         zaxis->Render(view);
 
-        glDepthRange(0,1);
-
         if (scene->plots.size() > 0)
         {
             double vmin = scene->plots[0]->GetMinDataExtent();
@@ -143,8 +138,6 @@ class eavl3DWindow : public eavlWindow
             colorbar->SetColorTable(scene->plots[0]->GetColorTableName());
             colorbar->Render(view);
         }
-
-        glFinish();
     }
 
     /*

@@ -1,6 +1,6 @@
 // Copyright 2010-2014 UT-Battelle, LLC.  See LICENSE.txt for more information.
-#ifndef EAVL_TEXTURE_H
-#define EAVL_TEXTURE_H
+#ifndef EAVL_GL_TEXTURE_H
+#define EAVL_GL_TEXTURE_H
 
 #include "eavlDataSet.h"
 #include "eavlColorTable.h"
@@ -11,7 +11,7 @@
 #endif
 
 // ****************************************************************************
-// Class:  eavlTexture
+// Class:  eavlGLTexture
 //
 // Purpose:
 ///   Encapsulates an OpenGL/Mesa texture.
@@ -21,7 +21,7 @@
 //
 // Modifications:
 // ****************************************************************************
-class eavlTexture
+class eavlGLTexture
 {
   protected:
     GLuint id;
@@ -29,7 +29,7 @@ class eavlTexture
     bool linear2D;
     bool linearMip;
   public:
-    eavlTexture()
+    eavlGLTexture()
     {
         id = 0;
         dim = 0;

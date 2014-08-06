@@ -1,16 +1,16 @@
 #ifndef EAVL_RENDER_SURFACE_OSMESA_H
 #define EAVL_RENDER_SURFACE_OSMESA_H
 
-#include "eavlRenderSurface.h"
-#include "eavlException.h"
-
 #include "GL/gl_mangle.h"
 #include "GL/osmesa.h"
 #include "GL/gl.h"
 
+#include "eavlRenderSurfaceGL.h"
+#include "eavlException.h"
+
 #include <climits>
 
-class eavlRenderSurfaceOSMesa : public eavlRenderSurface
+class eavlRenderSurfaceOSMesa : public eavlRenderSurfaceGL
 {
   protected:
     OSMesaContext ctx;
@@ -18,7 +18,7 @@ class eavlRenderSurfaceOSMesa : public eavlRenderSurface
     vector<float> zbuff;
     int width, height;
   public:
-    eavlRenderSurfaceOSMesa() : eavlRenderSurface(), width(0),height(0)
+    eavlRenderSurfaceOSMesa() : eavlRenderSurfaceGL(), width(0),height(0)
     {
         ctx = NULL;
     }
@@ -29,6 +29,8 @@ class eavlRenderSurfaceOSMesa : public eavlRenderSurface
     }
     virtual void Initialize()
     {
+        eavlRenderSurfaceGL::Initialize();
+
         ctx = OSMesaCreateContextExt( OSMESA_RGBA, 32, 0, 0, NULL );
         if (!ctx)
             THROW(eavlException, "Could not create OSMesa context");
@@ -36,12 +38,16 @@ class eavlRenderSurfaceOSMesa : public eavlRenderSurface
     }
     virtual void Resize(int w, int h)
     {
+        eavlRenderSurfaceGL::Resize(w,h);
+
         width = w;
         height = h;
         rgba.resize(w*h*4);
     }
     virtual void Activate()
     {
+        eavlRenderSurfaceGL::Activate();
+
         if (!OSMesaMakeCurrent( ctx, &rgba[0], GL_UNSIGNED_BYTE, width, height))
             THROW(eavlException,
                   "Couldn't make framebuffer current for osmesa context");
