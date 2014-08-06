@@ -7,18 +7,18 @@
 #include <eavlBitmapFont.h>
 #include <eavlBitmapFontFactory.h>
 #include <eavlPNGImporter.h>
-#include <eavlTexture.h>
+#include <eavlGLTexture.h>
 
 class eavlRenderSurfaceGL : public eavlRenderSurface
 {
     int width, height;
   protected:
-    std::map<std::string,eavlTexture*> textures;
-    eavlTexture *GetTexture(const std::string &s)
+    std::map<std::string,eavlGLTexture*> textures;
+    eavlGLTexture *GetTexture(const std::string &s)
     {
         return textures[s];
     }
-    void SetTexture(const std::string &s, eavlTexture *tex)
+    void SetTexture(const std::string &s, eavlGLTexture *tex)
     {
         textures[s] = tex;
     }
@@ -89,11 +89,11 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
     {
         glDisable(GL_DEPTH_TEST);
 
-        eavlTexture *tex = GetTexture(ctname);
+        eavlGLTexture *tex = GetTexture(ctname);
         if (!tex )
         {
             if (!tex)
-                tex = new eavlTexture;
+                tex = new eavlGLTexture;
             tex->CreateFromColorTable(eavlColorTable(ctname));
             SetTexture(ctname, tex);
         }
@@ -145,7 +145,7 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
     {
         // set up a texture for the font if needed
         eavlBitmapFont *fnt = eavlBitmapFontFactory::GetDefaultFont();
-        eavlTexture *tex = GetTexture(fnt->name);
+        eavlGLTexture *tex = GetTexture(fnt->name);
         if (!tex)
         {
             eavlDataSet *img = (eavlDataSet*)fnt->userPointer;
@@ -162,7 +162,7 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
                 fnt->userPointer = img;
             }
 
-            tex = new eavlTexture;
+            tex = new eavlGLTexture;
             tex->CreateFromDataSet(img, false,false,false,true);
             SetTexture(fnt->name, tex);
         }

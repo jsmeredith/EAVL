@@ -7,7 +7,6 @@
 #include "eavlColor.h"
 #include "eavlColorTable.h"
 #include "eavlSceneRenderer.h"
-#include "eavlTexture.h"
 #include "eavlTimer.h"
 
 // ****************************************************************************

@@ -7,18 +7,18 @@
 #include <eavlBitmapFont.h>
 #include <eavlBitmapFontFactory.h>
 #include <eavlPNGImporter.h>
-#include <eavlTexture.h>
+#include <eavlGLTexture.h>
 
 class eavlWorldAnnotatorGL : public eavlWorldAnnotator
 {
   protected:
     ///\todo: duplication with render surface
-    std::map<std::string,eavlTexture*> textures;
-    eavlTexture *GetTexture(const std::string &s)
+    std::map<std::string,eavlGLTexture*> textures;
+    eavlGLTexture *GetTexture(const std::string &s)
     {
         return textures[s];
     }
-    void SetTexture(const std::string &s, eavlTexture *tex)
+    void SetTexture(const std::string &s, eavlGLTexture *tex)
     {
         textures[s] = tex;
     }
@@ -86,7 +86,7 @@ class eavlWorldAnnotatorGL : public eavlWorldAnnotator
     {
         // set up a texture for the font if needed
         eavlBitmapFont *fnt = eavlBitmapFontFactory::GetDefaultFont();
-        eavlTexture *tex = GetTexture(fnt->name);
+        eavlGLTexture *tex = GetTexture(fnt->name);
         if (!tex)
         {
             eavlDataSet *img = (eavlDataSet*)fnt->userPointer;
@@ -103,7 +103,7 @@ class eavlWorldAnnotatorGL : public eavlWorldAnnotator
                 fnt->userPointer = img;
             }
 
-            tex = new eavlTexture;
+            tex = new eavlGLTexture;
             tex->CreateFromDataSet(img, false,false,false,true);
             SetTexture(fnt->name, tex);
         }

@@ -7,7 +7,7 @@
 #include "eavlColor.h"
 #include "eavlColorTable.h"
 #include "eavlSceneRenderer.h"
-#include "eavlTexture.h"
+#include "eavlGLTexture.h"
 
 //#define USE_DISPLAY_LISTS
 //#define USE_VERTEX_BUFFERS
@@ -27,7 +27,7 @@
 // ****************************************************************************
 class eavlSceneRendererSimpleGL : public eavlSceneRenderer
 {
-    std::map<std::string,eavlTexture*> textures;
+    std::map<std::string,eavlGLTexture*> textures;
 
 #ifdef USE_DISPLAY_LISTS
     GLuint mylist;
@@ -47,17 +47,17 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
     }
     virtual ~eavlSceneRendererSimpleGL()
     {
-        for (std::map<std::string,eavlTexture*>::iterator i = textures.begin();
+        for (std::map<std::string,eavlGLTexture*>::iterator i = textures.begin();
              i != textures.end() ; ++i)
             delete i->second;
         textures.clear();
     }
 
-    eavlTexture *GetTexture(const std::string &s)
+    eavlGLTexture *GetTexture(const std::string &s)
     {
         return textures[s];
     }
-    void SetTexture(const std::string &s, eavlTexture *tex)
+    void SetTexture(const std::string &s, eavlGLTexture *tex)
     {
         textures[s] = tex;
     }
@@ -118,10 +118,10 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
     {
         glColor3fv(eavlColor::white.c);
 
-        eavlTexture *tex = GetTexture(ctname);
+        eavlGLTexture *tex = GetTexture(ctname);
         if (!tex)
         {
-            tex = new eavlTexture;
+            tex = new eavlGLTexture;
             tex->CreateFromColorTable(eavlColorTable(ctname));
             SetTexture(ctname, tex);
         }
