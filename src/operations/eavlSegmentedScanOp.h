@@ -199,14 +199,15 @@ __device__ T scanFlagsBlock(volatile T *flags, const unsigned int idx = threadId
 {
     const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int warpIdx = idx >> 5;                              /*drop the first 32 bits */
-    if(threadID== 257) printf("257 flag %d \n", flags[idx]);
+    //if(threadID== 257) printf("257 flag %d \n", flags[idx]);
     __syncthreads();
 
     T result = scanWarp<OP,true>(flags);
     
     __syncthreads();
-    if(threadID== 257) printf(" 257 Result %d \n", result);
-    if(idx !=0 ) result = OP::op(flags[warpIdx-1], result);
+    //if(threadID== 257) printf("257 Result %d \n", result);
+    if(warpIdx !=0 ) result = OP::op(flags[warpIdx-1], result);
+    //if(threadID== 257) printf("257 after op  Result %d \n", result);
     
     __syncthreads();
 
@@ -214,7 +215,7 @@ __device__ T scanFlagsBlock(volatile T *flags, const unsigned int idx = threadId
 
      __syncthreads();
 
-     if(threadID== 257) printf(" 257 flags %d %d\n", flags[idx], idx);
+     //if(threadID== 257) printf("257  Bad value flags %d index %d  result %d\n", flags[idx], idx, result);
     return result;
 }
 
@@ -307,8 +308,8 @@ template <class OP, class T, class FLAGS>
 __global__ void
 SegScanAddSum_kernel(int nitems, T* inputs, T* outputs,T* blockSums, FLAGS* flags)
 {
-    __shared__ T sm_data[256];
-    __shared__ T sm_flags[256];
+    volatile __shared__ T sm_data[256];
+    volatile __shared__ T sm_flags[256];
 
     const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int blockId = blockIdx.x ;
@@ -321,8 +322,8 @@ SegScanAddSum_kernel(int nitems, T* inputs, T* outputs,T* blockSums, FLAGS* flag
     sm_flags[threadIdx.x] = flags[threadID];
 
     __syncthreads();
-    
-    T result = scanFlagsBlock< SegMaxFunctor<int> >(sm_flags);
+    /* scan the flags to determined which values need to acc due to open segment running into block*/
+    T result = scanFlagsBlock< SegAddFunctor<int> >(sm_flags);
     __syncthreads();
 
     //if(threadID == 290 ) printf("290 sm_Flag %d \n", sm_flags[threadIdx.x] );
