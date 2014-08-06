@@ -234,9 +234,14 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
 
         if (fixed2Dscale)
         {
-            view.SetupMatricesForScreen();
+            // first, do the world, so we can translate a world
+            // point to the screen
+            view.SetupMatricesForWorld();
 
             eavlPoint3 p = view.P * view.V * eavlPoint3(x,y,z);
+
+            // everything else is now in world space
+            view.SetupMatricesForScreen();
 
             eavlMatrix4x4 T;
             T.CreateTranslate(p.x, p.y, -p.z);

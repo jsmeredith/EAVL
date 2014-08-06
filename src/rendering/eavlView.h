@@ -431,22 +431,24 @@ struct eavlView
     //
     void SetupMatricesForWorld()
     {
+        SetupMatrices();
+        OpenGLLoadPandV();
+    }
+    void SetupMatricesForScreen()
+    {
+        P.CreateOrthographicProjection(2, -1, +1, 1.0);
+        V.CreateIdentity();
+        OpenGLLoadPandV();
+    }
+
+    void OpenGLLoadPandV()
+    {
         glMatrixMode( GL_PROJECTION );
         glLoadMatrixf(P.GetOpenGLMatrix4x4());
 
         glMatrixMode( GL_MODELVIEW );
         glLoadMatrixf(V.GetOpenGLMatrix4x4());
     }
-    void SetupMatricesForScreen()
-    {
-        glMatrixMode( GL_PROJECTION );
-        glLoadIdentity();
-        glOrtho(-1,1, -1,1, -1,1);
-
-        glMatrixMode( GL_MODELVIEW );
-        glLoadIdentity();
-    }
-
 
     //
     // Set up BOTH the matrices and viewport for world/screen space
