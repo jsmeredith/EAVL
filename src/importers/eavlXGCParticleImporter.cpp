@@ -19,8 +19,8 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(const string &filename)
     string::size_type i0 = filename.rfind("xgc.");
     string::size_type i1 = filename.rfind(".bp");
     
-#ifdef PARALLEL
-    fp = adios_read_open_file(filename.c_str(), ADIOS_READ_METHOD_BP, (MPI_Comm)VISIT_MPI_COMM);
+#ifdef HAVE_MPI
+    fp = adios_read_open_file(filename.c_str(), ADIOS_READ_METHOD_BP, (MPI_Comm)MPI_COMM_WORLD);
 #else
     MPI_Comm comm_dummy = 0;
     fp = adios_read_open_file(filename.c_str(), ADIOS_READ_METHOD_BP, comm_dummy);
