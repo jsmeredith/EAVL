@@ -5,10 +5,10 @@
 #include "eavl.h"
 #include "eavlView.h"
 #include "eavlColor.h"
-#include "eavlTexture.h"
 #include "eavlRenderSurface.h"
 #include "eavlSceneRenderer.h"
 #include "eavlAnnotation.h"
+#include "eavlWorldAnnotator.h"
 
 class eavlScene;
 
@@ -29,27 +29,24 @@ class eavlWindow
     eavlColor bg;
     eavlScene *scene;
     eavlSceneRenderer *renderer;
-    std::map<std::string,eavlTexture*> textures;
 
     std::vector<eavlAnnotation*> annotations;
 
   public: /// todo: hack, should not be public
     eavlRenderSurface *surface;
+    eavlWorldAnnotator *worldannotator;
     eavlView view;
 
   public:
     eavlWindow(eavlColor bgcolor, eavlRenderSurface *surf,
-               eavlScene *s, eavlSceneRenderer *r)
-        : bg(bgcolor), scene(s), renderer(r), surface(surf)
+               eavlScene *s, eavlSceneRenderer *r,
+               eavlWorldAnnotator *w)
+        : bg(bgcolor), scene(s), renderer(r), surface(surf), worldannotator(w)
     {
     }
     virtual ~eavlWindow()
     {
         //delete scene;
-        for (std::map<std::string,eavlTexture*>::iterator i = textures.begin();
-             i != textures.end() ; ++i)
-            delete i->second;
-        textures.clear();
     }
 
     void SetSceneRenderer(eavlSceneRenderer *sr)
@@ -79,25 +76,21 @@ class eavlWindow
     void Initialize()
     {
         ///\todo: we want to make sure initialize called before resize/paint?
-        if (surface)
-            surface->Initialize();
+        surface->Initialize();
     }
     void Resize(int w, int h)
     {
-        if (surface)
-            surface->Resize(w,h);
+        surface->Resize(w,h);
 
         view.w = w;
         view.h = h;
     }
     void Paint()
     {
-        if (surface)
-            surface->Activate();
+        surface->Activate();
+        surface->Clear(bg);
 
         view.SetupMatrices();
-        glClearColor(bg.c[0], bg.c[1], bg.c[2], 1.0); ///< c[3] instead of 1.0?
-        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
         // render the plots and annotations
         Render();
@@ -105,44 +98,40 @@ class eavlWindow
         for (unsigned int i=0; i<annotations.size(); ++i)
             annotations[i]->Render(view);
 
-        glFinish();
+        surface->Finish();
+    }
 
-        if (surface)
-            surface->Finish();
+    void EnableViewportClipping()
+    {
+        surface->SetViewportClipping(view, true);
+    }
+    void DisableViewportClipping()
+    {
+        surface->SetViewportClipping(view, false);
+    }
+    void SetupMatricesForWorld()
+    {
+        view.SetupMatricesForWorld();
+        surface->SetView(view);
+    }
+    void SetupMatricesForScreen()
+    {
+        view.SetupMatricesForScreen();
+        surface->SetView(view);
+    }
+
+    void SetupForWorldSpace()
+    {
+        SetupMatricesForWorld();
+        EnableViewportClipping();
+    }
+    void SetupForScreenSpace()
+    {
+        SetupMatricesForScreen();
+        DisableViewportClipping();
     }
 
     virtual void Render() = 0;
-
-    eavlTexture *GetTexture(const std::string &s)
-    {
-        return textures[s];
-    }
-    void SetTexture(const std::string &s, eavlTexture *tex)
-    {
-        textures[s] = tex;
-    }
-
-    void SaveWindowAsPNM(const std::string &fn)
-    {
-        if (surface)
-            surface->Activate();
-
-        int w = view.w, h = view.h;
-        vector<byte> rgba(w*h*4);
-        glReadPixels(0,0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, &rgba[0]);
-
-        ofstream out(fn.c_str());
-        out<<"P6"<<endl<<w<<" "<<h<<endl<<255<<endl;
-        for(int i = h-1; i >= 0; i--)
-        {
-            for(int j = 0; j < w; j++)
-            {
-                const byte *tuple = &(rgba[i*w*4 + j*4]);
-                out<<tuple[0]<<tuple[1]<<tuple[2];
-            }
-        }
-        out.close();
-    }
 };
 
 #endif

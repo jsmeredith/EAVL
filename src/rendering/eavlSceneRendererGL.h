@@ -46,7 +46,6 @@ void eavlRenderCells1D(eavlCellSet *cs,
                   int , double *pts,
                   eavlField *f, double vmin, double vmax)
 {
-    cerr << "render cells 1d\n";
     glDisable(GL_LIGHTING);
     if (PointColors || CellColors)
     {
@@ -119,7 +118,6 @@ void eavlRenderCells2D(eavlCellSet *cs,
     {
         glDisable(GL_LIGHTING);
     }
-
 
     int ncells = cs->GetNumCells();
     // triangles
@@ -580,6 +578,8 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
         }
         else
         {
+            SetActiveColorTable(opts.ct);
+
             if (!field_nodal)
                 THROW(eavlException,
                       "Can't render points for cell-centered field.");
@@ -606,6 +606,8 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
         }
         else
         {
+            SetActiveColorTable(opts.ct);
+
             if (!opts.field)
                 return;
 
@@ -663,6 +665,8 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
         }
         else
         {
+            SetActiveColorTable(opts.ct);
+
             if (!opts.field)
                 return;
 

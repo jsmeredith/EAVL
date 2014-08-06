@@ -992,14 +992,14 @@ ADIOS Options:
         if test -z "$ADIOS"; then ADIOS="yes"; fi)
 if test "$ADIOS" != "yes" -a "$ADIOS" != "no"; then
    # specified path
-   ADIOS_CPPFLAGS="-I""$ADIOS""/include"
-   ADIOS_LDFLAGS="-L""$ADIOS""/lib"
+   ADIOS_CPPFLAGS="-I""$ADIOS""/include $MPI_CPPFLAGS"
+   ADIOS_LDFLAGS="-L""$ADIOS""/lib $MPI_LDFLAGS"
    rpathize(ADIOS_LDFLAGS, $ADIOS/lib)
 
    if test "$MPI" != "no"; then
-     ADIOS_LIBS="-ladios -ladiosread -lmxml -lmpi"
+     ADIOS_LIBS="-ladiosread $MPI_LIBS"
    else
-     ADIOS_LIBS="-ladios_nompi -lmxml -ladiosread_nompi"
+     ADIOS_LIBS="-ladiosread_nompi"
    fi
 fi
 

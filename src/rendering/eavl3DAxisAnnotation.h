@@ -35,6 +35,9 @@ class eavl3DAxisAnnotation : public eavlAnnotation
         axis = 0;
         color = eavlColor::white;
     }
+    virtual ~eavl3DAxisAnnotation()
+    {
+    }
     void SetMoreOrLessTickAdjustment(int offset)
     {
         moreOrLessTickAdjustment = offset;
@@ -90,14 +93,13 @@ class eavl3DAxisAnnotation : public eavlAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupForWorldSpace();
+        win->SetupForWorldSpace();
 
-        glDisable(GL_LIGHTING);
-        glLineWidth(1);
-        glColor3fv(color.c);
-        glBegin(GL_LINES);
-        glVertex3d(x0, y0, z0);
-        glVertex3d(x1, y1, z1);
+        float linewidth = 1.0;
+        bool infront = true;
+        win->worldannotator->AddLine(x0,y0,z0,
+                                     x1,y1,z1,
+                                     linewidth, color, infront);
 
         vector<double> positions;
         vector<double> proportions;
@@ -135,8 +137,9 @@ class eavl3DAxisAnnotation : public eavlAnnotation
                 float zs = zc - tz*maj_toff;
                 float ze = zc + tz*(1. - maj_toff);
 
-                glVertex3d(xs, ys, zs);
-                glVertex3d(xe, ye, ze);
+                win->worldannotator->AddLine(xs,ys,zs,
+                                             xe,ye,ze,
+                                             linewidth, color, infront);
             }
 
             float tx=0, ty=0, tz=0;
@@ -187,12 +190,11 @@ class eavl3DAxisAnnotation : public eavlAnnotation
                 float zs = zc - tz*min_toff;
                 float ze = zc + tz*(1. - min_toff);
 
-                glVertex3d(xs, ys, zs);
-                glVertex3d(xe, ye, ze);
+                win->worldannotator->AddLine(xs,ys,zs,
+                                             xe,ye,ze,
+                                             linewidth, color, infront);
             }
         }
-
-        glEnd();
 
         for (int i=0; i<nmajor; ++i)
         {

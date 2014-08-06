@@ -23,11 +23,12 @@ class eavlColorBarAnnotation : public eavlAnnotation
     string ctname;
     eavl2DAxisAnnotation *axis;
   public:
-    GLuint texid;
     eavlColorBarAnnotation(eavlWindow *win) : eavlAnnotation(win)
     {
-        texid = 0;
         axis = new eavl2DAxisAnnotation(win);
+    }
+    virtual ~eavlColorBarAnnotation()
+    {
     }
     void SetColorTable(const string &colortablename)
     {
@@ -54,39 +55,13 @@ class eavlColorBarAnnotation : public eavlAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupForScreenSpace();
-
-        eavlTexture *tex = win->GetTexture(ctname);
-        if (!tex )
-        {
-            if (!tex)
-                tex = new eavlTexture;
-            tex->CreateFromColorTable(eavlColorTable(ctname));
-            win->SetTexture(ctname, tex);
-        }
-
-        tex->Enable();
-
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_LIGHTING);
-        glColor3fv(eavlColor::white.c);
-
-        glBegin(GL_QUADS);
+        win->SetupForScreenSpace();
 
         float l = -0.88, r = +0.88;
         float b = +0.87, t = +0.92;
 
-        glTexCoord1f(0);
-        glVertex3f(l, b, .99);
-        glVertex3f(l, t, .99);
-
-        glTexCoord1f(1);
-        glVertex3f(r, t, .99);
-        glVertex3f(r, b, .99);
-
-        glEnd();
-
-        tex->Disable();
+        win->surface->AddColorBar(l,t, r-l, b-t,
+                                  ctname, true);
 
         axis->SetLineWidth(0);
         axis->SetScreenPosition(l,b, r,b);

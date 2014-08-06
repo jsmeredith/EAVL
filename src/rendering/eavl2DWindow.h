@@ -17,20 +17,22 @@ class eavl2DWindow : public eavlWindow
     eavl2DFrameAnnotation *frame;
   public:
     eavl2DWindow(eavlColor bg, eavlRenderSurface *surf,
-                 eavlScene *s, eavlSceneRenderer *r)
-        : eavlWindow(bg,surf,s,r)
+                 eavlScene *s, eavlSceneRenderer *r,
+                 eavlWorldAnnotator *w)
+        : eavlWindow(bg,surf,s,r,w)
     {
         view.vl = -.7;
         view.vr = +.7;
         view.vb = -.7;
         view.vt = +.7;
+        //view.view2d.xscale = .5; // for testing....
 
         colorbar = new eavlColorBarAnnotation(this);
         haxis = new eavl2DAxisAnnotation(this);
         vaxis = new eavl2DAxisAnnotation(this);
         frame = new eavl2DFrameAnnotation(this);
     }
-    ~eavl2DWindow()
+    virtual ~eavl2DWindow()
     {
         delete colorbar;
         delete haxis;
@@ -39,13 +41,8 @@ class eavl2DWindow : public eavlWindow
     }
     virtual void Render()
     {
-        glDisable(GL_DEPTH_TEST);
-
         // render the plots
         scene->Render(this);
-
-        // render the annotations
-        glDisable(GL_DEPTH_TEST);
 
         double vl, vr, vt, vb;
         view.GetRealViewport(vl,vr,vb,vt);
@@ -83,8 +80,6 @@ class eavl2DWindow : public eavlWindow
             colorbar->SetColorTable(scene->plots[0]->GetColorTableName());
             colorbar->Render(view);
         }
-
-        glFinish();
     }
 };
 

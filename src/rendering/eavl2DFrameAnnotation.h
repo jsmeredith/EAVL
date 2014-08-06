@@ -25,6 +25,9 @@ class eavl2DFrameAnnotation : public eavlAnnotation
         dmax[0] = dmax[1] = +1;
         color = eavlColor(.5,.5,.5);
     }
+    virtual ~eavl2DFrameAnnotation()
+    {
+    }
     void SetExtents(double xmin, double xmax,
                     double ymin, double ymax)
     {
@@ -39,24 +42,23 @@ class eavl2DFrameAnnotation : public eavlAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupForScreenSpace();
+        win->SetupForScreenSpace();
 
-        glDisable(GL_LIGHTING);
-        glLineWidth(1);
-        glColor3fv(color.c);
-        glBegin(GL_LINES);
-        glVertex2d(dmin[0],dmin[1]);
-        glVertex2d(dmin[0],dmax[1]);
+        win->surface->AddLine(dmin[0],dmin[1],
+                              dmin[0],dmax[1],
+                              1.0, color);
 
-        glVertex2d(dmax[0],dmin[1]);
-        glVertex2d(dmax[0],dmax[1]);
+        win->surface->AddLine(dmax[0],dmin[1],
+                              dmax[0],dmax[1],
+                              1.0, color);
 
-        glVertex2d(dmin[0],dmin[1]);
-        glVertex2d(dmax[0],dmin[1]);
+        win->surface->AddLine(dmin[0],dmin[1],
+                              dmax[0],dmin[1],
+                              1.0, color);
 
-        glVertex2d(dmin[0],dmax[1]);
-        glVertex2d(dmax[0],dmax[1]);
-        glEnd();
+        win->surface->AddLine(dmin[0],dmax[1],
+                              dmax[0],dmax[1],
+                              1.0, color);
     }    
 };
 

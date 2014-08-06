@@ -58,6 +58,7 @@ class eavlMatrix4x4
     EAVL_HOSTDEVICE void   CreateTranslate(const eavlVector3&);
     EAVL_HOSTDEVICE void   CreateTranslate(const eavlPoint3&);
     EAVL_HOSTDEVICE void   CreateRBT(const eavlPoint3&, const eavlPoint3&, const eavlVector3&);
+    EAVL_HOSTDEVICE void   CreateWorld(const eavlPoint3&, const eavlVector3&, const eavlVector3&, const eavlVector3&);
     EAVL_HOSTDEVICE void   CreateScale(float,float,float);
     EAVL_HOSTDEVICE void   CreateScale(float);
     EAVL_HOSTDEVICE void   CreatePerspectiveProjection(float,float, float, float);
@@ -361,6 +362,31 @@ eavlMatrix4x4::CreateRBT(const eavlPoint3 &from,
     m[0][3] = from.x;
     m[1][3] = from.y;
     m[2][3] = from.z;
+}
+
+EAVL_HOSTDEVICE void
+eavlMatrix4x4::CreateWorld(const eavlPoint3 &neworigin,
+                           const eavlVector3 &newx,
+                           const eavlVector3 &newy,
+                           const eavlVector3 &newz)
+{
+    CreateIdentity();
+
+    m[0][0] = newx.x;
+    m[0][1] = newy.x;
+    m[0][2] = newz.x;
+
+    m[1][0] = newx.y;
+    m[1][1] = newy.y;
+    m[1][2] = newz.y;
+
+    m[2][0] = newx.z;
+    m[2][1] = newy.z;
+    m[2][2] = newz.z;
+
+    m[0][3] = neworigin.x;
+    m[1][3] = neworigin.y;
+    m[2][3] = neworigin.z;
 }
 
 EAVL_HOSTDEVICE void

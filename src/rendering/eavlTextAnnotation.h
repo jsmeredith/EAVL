@@ -2,10 +2,6 @@
 #ifndef EAVL_TEXT_ANNOTATION_H
 #define EAVL_TEXT_ANNOTATION_H
 
-#include <eavlBitmapFont.h>
-#include <eavlBitmapFontFactory.h>
-#include <eavlPNGImporter.h>
-#include <eavlTexture.h>
 #include <eavlMatrix4x4.h>
 #include <eavlAnnotation.h>
 
@@ -50,8 +46,12 @@ class eavlTextAnnotation : public eavlAnnotation
     eavlTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, double s)
         : eavlAnnotation(w), text(txt), color(c), scale(s)
     {
+        // default anchor: bottom-left
         anchorx = -1;
         anchory = -1;
+    }
+    virtual ~eavlTextAnnotation()
+    {
     }
     void SetText(const string &txt)
     {
@@ -91,101 +91,6 @@ class eavlTextAnnotation : public eavlAnnotation
     {
         scale = s;
     }
-  protected:
-    void RenderText()
-    {
-        // set up a texture for the font if needed
-        eavlBitmapFont *fnt = eavlBitmapFontFactory::GetDefaultFont();
-        eavlTexture *tex = win->GetTexture(fnt->name);
-        if (!tex)
-        {
-            eavlDataSet *img = (eavlDataSet*)fnt->userPointer;
-            if (!img)
-            {
-                string ftype;
-                vector<unsigned char> &rawpngdata = fnt->GetRawImageData(ftype);
-                if (ftype != "png")
-                    cerr << "Error: expected PNG type for font image data\n";
-                eavlPNGImporter *pngimp = new eavlPNGImporter(&rawpngdata[0],
-                                                          rawpngdata.size());
-                img = pngimp->GetMesh("mesh",0);
-                img->AddField(pngimp->GetField("a","mesh",0));
-                fnt->userPointer = img;
-            }
-
-            tex = new eavlTexture;
-            tex->CreateFromDataSet(img, false,false,false,true);
-            win->SetTexture(fnt->name, tex);
-        }
-
-        // Kerning causes overlapping polygons.  Ideally only draw
-        // pixels where alpha>0, though this causes problems for alpha
-        // between 0 and 1 (unless can solve with different blend
-        // func??) when text isn't rendered last.  Simpler is to just
-        // disable z-writing entirely, but then must draw all text
-        // last anyway.  Or maybe draw text with two passes, once to
-        // update Z (when alpha==1) and once to draw pixels (when alpha>0).
-        if (true)
-        {
-            glDepthMask(GL_FALSE);
-        }
-        else
-        {
-            glAlphaFunc(GL_GREATER, 0);
-            glEnable(GL_ALPHA_TEST);
-        }
-
-        tex->Enable();
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_BLEND);
-        glDisable(GL_LIGHTING);
-        glTexEnvf(GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -.5);
-        //glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
-
-        glColor3fv(color.c);
-
-        glBegin(GL_QUADS);
-
-        double textwidth = fnt->GetTextWidth(text);
-
-        double fx = -(.5 + .5*anchorx) * textwidth;
-        double fy = -(.5 + .5*anchory);
-        double fz = 0;
-        for (unsigned int i=0; i<text.length(); ++i)
-        {
-            char c = text[i];
-            char nextchar = (i < text.length()-1) ? text[i+1] : 0;
-
-            double vl,vr,vt,vb;
-            double tl,tr,tt,tb;
-            fnt->GetCharPolygon(c, fx, fy,
-                                vl, vr, vt, vb,
-                                tl, tr, tt, tb, nextchar);
-
-            glTexCoord2f(tl, 1-tt);
-            glVertex3f(scale*vl, scale*vt, fz);
-
-            glTexCoord2f(tl, 1-tb);
-            glVertex3f(scale*vl, scale*vb, fz);
-
-            glTexCoord2f(tr, 1-tb);
-            glVertex3f(scale*vr, scale*vb, fz);
-
-            glTexCoord2f(tr, 1-tt);
-            glVertex3f(scale*vr, scale*vt, fz);
-            /*cerr << "tl="<<tl<<endl;
-              cerr << "tr="<<tr<<endl;
-              cerr << "tt="<<tt<<endl;
-              cerr << "tb="<<tb<<endl;*/
-        }
-
-        glEnd();
-
-        glTexEnvf(GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, 0);
-        glDepthMask(GL_TRUE);
-        glDisable(GL_ALPHA_TEST);
-        tex->Disable();
-    }
 };
 
 // ****************************************************************************
@@ -221,19 +126,13 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupForScreenSpace();
-
-        eavlMatrix4x4 mtx;
-        mtx.CreateTranslate(x, y, 0);
-        glMultMatrixf(mtx.GetOpenGLMatrix4x4());
-
-        mtx.CreateScale(1./view.windowaspect, 1, 1);
-        glMultMatrixf(mtx.GetOpenGLMatrix4x4());
-
-        mtx.CreateRotateZ(angle * M_PI / 180.);
-        glMultMatrixf(mtx.GetOpenGLMatrix4x4());
-
-        RenderText();
+        win->SetupForScreenSpace();
+        win->surface->AddText(x,y,
+                              scale,
+                              angle,
+                              view.windowaspect,
+                              anchorx, anchory,
+                              color, text);
     }
 };
 
@@ -251,36 +150,40 @@ class eavlScreenTextAnnotation : public eavlTextAnnotation
 class eavlWorldTextAnnotation : public eavlTextAnnotation
 {
   protected:
+    // new way: store locations
+    eavlPoint3 origin;
+    eavlVector3 normal;
+    eavlVector3 up;
+    // old way: create matrix at construction
     eavlMatrix4x4 mtx;
   public:
     eavlWorldTextAnnotation(eavlWindow *w, const string &txt, eavlColor c, double s,
                             double ox, double oy, double oz,
                             double nx, double ny, double nz,
                             double ux, double uy, double uz)
-        : eavlTextAnnotation(w,txt,c,s)
+        : eavlTextAnnotation(w,txt,c,s),
+          origin(ox,oy,oz),
+          normal(nx,ny,nz),
+          up(ux,uy,uz)
     {
+        up = up.normalized();
+        normal = normal.normalized();
+        // old way
         mtx.CreateRBT(eavlPoint3(ox,oy,oz),
                       eavlPoint3(ox,oy,oz) - eavlVector3(nx,ny,nz),
                       eavlVector3(ux,uy,uz));
-
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupForWorldSpace();
+        win->SetupForWorldSpace();
 
-        eavlMatrix4x4 M = view.V * mtx;
-
-        if (view.viewtype == eavlView::EAVL_VIEW_2D)
-        {
-            eavlMatrix4x4 S;
-            S.CreateScale(1. / view.view2d.xscale, 1, 1);
-            M = view.V * mtx * S;
-        }
-
-        glMatrixMode( GL_MODELVIEW );
-        glLoadMatrixf(M.GetOpenGLMatrix4x4());
-
-        RenderText();
+        eavlVector3 right = (up % normal).normalized();
+        win->worldannotator->AddText(origin.x,origin.y,origin.z,
+                                     right.x, right.y, right.z,
+                                     up.x,    up.y,    up.z,
+                                     scale,
+                                     anchorx,anchory,
+                                     color,text);
     }
 };
 
@@ -327,64 +230,99 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupViewportForWorld();
+        win->EnableViewportClipping();
 
         if (fixed2Dscale)
         {
-            view.SetupMatricesForScreen();
+            // first, do the world, so we can translate a world
+            // point to the screen
+            win->SetupMatricesForWorld();
 
             eavlPoint3 p = view.P * view.V * eavlPoint3(x,y,z);
 
-            eavlMatrix4x4 mtx;
-            mtx.CreateTranslate(p.x, p.y, -p.z);
-            glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+            // everything else is now in world space
+            win->SetupMatricesForScreen();
 
-            mtx.CreateScale(1./view.windowaspect, 1, 1);
-            glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+            eavlMatrix4x4 T;
+            T.CreateTranslate(p.x, p.y, -p.z);
 
+            eavlMatrix4x4 SW;
+            SW.CreateScale(1./view.windowaspect, 1, 1);
+
+            eavlMatrix4x4 SV;
+            SV.CreateIdentity();
             //if (view.viewtype == eavlView::EAVL_VIEW_2D)
             {
                 double vl, vr, vt, vb;
                 view.GetRealViewport(vl,vr,vb,vt);
                 double xs = (vr-vl);
                 double ys = (vt-vb);
-                eavlMatrix4x4 S;
-                S.CreateScale(2./xs, 2./ys, 1);
-                glMultMatrixf(S.GetOpenGLMatrix4x4());
+                SV.CreateScale(2./xs, 2./ys, 1);
             }
 
-            mtx.CreateRotateZ(angle * M_PI / 180.);
-            glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+            eavlMatrix4x4 R;
+            R.CreateRotateZ(angle * M_PI / 180.);
+
+            eavlMatrix4x4 M = T * SW * SV * R;
+
+            eavlPoint3 origin(0,0,0);
+            eavlVector3 right(1,0,0);
+            eavlVector3 up(0,1,0);
+
+            origin = M * origin;
+            right = M * right;
+            up = M * up;
+            win->worldannotator->AddText(origin.x,origin.y,origin.z,
+                                         right.x, right.y, right.z,
+                                         up.x,    up.y,    up.z,
+                                         scale,
+                                         anchorx,anchory,
+                                         color,text);
         }
         else
         {
-            view.SetupMatricesForWorld();
+            win->SetupMatricesForWorld();
 
-            eavlMatrix4x4 mtx;
+            eavlMatrix4x4 W;
             if (view.viewtype == eavlView::EAVL_VIEW_2D)
             {
-                mtx.CreateRBT(eavlPoint3(x,y,z),
-                              eavlPoint3(x,y,z) - eavlVector3(0,0,-1),
-                              eavlVector3(0,1,0));
-                glMultMatrixf(mtx.GetOpenGLMatrix4x4());
-
-                mtx.CreateScale(1. / view.view2d.xscale, 1, 1);
-                glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+                W.CreateRBT(eavlPoint3(x,y,z),
+                            eavlPoint3(x,y,z) - eavlVector3(0,0,1),
+                            eavlVector3(0,1,0));
             }
             else
             {
-                mtx.CreateRBT(eavlPoint3(x,y,z),
-                              eavlPoint3(x,y,z) - (view.view3d.from-view.view3d.at),
-                              view.view3d.up);
-                glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+                W.CreateRBT(eavlPoint3(x,y,z),
+                            eavlPoint3(x,y,z) - (view.view3d.from-view.view3d.at),
+                            view.view3d.up);
             }
 
-            mtx.CreateRotateZ(angle * M_PI / 180.);
-            glMultMatrixf(mtx.GetOpenGLMatrix4x4());
+            eavlMatrix4x4 S;
+            S.CreateIdentity();
+            if (view.viewtype == eavlView::EAVL_VIEW_2D)
+            {
+                S.CreateScale(1. / view.view2d.xscale, 1, 1);
+            }
 
+            eavlMatrix4x4 R;
+            R.CreateRotateZ(angle * M_PI / 180.);
+
+            eavlMatrix4x4 M = W * S * R;
+
+            eavlPoint3 origin(0,0,0);
+            eavlVector3 right(1,0,0);
+            eavlVector3 up(0,1,0);
+
+            origin = M * origin;
+            right = M * right;
+            up = M * up;
+            win->worldannotator->AddText(origin.x,origin.y,origin.z,
+                                         right.x, right.y, right.z,
+                                         up.x,    up.y,    up.z,
+                                         scale,
+                                         anchorx,anchory,
+                                         color,text);
         }
-
-        RenderText();
     }
 };
 
@@ -420,7 +358,7 @@ class eavlViewportAnchoredScreenTextAnnotation : public eavlScreenTextAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        view.SetupForScreenSpace();
+        win->SetupForScreenSpace();
 
         double vl, vr, vb, vt;
         view.GetRealViewport(vl,vr,vb,vt);

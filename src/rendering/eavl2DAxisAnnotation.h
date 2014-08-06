@@ -53,6 +53,9 @@ class eavl2DAxisAnnotation : public eavlAnnotation
         moreOrLessTickAdjustment = 0;
         worldSpace = false;
     }
+    virtual ~eavl2DAxisAnnotation()
+    {
+    }
     void SetLogarithmic(bool l)
     {
         logarithmic = l;
@@ -145,23 +148,11 @@ class eavl2DAxisAnnotation : public eavlAnnotation
     virtual void Render(eavlView &view)
     {
         if (worldSpace)
-            view.SetupForWorldSpace();
+            win->SetupForWorldSpace();
         else
-            view.SetupForScreenSpace();
+            win->SetupForScreenSpace();
 
-        glDisable(GL_LIGHTING);
-        glColor3fv(color.c);
-        if (linewidth > 0)
-        {
-            glLineWidth(linewidth);
-            glBegin(GL_LINES);
-            glVertex2d(x0, y0);
-            glVertex2d(x1, y1);
-            glEnd();
-        }
-
-        glLineWidth(1);
-        glBegin(GL_LINES);
+        win->surface->AddLine(x0,y0, x1,y1, linewidth, color);
 
         // major ticks
         int nmajor = maj_proportions.size();
@@ -191,8 +182,7 @@ class eavl2DAxisAnnotation : public eavlAnnotation
             float ys = yc - maj_ty*maj_toff;
             float ye = yc + maj_ty*(1. - maj_toff);
 
-            glVertex2d(xs, ys);
-            glVertex2d(xe, ye);
+            win->surface->AddLine(xs,ys, xe,ye, 1.0, color);
 
             if (maj_ty == 0)
             {
@@ -226,12 +216,9 @@ class eavl2DAxisAnnotation : public eavlAnnotation
                 float ys = yc - min_ty*min_toff;
                 float ye = yc + min_ty*(1. - min_toff);
 
-                glVertex2d(xs, ys);
-                glVertex2d(xe, ye);
+                win->surface->AddLine(xs,ys, xe,ye, 1.0, color);
             }
         }
-
-        glEnd();
 
         for (int i=0; i<nmajor; ++i)
         {

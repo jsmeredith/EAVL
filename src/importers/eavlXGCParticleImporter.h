@@ -9,7 +9,7 @@
 #ifdef HAVE_ADIOS
 
 //NOTE: #include <mpi.h> *MUST* become before the adios includes.
-#ifdef PARALLEL
+#ifdef HAVE_MPI
 #include <mpi.h>
 #else
 #define _NOMPI
@@ -39,7 +39,8 @@ class eavlXGCParticleImporter : public eavlImporter
     						ADIOS_READ_METHOD method, 
     						MPI_Comm comm, 
     						ADIOS_LOCKMODE mode, 
-    						int timeout_sec);
+    						int timeout_sec,
+    						int fromDataspaces);
     virtual ~eavlXGCParticleImporter();
 
     int            GetNumChunks(const std::string &mesh) {return 1;}
@@ -54,8 +55,9 @@ class eavlXGCParticleImporter : public eavlImporter
     void Initialize();
     ADIOS_SELECTION *MakeSelection(ADIOS_VARINFO *avi, uint64_t *s, uint64_t *c);
     ADIOS_FILE *fp;
-
-    int timestep, maxnum, enphase, inphase, nvars;
+	
+	MPI_Comm comm;
+    int timestep, maxnum, enphase, inphase, nvars, retVal, numMPITasks, mpiRank;
     long long emaxgid, imaxgid;
     double time;
 
