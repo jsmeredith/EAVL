@@ -9,12 +9,9 @@ CopyValues(T *buff, eavlFloatArray *arr, int nTups);
 eavlADIOSImporter::eavlADIOSImporter(const string &filename)
 {
     fp = NULL;
-#ifdef PARALLEL
-    fp = adios_read_open_file(filename.c_str(), ADIOS_READ_METHOD_BP, (MPI_Comm)VISIT_MPI_COMM);
-#else
+
     MPI_Comm comm_dummy = 0;
     fp = adios_read_open_file(filename.c_str(), ADIOS_READ_METHOD_BP, comm_dummy);
-#endif
 
     Initialize();
 }
