@@ -92,8 +92,6 @@ class eavlWindow
         surface->Activate();
         surface->Clear(bg);
 
-        view.SetupMatrices();
-
         // render the plots and annotations
         Render();
 
@@ -103,33 +101,14 @@ class eavlWindow
         surface->Finish();
     }
 
-    void EnableViewportClipping()
-    {
-        surface->SetViewportClipping(view, true);
-    }
-    void DisableViewportClipping()
-    {
-        surface->SetViewportClipping(view, false);
-    }
-    void SetupMatricesForWorld()
+    void SetupForWorldSpace(bool viewportclip=true)
     {
         view.SetupMatrices();
-        surface->SetViewToWorldSpace(view);
+        surface->SetViewToWorldSpace(view, viewportclip);
     }
-    void SetupMatricesForScreen()
+    void SetupForScreenSpace(bool viewportclip=false)
     {
-        surface->SetViewToScreenSpace();
-    }
-
-    void SetupForWorldSpace()
-    {
-        SetupMatricesForWorld();
-        EnableViewportClipping();
-    }
-    void SetupForScreenSpace()
-    {
-        SetupMatricesForScreen();
-        DisableViewportClipping();
+        surface->SetViewToScreenSpace(view, viewportclip);
     }
 
     virtual void Render() = 0;

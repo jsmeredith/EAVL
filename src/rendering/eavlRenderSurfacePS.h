@@ -12,8 +12,6 @@ class eavlRenderSurfacePS : public eavlRenderSurface
     double width, height;
     set<int> imgdata_defines;
     eavlView view;
-    bool world;
-    bool clipping;
   public:
     eavlRenderSurfacePS()
     {
@@ -21,8 +19,6 @@ class eavlRenderSurfacePS : public eavlRenderSurface
         font = "LiberationMono";
         width=0;
         height=0;
-        world=false;
-        clipping=false;
     }
     virtual void Initialize()
     {
@@ -36,6 +32,8 @@ class eavlRenderSurfacePS : public eavlRenderSurface
         ps << "%!PS-Adobe-3.0 EPSF-3.0" << endl;
         ps << "%%BoundingBox: 0 0 " << w << " " << h << endl;
         ps << "/DeviceRGB setcolorspace" << endl;
+        // start out saving the state
+        ps << "gsave" << endl;
         width=w;
         height=h;
     }
@@ -47,6 +45,7 @@ class eavlRenderSurfacePS : public eavlRenderSurface
     }
     virtual void Clear(eavlColor bg)
     {
+        Resize(width,width);
         ps << "newpath" << endl;
         ps << "0 0 moveto" << endl;
         ps << width<<" 0 lineto" << endl;
@@ -57,23 +56,40 @@ class eavlRenderSurfacePS : public eavlRenderSurface
         ps << "fill" << endl;
     }
 
-    virtual void SetViewToWorldSpace(eavlView &v)
+    virtual void SetViewToWorldSpace(eavlView &v, bool clip)
     {
-        if (world)
-            return;
-        world = true;
-        view = v;
-        ps << "gsave" << endl;
+        ps << "grestore" << endl;
+        ps << "gsave % starting world space" << endl;
+
+        double vl, vr, vt, vb;
+        v.GetRealViewport(vl,vr,vb,vt);
+        double l = double(v.w)*(1.+vl)/2.;
+        double b = double(v.h)*(1.+vb)/2.;
+
+        double x = (vr-vl)/2.;
+        double y = (vt-vb)/2.;
+
+        if (clip)
+            AddViewportClipPath(v);
+
+        ps << l << " " << b << " translate" << endl;
+        ps << x << " " << y << " scale" << endl;
+    }
+    virtual void SetViewToScreenSpace(eavlView &v, bool clip)
+    {
+        ps << "grestore" << endl;
+        ps << "gsave % starting screen space" << endl;
+        if (clip)
+            AddViewportClipPath(v);
+    }
+    void AddViewportClipPath(eavlView &v)
+    {
         double vl, vr, vt, vb;
         v.GetRealViewport(vl,vr,vb,vt);
         double l = double(v.w)*(1.+vl)/2.;
         double r = double(v.w)*(1.+vr)/2.;
-
         double b = double(v.h)*(1.+vb)/2.;
         double t = double(v.h)*(1.+vt)/2.;
-
-        double x = (vr-vl)/2.;
-        double y = (vt-vb)/2.;
 
         ps << "newpath" << endl;
         ps << l << " " << b << " moveto" << endl;
@@ -82,27 +98,6 @@ class eavlRenderSurfacePS : public eavlRenderSurface
         ps << r << " " << b << " lineto" << endl;
         ps << "closepath" << endl;
         ps << "clip" << endl;
-
-        ps << l << " " << b << " translate" << endl;
-        ps << x << " " << y << " scale" << endl;
-    }
-    virtual void SetViewToScreenSpace()
-    {
-        if (!world)
-            return;
-        world = false;
-        ps << "grestore" << endl;
-    }
-    virtual void SetViewportClipping(eavlView &v, bool clip)
-    {
-        if (clip)
-        {
-            //ps << "gsave % start clip" << endl;
-        }
-        else
-        {
-            //ps << "grestore % end clip" << endl;
-        }
     }
 
     virtual void AddRectangle(float x, float y, 

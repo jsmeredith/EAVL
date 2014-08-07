@@ -49,15 +49,17 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
         glClearColor(bg.c[0], bg.c[1], bg.c[2], 1.0); ///< c[3] instead of 1.0?
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     }
-    virtual void SetViewToWorldSpace(eavlView &v)
+    virtual void SetViewToWorldSpace(eavlView &v, bool clip)
     {
         glMatrixMode( GL_PROJECTION );
         glLoadMatrixf(v.P.GetOpenGLMatrix4x4());
 
         glMatrixMode( GL_MODELVIEW );
         glLoadMatrixf(v.V.GetOpenGLMatrix4x4());
+
+        SetViewportClipping(v, clip);
     }
-    virtual void SetViewToScreenSpace()
+    virtual void SetViewToScreenSpace(eavlView &v, bool clip)
     {
         eavlMatrix4x4 P;
         P.CreateOrthographicProjection(2, -1, +1, 1.0);
@@ -67,22 +69,23 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
+
+        SetViewportClipping(v, clip);
     }
-    virtual void SetViewportClipping(eavlView &v, bool clip)
+    void SetViewportClipping(eavlView &v, bool clip)
     {
-        int w = v.w, h=v.h;
         if (clip)
         {
             double vl, vr, vt, vb;
             v.GetRealViewport(vl,vr,vb,vt);
-            glViewport(double(w)*(1.+vl)/2.,
-                       double(h)*(1.+vb)/2.,
-                       double(w)*(vr-vl)/2.,
-                       double(h)*(vt-vb)/2.);
+            glViewport(double(v.w)*(1.+vl)/2.,
+                       double(v.h)*(1.+vb)/2.,
+                       double(v.w)*(vr-vl)/2.,
+                       double(v.h)*(vt-vb)/2.);
         }
         else
         {
-            glViewport(0, 0, w, h);
+            glViewport(0, 0, v.w, v.h);
         }
     }
 
