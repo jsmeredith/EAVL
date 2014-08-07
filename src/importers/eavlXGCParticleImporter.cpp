@@ -19,7 +19,17 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(const string &filename)
     string::size_type i0 = filename.rfind("xgc.");
     string::size_type i1 = filename.rfind(".bp");
 
-    MPI_Comm comm_dummy = 0;
+    MPI_Comm comm_dummy = comm = 0;
+    
+    char 		hostname[MPI_MAX_PROCESSOR_NAME];
+    char        str [256];
+    int			len = 0;
+    
+    //Set local mpi vars so we know how many minions there are, and wich we are
+    MPI_Comm_size(comm,&numMPITasks);
+	MPI_Comm_rank(comm,&mpiRank);
+	MPI_Get_processor_name(hostname, &len);
+	
     fp = adios_read_open_file(filename.c_str(), ADIOS_READ_METHOD_BP, comm_dummy);
     
     if(fp == NULL)
@@ -49,7 +59,7 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(	const string &filename,
     time = 0;
     retVal = 0;
     fp = NULL;
-    
+								
     string::size_type i0 = filename.rfind("xgc.");
     string::size_type i1 = filename.rfind(".bp");
     comm = communicator;
@@ -106,8 +116,15 @@ eavlXGCParticleImporter::Initialize()
     egid.clear();
     igid.clear();
     
-    nvars = fp->nvars;
+    nvars = fp->nvars/13;
     
+    if(nvars <= mpiRank)
+    {
+    	printf("Warning! :: Thread[%i] is wasting cycles :: too many processors for data\n", mpiRank);
+    	return;    	
+    }
+    
+    //----Set indexes for each reader if there is more than one
     int endIndex;
     int startIndex = (nvars / numMPITasks) * mpiRank;
   	if (nvars % numMPITasks > mpiRank)
@@ -120,7 +137,10 @@ eavlXGCParticleImporter::Initialize()
     	startIndex += nvars % numMPITasks;
     	endIndex = startIndex + (nvars / numMPITasks);
   	}
-   
+	startIndex *= 13;
+	endIndex *= 13;
+	//--
+	
     for(int i = startIndex; i < endIndex; i++)
     {
     	ADIOS_VARINFO *avi = adios_inq_var_byid(fp, i);
@@ -251,9 +271,18 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 		//Set all of the axis values to the x, y, z coordinates of the 
 		//iphase particles; set computational node origin
 		eavlIntArray *originNode = new eavlIntArray("originNode", 1, imaxgid);
+		eavlFloatArray *r = new eavlFloatArray("R", 1, imaxgid);
+		eavlFloatArray *z = new eavlFloatArray("Z", 1, imaxgid);
+		eavlFloatArray *phi = new eavlFloatArray("phi", 1, imaxgid);
+		eavlFloatArray *rho = new eavlFloatArray("rho", 1, imaxgid);
+		eavlFloatArray *w1 = new eavlFloatArray("w1", 1, imaxgid);
+		eavlFloatArray *w2 = new eavlFloatArray("w2", 1, imaxgid);
+		eavlFloatArray *mu = new eavlFloatArray("mu", 1, imaxgid);
+		eavlFloatArray *w0 = new eavlFloatArray("w0", 1, imaxgid);
+		eavlFloatArray *f0 = new eavlFloatArray("f0", 1, imaxgid);
 		
 		uint64_t s[3], c[3];
-		double *buff, R, Z, phi;
+		double *buff;
 		int nt = 1, idx = 0;
 		map<string, ADIOS_VARINFO*>::const_iterator it;
 		for(it = iphase.begin(); it != iphase.end(); it++) 
@@ -272,12 +301,18 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 			
 			for(int i = 0; i < nt; i+=9) 
 			{
-				R = buff[i];
-				Z = buff[i+1];
-				phi = buff[i+2];
-				axisValues[0]->SetComponentFromDouble(idx, 0, R*cos(phi));
-				axisValues[1]->SetComponentFromDouble(idx, 0, R*sin(phi));
-				axisValues[2]->SetComponentFromDouble(idx, 0, Z);
+				r->SetValue(idx, buff[i]);
+				z->SetValue(idx, buff[i+1]);
+				phi->SetValue(idx, buff[i+2]);
+				rho->SetValue(idx, buff[i+3]);
+				w1->SetValue(idx, buff[i+4]);
+				w2->SetValue(idx, buff[i+5]);
+				mu->SetValue(idx, buff[i+6]);
+				w0->SetValue(idx, buff[i+7]);
+				f0->SetValue(idx, buff[i+8]);
+				axisValues[0]->SetComponentFromDouble(idx, 0, r->GetValue(idx)*cos(phi->GetValue(idx)));
+				axisValues[1]->SetComponentFromDouble(idx, 0, r->GetValue(idx)*sin(phi->GetValue(idx)));
+				axisValues[2]->SetComponentFromDouble(idx, 0, z->GetValue(idx));
 				originNode->SetValue(idx, atoi(nodeNum.c_str()));
 				idx++;
 			}
@@ -288,6 +323,15 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 		ds->AddField(new eavlField(1, axisValues[1], eavlField::ASSOC_POINTS));
 		ds->AddField(new eavlField(1, axisValues[2], eavlField::ASSOC_POINTS));
 		ds->AddField(new eavlField(1, originNode, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, r, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, z, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, phi, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, rho, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, w1, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, w2, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, mu, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, w0, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, f0, eavlField::ASSOC_POINTS));
 		
 		eavlCellSet *cellSet = new eavlCellSetAllPoints(name + "_I_Cells", imaxgid);
 		ds->AddCellSet(cellSet);
@@ -344,10 +388,19 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 		//Set all of the axis values to the x, y, z coordinates of the 
 		//ephase particles; set computational node origin
 		eavlIntArray *originNode = new eavlIntArray("originNode", 1, emaxgid);
+		eavlFloatArray *r = new eavlFloatArray("R", 1, imaxgid);
+		eavlFloatArray *z = new eavlFloatArray("Z", 1, imaxgid);
+		eavlFloatArray *phi = new eavlFloatArray("phi", 1, imaxgid);
+		eavlFloatArray *rho = new eavlFloatArray("rho", 1, imaxgid);
+		eavlFloatArray *w1 = new eavlFloatArray("w1", 1, imaxgid);
+		eavlFloatArray *w2 = new eavlFloatArray("w2", 1, imaxgid);
+		eavlFloatArray *mu = new eavlFloatArray("mu", 1, imaxgid);
+		eavlFloatArray *w0 = new eavlFloatArray("w0", 1, imaxgid);
+		eavlFloatArray *f0 = new eavlFloatArray("f0", 1, imaxgid);
 		
 		uint64_t s[3], c[3];
 		int nt = 1, idx = 0;
-		double *buff, R, Z, phi;
+		double *buff;
 		map<string, ADIOS_VARINFO*>::const_iterator it;
 		for(it = ephase.begin(); it != ephase.end(); it++) 
 		{
@@ -365,12 +418,18 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 			
 			for(int i = 0; i < nt; i+=9) 
 			{
-				R = buff[i];
-				Z = buff[i+1];
-				phi = buff[i+2];
-				axisValues[0]->SetComponentFromDouble(idx, 0, R*cos(phi));
-				axisValues[1]->SetComponentFromDouble(idx, 0, R*sin(phi));
-				axisValues[2]->SetComponentFromDouble(idx, 0, Z);
+				r->SetValue(idx, buff[i]);
+				z->SetValue(idx, buff[i+1]);
+				phi->SetValue(idx, buff[i+2]);
+				rho->SetValue(idx, buff[i+3]);
+				w1->SetValue(idx, buff[i+4]);
+				w2->SetValue(idx, buff[i+5]);
+				mu->SetValue(idx, buff[i+6]);
+				w0->SetValue(idx, buff[i+7]);
+				f0->SetValue(idx, buff[i+8]);
+				axisValues[0]->SetComponentFromDouble(idx, 0, r->GetValue(idx)*cos(phi->GetValue(idx)));
+				axisValues[1]->SetComponentFromDouble(idx, 0, r->GetValue(idx)*sin(phi->GetValue(idx)));
+				axisValues[2]->SetComponentFromDouble(idx, 0, z->GetValue(idx));
 				originNode->SetValue(idx, atoi(nodeNum.c_str()));
 				idx++;
 			}
@@ -381,6 +440,15 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 		ds->AddField(new eavlField(1, axisValues[1], eavlField::ASSOC_POINTS));
 		ds->AddField(new eavlField(1, axisValues[2], eavlField::ASSOC_POINTS));
 		ds->AddField(new eavlField(1, originNode, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, r, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, z, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, phi, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, rho, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, w1, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, w2, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, mu, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, w0, eavlField::ASSOC_POINTS));
+		ds->AddField(new eavlField(1, f0, eavlField::ASSOC_POINTS));
 		
 		eavlCellSet *cellSet = new eavlCellSetAllPoints(name + "_E_Cells", emaxgid);
 		ds->AddCellSet(cellSet);
