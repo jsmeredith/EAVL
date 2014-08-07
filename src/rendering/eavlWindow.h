@@ -43,6 +43,7 @@ class eavlWindow
                eavlWorldAnnotator *w)
         : bg(bgcolor), scene(s), renderer(r), surface(surf), worldannotator(w)
     {
+        renderer->SetRenderSurface(surface);
     }
     virtual ~eavlWindow()
     {
@@ -54,6 +55,7 @@ class eavlWindow
         if (renderer)
             delete renderer;
         renderer = sr;
+        renderer->SetRenderSurface(surface);
     }
     eavlSceneRenderer *GetSceneRenderer()
     {
@@ -111,13 +113,12 @@ class eavlWindow
     }
     void SetupMatricesForWorld()
     {
-        view.SetupMatricesForWorld();
-        surface->SetView(view);
+        view.SetupMatrices();
+        surface->SetViewToWorldSpace(view);
     }
     void SetupMatricesForScreen()
     {
-        view.SetupMatricesForScreen();
-        surface->SetView(view);
+        surface->SetViewToScreenSpace();
     }
 
     void SetupForWorldSpace()

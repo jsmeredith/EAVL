@@ -406,20 +406,6 @@ struct eavlView
         view3d.from.y = view3d.from.y+look.y;
         view3d.from.z = view3d.from.z+look.z;
     }
-    
-    // ------------------------------------------------------------------------
-    //
-    // Set up the matrices for world/screen space
-    //
-    void SetupMatricesForWorld()
-    {
-        SetupMatrices();
-    }
-    void SetupMatricesForScreen()
-    {
-        P.CreateOrthographicProjection(2, -1, +1, 1.0);
-        V.CreateIdentity();
-    }
 };
 
 #endif

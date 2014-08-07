@@ -6,10 +6,14 @@
 
 class eavlRenderSurfacePS : public eavlRenderSurface
 {
+  public:
     ostringstream ps;
     string font;
     double width, height;
     set<int> imgdata_defines;
+    eavlView view;
+    bool world;
+    bool clipping;
   public:
     eavlRenderSurfacePS()
     {
@@ -17,6 +21,8 @@ class eavlRenderSurfacePS : public eavlRenderSurface
         font = "LiberationMono";
         width=0;
         height=0;
+        world=false;
+        clipping=false;
     }
     virtual void Initialize()
     {
@@ -51,11 +57,39 @@ class eavlRenderSurfacePS : public eavlRenderSurface
         ps << "fill" << endl;
     }
 
-    virtual void SetView(eavlView &v)
+    virtual void SetViewToWorldSpace(eavlView &v)
     {
+        if (world)
+            return;
+        world = true;
+        view = v;
+        ps << "gsave" << endl;
+        double vl, vr, vt, vb;
+        v.GetRealViewport(vl,vr,vb,vt);
+        double l = double(v.w)*(1.+vl)/2.;
+        double b = double(v.h)*(1.+vb)/2.;
+        double x = (vr-vl)/2.;
+        double y = (vt-vb)/2.;
+        ps << l <<" "<<b<<" translate" << endl;
+        ps << x <<" "<<y<<" scale" << endl;
+    }
+    virtual void SetViewToScreenSpace()
+    {
+        if (!world)
+            return;
+        world = false;
+        ps << "grestore" << endl;
     }
     virtual void SetViewportClipping(eavlView &v, bool clip)
     {
+        if (clip)
+        {
+            //ps << "gsave % start clip" << endl;
+        }
+        else
+        {
+            //ps << "grestore % end clip" << endl;
+        }
     }
 
     virtual void AddRectangle(float x, float y, 

@@ -49,13 +49,24 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
         glClearColor(bg.c[0], bg.c[1], bg.c[2], 1.0); ///< c[3] instead of 1.0?
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     }
-    virtual void SetView(eavlView &v)
+    virtual void SetViewToWorldSpace(eavlView &v)
     {
         glMatrixMode( GL_PROJECTION );
         glLoadMatrixf(v.P.GetOpenGLMatrix4x4());
 
         glMatrixMode( GL_MODELVIEW );
         glLoadMatrixf(v.V.GetOpenGLMatrix4x4());
+    }
+    virtual void SetViewToScreenSpace()
+    {
+        eavlMatrix4x4 P;
+        P.CreateOrthographicProjection(2, -1, +1, 1.0);
+
+        glMatrixMode(GL_PROJECTION);
+        glLoadMatrixf(P.GetOpenGLMatrix4x4());
+
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
     }
     virtual void SetViewportClipping(eavlView &v, bool clip)
     {

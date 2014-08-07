@@ -7,6 +7,7 @@
 #include "eavlColor.h"
 #include "eavlColorTable.h"
 #include "eavlView.h"
+#include "eavlRenderSurface.h"
 
 static inline eavlColor MapValueToColor(double value,
                                  double vmin, double vmax,
@@ -68,6 +69,7 @@ class eavlSceneRenderer
     float Ks;
     float Lx, Ly, Lz;
     bool  eyeLight;
+    eavlRenderSurface *surface;
   public:
     eavlSceneRenderer()
     {
@@ -88,6 +90,10 @@ class eavlSceneRenderer
     {
     }
 
+    void SetRenderSurface(eavlRenderSurface *surf)
+    {
+        surface = surf;
+    }
     void SetAmbientCoefficient(float a)
     {
         Ka = a;
