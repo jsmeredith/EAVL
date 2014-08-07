@@ -17,6 +17,7 @@ class eavlVRScene
 		EAVL_HOSTONLY inline ~eavlVRScene();
 		EAVL_HOSTONLY inline int 		getNumTets();
 		EAVL_HOSTONLY inline float* 	getTetPtr();
+		EAVL_HOSTONLY inline float*     getScalarPtr();
 		EAVL_HOSTONLY inline void 		addTet(const eavlVector3 &v0, const eavlVector3 &v1, const eavlVector3 &v2, const eavlVector3 &v3,
 									   const float &s0, const float &s1, const float &s2, const float &s3);
 		EAVL_HOSTONLY inline void 		clear();
@@ -81,6 +82,25 @@ EAVL_HOSTONLY inline float* eavlVRScene::getTetPtr()
 	}
 
 	return tets_raw;
+}
+
+EAVL_HOSTONLY inline float* eavlVRScene::getScalarPtr()
+{
+	int numTets = getNumTets();
+	if (numTets == 0 ) return NULL;
+	
+	float * scalars_raw = new float [numTets*4]; 
+	for (int i=0;  i < numTets; i++)
+	{
+
+		scalars_raw[i*4+ 0] = tets.at(i).scalars[0];
+		scalars_raw[i*4+ 1] = tets.at(i).scalars[1];
+		scalars_raw[i*4+ 2] = tets.at(i).scalars[2];
+		scalars_raw[i*4+ 3] = tets.at(i).scalars[3];
+
+	}
+
+	return scalars_raw;
 }
 
 EAVL_HOSTONLY inline void eavlVRScene::clear()

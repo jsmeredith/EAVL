@@ -1,6 +1,6 @@
 #ifndef EAVL_SIMPLE_VR_H
 #define EAVL_SIMPLE_VR_H
-
+#include "eavlView.h"
 #include "eavlFilter.h"
 #include "RT/eavlVRScene.h"
 #include "RT/eavlRTUtil.h"
@@ -25,14 +25,15 @@ class eavlSimpleVRMutator : public eavlMutator
     	else THROW(eavlException,"Cannot have a number of samples less than 1.");
     }
 
-    void setView(eavlMatrix4x4 vp)
+    void setView(eavlView v)
     {
-    	//if(vp != NULL)
-    	{
-    		//if(height != v.h || width != view.w) sizeDirty = true;
-    		//view = v;
-    	}
-    	//else THROW(eavlException,"Cannot set null view.");
+    	if(height != v.h || width != view.w) sizeDirty = true;
+    	view = v;
+    }   
+
+    void setGPU(bool isGPU)
+    {
+        isOnGPU = isGPU;
     }
 
 
@@ -42,7 +43,7 @@ class eavlSimpleVRMutator : public eavlMutator
 
     eavlFloatArray* getFrameBuffer() { return framebuffer; }
     //eavlFloatArray* getDepthBuffer() { return zBuffer; }
-
+    eavlVRScene*        scene;
   protected:
     string fieldname;
     int 	height;
@@ -52,14 +53,28 @@ class eavlSimpleVRMutator : public eavlMutator
     int 	colormapSize;
     bool 	geomDirty;
     bool	sizeDirty;
+    bool    isOnGPU;
 
+    eavlView view;
 
     eavlFloatArray*		samples;
     eavlFloatArray*     framebuffer;
-    eavlVRScene*        scene;
+    
 
+    eavlFloatArray*     ssa;
+    eavlFloatArray*     ssb;
+    eavlFloatArray*     ssc;
+    eavlFloatArray*     ssd;
+    eavlFloatArray*     dummy;
+    eavlIntArray*       clippingFlags;
+    eavlIntArray*       iterator;
+    eavlArrayIndexer*   i1;
+    eavlArrayIndexer*   i2;
+    eavlArrayIndexer*   i3;
+    eavlArrayIndexer*   idummy;
     float* 		colormap_raw;
     float*      tets_raw;
+    float*      scalars_raw;
 
     void 		init();
     void 		freeRaw();
