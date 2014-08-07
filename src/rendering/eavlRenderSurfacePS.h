@@ -67,11 +67,24 @@ class eavlRenderSurfacePS : public eavlRenderSurface
         double vl, vr, vt, vb;
         v.GetRealViewport(vl,vr,vb,vt);
         double l = double(v.w)*(1.+vl)/2.;
+        double r = double(v.w)*(1.+vr)/2.;
+
         double b = double(v.h)*(1.+vb)/2.;
+        double t = double(v.h)*(1.+vt)/2.;
+
         double x = (vr-vl)/2.;
         double y = (vt-vb)/2.;
-        ps << l <<" "<<b<<" translate" << endl;
-        ps << x <<" "<<y<<" scale" << endl;
+
+        ps << "newpath" << endl;
+        ps << l << " " << b << " moveto" << endl;
+        ps << l << " " << t << " lineto" << endl;
+        ps << r << " " << t << " lineto" << endl;
+        ps << r << " " << b << " lineto" << endl;
+        ps << "closepath" << endl;
+        ps << "clip" << endl;
+
+        ps << l << " " << b << " translate" << endl;
+        ps << x << " " << y << " scale" << endl;
     }
     virtual void SetViewToScreenSpace()
     {
