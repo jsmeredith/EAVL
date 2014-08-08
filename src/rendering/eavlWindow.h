@@ -97,6 +97,8 @@ class eavlWindow
 
         unsigned char *rgba = renderer->GetRGBAPixels();
         float *depth = renderer->GetDepthPixels();
+        ///\todo: if we're using a GL renderer and a GL surface,
+        // we don't need to paste the pixels in.
         if (rgba || depth)
         {
             surface->PasteScenePixels(view.w, view.h, rgba, depth);

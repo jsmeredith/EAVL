@@ -431,7 +431,7 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
 
     eavlSceneRendererSimpleRT() : eavlSceneRenderer()
     {
-        skip = firstskip = 8;
+        skip = firstskip = 4;
     }
 
     virtual void AddTriangleVnVs(double x0, double y0, double z0,

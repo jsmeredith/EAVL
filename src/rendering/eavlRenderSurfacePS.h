@@ -211,6 +211,34 @@ class eavlRenderSurfacePS : public eavlRenderSurface
                                   unsigned char *rgba,
                                   float *depth)
     {
+        ps << "grestore" << endl; // get back to original screen space
+        ps << "gsave" << endl; // always save
+
+        ps << "gsave" << endl;
+        if (imgdata_defines.count(w) == 0)
+        {
+            ps << "/imgdata"<<w<<" "<<w<<" 3 mul string def" << endl;
+            imgdata_defines.insert(w);
+        }
+        ps << w << " " << h << " scale" << endl;
+        ps << w << " "<<h<<" 8 ["<<w<<" 0 0 "<<h<<" 0 0]" << endl;
+        ps << "{ currentfile imgdata"<<w<<" readhexstring pop }" << endl;
+        ps << "false 3 colorimage" << endl;
+        for (int y=0; y<h; ++y)
+        {
+            for (int x=0; x<w; ++x)
+            {
+                char tmp[256];
+                sprintf(tmp, "%2.2X%2.2X%2.2X", 
+                        rgba[4*(x + y*w) + 0],
+                        rgba[4*(x + y*w) + 1],
+                        rgba[4*(x + y*w) + 2]);
+                ps << tmp;
+            }
+            ps << endl;
+        }
+        ps << endl;
+        ps << "grestore" << endl;
     }
     virtual void SaveAs(string fn, FileType ft)
     {

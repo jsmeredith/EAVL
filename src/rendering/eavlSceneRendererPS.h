@@ -26,6 +26,7 @@ class eavlSceneRendererPS : public eavlSceneRenderer
   protected:
     eavlMatrix4x4 T,S;
     eavlMatrix4x4 W;
+    int trianglecount;
   public:
     eavlSceneRendererPS()
     {
@@ -65,6 +66,8 @@ class eavlSceneRendererPS : public eavlSceneRenderer
         surf->ps << "/ColorSpace [/DeviceRGB]" << endl;
         surf->ps << "/DataSource" << endl;
         surf->ps << "[" << endl;
+
+        trianglecount = 0;
     }
 
     virtual void EndTriangles()
@@ -87,6 +90,25 @@ class eavlSceneRendererPS : public eavlSceneRenderer
                                  double u2, double v2, double w2,
                                  double s0, double s1, double s2)
     {
+        eavlRenderSurfacePS *surf = dynamic_cast<eavlRenderSurfacePS*>(surface);
+        if (!surf)
+            return;
+
+
+        if (trianglecount == 500)
+        {
+            surf->ps << "]" << endl;
+            surf->ps << ">>" << endl;
+            surf->ps << "shfill" << endl;
+            surf->ps << "<<" << endl;
+            surf->ps << "/ShadingType 4" << endl;
+            surf->ps << "/ColorSpace [/DeviceRGB]" << endl;
+            surf->ps << "/DataSource" << endl;
+            surf->ps << "[" << endl;
+            trianglecount = 0;
+        }
+        trianglecount++;
+
         eavlPoint3 p0(x0,y0,z0);
         eavlPoint3 p1(x1,y1,z1);
         eavlPoint3 p2(x2,y2,z2);
@@ -94,10 +116,6 @@ class eavlSceneRendererPS : public eavlSceneRenderer
         p0 = S*T * view.P * view.V * p0;
         p1 = S*T * view.P * view.V * p1;
         p2 = S*T * view.P * view.V * p2;
-
-        eavlRenderSurfacePS *surf = dynamic_cast<eavlRenderSurfacePS*>(surface);
-        if (!surf)
-            return;
 
         int ci0 = float(ncolors-1) * s0;
         eavlColor c0(colors[ci0*3+0], colors[ci0*3+1], colors[ci0*3+2]);
