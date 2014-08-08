@@ -66,11 +66,24 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
 
     void Composite()
     {
+        int th = eavlTimer::Start();
         //cerr << "Composite\n";
         //
         // composite all samples back-to-front
         // 
         //cerr << "color[0] = " <<eavlColor(colors[0],colors[1],colors[2]) << endl;
+        float *alphas = new float[ncolors];
+        for (int i=0; i<ncolors; ++i)
+        {
+            float value = float(i)/float(ncolors-1);
+
+            float center = 0.5;
+            float sigma = 0.13;
+            float alpha = exp(-(value-center)*(value-center)/(2*sigma*sigma));
+            //float alpha = .5;
+
+            alphas[i] = alpha;
+        }
 
         int w = view.w;
         int h = view.h;
@@ -94,11 +107,8 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
                                 colors[colorindex*3+2],
                                 1.0);
                     // use a gaussian density function as the opactiy
-                    float center = 0.5;
-                    float sigma = 0.13;
                     float attenuation = 0.02;
-                    float alpha = exp(-(value-center)*(value-center)/(2*sigma*sigma));
-                    //float alpha = value;
+                    float alpha = alphas[colorindex];
                     alpha *= attenuation;
                     color.c[0] = color.c[0] * (1.-alpha) + c.c[0] * alpha;
                     color.c[1] = color.c[1] * (1.-alpha) + c.c[1] * alpha;
@@ -120,6 +130,11 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
             }
         }
 
+        delete[] alphas;
+        double comptime = eavlTimer::Stop(th,"compositing");
+
+        if (false)
+            cerr << "compositing time = "<<comptime << endl;
     }
 
     // ------------------------------------------------------------------------
@@ -539,6 +554,7 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
             cerr << tets_eval << " out of " << n << " ("
                  << (100.*double(tets_eval)/double(n)) << "%) tetrahedra\n";
 
+            cerr << "w="<<view.w<<" h="<<view.h << endl;
             cerr << "Sample time = "<<sampletime << endl;
         }
     }
