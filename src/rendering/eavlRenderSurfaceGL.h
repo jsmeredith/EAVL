@@ -49,6 +49,37 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
         glClearColor(bg.c[0], bg.c[1], bg.c[2], 1.0); ///< c[3] instead of 1.0?
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     }
+    virtual void PasteScenePixels(int w, int h,
+                                  unsigned char *rgba,
+                                  float *depth)
+    {
+        glColor3f(1,1,1);
+        glDisable(GL_BLEND);
+        glDisable(GL_LIGHTING);
+        glDisable(GL_DEPTH_TEST);
+
+        // draw the pixel colors
+        if (rgba)
+            glDrawPixels(w, h, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+
+        if (depth)
+        {
+            // drawing the Z buffer will overwrite the pixel colors
+            // unless you actively prevent it....
+            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+            glDepthMask(GL_TRUE);
+            // For some bizarre reason, you need GL_DEPTH_TEST enabled for
+            // it to write into the Z buffer. 
+            glEnable(GL_DEPTH_TEST);
+
+            // draw the z buffer
+            glDrawPixels(w, h, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
+
+            // set the various masks back to "normal"
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+            glDepthMask(GL_TRUE);
+        }
+    }
     virtual void SetViewToWorldSpace(eavlView &v, bool clip)
     {
         glMatrixMode( GL_PROJECTION );

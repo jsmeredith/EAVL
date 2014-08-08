@@ -92,9 +92,20 @@ class eavlWindow
         surface->Activate();
         surface->Clear(bg);
 
-        // render the plots and annotations
-        Render();
+        // render the plots
+        RenderScene();
 
+        unsigned char *rgba = renderer->GetRGBAPixels();
+        float *depth = renderer->GetDepthPixels();
+        if (rgba || depth)
+        {
+            surface->PasteScenePixels(view.w, view.h, rgba, depth);
+        }
+
+        // render the window type specific annotations
+        RenderAnnotations();
+
+        // render any other annotations
         for (unsigned int i=0; i<annotations.size(); ++i)
             annotations[i]->Render(view);
 
@@ -111,7 +122,8 @@ class eavlWindow
         surface->SetViewToScreenSpace(view, viewportclip);
     }
 
-    virtual void Render() = 0;
+    virtual void RenderScene() = 0;
+    virtual void RenderAnnotations() = 0;
 };
 
 #endif

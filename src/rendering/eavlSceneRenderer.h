@@ -178,6 +178,15 @@ class eavlSceneRenderer
     //virtual void SetActiveMaterial() { } // diffuse, specular, ambient
     //virtual void SetActiveLighting() { } // etc.
 
+    virtual unsigned char *GetRGBAPixels()
+    {
+        return NULL;
+    }
+
+    virtual float *GetDepthPixels()
+    {
+        return NULL;
+    }
 
     // ----------------------------------------
     // Vertex Normal

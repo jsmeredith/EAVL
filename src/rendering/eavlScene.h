@@ -6,7 +6,8 @@
 #include "eavlView.h"
 #include "eavlPlot.h"
 #include "eavlColorTable.h"
-#include "eavlWindow.h"
+
+class eavlWindow;
 
 // ****************************************************************************
 // Class:  eavlScene
@@ -82,6 +83,9 @@ class eavlScene
                      
     }
 };
+
+#include "eavlWindow.h"
+
 
 // ****************************************************************************
 // Class:  eavl3DScene

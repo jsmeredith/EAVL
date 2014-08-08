@@ -25,6 +25,10 @@ class eavlRenderSurface
     virtual void SetViewToScreenSpace(eavlView &v, bool clip) = 0;
     //virtual unsigned char *GetRGBA()
 
+    virtual void PasteScenePixels(int w, int h,
+                                  unsigned char *rgba,
+                                  float *depth) = 0;
+
     virtual void AddLine(float x0, float y0,
                          float x1, float y1,
                          float linewidth,

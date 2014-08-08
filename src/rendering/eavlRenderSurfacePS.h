@@ -207,6 +207,11 @@ class eavlRenderSurfacePS : public eavlRenderSurface
         ps << " show" << endl;
         ps << "grestore" << endl;
     }
+    virtual void PasteScenePixels(int w, int h,
+                                  unsigned char *rgba,
+                                  float *depth)
+    {
+    }
     virtual void SaveAs(string fn, FileType ft)
     {
         if (ft != EPS)
