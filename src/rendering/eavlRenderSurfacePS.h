@@ -45,7 +45,7 @@ class eavlRenderSurfacePS : public eavlRenderSurface
     }
     virtual void Clear(eavlColor bg)
     {
-        Resize(width,width);
+        Resize(width,height);
         ps << "newpath" << endl;
         ps << "0 0 moveto" << endl;
         ps << width<<" 0 lineto" << endl;
