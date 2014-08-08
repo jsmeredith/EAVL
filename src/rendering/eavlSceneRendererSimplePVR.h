@@ -31,9 +31,10 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
   public:
     eavlSceneRendererSimplePVR()
     {
-        numSamples = 250;
+        numSamples = 300;
         vr = new eavlSimpleVRMutator();
-        vr->setGPU(false);
+        vr->setGPU(true);
+        vr->setVerbose(true);
         doOnce = true;
         ctName = "";
         
@@ -46,6 +47,7 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
     virtual void StartScene()
     {
         eavlSceneRenderer::StartScene();
+        vr->clear();
         
     }
 
@@ -93,7 +95,7 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
        }
        vr->scene->addTet(eavlVector3(x0,y0,z0), eavlVector3(x1,y1,z1), eavlVector3(x2,y2,z2), eavlVector3(x3,y3,z3),
                             s0, s1, s2, s3);
-       
+       //cout<<"Scalars "<<s0<<" "<<s1<<" "<<s2<<" "<<s3<<endl;
     }
 
     // ------------------------------------------------------------------------
@@ -127,40 +129,40 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
     // ------------------------------------------------------------------------
     virtual void Render()
     {
-        cout<<"Starting to render"<<endl;
         if(vr->scene->getNumTets() == 0) return;
         
-        //int tframe = eavlTimer::Start();
+        int tframe = eavlTimer::Start();
         vr->setView(view);
         vr->Execute();
 
-        /*glColor3f(1,1,1);
+        glColor3f(1,1,1);
         glDisable(GL_BLEND);
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);
-        const float* rgb   = caster->getFrameBuffer()->GetTuple(0);
-        //const float* depth = tracer->getDepthBuffer()->GetTuple(0);
+        const float* rgba   = vr->getFrameBuffer()->GetTuple(0);
+        const float* depth = vr->getDepthBuffer()->GetTuple(0);
         // draw the pixel colors
-        glDrawPixels(view.w, view.h, GL_RGBA, GL_FLOAT, &rgb[0]);
-
+        glDrawPixels(view.w, view.h, GL_RGBA, GL_FLOAT, &rgba[0]);
+        
         // drawing the Z buffer will overwrite the pixel colors
         // unless you actively prevent it....
-        //glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        //glDepthMask(GL_TRUE);
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+        glDepthMask(GL_TRUE);
         // For some bizarre reason, you need GL_DEPTH_TEST enabled for
         // it to write into the Z buffer. 
-        //glEnable(GL_DEPTH_TEST);
+        glEnable(GL_DEPTH_TEST);
 
         // draw the z buffer
-        //glDrawPixels(view.w, view.h, GL_DEPTH_COMPONENT, GL_FLOAT, &depth[0]);
+        glDrawPixels(view.w, view.h, GL_DEPTH_COMPONENT, GL_FLOAT, &depth[0]);
 
         // set the various masks back to "normal"
-        //glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        //glDepthMask(GL_TRUE);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glDepthMask(GL_TRUE);
+        
+        
+        doOnce =  true;
         
         cerr<<"\nTotal Frame Time   : "<<eavlTimer::Stop(tframe,"")<<endl;
-        doOnce =  true;
-        */
     }
 
     

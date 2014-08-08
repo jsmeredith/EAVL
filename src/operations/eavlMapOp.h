@@ -89,21 +89,29 @@ class eavlMapOp : public eavlOperation
     I  inputs;
     O  outputs;
     F  functor;
+    int nitems;
   public:
-    eavlMapOp(I i, O o, F f) : inputs(i), outputs(o), functor(f)
+    eavlMapOp(I i, O o, F f) : inputs(i), outputs(o), functor(f), nitems(-1)
+    {
+    }
+    eavlMapOp(I i, O o, F f, int nItems) : inputs(i), outputs(o), functor(f), nitems(nItems)
     {
     }
     virtual void GoCPU()
     {
         int dummy;
-        int n = outputs.first.length();
+        int n;
+        if( nitems > 0 ) n = nitems;
+        else n = outputs.first.length();
         eavlOpDispatch<eavlMapOp_CPU>(n, dummy, inputs, outputs, functor);
     }
     virtual void GoGPU()
     {
 #ifdef HAVE_CUDA
         int dummy;
-        int n = outputs.first.length();
+        int n;
+        if( nitems > 0 ) n = nitems;
+        else n = outputs.first.length();
         eavlOpDispatch<eavlMapOp_GPU>(n, dummy, inputs, outputs, functor);
 #else
         THROW(eavlException,"Executing GPU code without compiling under CUDA compiler.");
@@ -116,6 +124,11 @@ template <class I, class O, class F>
 eavlMapOp<I,O,F> *new_eavlMapOp(I i, O o, F f) 
 {
     return new eavlMapOp<I,O,F>(i,o,f);
+}
+template <class I, class O, class F>
+eavlMapOp<I,O,F> *new_eavlMapOp(I i, O o, F f, int itemsToProcess) 
+{
+    return new eavlMapOp<I,O,F>(i,o,f, itemsToProcess);
 }
 
 

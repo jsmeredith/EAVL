@@ -27,8 +27,12 @@ class eavlSimpleVRMutator : public eavlMutator
 
     void setView(eavlView v)
     {
-    	if(height != v.h || width != view.w) sizeDirty = true;
+        int newh = v.h;
+        int neww = v.w;
+    	if(height != newh || width != neww) sizeDirty = true;
     	view = v;
+        height = newh;
+        width = neww;
     }   
 
     void setGPU(bool isGPU)
@@ -36,13 +40,23 @@ class eavlSimpleVRMutator : public eavlMutator
         isOnGPU = isGPU;
     }
 
+    void clear()
+    {
+        scene->clear();
+        numTets = 0;
+    }
+
+    void setVerbose(bool on)
+    {
+        verbose = on;
+    }
 
     virtual void Execute();
     void setColorMap3f(float*,int);
     void setDefaultColorMap();
 
     eavlFloatArray* getFrameBuffer() { return framebuffer; }
-    //eavlFloatArray* getDepthBuffer() { return zBuffer; }
+    eavlFloatArray* getDepthBuffer() { return zBuffer; }
     eavlVRScene*        scene;
   protected:
     string fieldname;
@@ -54,6 +68,7 @@ class eavlSimpleVRMutator : public eavlMutator
     bool 	geomDirty;
     bool	sizeDirty;
     bool    isOnGPU;
+    bool    verbose;
 
     eavlView view;
 
@@ -65,12 +80,18 @@ class eavlSimpleVRMutator : public eavlMutator
     eavlFloatArray*     ssb;
     eavlFloatArray*     ssc;
     eavlFloatArray*     ssd;
+    eavlFloatArray*     zBuffer;
     eavlFloatArray*     dummy;
     eavlIntArray*       clippingFlags;
     eavlIntArray*       iterator;
+    eavlIntArray*       screenIterator;
     eavlArrayIndexer*   i1;
     eavlArrayIndexer*   i2;
     eavlArrayIndexer*   i3;
+    eavlArrayIndexer*   ir;
+    eavlArrayIndexer*   ig;
+    eavlArrayIndexer*   ib;
+    eavlArrayIndexer*   ia;
     eavlArrayIndexer*   idummy;
     float* 		colormap_raw;
     float*      tets_raw;
