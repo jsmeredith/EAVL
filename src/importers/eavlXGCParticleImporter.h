@@ -43,7 +43,9 @@ class eavlXGCParticleImporter : public eavlImporter
     						int fromDataspaces);
     virtual ~eavlXGCParticleImporter();
 
+	int			   GetTimeStep();
     int            GetNumChunks(const std::string &mesh) {return 1;}
+    int			   AdvanceTimeStep(int step, int timeout_sec);
     vector<string> GetMeshList();
     vector<string> GetFieldList(const std::string &mesh);
     vector<string> GetCellSetList(const std::string &mesh);

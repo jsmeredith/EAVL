@@ -609,3 +609,34 @@ eavlXGCParticleImporter::MakeSelection(ADIOS_VARINFO *avi, uint64_t *s, uint64_t
     return adios_selection_boundingbox(avi->ndim, s, c);
 }
 
+int
+eavlXGCParticleImporter::GetTimeStep()
+{
+	return timestep;
+}
+
+int
+eavlXGCParticleImporter::AdvanceTimeStep(int step, int timeout_sec)
+{
+	int err = adios_advance_step (fp, step, timeout_sec);
+
+	if(err != 0)
+		return -1;				 
+	
+	map<string, ADIOS_VARINFO*>::const_iterator it;
+	for(it = ephase.begin(); it != ephase.end(); it++)
+		adios_free_varinfo(it->second);
+	ephase.clear();
+	for(it = iphase.begin(); it != iphase.end(); it++)
+		adios_free_varinfo(it->second);
+	iphase.clear();
+	for(it = egid.begin(); it != egid.end(); it++)
+		adios_free_varinfo(it->second);
+	egid.clear();
+	for(it = igid.begin(); it != igid.end(); it++)
+		adios_free_varinfo(it->second);
+	igid.clear();
+	
+	Initialize();
+	return 0;
+}
