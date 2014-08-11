@@ -220,7 +220,6 @@ eavlXGCParticleImporter::GetCellSetList(const std::string &mesh)
 		m.push_back("iMesh_cells");
     else if(mesh == "eMesh")
 		m.push_back("eMesh_cells");
-    
     return m;
 }
 
@@ -333,7 +332,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 		ds->AddField(new eavlField(1, w0, eavlField::ASSOC_POINTS));
 		ds->AddField(new eavlField(1, f0, eavlField::ASSOC_POINTS));
 		
-		eavlCellSet *cellSet = new eavlCellSetAllPoints(name + "_I_Cells", imaxgid);
+		eavlCellSet *cellSet = new eavlCellSetAllPoints(name + "_cells", imaxgid);
 		ds->AddCellSet(cellSet);
 		//-- END set axis values
 	
@@ -450,7 +449,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 		ds->AddField(new eavlField(1, w0, eavlField::ASSOC_POINTS));
 		ds->AddField(new eavlField(1, f0, eavlField::ASSOC_POINTS));
 		
-		eavlCellSet *cellSet = new eavlCellSetAllPoints(name + "_E_Cells", emaxgid);
+		eavlCellSet *cellSet = new eavlCellSetAllPoints(name + "_cells", emaxgid);
 		ds->AddCellSet(cellSet);
 		//-- END set axis values
 	
