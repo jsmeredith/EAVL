@@ -15,7 +15,7 @@
 ///   as well as stripped copies of the vars.
 ///   Note: this version creates a subset cell set referencing the original.
 //
-// Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern
+// Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern, James Kress
 // Creation:    April 13, 2012
 //
 // ****************************************************************************

@@ -14,15 +14,16 @@ eavlSubsetMutator::Execute()
 {
     int inCellSetIndex = dataset->GetCellSetIndex(cellsetname);
     eavlCellSet *inCells = dataset->GetCellSet(cellsetname);
-
+	
     eavlField   *inField = dataset->GetField(fieldname);
-
-    if (inField->GetAssociation() != eavlField::ASSOC_CELL_SET ||
-        inField->GetAssocCellSet() != dataset->GetCellSet(inCellSetIndex)->GetName())
+	
+	eavlField::Association fieldAssociation = inField->GetAssociation();
+	if(fieldAssociation != eavlField::ASSOC_POINTS &&
+		(inField->GetAssociation() != eavlField::ASSOC_CELL_SET ||
+        inField->GetAssocCellSet() != dataset->GetCellSet(inCellSetIndex)->GetName()))
     {
         THROW(eavlException,"Field for subset didn't match cell set.");
     }
-
 
     eavlArray *inArray = inField->GetArray();
 
@@ -42,13 +43,15 @@ eavlSubsetMutator::Execute()
 
     //int new_cell_index = dataset->GetNumCellSets();
     dataset->AddCellSet(subset);
-
-    for (int i=0; i<dataset->GetNumFields(); i++)
+	
+	int numDatasetFields = dataset->GetNumFields();
+    for (int i=0; i<numDatasetFields; i++)
     {
         eavlField *f = dataset->GetField(i);
-        if (f->GetAssociation() == eavlField::ASSOC_CELL_SET &&
-            f->GetAssocCellSet() == dataset->GetCellSet(inCellSetIndex)->GetName())
-        {
+        if(fieldAssociation == eavlField::ASSOC_POINTS ||
+			(inField->GetAssociation() == eavlField::ASSOC_CELL_SET &&
+    	     inField->GetAssocCellSet() == dataset->GetCellSet(inCellSetIndex)->GetName()))
+    	{
             eavlFloatArray *a = new eavlFloatArray(
                                  string("subset_of_")+f->GetArray()->GetName(),
                                  f->GetArray()->GetNumberOfComponents());
@@ -61,7 +64,7 @@ eavlSubsetMutator::Execute()
             }
 
             eavlField *newfield = new eavlField(f->GetOrder(), a,
-                                                eavlField::ASSOC_CELL_SET,
+                                                fieldAssociation,
                                                 subset->GetName());
             dataset->AddField(newfield);
         }

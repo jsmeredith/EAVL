@@ -73,10 +73,7 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(	const string &filename,
 	MPI_Comm_rank(comm,&mpiRank);
 	MPI_Get_processor_name(hostname, &len);
     
-    if(fromDataspaces)
-	    fp = adios_read_open(filename.c_str(), method, comm, mode, timeout_sec);
-    else
-    	fp = adios_read_open_file(filename.c_str(), method, comm);
+	fp = adios_read_open(filename.c_str(), method, comm, mode, timeout_sec);
     	
     if(fp == NULL)
     {
@@ -115,6 +112,8 @@ eavlXGCParticleImporter::Initialize()
     iphase.clear();
     egid.clear();
     igid.clear();
+    
+    cerr << fp->nvars << endl;
     
     nvars = fp->nvars/13;
     
@@ -623,6 +622,16 @@ eavlXGCParticleImporter::AdvanceTimeStep(int step, int timeout_sec)
 	if(err != 0)
 		return -1;				 
 	
+	timestep = 0;
+    maxnum = 0;
+    enphase = 0;
+    inphase = 0;
+    emaxgid = 0;
+    imaxgid = 0;
+    nvars = 0;
+    time = 0;
+    retVal = 0;
+	
 	map<string, ADIOS_VARINFO*>::const_iterator it;
 	for(it = ephase.begin(); it != ephase.end(); it++)
 		adios_free_varinfo(it->second);
@@ -640,3 +649,4 @@ eavlXGCParticleImporter::AdvanceTimeStep(int step, int timeout_sec)
 	Initialize();
 	return 0;
 }
+
