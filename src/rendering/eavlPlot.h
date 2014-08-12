@@ -287,7 +287,12 @@ class eavlPlot
             }
             else
             {
-                if (cellset->GetDimensionality() == 1)
+                if (cellset->GetDimensionality() == 0)
+                {
+                    //cerr << "RENDERING 1D CELLS\n";
+                    r->RenderCells0D(cellset, npts, finalpts, opts);
+                }
+                else if (cellset->GetDimensionality() == 1)
                 {
                     //cerr << "RENDERING 1D CELLS\n";
                     r->RenderCells1D(cellset, npts, finalpts, opts);
