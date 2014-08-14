@@ -36,11 +36,12 @@ class eavlXGCParticleImporter : public eavlImporter
   public:
     eavlXGCParticleImporter(const string &filename);
     eavlXGCParticleImporter(const string &filename, 
-    						ADIOS_READ_METHOD method, 
-    						MPI_Comm comm, 
-    						ADIOS_LOCKMODE mode, 
-    						int timeout_sec,
-    						int fromDataspaces);
+                            ADIOS_READ_METHOD method, 
+                            MPI_Comm comm, 
+                            ADIOS_LOCKMODE mode, 
+                            int timeout_sec,
+                            int fromDataspaces
+                           );
     virtual ~eavlXGCParticleImporter();
 
 	int			   GetTimeStep();
@@ -58,10 +59,11 @@ class eavlXGCParticleImporter : public eavlImporter
     ADIOS_SELECTION *MakeSelection(ADIOS_VARINFO *avi, uint64_t *s, uint64_t *c);
     ADIOS_FILE *fp;
 	
-	int 			timestep, maxnum, enphase, inphase, nvars, retVal, numMPITasks, mpiRank;
-	double 			time;
-	MPI_Comm 		comm;
-    long long 		emaxgid, imaxgid;    
+    int             maxnum, enphase, inphase, nvars, retVal, numMPITasks, mpiRank;
+    int	            totalIParticles, totalEParticles, timestep;
+    double          time;
+    MPI_Comm        comm;
+    long long       emaxgid, imaxgid;    
 
     map<string, ADIOS_VARINFO *> iphase, igid, ephase, egid;
 };
