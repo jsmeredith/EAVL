@@ -627,6 +627,18 @@ eavlXGCParticleImporter::GetTimeStep()
 }
 
 int
+eavlXGCParticleImporter::GetEMaxGID()
+{
+    return imaxgid;
+}
+
+int
+eavlXGCParticleImporter::GetIMaxGID()
+{
+    return emaxgid;
+}
+
+int
 eavlXGCParticleImporter::AdvanceTimeStep(int step, int timeout_sec)
 {
     int err = adios_advance_step (fp, step, timeout_sec);

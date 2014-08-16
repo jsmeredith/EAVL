@@ -45,6 +45,8 @@ class eavlXGCParticleImporter : public eavlImporter
     virtual ~eavlXGCParticleImporter();
 
 	int			   GetTimeStep();
+	int            GetEMaxGID();
+	int            GetIMaxGID();
     int            GetNumChunks(const std::string &mesh) {return 1;}
     int			   AdvanceTimeStep(int step, int timeout_sec);
     vector<string> GetMeshList();
@@ -78,3 +80,4 @@ class eavlXGCParticleImporter : public eavlMissingImporter
 
 #endif //HAVE_ADIOS
 #endif //EAVL_XGC_PARTICLE_IMPORTER_H
+

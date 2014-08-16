@@ -18,6 +18,7 @@ SET(EAVL_FILTERS_CUDA_SRCS
   eavlSurfaceNormalMutator.cu
   eavlTransformMutator.cu
   eavlUnaryMathMutator.cu
+  eavlSelectionMutator.cu
 )
 
 IF (HAVE_CUDA) 

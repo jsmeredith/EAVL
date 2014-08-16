@@ -48,6 +48,7 @@ OBJ=\
  filters/eavlThresholdMutator.o \
  filters/eavlTransformMutator.o \
  filters/eavlUnaryMathMutator.o \
+ filters/eavlSelectionMutator.o \
  fonts/eavlBitmapFont.o \
  fonts/eavlBitmapFontFactory.o \
  fonts/Liberation2Mono.o \
