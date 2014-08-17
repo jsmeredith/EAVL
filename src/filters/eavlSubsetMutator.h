@@ -24,6 +24,7 @@ class eavlSubsetMutator : public eavlMutator
   protected:
     double minval, maxval;
     string fieldname, cellsetname;
+    bool all_points_required;
   public:
     eavlSubsetMutator();
     void SetRange(double vmin, double vmax)
@@ -38,6 +39,10 @@ class eavlSubsetMutator : public eavlMutator
     void SetCellSet(const string &name)
     {
         cellsetname = name;
+    }
+    void SetNodalThresholdAllPointsRequired(bool apr)
+    {
+        all_points_required = apr;
     }
     
     virtual void Execute();
