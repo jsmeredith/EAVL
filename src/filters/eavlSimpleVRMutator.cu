@@ -133,6 +133,7 @@ eavlSimpleVRMutator::eavlSimpleVRMutator()
     dummy = new eavlFloatArray("",1,2);
 
     verbose = false;
+    setDefaultColorMap();
 }
 
 eavlSimpleVRMutator::~eavlSimpleVRMutator()
@@ -440,7 +441,7 @@ struct CompositeFunctor
 
     }
 
-    EAVL_FUNCTOR tuple<float,float,float,float,float> operator()(tuple<int> inputs )
+    EAVL_FUNCTOR tuple<byte,byte,byte,byte,float> operator()(tuple<int> inputs )
     {
         int idx = get<0>(inputs);
         int minz = nSamples;
@@ -463,7 +464,7 @@ struct CompositeFunctor
             // use a gaussian density function as the opactiy
             float center = 0.5;
             float sigma = 0.13;
-            float attenuation = 0.02;
+            float attenuation = 0.02; 
             float alpha = exp(-(value-center)*(value-center)/(2*sigma*sigma));
             //float alpha = value;
             alpha *= attenuation;
@@ -482,7 +483,7 @@ struct CompositeFunctor
             depth = .5 * projdepth + .5;
         }
 
-        return tuple<float,float,float,float, float>(color.c[0], color.c[1], color.c[2],color.c[3],depth);
+        return tuple<byte,byte,byte,byte,float>(color.c[0]*255., color.c[1]*255., color.c[2]*255.,color.c[3]*255.,depth);
         
     }
    
@@ -514,7 +515,7 @@ struct CompositeFunctorFB
 
     }
 
-    EAVL_FUNCTOR tuple<float,float,float,float,float> operator()(tuple<int> inputs )
+    EAVL_FUNCTOR tuple<byte,byte,byte,byte,float> operator()(tuple<int> inputs )
     {
         int idx = get<0>(inputs);
         int minz = nSamples;
@@ -557,7 +558,7 @@ struct CompositeFunctorFB
             depth = .5 * projdepth + .5;
         }
 
-        return tuple<float,float,float,float, float>(color.c[0], color.c[1], color.c[2],color.c[3],depth);
+        return tuple<byte,byte,byte,byte,float>(color.c[0]*255., color.c[1]*255., color.c[2]*255.,color.c[3]*255.,depth);
         
     }
    
@@ -625,7 +626,7 @@ void eavlSimpleVRMutator::init()
         deleteClassPtr(zBuffer);
         
         samples         = new eavlFloatArray("",1,height*width*nSamples);
-        framebuffer     = new eavlFloatArray("",1,height*width*4);
+        framebuffer     = new eavlByteArray("",1,height*width*4);
         screenIterator  = new eavlIntArray("",1,height*width);
         zBuffer         = new eavlFloatArray("",1,height*width);
         
@@ -669,7 +670,6 @@ void eavlSimpleVRMutator::init()
         iterator      = new eavlIntArray("",1, numTets);
         dummy = new eavlFloatArray("",1,numTets);
         for(int i=0; i < numTets; i++) iterator->SetValue(i,i);
-        
 
         geomDirty = false;
     }
@@ -694,14 +694,14 @@ void  eavlSimpleVRMutator::Execute()
         cout<<"Nothing to render."<<endl;
         return;
     }
-    cout<<"Rendering "<<numTets<<" tets"<<endl;
+    cout<<"Rendering "<<numTets<<" tets Color map Size : "<<colormapSize<<endl;
     int tinit;
     if(verbose) tinit = eavlTimer::Start();
     init();
     if(verbose) cout<<"Init        RUNTIME: "<<eavlTimer::Stop(tinit,"init")<<endl;
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(framebuffer),
                                              eavlOpArgs(framebuffer),
-                                             FloatMemsetFunctor(0.f)),
+                                             IntMemsetFunctor(0.f)),
                                              "clear Frame Buffer");
     eavlExecutor::Go();
 
@@ -774,10 +774,10 @@ void  eavlSimpleVRMutator::Execute()
     int tcomp;
     if(verbose) tcomp = eavlTimer::Start();
      eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(screenIterator),
-                                              eavlOpArgs(eavlIndexable<eavlFloatArray>(framebuffer,*ir),
-                                                         eavlIndexable<eavlFloatArray>(framebuffer,*ig),
-                                                         eavlIndexable<eavlFloatArray>(framebuffer,*ib),
-                                                         eavlIndexable<eavlFloatArray>(framebuffer,*ia),
+                                              eavlOpArgs(eavlIndexable<eavlByteArray>(framebuffer,*ir),
+                                                         eavlIndexable<eavlByteArray>(framebuffer,*ig),
+                                                         eavlIndexable<eavlByteArray>(framebuffer,*ib),
+                                                         eavlIndexable<eavlByteArray>(framebuffer,*ia),
                                                          eavlIndexable<eavlFloatArray>(zBuffer)),
                                              CompositeFunctor( view, nSamples, samplePtr, color_map_array, colormapSize), height*width),
                                              "Composite");

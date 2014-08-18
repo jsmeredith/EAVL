@@ -20,7 +20,7 @@ class eavlRayTracerMutator : public eavlMutator
       fieldname = name;
     }
 
-    eavlFloatArray* getFrameBuffer() { return frameBuffer; }
+    eavlByteArray* getFrameBuffer() { return frameBuffer; }
     eavlFloatArray* getDepthBuffer() { return zBuffer; }
 
     void setDefaultMaterial(float ka, float kd, float ks)
@@ -311,6 +311,12 @@ class eavlRayTracerMutator : public eavlMutator
 
       deleteClassPtr(compactTempInt);
       deleteClassPtr(compactTempFloat);
+
+      deleteClassPtr(redIndexer);
+      deleteClassPtr(blueIndexer);
+      deleteClassPtr(greenIndexer);
+      deleteClassPtr(alphaIndexer);
+
           //what happens when someone turns these on and off??? 
           //1. we could just always do it and waste memory
           //2 call allocation if we detect dirty settings/dirtySize <-this is what is being done;
@@ -467,13 +473,14 @@ class eavlRayTracerMutator : public eavlMutator
     eavlIntArray    *compactTempInt;        /*temp arrays for misc usage */
     eavlFloatArray  *compactTempFloat;
     eavlFloatArray  *zBuffer;
-    eavlFloatArray  *frameBuffer;           /* RGBRGB..*/
+    eavlByteArray   *frameBuffer;           /* RGBARGBA..*/
 
     /*eavl Array indexers*/
     eavlArrayIndexer      *occIndexer;
     eavlArrayIndexer      *redIndexer;
     eavlArrayIndexer      *greenIndexer;
     eavlArrayIndexer      *blueIndexer;
+    eavlArrayIndexer      *alphaIndexer;
 
     eavlFloatArray        *scalars;         /*lerped intersection scalars */ 
     eavlConstArray<float> *mats;

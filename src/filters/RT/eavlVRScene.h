@@ -90,6 +90,7 @@ EAVL_HOSTONLY inline float* eavlVRScene::getScalarPtr()
 	if (numTets == 0 ) return NULL;
 	
 	float * scalars_raw = new float [numTets*4]; 
+	
 	for (int i=0;  i < numTets; i++)
 	{
 
@@ -97,7 +98,7 @@ EAVL_HOSTONLY inline float* eavlVRScene::getScalarPtr()
 		scalars_raw[i*4+ 1] = tets.at(i).scalars[1];
 		scalars_raw[i*4+ 2] = tets.at(i).scalars[2];
 		scalars_raw[i*4+ 3] = tets.at(i).scalars[3];
-
+		
 	}
 
 	return scalars_raw;

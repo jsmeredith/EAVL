@@ -171,6 +171,18 @@ struct FloatMemcpyFunctor3to3
 
 };
 
+struct CopyFrameBuffer
+{
+    CopyFrameBuffer(){}
+
+    EAVL_FUNCTOR tuple<byte,byte,byte,byte> operator()(tuple<float,float,float,float> input){
+        return tuple<byte,byte,byte,byte>(get<0>(input)*255.,get<1>(input)*255.,get<2>(input)*255.,255);
+    }
+
+   
+
+};
+
 struct FloatMemcpyFunctor4to4
 {
     FloatMemcpyFunctor4to4(){}
@@ -256,6 +268,25 @@ struct HitFilterFunctor
         if(in==-2) out=-1;
         else out=in;
         return tuple<int>(out);
+    }
+
+};
+
+struct ConvertFrameBufferFunctor
+{
+    ConvertFrameBufferFunctor()
+    {}
+
+    EAVL_FUNCTOR tuple<byte,byte,byte,byte> operator()(tuple<float,float,float,float> in){
+        float r = get<0>(in);
+        float g = get<1>(in);
+        float b = get<2>(in);
+        float a = get<3>(in);
+        byte  rb = r*255;
+        byte  bb = b*255;
+        byte  gb = g*255;
+        byte  ab = a*255; 
+        return tuple<byte,byte,byte,byte>(rb,gb,bb,ab);
     }
 
 };

@@ -30,6 +30,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     bool canRender;
     bool setLight;
     string ctName;
+    float pointRadius;
   public:
     eavlSceneRendererRT()
     {
@@ -46,7 +47,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         ctName = "";
         tracer->setDefaultMaterial(Ka,Kd,Ks);
         cout<<"END rt const"<<endl;
-
+        pointRadius = .1f;
     }
     ~eavlSceneRendererRT()
     {
@@ -215,32 +216,18 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         }
 
         tracer->Execute();
-
-        glColor3f(1,1,1);
-        glDisable(GL_BLEND);
-        glDisable(GL_LIGHTING);
-        glDisable(GL_DEPTH_TEST);
-        const float* rgb   = tracer->getFrameBuffer()->GetTuple(0);
-        const float* depth = tracer->getDepthBuffer()->GetTuple(0);
-        // draw the pixel colors
-        glDrawPixels(view.w, view.h, GL_RGB, GL_FLOAT, &rgb[0]);
-
-        // drawing the Z buffer will overwrite the pixel colors
-        // unless you actively prevent it....
-        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        glDepthMask(GL_TRUE);
-        // For some bizarre reason, you need GL_DEPTH_TEST enabled for
-        // it to write into the Z buffer. 
-        glEnable(GL_DEPTH_TEST);
-
-        // draw the z buffer
-        glDrawPixels(view.w, view.h, GL_DEPTH_COMPONENT, GL_FLOAT, &depth[0]);
-
-        // set the various masks back to "normal"
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glDepthMask(GL_TRUE);
         
         cerr<<"\nTotal Frame Time   : "<<eavlTimer::Stop(tframe,"")<<endl;
+    }
+
+    virtual unsigned char *GetRGBAPixels()
+    {
+        return (unsigned char *) tracer->getFrameBuffer()->GetHostArray();
+    }
+
+    virtual float *GetDepthPixels()
+    {    
+        return (float *) tracer->getDepthBuffer()->GetHostArray();
     }
 
 };

@@ -135,7 +135,7 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
         vr->setView(view);
         vr->Execute();
 
-        glColor3f(1,1,1);
+        /*glColor3f(1,1,1);
         glDisable(GL_BLEND);
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);
@@ -161,14 +161,28 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
         
         
         doOnce =  true;
-        
+        */
+        //int* tmp = (int*) vr->getFrameBuffer()->GetHostArray();
+        //for (int i=0 ; i<1000; i++) cout<<" "<<tmp[i];
+        //cout<<"Byte "<<(int)b<<endl;
+
         cerr<<"\nTotal Frame Time   : "<<eavlTimer::Stop(tframe,"")<<endl;
     }
 
-    
+    virtual unsigned char *GetRGBAPixels()
+    {
+        return (unsigned char *) vr->getFrameBuffer()->GetHostArray();
+    }
+
+    virtual float *GetDepthPixels()
+    {    
+        return (float *) vr->getDepthBuffer()->GetHostArray();
+    }
 
 
 };
+
+
 
 
 #endif

@@ -151,7 +151,7 @@ eavlConstArrayV2<float>*  sphr_scalars_array;
 eavlConstArrayV2<int>*    sphr_matIdx_array;
 eavlConstArrayV2<int>*    tri_matIdx_array;    
 
-eavlConstArrayV2<float4>* color_map_array;
+eavlConstArrayV2<float4>* cmap_array;
 
 
 
@@ -205,11 +205,12 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     verbose     = false;
     rayDirX     = NULL;
 
-    redIndexer  = new eavlArrayIndexer(3,0);
-    greenIndexer= new eavlArrayIndexer(3,1);
-    blueIndexer = new eavlArrayIndexer(3,2);
+    redIndexer   = new eavlArrayIndexer(4,0);
+    greenIndexer = new eavlArrayIndexer(4,1);
+    blueIndexer  = new eavlArrayIndexer(4,2);
+    alphaIndexer = new eavlArrayIndexer(4,3);
     
-    color_map_array = NULL;
+    cmap_array = NULL;
     colorMap_raw    = NULL;
 
     /*texture array Ptrs */
@@ -226,7 +227,7 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     sphr_matIdx_array   = NULL;
     tri_matIdx_array    = NULL;
 
-    color_map_array     = NULL;
+    cmap_array     = NULL;
 
 
 
@@ -301,10 +302,10 @@ eavlRayTracerMutator::eavlRayTracerMutator()
 void eavlRayTracerMutator::setColorMap3f(float* cmap,int size)
 {
     colorMapSize=size;
-    if(color_map_array!=NULL)
+    if(cmap_array!=NULL)
     {
-        color_map_array->unbind(color_map_tref);
-        delete color_map_array;
+        cmap_array->unbind(color_map_tref);
+        delete cmap_array;
     }
     if(colorMap_raw!=NULL)
     {
@@ -320,14 +321,14 @@ void eavlRayTracerMutator::setColorMap3f(float* cmap,int size)
         colorMap_raw[i*4+3] = 0;
         //cout<<cmap[i*3]<<" "<<cmap[i*3+1]<<" "<<cmap[i*3+2]<<endl;
     }
-    color_map_array = new eavlConstArrayV2<float4>((float4*)colorMap_raw, colorMapSize, color_map_tref);
+    cmap_array = new eavlConstArrayV2<float4>((float4*)colorMap_raw, colorMapSize, color_map_tref);
 }
 void eavlRayTracerMutator::setDefaultColorMap()
 {
-    if(color_map_array!=NULL)
+    if(cmap_array!=NULL)
     {
-        color_map_array->unbind(color_map_tref);
-        delete color_map_array;
+        cmap_array->unbind(color_map_tref);
+        delete cmap_array;
     }
     if(colorMap_raw!=NULL)
     {
@@ -337,7 +338,7 @@ void eavlRayTracerMutator::setDefaultColorMap()
     colorMapSize=2;
     colorMap_raw= new float[8];
     for(int i=0;i<8;i++) colorMap_raw[i]=1.f;
-    color_map_array = new eavlConstArrayV2<float4>((float4*)colorMap_raw, colorMapSize, color_map_tref);
+    cmap_array = new eavlConstArrayV2<float4>((float4*)colorMap_raw, colorMapSize, color_map_tref);
 
 }
 
@@ -517,8 +518,6 @@ struct OccRayGenFunctor2
 TABLE = new TYPE(TABLE ## _raw, COUNT);     \
 }
 
-
-/*----------------------End Utility Functors---------------------------------- */
 //if this is called we know that the there is a hit
 EAVL_HOSTDEVICE void triangleIntersectionDistance(const eavlVector3 ray,const eavlVector3 rayOrigin,const eavlVector3 a, const eavlVector3 b, const eavlVector3 c, float &tempDist)
 {
@@ -1614,7 +1613,7 @@ void eavlRayTracerMutator::allocateArrays()
     shadowHits       = new eavlFloatArray("",1,size);
     ambPct           = new eavlFloatArray("",1, size);
     zBuffer          = new eavlFloatArray("",1, size);
-    frameBuffer      = new eavlFloatArray("",1, width*height*3);
+    frameBuffer      = new eavlByteArray("",1, width*height*4);
     scalars          = new eavlFloatArray("",1,size);
     primitiveTypeHit = new eavlIntArray("primitiveType",1,size);
     minDistances     = new eavlFloatArray("",1,size);
@@ -1977,7 +1976,7 @@ void eavlRayTracerMutator::shadowIntersect()
 
 void eavlRayTracerMutator::Execute()
 {
-
+    /*
     int size = 512*16;
     eavlIntArray * ins =  new eavlIntArray("",1,size);
     eavlIntArray * outs =  new eavlIntArray("",1,size);
@@ -2016,18 +2015,8 @@ void eavlRayTracerMutator::Execute()
     }
 
     exit(0);
-    /*float4 data;
-    data.x = 0;
-    data.y = 4;
-    data.z = 0;
-    data.w = 1;
+    */
 
-    eavlVector3 rd(0,1,0);
-    eavlVector3 ro(0,-4,0);
-
-    float dist = intersectSphereDist(rd,ro,data);
-    cout<<"Distance "<<dist<<endl;
-    exit(0);*/
     int th ;
     int tinit;
     if(verbose) tinit = eavlTimer::Start();
@@ -2163,7 +2152,7 @@ void eavlRayTracerMutator::Execute()
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx,shadowHits,interX,interY,interZ,alphas,betas,ambPct,normX,normY,normZ,rayOriginX,rayOriginY,rayOriginZ, scalars, primitiveTypeHit),
                                                  eavlOpArgs(r2,g2,b2),
                                                  ShaderFunctor(numTriangles,light,eye ,i, tri_matIdx_array, mats, lightIntensity,
-                                                               lightCoConst, lightCoLinear, lightCoExponent, color_map_array,
+                                                               lightCoConst, lightCoLinear, lightCoExponent, cmap_array,
                                                                colorMapSize, sphr_matIdx_array, numTriangles, numSpheres, bgColor)),
                                                  "shader");
         eavlExecutor::Go();
@@ -2325,11 +2314,12 @@ void eavlRayTracerMutator::Execute()
     //else 
     //{
         cout<<"Transfering to fb"<<endl;
-        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(r2, g2, b2),
-                                                 eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer),
-                                                            eavlIndexable<eavlFloatArray>(frameBuffer,*greenIndexer),
-                                                            eavlIndexable<eavlFloatArray>(frameBuffer,*blueIndexer)),
-                                                 FloatMemcpyFunctor3to3()),
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(r2, g2, b2, b2/*dummy*/),
+                                                 eavlOpArgs(eavlIndexable<eavlByteArray>(frameBuffer,*redIndexer),
+                                                            eavlIndexable<eavlByteArray>(frameBuffer,*greenIndexer),
+                                                            eavlIndexable<eavlByteArray>(frameBuffer,*blueIndexer),
+                                                            eavlIndexable<eavlByteArray>(frameBuffer,*alphaIndexer)),
+                                                 CopyFrameBuffer()),
                                                  "memcopy");
         eavlExecutor::Go();
 
