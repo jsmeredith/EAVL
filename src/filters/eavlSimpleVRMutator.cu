@@ -472,7 +472,7 @@ struct CompositeFunctor
             color.c[2] = color.c[2] * (1.-alpha) + c.c[2] * alpha;
             color.c[3] = color.c[3] * (1.-alpha) + c.c[3] * alpha;
             minz = z;
-
+ 
         }
         
         float depth;

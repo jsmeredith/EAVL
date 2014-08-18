@@ -69,11 +69,7 @@ class eavlSceneRenderer
     float Ks;
     float Lx, Ly, Lz;
     bool  eyeLight;
-<<<<<<< HEAD
-    float pointRadius;
-=======
     eavlRenderSurface *surface;
->>>>>>> origin/master
   public:
     eavlSceneRenderer()
     {
@@ -89,7 +85,6 @@ class eavlSceneRenderer
 
         ncolors = 1;
         colors[0] = colors[1] = colors[2] = 0.5;
-        pointRadius = 0.1f;
     }
     virtual ~eavlSceneRenderer()
     {
@@ -126,10 +121,6 @@ class eavlSceneRenderer
         view = v;
     }
 
-    void SetPointRadius(float pr)
-    {
-        pointRadius = pr;
-    }
 
     virtual bool NeedsGeometryForPlot(int plotid)
     {
