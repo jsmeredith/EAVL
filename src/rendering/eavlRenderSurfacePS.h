@@ -6,10 +6,12 @@
 
 class eavlRenderSurfacePS : public eavlRenderSurface
 {
+  public:
     ostringstream ps;
     string font;
     double width, height;
     set<int> imgdata_defines;
+    eavlView view;
   public:
     eavlRenderSurfacePS()
     {
@@ -30,6 +32,8 @@ class eavlRenderSurfacePS : public eavlRenderSurface
         ps << "%!PS-Adobe-3.0 EPSF-3.0" << endl;
         ps << "%%BoundingBox: 0 0 " << w << " " << h << endl;
         ps << "/DeviceRGB setcolorspace" << endl;
+        // start out saving the state
+        ps << "gsave" << endl;
         width=w;
         height=h;
     }
@@ -41,6 +45,7 @@ class eavlRenderSurfacePS : public eavlRenderSurface
     }
     virtual void Clear(eavlColor bg)
     {
+        Resize(width,height);
         ps << "newpath" << endl;
         ps << "0 0 moveto" << endl;
         ps << width<<" 0 lineto" << endl;
@@ -51,11 +56,48 @@ class eavlRenderSurfacePS : public eavlRenderSurface
         ps << "fill" << endl;
     }
 
-    virtual void SetView(eavlView &v)
+    virtual void SetViewToWorldSpace(eavlView &v, bool clip)
     {
+        ps << "grestore" << endl;
+        ps << "gsave % starting world space" << endl;
+
+        double vl, vr, vt, vb;
+        v.GetRealViewport(vl,vr,vb,vt);
+        double l = double(v.w)*(1.+vl)/2.;
+        double b = double(v.h)*(1.+vb)/2.;
+
+        double x = (vr-vl)/2.;
+        double y = (vt-vb)/2.;
+
+        if (clip)
+            AddViewportClipPath(v);
+
+        ps << l << " " << b << " translate" << endl;
+        ps << x << " " << y << " scale" << endl;
     }
-    virtual void SetViewportClipping(eavlView &v, bool clip)
+    virtual void SetViewToScreenSpace(eavlView &v, bool clip)
     {
+        ps << "grestore" << endl;
+        ps << "gsave % starting screen space" << endl;
+        if (clip)
+            AddViewportClipPath(v);
+    }
+    void AddViewportClipPath(eavlView &v)
+    {
+        double vl, vr, vt, vb;
+        v.GetRealViewport(vl,vr,vb,vt);
+        double l = double(v.w)*(1.+vl)/2.;
+        double r = double(v.w)*(1.+vr)/2.;
+        double b = double(v.h)*(1.+vb)/2.;
+        double t = double(v.h)*(1.+vt)/2.;
+
+        ps << "newpath" << endl;
+        ps << l << " " << b << " moveto" << endl;
+        ps << l << " " << t << " lineto" << endl;
+        ps << r << " " << t << " lineto" << endl;
+        ps << r << " " << b << " lineto" << endl;
+        ps << "closepath" << endl;
+        ps << "clip" << endl;
     }
 
     virtual void AddRectangle(float x, float y, 
@@ -163,6 +205,39 @@ class eavlRenderSurfacePS : public eavlRenderSurface
            << (.5+.5*anchory)*float(-intscale)<<" rmoveto ";
            //<< 0 <<" rmoveto ";
         ps << " show" << endl;
+        ps << "grestore" << endl;
+    }
+    virtual void PasteScenePixels(int w, int h,
+                                  unsigned char *rgba,
+                                  float *depth)
+    {
+        ps << "grestore" << endl; // get back to original screen space
+        ps << "gsave" << endl; // always save
+
+        ps << "gsave" << endl;
+        if (imgdata_defines.count(w) == 0)
+        {
+            ps << "/imgdata"<<w<<" "<<w<<" 3 mul string def" << endl;
+            imgdata_defines.insert(w);
+        }
+        ps << w << " " << h << " scale" << endl;
+        ps << w << " "<<h<<" 8 ["<<w<<" 0 0 "<<h<<" 0 0]" << endl;
+        ps << "{ currentfile imgdata"<<w<<" readhexstring pop }" << endl;
+        ps << "false 3 colorimage" << endl;
+        for (int y=0; y<h; ++y)
+        {
+            for (int x=0; x<w; ++x)
+            {
+                char tmp[256];
+                sprintf(tmp, "%2.2X%2.2X%2.2X", 
+                        rgba[4*(x + y*w) + 0],
+                        rgba[4*(x + y*w) + 1],
+                        rgba[4*(x + y*w) + 2]);
+                ps << tmp;
+            }
+            ps << endl;
+        }
+        ps << endl;
         ps << "grestore" << endl;
     }
     virtual void SaveAs(string fn, FileType ft)

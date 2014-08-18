@@ -7,6 +7,7 @@
 #include "eavlColor.h"
 #include "eavlColorTable.h"
 #include "eavlView.h"
+#include "eavlRenderSurface.h"
 
 static inline eavlColor MapValueToColor(double value,
                                  double vmin, double vmax,
@@ -68,7 +69,11 @@ class eavlSceneRenderer
     float Ks;
     float Lx, Ly, Lz;
     bool  eyeLight;
+<<<<<<< HEAD
     float pointRadius;
+=======
+    eavlRenderSurface *surface;
+>>>>>>> origin/master
   public:
     eavlSceneRenderer()
     {
@@ -90,6 +95,10 @@ class eavlSceneRenderer
     {
     }
 
+    void SetRenderSurface(eavlRenderSurface *surf)
+    {
+        surface = surf;
+    }
     void SetAmbientCoefficient(float a)
     {
         Ka = a;
@@ -178,6 +187,15 @@ class eavlSceneRenderer
     //virtual void SetActiveMaterial() { } // diffuse, specular, ambient
     //virtual void SetActiveLighting() { } // etc.
 
+    virtual unsigned char *GetRGBAPixels()
+    {
+        return NULL;
+    }
+
+    virtual float *GetDepthPixels()
+    {
+        return NULL;
+    }
 
     // ----------------------------------------
     // Vertex Normal
@@ -428,9 +446,59 @@ class eavlSceneRenderer
                                int , double *pts,
                                ColorByOptions opts)
     {
-        (void)cs;
-        (void)pts;
-        (void)opts;
+        eavlField *f = opts.field;
+        bool NoColors = (opts.field == NULL);
+        bool PointColors = (opts.field &&
+                opts.field->GetAssociation() == eavlField::ASSOC_POINTS);
+        bool CellColors = (opts.field &&
+                opts.field->GetAssociation() == eavlField::ASSOC_CELL_SET &&
+                opts.field->GetAssocCellSet() == cs->GetName());
+
+        if (opts.singleColor)
+            SetActiveColor(opts.color);
+        else
+            SetActiveColorTable(opts.ct);
+
+        StartPoints();
+
+        double radius = view.size / 300.;
+        int ncells = cs->GetNumCells();
+        for (int c=0; c<ncells; c++)
+        {
+            eavlCell cell = cs->GetCellNodes(c);
+            if (cell.type != EAVL_POINT)
+                continue;
+
+            int p = cell.indices[0];
+
+            // get vertex coordinates
+            double x0 = pts[p*3+0];
+            double y0 = pts[p*3+1];
+            double z0 = pts[p*3+2];
+
+            // get scalars (if applicable)
+            if (CellColors)
+            {
+                double s = MapValueToNorm(f->GetArray()->
+                                          GetComponentAsDouble(c,0),
+                                          opts.vmin, opts.vmax);
+                AddPointVs(x0,y0,z0, radius, s);
+            }
+            else if (PointColors)
+            {
+                double s = MapValueToNorm(f->GetArray()->
+                                          GetComponentAsDouble(p,0),
+                                          opts.vmin, opts.vmax);
+                AddPointVs(x0,y0,z0, radius, s);
+            }
+            else
+            {
+                AddPoint(x0,y0,z0, radius);
+            }
+        }
+
+
+        EndPoints();
     }
     virtual void RenderCells1D(eavlCellSet *cs,
                                int , double *pts,

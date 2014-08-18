@@ -431,7 +431,7 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
 
     eavlSceneRendererSimpleRT() : eavlSceneRenderer()
     {
-        skip = firstskip = 16;
+        skip = firstskip = 4;
     }
 
     virtual void AddTriangleVnVs(double x0, double y0, double z0,
@@ -681,30 +681,14 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
         return false;
     }
 
-    void DrawToScreen()
+    virtual unsigned char *GetRGBAPixels()
     {
-        glColor3f(1,1,1);
-        glDisable(GL_BLEND);
-        glDisable(GL_LIGHTING);
-        glDisable(GL_DEPTH_TEST);
+        return &rgba[0];
+    }
 
-        // draw the pixel colors
-        glDrawPixels(view.w, view.h, GL_RGBA, GL_UNSIGNED_BYTE, &rgba[0]);
-
-        // drawing the Z buffer will overwrite the pixel colors
-        // unless you actively prevent it....
-        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        glDepthMask(GL_TRUE);
-        // For some bizarre reason, you need GL_DEPTH_TEST enabled for
-        // it to write into the Z buffer. 
-        glEnable(GL_DEPTH_TEST);
-
-        // draw the z buffer
-        glDrawPixels(view.w, view.h, GL_DEPTH_COMPONENT, GL_FLOAT, &depth[0]);
-
-        // set the various masks back to "normal"
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glDepthMask(GL_TRUE);
+    virtual float *GetDepthPixels()
+    {    
+        return &depth[0];
     }
 
     virtual void Render()
@@ -728,7 +712,6 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
 
         if (skip == 0)
         {
-            DrawToScreen();
             return;
         }
 
@@ -887,8 +870,6 @@ class eavlSceneRendererSimpleRT : public eavlSceneRenderer
         cerr << "RT maxd="<<maxd<<endl;
         cerr << "RT drange="<<fabs(mind-maxd)<<endl;
         */
-
-        DrawToScreen();
 
         skip /= 2;
     }

@@ -37,11 +37,12 @@ class eavl1DWindow : public eavlWindow
         delete vaxis;
         delete frame;
     }
-    virtual void Render()
+    virtual void RenderScene()
     {
-        // render the plots
         scene->Render(this);
-
+    }
+    virtual void RenderAnnotations()
+    {
         double vl, vr, vt, vb;
         view.GetRealViewport(vl,vr,vb,vt);
         frame->SetExtents(vl,vr, vb,vt);

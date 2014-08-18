@@ -1,11 +1,15 @@
 // Copyright 2010-2014 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #include "eavlThresholdMutator.h"
 #include "eavlCellSetExplicit.h"
+#include "eavlCellSetAllPoints.h"
 #include "eavlException.h"
 
 
 eavlThresholdMutator::eavlThresholdMutator()
 {
+    minval = -FLT_MAX;
+    minval = +FLT_MAX;
+    all_points_required = false;
 }
 
 
@@ -17,25 +21,56 @@ eavlThresholdMutator::Execute()
 
     eavlField   *inField = dataset->GetField(fieldname);
 
-    ///\todo: add nodal threshold capability
-    if (inField->GetAssociation() != eavlField::ASSOC_CELL_SET ||
-        inField->GetAssocCellSet() != dataset->GetCellSet(inCellSetIndex)->GetName())
+    eavlField::Association fieldAssociation = inField->GetAssociation();
+    if (fieldAssociation != eavlField::ASSOC_POINTS &&
+        (inField->GetAssociation() != eavlField::ASSOC_CELL_SET ||
+         inField->GetAssocCellSet() != dataset->GetCellSet(inCellSetIndex)->GetName()))
     {
-        THROW(eavlException,"Field for threshold didn't match cell set.");
+        THROW(eavlException,"Field for subset didn't match cell set.");
     }
-
 
     eavlArray *inArray = inField->GetArray();
 
     vector<int> newcells;
     int in_ncells = inCells->GetNumCells();
-    for (int i=0; i<in_ncells; i++)
+    if (fieldAssociation == eavlField::ASSOC_CELL_SET)
     {
-        if (inArray->GetComponentAsDouble(i,0) >= minval &&
-            inArray->GetComponentAsDouble(i,0) <= maxval)
+        for (int i=0; i<in_ncells; i++)
         {
-            newcells.push_back(i);
-        }            
+            if (inArray->GetComponentAsDouble(i,0) >= minval &&
+                inArray->GetComponentAsDouble(i,0) <= maxval)
+            {
+                newcells.push_back(i);
+            }            
+        }
+    }
+    else // (fieldAssociation == eavlField::ASSOC_POINTS)
+    {
+        for (int i=0; i<in_ncells; i++)
+        {
+            bool all_in = true;
+            bool some_in = false;
+            eavlCell cell = inCells->GetCellNodes(i);
+            for (int j=0; j<cell.numIndices; j++)
+            {
+                double val = inArray->GetComponentAsDouble(cell.indices[j],0);
+                if (val >= minval && val <= maxval)
+                    some_in = true;
+                else
+                    all_in = false;
+            }
+
+            if (all_points_required)
+            {
+                if (all_in)
+                    newcells.push_back(i);
+            }
+            else
+            {
+                if (some_in)
+                    newcells.push_back(i);
+            }
+        }
     }
     unsigned int numnewcells = newcells.size();
 

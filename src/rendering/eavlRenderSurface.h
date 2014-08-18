@@ -3,6 +3,8 @@
 #define EAVL_RENDER_SURFACE_H
 
 #include "eavlColor.h"
+#include "eavlColorTable.h"
+#include "eavlView.h"
 
 class eavlRenderSurface
 {
@@ -19,9 +21,13 @@ class eavlRenderSurface
     virtual void Finish() = 0;
     virtual void Clear(eavlColor) = 0;
 
-    virtual void SetView(eavlView &v) = 0;
-    virtual void SetViewportClipping(eavlView &v, bool clip) = 0;
+    virtual void SetViewToWorldSpace(eavlView &v, bool clip) = 0;
+    virtual void SetViewToScreenSpace(eavlView &v, bool clip) = 0;
     //virtual unsigned char *GetRGBA()
+
+    virtual void PasteScenePixels(int w, int h,
+                                  unsigned char *rgba,
+                                  float *depth) = 0;
 
     virtual void AddLine(float x0, float y0,
                          float x1, float y1,

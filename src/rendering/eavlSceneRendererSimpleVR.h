@@ -66,11 +66,24 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
 
     void Composite()
     {
+        int th = eavlTimer::Start();
         //cerr << "Composite\n";
         //
         // composite all samples back-to-front
         // 
         //cerr << "color[0] = " <<eavlColor(colors[0],colors[1],colors[2]) << endl;
+        float *alphas = new float[ncolors];
+        for (int i=0; i<ncolors; ++i)
+        {
+            float value = float(i)/float(ncolors-1);
+
+            float center = 0.5;
+            float sigma = 0.13;
+            float alpha = exp(-(value-center)*(value-center)/(2*sigma*sigma));
+            //float alpha = .5;
+
+            alphas[i] = alpha;
+        }
 
         int w = view.w;
         int h = view.h;
@@ -94,11 +107,8 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
                                 colors[colorindex*3+2],
                                 1.0);
                     // use a gaussian density function as the opactiy
-                    float center = 0.5;
-                    float sigma = 0.13;
                     float attenuation = 0.02;
-                    float alpha = exp(-(value-center)*(value-center)/(2*sigma*sigma));
-                    //float alpha = value;
+                    float alpha = alphas[colorindex];
                     alpha *= attenuation;
                     color.c[0] = color.c[0] * (1.-alpha) + c.c[0] * alpha;
                     color.c[1] = color.c[1] * (1.-alpha) + c.c[1] * alpha;
@@ -120,6 +130,11 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
             }
         }
 
+        delete[] alphas;
+        double comptime = eavlTimer::Stop(th,"compositing");
+
+        if (false)
+            cerr << "compositing time = "<<comptime << endl;
     }
 
     // ------------------------------------------------------------------------
@@ -539,6 +554,7 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
             cerr << tets_eval << " out of " << n << " ("
                  << (100.*double(tets_eval)/double(n)) << "%) tetrahedra\n";
 
+            cerr << "w="<<view.w<<" h="<<view.h << endl;
             cerr << "Sample time = "<<sampletime << endl;
         }
     }
@@ -581,36 +597,17 @@ class eavlSceneRendererSimpleVR : public eavlSceneRenderer
             lastview = view;
         }
         Composite();
-        DrawToScreen();
     }
 
-    void DrawToScreen()
+    virtual unsigned char *GetRGBAPixels()
     {
-        glColor3f(1,1,1);
-        glDisable(GL_BLEND);
-        glDisable(GL_LIGHTING);
-        glDisable(GL_DEPTH_TEST);
-
-        // draw the pixel colors
-        glDrawPixels(view.w, view.h, GL_RGBA, GL_UNSIGNED_BYTE, &rgba[0]);
-
-        // drawing the Z buffer will overwrite the pixel colors
-        // unless you actively prevent it....
-        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        glDepthMask(GL_TRUE);
-        // For some bizarre reason, you need GL_DEPTH_TEST enabled for
-        // it to write into the Z buffer. 
-        glEnable(GL_DEPTH_TEST);
-
-        // draw the z buffer
-        glDrawPixels(view.w, view.h, GL_DEPTH_COMPONENT, GL_FLOAT, &depth[0]);
-
-        // set the various masks back to "normal"
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glDepthMask(GL_TRUE);
+        return &rgba[0];
     }
 
-
+    virtual float *GetDepthPixels()
+    {    
+        return &depth[0];
+    }
 };
 
 

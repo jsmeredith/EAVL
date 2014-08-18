@@ -49,29 +49,74 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
         glClearColor(bg.c[0], bg.c[1], bg.c[2], 1.0); ///< c[3] instead of 1.0?
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     }
-    virtual void SetView(eavlView &v)
+    virtual void PasteScenePixels(int w, int h,
+                                  unsigned char *rgba,
+                                  float *depth)
+    {
+        glColor3f(1,1,1);
+        glDisable(GL_BLEND);
+        glDisable(GL_LIGHTING);
+        glDisable(GL_DEPTH_TEST);
+
+        // draw the pixel colors
+        if (rgba)
+            glDrawPixels(w, h, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+
+        if (depth)
+        {
+            // drawing the Z buffer will overwrite the pixel colors
+            // unless you actively prevent it....
+            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+            glDepthMask(GL_TRUE);
+            // For some bizarre reason, you need GL_DEPTH_TEST enabled for
+            // it to write into the Z buffer. 
+            glEnable(GL_DEPTH_TEST);
+
+            // draw the z buffer
+            glDrawPixels(w, h, GL_DEPTH_COMPONENT, GL_FLOAT, depth);
+
+            // set the various masks back to "normal"
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+            glDepthMask(GL_TRUE);
+        }
+    }
+    virtual void SetViewToWorldSpace(eavlView &v, bool clip)
     {
         glMatrixMode( GL_PROJECTION );
         glLoadMatrixf(v.P.GetOpenGLMatrix4x4());
 
         glMatrixMode( GL_MODELVIEW );
         glLoadMatrixf(v.V.GetOpenGLMatrix4x4());
+
+        SetViewportClipping(v, clip);
     }
-    virtual void SetViewportClipping(eavlView &v, bool clip)
+    virtual void SetViewToScreenSpace(eavlView &v, bool clip)
     {
-        int w = v.w, h=v.h;
+        eavlMatrix4x4 P;
+        P.CreateOrthographicProjection(2, -1, +1, 1.0);
+
+        glMatrixMode(GL_PROJECTION);
+        glLoadMatrixf(P.GetOpenGLMatrix4x4());
+
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+
+        SetViewportClipping(v, clip);
+    }
+    void SetViewportClipping(eavlView &v, bool clip)
+    {
         if (clip)
         {
             double vl, vr, vt, vb;
             v.GetRealViewport(vl,vr,vb,vt);
-            glViewport(double(w)*(1.+vl)/2.,
-                       double(h)*(1.+vb)/2.,
-                       double(w)*(vr-vl)/2.,
-                       double(h)*(vt-vb)/2.);
+            glViewport(double(v.w)*(1.+vl)/2.,
+                       double(v.h)*(1.+vb)/2.,
+                       double(v.w)*(vr-vl)/2.,
+                       double(v.h)*(vt-vb)/2.);
         }
         else
         {
-            glViewport(0, 0, w, h);
+            glViewport(0, 0, v.w, v.h);
         }
     }
 

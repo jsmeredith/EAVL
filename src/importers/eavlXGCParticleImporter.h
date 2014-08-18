@@ -36,30 +36,36 @@ class eavlXGCParticleImporter : public eavlImporter
   public:
     eavlXGCParticleImporter(const string &filename);
     eavlXGCParticleImporter(const string &filename, 
-    						ADIOS_READ_METHOD method, 
-    						MPI_Comm comm, 
-    						ADIOS_LOCKMODE mode, 
-    						int timeout_sec,
-    						int fromDataspaces);
+                            ADIOS_READ_METHOD method, 
+                            MPI_Comm comm, 
+                            ADIOS_LOCKMODE mode, 
+                            int timeout_sec,
+                            int fromDataspaces
+                           );
     virtual ~eavlXGCParticleImporter();
 
+	int			   GetTimeStep();
+	int            GetEMaxGID();
+	int            GetIMaxGID();
     int            GetNumChunks(const std::string &mesh) {return 1;}
+    int			   AdvanceTimeStep(int step, int timeout_sec);
     vector<string> GetMeshList();
     vector<string> GetFieldList(const std::string &mesh);
     vector<string> GetCellSetList(const std::string &mesh);
     
     eavlDataSet*   GetMesh(const string &name, int chunk);
     eavlField*     GetField(const string &name, const string &mesh, int chunk);
-
+	
   protected:
     void Initialize();
     ADIOS_SELECTION *MakeSelection(ADIOS_VARINFO *avi, uint64_t *s, uint64_t *c);
     ADIOS_FILE *fp;
 	
-	MPI_Comm comm;
-    int timestep, maxnum, enphase, inphase, nvars, retVal, numMPITasks, mpiRank;
-    long long emaxgid, imaxgid;
-    double time;
+    int             maxnum, enphase, inphase, nvars, retVal, numMPITasks, mpiRank;
+    int	            totalIParticles, totalEParticles, timestep;
+    double          time;
+    MPI_Comm        comm;
+    long long       emaxgid, imaxgid;    
 
     map<string, ADIOS_VARINFO *> iphase, igid, ephase, egid;
 };
@@ -74,3 +80,4 @@ class eavlXGCParticleImporter : public eavlMissingImporter
 
 #endif //HAVE_ADIOS
 #endif //EAVL_XGC_PARTICLE_IMPORTER_H
+

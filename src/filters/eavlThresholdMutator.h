@@ -15,7 +15,7 @@
 ///   as well as stripped copies of the vars.
 ///   Note: this version creates an explicit standalone cell set.
 //
-// Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern
+// Programmer:  Jeremy Meredith, Dave Pugmire, Sean Ahern, James Kress
 // Creation:    April 13, 2012
 //
 // ****************************************************************************
@@ -24,6 +24,7 @@ class eavlThresholdMutator : public eavlMutator
   protected:
     double minval, maxval;
     string fieldname, cellsetname;
+    bool all_points_required;
   public:
     eavlThresholdMutator();
     void SetRange(double vmin, double vmax)
@@ -38,6 +39,10 @@ class eavlThresholdMutator : public eavlMutator
     void SetCellSet(const string &name)
     {
         cellsetname = name;
+    }
+    void SetNodalThresholdAllPointsRequired(bool apr)
+    {
+        all_points_required = apr;
     }
     
     virtual void Execute();

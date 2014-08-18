@@ -38,11 +38,12 @@ class eavl3DWindow : public eavlWindow
         delete yaxis;
         delete zaxis;
     }
-    virtual void Render()
+    virtual void RenderScene()
     {
-        // render the plots
         scene->Render(this);
-
+    }
+    virtual void RenderAnnotations()
+    {
         // render the annotations
         bbox->SetColor(eavlColor(.3,.3,.3));
         bbox->SetExtents(view.minextents[0],

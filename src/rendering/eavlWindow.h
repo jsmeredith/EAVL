@@ -43,6 +43,7 @@ class eavlWindow
                eavlWorldAnnotator *w)
         : bg(bgcolor), scene(s), renderer(r), surface(surf), worldannotator(w)
     {
+        renderer->SetRenderSurface(surface);
     }
     virtual ~eavlWindow()
     {
@@ -54,6 +55,7 @@ class eavlWindow
         if (renderer)
             delete renderer;
         renderer = sr;
+        renderer->SetRenderSurface(surface);
     }
     eavlSceneRenderer *GetSceneRenderer()
     {
@@ -90,48 +92,40 @@ class eavlWindow
         surface->Activate();
         surface->Clear(bg);
 
-        view.SetupMatrices();
+        // render the plots
+        RenderScene();
 
-        // render the plots and annotations
-        Render();
+        unsigned char *rgba = renderer->GetRGBAPixels();
+        float *depth = renderer->GetDepthPixels();
+        ///\todo: if we're using a GL renderer and a GL surface,
+        // we don't need to paste the pixels in.
+        if (rgba || depth)
+        {
+            surface->PasteScenePixels(view.w, view.h, rgba, depth);
+        }
 
+        // render the window type specific annotations
+        RenderAnnotations();
+
+        // render any other annotations
         for (unsigned int i=0; i<annotations.size(); ++i)
             annotations[i]->Render(view);
 
         surface->Finish();
     }
 
-    void EnableViewportClipping()
+    void SetupForWorldSpace(bool viewportclip=true)
     {
-        surface->SetViewportClipping(view, true);
+        view.SetupMatrices();
+        surface->SetViewToWorldSpace(view, viewportclip);
     }
-    void DisableViewportClipping()
+    void SetupForScreenSpace(bool viewportclip=false)
     {
-        surface->SetViewportClipping(view, false);
-    }
-    void SetupMatricesForWorld()
-    {
-        view.SetupMatricesForWorld();
-        surface->SetView(view);
-    }
-    void SetupMatricesForScreen()
-    {
-        view.SetupMatricesForScreen();
-        surface->SetView(view);
+        surface->SetViewToScreenSpace(view, viewportclip);
     }
 
-    void SetupForWorldSpace()
-    {
-        SetupMatricesForWorld();
-        EnableViewportClipping();
-    }
-    void SetupForScreenSpace()
-    {
-        SetupMatricesForScreen();
-        DisableViewportClipping();
-    }
-
-    virtual void Render() = 0;
+    virtual void RenderScene() = 0;
+    virtual void RenderAnnotations() = 0;
 };
 
 #endif

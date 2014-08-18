@@ -230,18 +230,15 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
     }
     virtual void Render(eavlView &view)
     {
-        win->EnableViewportClipping();
-
         if (fixed2Dscale)
         {
-            // first, do the world, so we can translate a world
-            // point to the screen
-            win->SetupMatricesForWorld();
-
+            // use the world view matrices to find out screen space points
+            view.SetupMatrices();
             eavlPoint3 p = view.P * view.V * eavlPoint3(x,y,z);
 
-            // everything else is now in world space
-            win->SetupMatricesForScreen();
+            // and now everything in screen space, but still clip against
+            // world viewport
+            win->SetupForScreenSpace(true);
 
             eavlMatrix4x4 T;
             T.CreateTranslate(p.x, p.y, -p.z);
@@ -281,7 +278,7 @@ class eavlBillboardTextAnnotation : public eavlTextAnnotation
         }
         else
         {
-            win->SetupMatricesForWorld();
+            win->SetupForWorldSpace(true);
 
             eavlMatrix4x4 W;
             if (view.viewtype == eavlView::EAVL_VIEW_2D)

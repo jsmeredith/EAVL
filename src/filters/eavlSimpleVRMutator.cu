@@ -474,6 +474,82 @@ struct CompositeFunctor
             minz = z;
 
         }
+        
+        float depth;
+        if (minz < nSamples)
+        {
+            float projdepth = float(minz)*(maxdepth-mindepth)/float(nSamples) + mindepth;
+            depth = .5 * projdepth + .5;
+        }
+
+        return tuple<float,float,float,float, float>(color.c[0], color.c[1], color.c[2],color.c[3],depth);
+        
+    }
+   
+
+};
+
+struct CompositeFunctorFB
+{   
+    eavlConstArrayV2<float4> colorMap;
+    eavlView         view;
+    int              nSamples;
+    float*           samples;
+    int              h;
+    int              w;
+    int              ncolors;
+    float            mindepth;
+    float            maxdepth;
+    CompositeFunctorFB( eavlView _view, int _nSamples, float* _samples,eavlConstArrayV2<float4>* _colorMap, int _ncolors)
+    : view(_view), nSamples(_nSamples), samples(_samples), colorMap(*_colorMap), ncolors(_ncolors)
+    {
+
+        w = view.w;
+        h = view.h;
+        float dist = (view.view3d.from - view.view3d.at).norm();
+        eavlPoint3 closest(0,0,-dist+view.size*.5);
+        eavlPoint3 farthest(0,0,-dist-view.size*.5);
+        mindepth = (view.P * closest).z;
+        maxdepth = (view.P * farthest).z;
+
+    }
+
+    EAVL_FUNCTOR tuple<float,float,float,float,float> operator()(tuple<int> inputs )
+    {
+        int idx = get<0>(inputs);
+        int minz = nSamples;
+        int x = idx%w;
+        int y = idx/w;
+        eavlColor color(0,0,0,0);
+        for(int z = 0 ; z < nSamples; z++)
+        {
+            int index3d = (y*w + x)*nSamples + z;
+            float value = samples[index3d];
+            if (value<0 || value>1)
+                continue;
+
+            int colorindex = float(ncolors-1) * value;
+            float4 clr = colorMap.getValue(color_map_tref, colorindex);
+            eavlColor c(clr.x,
+                        clr.y,
+                        clr.z,
+                        1.0);
+            // use a gaussian density function as the opactiy
+            float center = 0.5;
+            float sigma = 0.13;
+            float attenuation = 0.02;
+            float alpha = exp(-(value-center)*(value-center)/(2*sigma*sigma));
+            //float alpha = value;
+            alpha *= attenuation;
+            color.c[0] = color.c[0]  + c.c[0] * (1.-color.c[3])*alpha;
+            color.c[1] = color.c[1]  + c.c[1] * (1.-color.c[3])*alpha;
+            color.c[2] = color.c[2]  + c.c[2] * (1.-color.c[3])*alpha;
+            color.c[3] = color.c[3]  + c.c[3] * (1.-color.c[3])*alpha;
+            minz = z;
+            if(color.c[3] >=1 ) break;
+
+        }
+        
         float depth;
         if (minz < nSamples)
         {
