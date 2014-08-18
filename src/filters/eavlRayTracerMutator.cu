@@ -1976,8 +1976,8 @@ void eavlRayTracerMutator::shadowIntersect()
 
 void eavlRayTracerMutator::Execute()
 {
-    /*
-    int size = 512*16;
+    
+    /*int size = 256*34;
     eavlIntArray * ins =  new eavlIntArray("",1,size);
     eavlIntArray * outs =  new eavlIntArray("",1,size);
     eavlIntArray * flags =  new eavlIntArray("",1,size);

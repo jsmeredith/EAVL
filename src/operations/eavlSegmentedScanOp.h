@@ -134,8 +134,8 @@ __device__ T segScanBlock(volatile T *data, volatile int *flags, const unsigned 
     volatile __shared__ int sm_data[256];
     volatile __shared__ int sm_flags[256];
 
-
-    const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
+    int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
+    const int threadID     = blockId * blockDim.x + threadIdx.x;
     unsigned int warpIdx = idx >> 5;                              /*drop the first 32 bits */
     unsigned int warpFirstThread = warpIdx << 5;                  /* first warp thread idx, put some zeros back on */
     unsigned int warpLastThread  = warpFirstThread + 31;
@@ -220,7 +220,9 @@ template<class OP, class T>
 __global__ void scanFlagsBlockKernel(int nItems, T *flags)
 {
     const unsigned int idx = threadIdx.x;
-    const int threadID     = blockIdx.x * blockDim.x + threadIdx.x;
+    int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
+
+    const int threadID     = blockId * blockDim.x + threadIdx.x;
     unsigned int warpIdx   = idx >> 5;
     unsigned int warpFirstThread = warpIdx << 5;                  /* first warp thread idx, put some zeros back on */
     unsigned int warpLastThread  = warpFirstThread + 31;
@@ -258,7 +260,8 @@ SegScanBlock_kernel(int nitems,
                           T* input,
                           FLAGS* flags)
 {
-    const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
+    int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
+    const int threadID   =  blockId * blockDim.x + threadIdx.x;;
     if(threadID > nitems) return;
     segScanBlock< OP, INCLUSIVE >(input,flags);
 }
@@ -268,6 +271,8 @@ __global__ void
 SegScanBlockSum_kernel(int nblocks, T* inputs, FLAGS* flags, T* blockSums)
 {
     unsigned int blockId = threadIdx.x;
+    //const int threadID   = blockId * blockDim.x + threadIdx.x;
+
     int carry = 0;
     int iterations  = nblocks / 256;
     if (nblocks % 256 > 0) iterations++;
@@ -292,7 +297,8 @@ SegScanBlockSum_kernel(int nblocks, T* inputs, FLAGS* flags, T* blockSums)
         __syncthreads();
 
         /* load block totals and carry flags into shared memory */
-        sm_data[threadIdx.x ] = inputs[blockLastIdx];
+        sm_data[threadIdx.x ] = inputs[blockLastIdx];  
+        printf("Block Sum %d block id %d  \n", sm_data[threadIdx.x ], blockId, blockLastIdx);
         sm_flags[threadIdx.x] = blockHasFlag;
 
         __syncthreads();
@@ -338,9 +344,10 @@ SegScanAddSum_kernel(int nitems, T* inputs, T* outputs,T* blockSums, FLAGS* flag
     volatile __shared__ T sm_data[256];
     volatile __shared__ T sm_flags[256];
 
-    const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int blockId = blockIdx.x ;
-    unsigned int blockFirstThread = blockIdx.x << 8;
+    
+    unsigned int blockId = blockIdx.y * gridDim.x + blockIdx.x ;
+    const int threadID   = blockId * blockDim.x + threadIdx.x;
+    unsigned int blockFirstThread = blockId << 8;
 
     if(threadID > nitems) return; 
 
@@ -395,6 +402,17 @@ struct eavlSegScanOp_GPU
         int *_outputs = get<0>(outputs).array;
         
         int *blockSums;
+
+        int numBlocks = nitems / 256;
+        if(nitems%256 > 0) numBlocks++;
+
+        int numBlocksX = numBlocks;
+        int numBlocksY = 1;
+        if (numBlocks >= 32768)
+        {
+            numBlocksY = numBlocks / 32768;
+            numBlocksX = (numBlocks + numBlocksY-1) / numBlocksY;
+        }
         
         cudaMemcpy(_outputs, &(_inputs[0]),
                    nitems*sizeof(int), cudaMemcpyDeviceToDevice);
@@ -404,19 +422,19 @@ struct eavlSegScanOp_GPU
          
         int numThreads = 256;
         dim3 threads(numThreads,   1, 1);
-        dim3 blocks (64,           1, 1);
+        dim3 blocks (numBlocksX,numBlocksY, 1);
         SegScanBlock_kernel< SegAddFunctor<int> ,false,int > <<< blocks, threads >>>(nitems, _outputs,_flags);
         CUDA_CHECK_ERROR();
         scanFlagsBlockKernel< SegMaxFunctor<int>, int > <<< blocks, threads >>>(nitems, _flags);
         
-        int numBlocks = nitems / 256;
-        if(nitems%256 > 0) numBlocks++;
+        
         
         cudaMalloc((void**)&blockSums, numBlocks*sizeof(int));
         CUDA_CHECK_ERROR();
 
         dim3 one(1,1,1);
         SegScanBlockSum_kernel< SegAddFunctor<int> ,false,int > <<< one, threads >>>(numBlocks, _outputs, _flags, blockSums);
+
         CUDA_CHECK_ERROR();
 
         SegScanAddSum_kernel< SegAddFunctor<int> > <<<blocks, threads >>>(nitems, _inputs, _outputs, blockSums, _flags );
