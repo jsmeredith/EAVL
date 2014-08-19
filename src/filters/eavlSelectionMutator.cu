@@ -22,18 +22,20 @@ struct FindSelection
 {
     eavlIntArray *checkArray;
     FindSelection(eavlIntArray *inArray) : checkArray(inArray) { }
-    EAVL_FUNCTOR int operator()(int x) 
-    { 
-        for(int i = 0; i < checkArray->GetNumberOfTuples(); i++)
-        {   
-            if(checkArray->GetValue(i) == x)
-            {
-                return 1; 
-            }
-            else if(checkArray->GetValue(i) > x)
-            {
-               return 0;
-            }
+    EAVL_FUNCTOR int operator()(int key) 
+    {
+        int minIndex, maxIndex, midPoint;
+        minIndex = 0;
+        maxIndex = checkArray->GetNumberOfTuples();
+        while(maxIndex >= minIndex)
+        {
+            midPoint = minIndex + ((maxIndex - minIndex) / 2);
+            if(checkArray->GetValue(midPoint) == key)
+                return 1;
+            else if(checkArray->GetValue(midPoint) < key)
+                minIndex = midPoint + 1;
+            else
+                maxIndex = midPoint - 1;
         }
         return 0;
     }
@@ -42,6 +44,7 @@ struct FindSelection
 
 eavlSelectionMutator::eavlSelectionMutator()
 {
+    presorted = false; 
 }
 
     
@@ -53,20 +56,23 @@ eavlSelectionMutator::Execute()
     eavlField *inField = dataset->GetField(fieldname);
     eavlArray *arrayToOperateOn = inField->GetArray();
     eavlIntArray *mapOutput = new eavlIntArray("inSelection", 1, arrayToOperateOn->GetNumberOfTuples());
-
-    //----dump interesting paticles to array that qsort can use
-    int array[chosenElements->GetNumberOfTuples()];
-    for(int n = 0 ; n < chosenElements->GetNumberOfTuples(); n++ ) 
+    
+    if(!presorted)
     {
-        array[n] = chosenElements->GetValue(n);
+        //----dump interesting paticles to array that qsort can use
+        int array[chosenElements->GetNumberOfTuples()];
+        for(int n = 0 ; n < chosenElements->GetNumberOfTuples(); n++ ) 
+        {
+            array[n] = chosenElements->GetValue(n);
 
+        }
+        qsort(array, chosenElements->GetNumberOfTuples(), sizeof(int), cmpfunc);
+        for(int n = 0 ; n < chosenElements->GetNumberOfTuples(); n++ ) 
+        {
+            chosenElements->SetValue(n, array[n]);
+        }
+        //--
     }
-    qsort(array, chosenElements->GetNumberOfTuples(), sizeof(int), cmpfunc);
-    for(int n = 0 ; n < chosenElements->GetNumberOfTuples(); n++ ) 
-    {
-        chosenElements->SetValue(n, array[n]);
-    }
-    //--
    
 
     //----perform map with custom selection fuctor
