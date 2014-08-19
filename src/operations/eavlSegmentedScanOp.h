@@ -166,7 +166,7 @@ __device__ T segScanBlock(volatile T *data, volatile int *flags, const unsigned 
     {
         sm_data[warpIdx]  = lastVal;
         sm_flags[warpIdx] = warpHasFlag;
-        if (blockIdx.x == 15 ) printf("warpid: %d   %d last value : %d\n",warpIdx, data[warpIdx],lastVal  );
+        //if (blockIdx.x == 15 ) printf("warpid: %d   %d last value : %d\n",warpIdx, data[warpIdx],lastVal  );
     }
 
     __syncthreads();
@@ -207,7 +207,7 @@ __device__ T scanFlagsBlock(volatile T *flags, const unsigned int idx = threadId
   
     __syncthreads();
 
-    flags[idx] = result;
+    flags[idx] = result;//NOO
 
      __syncthreads();
 
@@ -240,6 +240,9 @@ __global__ void scanFlagsBlockKernel(int nItems, T *flags)
     __syncthreads();
 
     if(idx == warpLastThread) sm_flags[warpIdx] = result;
+    //if(idx == warpLastThread && blockId == 32) printf("$$$$$$$$$$$$$last index %d storing %d in %d\n", threadIdx.x, result, warpIdx);
+    __syncthreads();
+    if(warpIdx == 0) scanWarp<OP,true>(sm_flags);
     __syncthreads();
 
     if(warpIdx !=0 ) result = OP::op(sm_flags[warpIdx-1], result);
@@ -248,7 +251,8 @@ __global__ void scanFlagsBlockKernel(int nItems, T *flags)
     sm_flags[idx] = result;
     __syncthreads();
     flags[threadID] = sm_flags[idx];
-
+    //if(threadIdx.x == 223 && blockId == 32) printf("############# theadIdx %d sm_flags %d g_flags %d\n", idx, sm_flags[threadIdx.x], flags[threadID]);
+    //if(threadIdx.x == 224 && blockId == 32) printf("############# theadIdx %d sm_flags %d g_flags %d\n", idx, sm_flags[threadIdx.x], flags[threadID]);
      __syncthreads();
 
 
@@ -298,7 +302,7 @@ SegScanBlockSum_kernel(int nblocks, T* inputs, FLAGS* flags, T* blockSums)
 
         /* load block totals and carry flags into shared memory */
         sm_data[threadIdx.x ] = inputs[blockLastIdx];  
-        printf("Block Sum %d block id %d  \n", sm_data[threadIdx.x ], blockId, blockLastIdx);
+        //printf("Block Sum %d block id %d  \n", sm_data[threadIdx.x ], blockId, blockLastIdx);
         sm_flags[threadIdx.x] = blockHasFlag;
 
         __syncthreads();
@@ -359,7 +363,7 @@ SegScanAddSum_kernel(int nitems, T* inputs, T* outputs,T* blockSums, FLAGS* flag
 
     bool openSegment = (flags[blockFirstThread] == 0);
     bool acc = (openSegment && sm_flags[threadIdx.x] == 0);
-    
+    //if(threadIdx.x == 224 && blockId == 32) printf("############# openSegment %d acc %d sm_flags %d g_flags %d", openSegment, acc, sm_flags[threadIdx.x], flags[threadID]);
     __syncthreads();
     
     sm_data[threadIdx.x]  = outputs[threadID];
@@ -400,7 +404,7 @@ struct eavlSegScanOp_GPU
         int *_flags   = get<0>(flags).array;                     
         int *_inputs  = get<0>(inputs).array;
         int *_outputs = get<0>(outputs).array;
-        
+        int *tempFlags;
         int *blockSums;
 
         int numBlocks = nitems / 256;
@@ -413,7 +417,11 @@ struct eavlSegScanOp_GPU
             numBlocksY = numBlocks / 32768;
             numBlocksX = (numBlocks + numBlocksY-1) / numBlocksY;
         }
-        
+        cudaMalloc((void **)&tempFlags,nitems*sizeof(int));
+        CUDA_CHECK_ERROR();
+        cudaMemcpy(tempFlags, &(_flags[0]),
+                   nitems*sizeof(int), cudaMemcpyDeviceToDevice);
+        CUDA_CHECK_ERROR();
         cudaMemcpy(_outputs, &(_inputs[0]),
                    nitems*sizeof(int), cudaMemcpyDeviceToDevice);
         CUDA_CHECK_ERROR();
@@ -427,8 +435,6 @@ struct eavlSegScanOp_GPU
         CUDA_CHECK_ERROR();
         scanFlagsBlockKernel< SegMaxFunctor<int>, int > <<< blocks, threads >>>(nitems, _flags);
         
-        
-        
         cudaMalloc((void**)&blockSums, numBlocks*sizeof(int));
         CUDA_CHECK_ERROR();
 
@@ -438,6 +444,9 @@ struct eavlSegScanOp_GPU
         CUDA_CHECK_ERROR();
 
         SegScanAddSum_kernel< SegAddFunctor<int> > <<<blocks, threads >>>(nitems, _inputs, _outputs, blockSums, _flags );
+        CUDA_CHECK_ERROR();
+
+        cudaFree(blockSums);
         CUDA_CHECK_ERROR();
 
     }

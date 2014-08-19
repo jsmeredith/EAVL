@@ -1976,8 +1976,10 @@ void eavlRayTracerMutator::shadowIntersect()
 
 void eavlRayTracerMutator::Execute()
 {
-    
-    /*int size = 256*34;
+    /*int size = 1024*1024;
+    for(int j = 1; j <5 ; j++)
+    {
+        size*=2;
     eavlIntArray * ins =  new eavlIntArray("",1,size);
     eavlIntArray * outs =  new eavlIntArray("",1,size);
     eavlIntArray * flags =  new eavlIntArray("",1,size);
@@ -1992,27 +1994,33 @@ void eavlRayTracerMutator::Execute()
         if(i%254 == 0) 
         {
             flags->SetValue(i,1);
-            cout<<"Flag set at "<<i<<endl;
+            //cout<<"Flag set at "<<i<<endl;
         }
     }
-
+    for(int k =0 ; k<2; k++){
+        int scan = eavlTimer::Start();
+        eavlExecutor::AddOperation(new_eavlSegScanOp(eavlOpArgs(ins),
+                                                     eavlOpArgs(outs),
+                                                     eavlOpArgs(flags)),
+                                                     "");
+        eavlExecutor::Go();
     
-    eavlExecutor::AddOperation(new_eavlSegScanOp(eavlOpArgs(ins),
-                                                 eavlOpArgs(outs),
-                                                 eavlOpArgs(flags)),
-                                                 "");
-    eavlExecutor::Go();
+        cout<<"Elements "<<size<<"scan       RUNTIME: "<<eavlTimer::Stop(scan,"scan")<<endl;}
+    delete ins;
+    delete outs;
+    delete flags;
+    }
     //for( int i = 0; i<size ; i++)
     //{
     //    cout<<ins->GetValue(i)<<" ";
     //}
     cout<<endl;
-    for( int i = 0; i<size ; i++)
-    {
-        if(i%256 == 0) cout<<endl<<i<<" # "<<endl;
-        cout<<outs->GetValue(i)<<" ";
+    //for( int i = 0; i<size ; i++)
+    //{
+    //    if(i%256 == 0) cout<<endl<<i<<" # "<<endl;
+    //    cout<<outs->GetValue(i)<<" ";
 
-    }
+    //}
 
     exit(0);
     */
