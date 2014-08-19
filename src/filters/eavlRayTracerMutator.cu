@@ -36,6 +36,7 @@
 #include "RT/eavlRTUtil.h"
 
 #include "eavlSegmentedScanOp.h"
+#include "eavlRadixSortOp.h"
 
 #define TOLERANCE   0.00001
 #define BARY_TOLE   0.0001f
@@ -1976,6 +1977,29 @@ void eavlRayTracerMutator::shadowIntersect()
 
 void eavlRayTracerMutator::Execute()
 {
+
+    /*Radix sort Testing*/
+
+    /*int s = 1024;
+    eavlIntArray * ins =  new eavlIntArray("",1,s);
+    eavlIntArray * outs =  new eavlIntArray("",1,s);
+    for( int i = 0; i<s ; i++)
+    {
+        ins->SetValue(i,rand()%256); 
+        cout<<" "<<ins->GetValue(i);
+    }
+    cout<<endl;
+    eavlExecutor::AddOperation(new_eavlRadixSortOp(eavlOpArgs(ins),
+                                                     eavlOpArgs(outs)),
+                                                     "");
+    eavlExecutor::Go();
+    for( int i = 0; i<s ; i++)
+    {
+        if(i%256 == 0) cout<<endl<<i<<" # "<<endl;
+        cout<<ins->GetValue(i)<<" ";
+
+    }
+    exit(0);*/
     /*int size = 1024*1024;
     for(int j = 1; j <5 ; j++)
     {
