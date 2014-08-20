@@ -1985,7 +1985,7 @@ void eavlRayTracerMutator::Execute()
     eavlIntArray * outs =  new eavlIntArray("",1,s);
     for( int i = 0; i<s ; i++)
     {
-        ins->SetValue(i,rand()%256); 
+        ins->SetValue(i,rand()%16); 
         cout<<" "<<ins->GetValue(i);
     }
     cout<<endl;
@@ -2008,21 +2008,21 @@ void eavlRayTracerMutator::Execute()
         //cout<<ins->GetValue(i)<<" ";
         if(ins->GetValue(i)> ins->GetValue(i+1)) cout<<"NOT SORTED at "<<i<<" "<<ins->GetValue(i)<<endl;
     }
-    //for( int i = 64; i<127 ; i++)
-    //{
+    for( int i = 64; i<127 ; i++)
+    {
         //if(i%64 == 0) cout<<endl<<i<<" # "<<endl;
 
-    //    cout<<ins->GetValue(i)<<" ";
+        cout<<ins->GetValue(i)<<" ";
         //if(ins->GetValue(i)> ins->GetValue(i+1)) cout<<"NOT SORTED at "<<i<<" "<<ins->GetValue(i)<<endl;
-    //}
+    }
     cout<<endl;
-    //for( int i = 64; i<127 ; i++)
-    //{
+    for( int i = 64; i<127 ; i++)
+    {
         //if(i%64 == 0) cout<<endl<<i<<" # "<<endl;
 
         //cout<<ins->GetValue(i)<<" ";
-    //    if(ins->GetValue(i)> ins->GetValue(i+1)) cout<<"NOT SORTED at "<<i<<" "<<ins->GetValue(i)<<endl;
-    //}
+        if(ins->GetValue(i)> ins->GetValue(i+1)) cout<<"NOT SORTED at "<<i<<" "<<ins->GetValue(i)<<endl;
+    }
     exit(0);
     /*int size = 1024*1024;
     for(int j = 1; j <5 ; j++)

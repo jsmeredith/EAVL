@@ -44,6 +44,20 @@ class RadixAddFunctor
     __device__ T static getIdentity(){return 0;}
 };
 
+template<typename T>
+class RadixMaxFunctor
+{
+  public:
+    __device__ SegMaxFunctor(){}
+
+    __device__ T static op(T a, T b)
+    {
+        return max(a, b);
+    }
+
+    __device__ T static getIdentity(){return 0;}
+};
+
 
 
 template<class OP, bool INCLUSIVE, class T>
@@ -109,6 +123,37 @@ __device__ void scanBlock(volatile T *flags)
     else flags[0] = 0;
     
 }
+template< class T>
+__device__ void maxScanBlock(volatile T *flags)
+{
+
+    const unsigned int idx = threadIdx.x;
+    //int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
+
+    //const int threadID     = blockId * blockDim.x + threadIdx.x;
+    unsigned int warpIdx   = idx >> 5;
+    unsigned int warpFirstThread = warpIdx << 5;                  
+    unsigned int warpLastThread  = warpFirstThread + 31;
+
+    T result = rscanWarp<RadixMaxFunctor<T>,true>(flags);
+    
+    __syncthreads();
+
+    if(idx == warpLastThread) flags[warpIdx] = result;
+    
+    __syncthreads();
+    
+    if(warpIdx == 0) rscanWarp<RadixMaxFunctor<T>,true>(flags);
+    
+    __syncthreads();
+
+    if(warpIdx !=0 ) result = flags[warpIdx-1] + result;
+    
+    __syncthreads();
+    
+    flags[idx] = result; 
+    
+}
 
 __global__ void interatorKernel(int nitems, volatile int * ids)
 {
@@ -123,14 +168,12 @@ __global__ void interatorKernel(int nitems, volatile int * ids)
     Do a binary search on sorted shared memory to find the scatter
     position of the key in a merge sort.
 
-    Returns 0  if key is smaller than all values
-    Returns -1 if key is larger than all values
-    Returns i  which is the position where the key would reside in
-               in the array. 
-
+    search 1 will insert identical elements before those of the second array.
+    search 2 will insert identical elements after. This ensures that we do
+    not get scatter address collisions.
 */
 template<class T>
-__device__ int binarySearch(int first, int last,volatile T * array, T key)
+__device__ int binarySearch(int first, int last,volatile T * array, T key, bool inclusive)
 {
     int index = -99;
     bool found = false;
@@ -167,7 +210,7 @@ __device__ int binarySearch(int first, int last,volatile T * array, T key)
             //if(key == array[mid]) index = mid;
         }
 
-        if(key < array[mid]) mx = mid -1;
+        if(key <= array[mid]) mx = mid -1;
         else mn = mid +1;
     }
 
@@ -215,7 +258,7 @@ __device__ int binarySearchPrint(int first, int last,volatile T * array, T key)
             //if(key == array[mid]) index = mid;
         }
 
-        if(key < array[mid]) mx = mid -1;
+        if(key <= array[mid]) mx = mid -1;
         else mn = mid +1;
     }
 
@@ -237,6 +280,12 @@ __device__ int binarySearch2(int first, int last,volatile T * array, T key)
     if(key > array[last]) 
     {
         index = -1;
+        end = true;
+    }
+
+    if(key == array[last])
+    {
+        index = last + 1;
         end = true;
     }
 
@@ -270,13 +319,15 @@ __global__ void mergeKernel(int first1, int last1, int first2, int last2, volati
 {
     const int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
     const unsigned int idx = threadIdx.x;
-    const int threadID = blockId * blockDim.x + threadIdx.x;
+    //const int threadID = blockId * blockDim.x + threadIdx.x;
 
     volatile __shared__ K sm_keys1[64];
     volatile __shared__ K sm_keys2[64];
+    volatile __shared__ K sm_out[128];
 
     __shared__ int keys1Start;
     __shared__ int keys2Start;
+    //__shared__ int gStart = first1;
 
     if(idx == 0) keys1Start = first1;
     if(idx == 0) keys2Start = first2;
@@ -285,14 +336,27 @@ __global__ void mergeKernel(int first1, int last1, int first2, int last2, volati
     sm_keys2[idx] = keys[keys2Start+idx];
     
     __syncthreads();
-
-    int sa1 = binarySearch(0,63,sm_keys2, sm_keys1[idx]) + idx;
-    int sa2 = binarySearch2(0,63,sm_keys1, sm_keys2[idx]) + idx;
+    /* -1 indicates that the keys are greater than the last value of the other key array */
+    int sa1 = binarySearch(0,63,sm_keys2, sm_keys1[idx]);
+    if(sa1 != -1) sa1 += idx;
+    int sa2 = binarySearch2(0,63,sm_keys1, sm_keys2[idx]);
+    if(sa2 != -1) sa2 += idx;
      
     __syncthreads();
-    printf("Thread %d key1 %d  sa1 %d  key2 %d sa2 %d\n", idx, sm_keys1[idx], sa1, sm_keys2[idx], sa2);
+    //printf("Thread %d key1 %d  sa1 %d  key2 %d sa2 %d\n", idx, sm_keys1[idx], sa1, sm_keys2[idx], sa2);
+    
+    if(sa1 != -1) sm_out[sa1] = sm_keys1[idx];
+    if(sa2 != -1) sm_out[sa2] = sm_keys2[idx];
+
     __syncthreads();
-    if(sa1<-1 && idx <3) binarySearchPrint(0,63,sm_keys2, sm_keys1[idx]);
+    if(idx == 0)
+    {
+        for(int i = 0; i < 128;  i++)
+        {
+            printf("%d ", sm_out[i]);
+        }
+        printf("\n");
+    }
 
 
 
@@ -304,7 +368,7 @@ __global__ void sortBlocksKernel(int nitems, volatile K *keys, volatile T *ids)
 {
 
     const unsigned int idx = threadIdx.x;
-    if(idx == 0) printf("*******************************************STARTING*******\n");
+    //if(idx == 0) printf("*******************************************STARTING*******\n");
     RadixAddFunctor<T> op;
     volatile __shared__ K sm_keys[64];
     volatile __shared__ K sm_mask[64];  /*current bit set*/
@@ -325,7 +389,7 @@ __global__ void sortBlocksKernel(int nitems, volatile K *keys, volatile T *ids)
     sm_ids[idx]  = ids[threadID];
     /* Change this to sizeOf(K)*8 or something, or find msb using max scan*/
     for(int i = 0; i<16; i++)
-    {   if(idx==0) printf("---------------------------------------- round %d\n",i);
+    {   //if(idx==0) printf("---------------------------------------- round %d\n",i);
         sm_mask[idx] = sm_keys[idx] & mask;
         //printf(" mask %d key %d\n", sm_mask[idx], sm_keys[idx]);
         /*flip it*/
