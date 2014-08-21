@@ -48,7 +48,7 @@ template<typename T>
 class RadixMaxFunctor
 {
   public:
-    __device__ SegMaxFunctor(){}
+    __device__ RadixMaxFunctor(){}
 
     __device__ T static op(T a, T b)
     {
@@ -84,19 +84,16 @@ __device__ T rscanWarp(volatile T *data, const unsigned int idx = threadIdx.x)
 }
 
 /*Exclusive scan of block length shared memory */
-template< class T>
+template<class OP, bool INCLUSIVE, class T>
 __device__ void scanBlock(volatile T *flags)
 {
 
     const unsigned int idx = threadIdx.x;
-    //int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
-
-    //const int threadID     = blockId * blockDim.x + threadIdx.x;
     unsigned int warpIdx   = idx >> 5;
     unsigned int warpFirstThread = warpIdx << 5;                  
     unsigned int warpLastThread  = warpFirstThread + 31;
 
-    T result = rscanWarp<RadixAddFunctor<T>,true>(flags);
+    T result = rscanWarp<OP,true>(flags);
     
     __syncthreads();
 
@@ -104,11 +101,11 @@ __device__ void scanBlock(volatile T *flags)
     
     __syncthreads();
     
-    if(warpIdx == 0) rscanWarp<RadixAddFunctor<T>,true>(flags);
+    if(warpIdx == 0) rscanWarp<OP,true>(flags);
     
     __syncthreads();
 
-    if(warpIdx !=0 ) result = flags[warpIdx-1] + result;
+    if(warpIdx !=0 ) result = OP::op(flags[warpIdx-1], result);
     
     __syncthreads();
     
@@ -116,44 +113,19 @@ __device__ void scanBlock(volatile T *flags)
     
     __syncthreads();
 
-    if(idx != 0 ) result = flags[idx -1];
-    __syncthreads();
+    if(!INCLUSIVE)
+    {
+        if(idx != 0 ) result = flags[idx -1];
+        __syncthreads();
 
-    if(idx != 0 ) flags[idx] = result;
-    else flags[0] = 0;
+        if(idx != 0 ) flags[idx] = result;
+        else flags[0] = OP::getIdentity();
+        __syncthreads();
+    }
+    
     
 }
-template< class T>
-__device__ void maxScanBlock(volatile T *flags)
-{
 
-    const unsigned int idx = threadIdx.x;
-    //int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
-
-    //const int threadID     = blockId * blockDim.x + threadIdx.x;
-    unsigned int warpIdx   = idx >> 5;
-    unsigned int warpFirstThread = warpIdx << 5;                  
-    unsigned int warpLastThread  = warpFirstThread + 31;
-
-    T result = rscanWarp<RadixMaxFunctor<T>,true>(flags);
-    
-    __syncthreads();
-
-    if(idx == warpLastThread) flags[warpIdx] = result;
-    
-    __syncthreads();
-    
-    if(warpIdx == 0) rscanWarp<RadixMaxFunctor<T>,true>(flags);
-    
-    __syncthreads();
-
-    if(warpIdx !=0 ) result = flags[warpIdx-1] + result;
-    
-    __syncthreads();
-    
-    flags[idx] = result; 
-    
-}
 
 __global__ void interatorKernel(int nitems, volatile int * ids)
 {
@@ -173,7 +145,7 @@ __global__ void interatorKernel(int nitems, volatile int * ids)
     not get scatter address collisions.
 */
 template<class T>
-__device__ int binarySearch(int first, int last,volatile T * array, T key, bool inclusive)
+__device__ int binarySearch(int first, int last, volatile T * array, volatile T key)
 {
     int index = -99;
     bool found = false;
@@ -267,7 +239,7 @@ __device__ int binarySearchPrint(int first, int last,volatile T * array, T key)
 }
 
 template<class T>
-__device__ int binarySearch2(int first, int last,volatile T * array, T key)
+__device__ int binarySearch2(int first, int last,volatile T * array, volatile T key)
 {
     int index = -1;
     bool found = false;
@@ -317,48 +289,259 @@ __device__ int binarySearch2(int first, int last,volatile T * array, T key)
 template<class K, class T>
 __global__ void mergeKernel(int first1, int last1, int first2, int last2, volatile K *keys, volatile T* ids)
 {
-    const int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
+    //const int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
     const unsigned int idx = threadIdx.x;
     //const int threadID = blockId * blockDim.x + threadIdx.x;
 
-    volatile __shared__ K sm_keys1[64];
-    volatile __shared__ K sm_keys2[64];
-    volatile __shared__ K sm_out[128];
+    volatile __shared__ K    sm_keys1[64];
+    volatile __shared__ K    sm_keys2[64];
+    volatile __shared__ K    sm_out[128];  /*write out to a larger buffer so we don't scatter to global mem*/
+    volatile __shared__ int  sm_sa[64];    /*need to scan all the scatter addresses to find the max*/
 
-    __shared__ int keys1Start;
+
+    __shared__ int keys1Start;  /* should always point to the beginning of the current working chunk*/
+    __shared__ int writePtr;
     __shared__ int keys2Start;
+    __shared__ int maxScatter;
+
+    __shared__ int partialShift1;
+    __shared__ int partialShift2;
+    __shared__ int shiftAmount;
+    __shared__ int done;
+    int counter=0;
     //__shared__ int gStart = first1;
 
-    if(idx == 0) keys1Start = first1;
-    if(idx == 0) keys2Start = first2;
+    if(idx == 0) 
+    {
+        printf("Input------------------------------\n");
+        for(int i=0 ; i<256 ; i++)
+        {
+            printf("%d ", keys[i]);
+        }
+        printf("\n");
+    }
+
+    if(idx == 0)
+    {
+        keys1Start = first1;
+        keys2Start = first2;
+        writePtr = first1;
+        done = 0;
+        printf("Start 1 %d Start 2 %d\n",keys1Start, keys2Start);
+        
+    }
+    __syncthreads();
+    //partialShift1 = false;
+
     /* load starting chunks into share mem*/
     sm_keys1[idx] = keys[keys1Start+idx];
     sm_keys2[idx] = keys[keys2Start+idx];
     
     __syncthreads();
-    /* -1 indicates that the keys are greater than the last value of the other key array */
-    int sa1 = binarySearch(0,63,sm_keys2, sm_keys1[idx]);
-    if(sa1 != -1) sa1 += idx;
-    int sa2 = binarySearch2(0,63,sm_keys1, sm_keys2[idx]);
-    if(sa2 != -1) sa2 += idx;
-     
-    __syncthreads();
-    //printf("Thread %d key1 %d  sa1 %d  key2 %d sa2 %d\n", idx, sm_keys1[idx], sa1, sm_keys2[idx], sa2);
-    
-    if(sa1 != -1) sm_out[sa1] = sm_keys1[idx];
-    if(sa2 != -1) sm_out[sa2] = sm_keys2[idx];
-
-    __syncthreads();
-    if(idx == 0)
+    while(!done)
     {
-        for(int i = 0; i < 128;  i++)
+        /* -1 indicates that the keys are greater than the last value of the other key array */
+        int sa1 = binarySearch(0,63,sm_keys2, sm_keys1[idx]);
+        if(sa1 != -1) sa1 += idx;
+        int sa2 = binarySearch2(0,63,sm_keys1, sm_keys2[idx]);
+        if(sa2 != -1) sa2 += idx;
+         
+        __syncthreads();
+        printf("Thread %d key1 %d  sa1 %d  key2 %d sa2 %d\n", idx, sm_keys1[idx], sa1, sm_keys2[idx], sa2);
+        
+        if(sa1 != -1) sm_out[sa1] = sm_keys1[idx];
+        if(sa2 != -1) sm_out[sa2] = sm_keys2[idx];
+        
+        if(idx == 0)
         {
-            printf("%d ", sm_out[i]);
+            partialShift1 = 0;
+            partialShift2 = 0;
         }
-        printf("\n");
+
+        __syncthreads();
+
+        /*Find the maximum scatter address*/    
+        sm_sa[idx] = sa1;
+
+        __syncthreads();
+        
+        scanBlock<RadixMaxFunctor<int>, true> (sm_sa);
+        
+        __syncthreads();
+        
+        if(idx == 0) maxScatter = sm_sa[63];
+        
+        sm_sa[idx] = sa2;
+        
+        __syncthreads();
+        
+        scanBlock<RadixMaxFunctor<int>, true> (sm_sa);
+        
+        __syncthreads();
+        
+        if(idx == 0) 
+        {
+            if(maxScatter < sm_sa[63]) maxScatter = sm_sa[63];
+        }
+        
+        __syncthreads();
+
+        /* write the output back to global mem */
+        if(idx <= maxScatter) keys[writePtr + idx] = sm_out[idx];
+        if(idx + 64 <= maxScatter) keys[writePtr + idx + 64] = sm_out[idx + 64];
+
+        __syncthreads();
+        /*advance the write pointer*/
+        if(idx == 0) writePtr += maxScatter + 1;
+        
+        /*calc the shift if there is one*/
+        if( sa1 == -1 ) partialShift1 = 1;
+        if( sa2 == -1 ) partialShift2 = 1;
+
+        
+        __syncthreads();
+
+        if(partialShift1 && partialShift2)
+        {
+            printf("THIS SHOULD NEVER HAPPEN\n");
+        }
+        /* TODO: make this a 2d array and just index into the partial*/
+        if(partialShift1)
+        {   if(idx == 0) printf("Entering shift 1 \n");
+            
+            if(idx == 0)
+            {
+                keys2Start += 64;
+                keys1Start += shiftAmount;
+            } 
+
+            sm_sa[idx] = sa1 == -1 ? 1 : 0;
+            scanBlock<RadixAddFunctor<int>,true>(sm_sa);
+            /* all the -1 will be grouped at the end so find the first 1*/
+            if(sm_sa[idx] == 1 ) 
+            {
+                shiftAmount = idx;
+                printf("sm1 Shift amount %d\n", shiftAmount);
+            }
+            /* perform the shidt*/
+            if(idx >= shiftAmount) sm_keys1[idx - shiftAmount] = sm_keys1[idx];
+            
+            __syncthreads();
+            
+            if(idx == 0)
+            {
+                printf("Key start 1 %d keyStart2 %d last2 %d\n", keys1Start, keys2Start, last2);
+            }
+
+            /*Pull in new chunk for the other array*/
+            int newIdx = (keys2Start + idx <= last2) ? keys2Start + idx : -1;
+            printf("Thread %d with new index %d \n", idx, newIdx);
+            if(newIdx != -1) sm_keys2[idx] = keys[newIdx];
+            else sm_keys2[idx] = newIdx;
+            
+            
+            __syncthreads();
+            /*pull in new values to fill remaining empty slots */
+            if (idx < shiftAmount ) sm_keys1[shiftAmount + idx] = keys[keys1Start + shiftAmount + idx];
+            __syncthreads();
+        }
+        /*
+        if(partialShift2)
+        {   if(idx == 0) printf("Entering shift 2 \n");
+            if(idx == 0)
+            {
+                keys2Start += shiftAmount;
+                keys1Start += 64;
+            } 
+            sm_sa[idx] = sa2 == -1 ? 1 : 0;
+            scanBlock<RadixAddFunctor<int>,true>(sm_sa);
+        
+            if(sm_sa[idx] == 1 ) 
+            {
+                shiftAmount = idx;
+                printf("sm2 Shift amount %d\n", shiftAmount);
+            }
+
+            if(idx >= shiftAmount) sm_keys2[idx - shiftAmount] = sm_keys2[idx];
+            
+            
+            __syncthreads();
+            if(idx == 0)
+            {
+                printf("Key start 1 %d keyStart2 %d last2 %d\n", keys1Start, keys2Start, last2);
+            }
+
+           
+            int newIdx = (keys1Start + idx <= last1) ? keys1Start + idx : -1;
+            printf("Thread %d with new index %d \n", idx, newIdx);
+            if(newIdx != -1) sm_keys1[idx] = keys[newIdx];
+            
+            
+            __syncthreads();
+
+            if (idx < shiftAmount ) sm_keys2[shiftAmount + idx] = keys[keys2Start + idx];
+            __syncthreads();
+        }
+        */
+        if(!partialShift1 && !partialShift2)
+        {
+            if(idx == 0)
+            {
+                keys2Start += 64;
+                keys1Start += 64;
+            } 
+
+            if(idx == 0) printf("Entering shift both \n");
+            if(idx == 0)
+            {
+                printf("Key start 1 %d keyStart2 %d last2 %d\n", keys1Start, keys2Start, last2);
+            }
+
+            int newIdx = (keys1Start + idx <= last1) ? keys1Start + idx : -1;
+            if(newIdx != -1) sm_keys1[idx] = keys[newIdx];
+            else sm_keys1[idx] = newIdx;
+
+            newIdx = (keys2Start + idx <= last2) ? keys2Start + idx : -1;
+            if(newIdx != -1) sm_keys2[idx] = keys[newIdx];
+            else sm_keys2[idx] = newIdx;
+
+            __syncthreads();
+        }
+
+
+        if(idx == 0)
+        {
+            printf("Max scatter address %d\n", maxScatter);
+            printf("New keys 1\n");
+            for(int i = 0; i < 64;  i++)
+            {
+                printf("%d ", sm_keys1[i]);
+            }
+            printf("\n");
+            printf("New keys 2\n");
+            for(int i = 0; i < 64;  i++)
+            {
+                printf("%d ", sm_keys2[i]);
+            }
+            printf("\n");
+            printf("KEYS \n");
+            for(int i = 0; i < 256;  i++)
+            {
+                printf("%d ", keys[i]);
+            }
+            printf("\n");
+        }
+
+
+       
+        if(idx == 0) 
+        {
+            if(counter == 1 ) done = 1;
+            counter++;  
+            //if(keys1Start > last1 && keys2Start > last2) done = 1;
+        }
+        __syncthreads();
     }
-
-
 
 }
 
@@ -369,12 +552,12 @@ __global__ void sortBlocksKernel(int nitems, volatile K *keys, volatile T *ids)
 
     const unsigned int idx = threadIdx.x;
     //if(idx == 0) printf("*******************************************STARTING*******\n");
-    RadixAddFunctor<T> op;
-    volatile __shared__ K sm_keys[64];
-    volatile __shared__ K sm_mask[64];  /*current bit set*/
-    volatile __shared__ K sm_nmask[64]; /*current bit not set*/
-    volatile __shared__ K sm_t[64];
-    volatile __shared__ T sm_ids[64];
+    //RadixAddFunctor<T> op;
+    volatile __shared__ K sm_keys[128];
+    volatile __shared__ K sm_mask[128];  /*current bit set*/
+    volatile __shared__ K sm_nmask[128]; /*current bit not set*/
+    volatile __shared__ K sm_t[128];
+    volatile __shared__ T sm_ids[128];
     K mask = 1;
     __shared__ int totalFalses; 
     __shared__ int lastVal;
@@ -395,16 +578,16 @@ __global__ void sortBlocksKernel(int nitems, volatile K *keys, volatile T *ids)
         /*flip it*/
         sm_nmask[idx] = (sm_mask[idx] > 0) ? 0 : 1; 
         
-        if(idx == 63) lastVal = sm_nmask[63];  
+        if(idx == 127) lastVal = sm_nmask[127];  
 
         __syncthreads(); 
 
         /* creates the scatter indexes of the true bits */
-        scanBlock(sm_nmask);
+        scanBlock<RadixAddFunctor<T>,false>(sm_nmask);
 
         __syncthreads();
 
-        if(idx == 63) totalFalses = sm_nmask[63] + lastVal;
+        if(idx == 127) totalFalses = sm_nmask[127] + lastVal;
         //if(idx == 0) printf("TotalFalses %d nitems %d lastValue %d\n", totalFalses, nitems, lastVal);
         __syncthreads();
 
@@ -481,7 +664,7 @@ struct eavlRadixSortOp_GPU
 
          dim3 one(1,1,1);
         dim3 t(64,1,1);
-        int numThreads = 64;
+        int numThreads = 128;
         dim3 threads(numThreads,   1, 1);
         dim3 blocks (numBlocksX,numBlocksY, 1);
 
@@ -490,7 +673,7 @@ struct eavlRadixSortOp_GPU
         sortBlocksKernel<<< blocks, threads >>>(nitems, _inputs, _outputs);
         CUDA_CHECK_ERROR();
         
-        mergeKernel<<< one, t>>>(0,63,64,123, _inputs, _outputs); 
+        mergeKernel<<< one, t>>>(0,127,128,255, _inputs, _outputs); 
         
 
     }

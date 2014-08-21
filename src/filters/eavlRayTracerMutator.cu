@@ -1980,20 +1980,23 @@ void eavlRayTracerMutator::Execute()
 
     /*Radix sort Testing*/
 
-    int s = 64*2;
+    int s = 64*4;
     eavlIntArray * ins =  new eavlIntArray("",1,s);
     eavlIntArray * outs =  new eavlIntArray("",1,s);
     for( int i = 0; i<s ; i++)
     {
         ins->SetValue(i,rand()%16); 
+        if(i<128) ins->SetValue(i,rand()%16 + 8);
         cout<<" "<<ins->GetValue(i);
+
     }
     cout<<endl;
     eavlExecutor::AddOperation(new_eavlRadixSortOp(eavlOpArgs(ins),
                                                      eavlOpArgs(outs)),
                                                      "");
     eavlExecutor::Go();
-    for( int i = 0; i<63 ; i++)
+    cout<<"OUTPUT"<<endl;
+    for( int i = 0; i<256 ; i++)
     {
         //if(i%64 == 0) cout<<endl<<i<<" # "<<endl;
 
@@ -2001,28 +2004,14 @@ void eavlRayTracerMutator::Execute()
         //if(ins->GetValue(i)> ins->GetValue(i+1)) cout<<"NOT SORTED at "<<i<<endl;
     }
     cout<<endl;
-    for( int i = 0; i<63 ; i++)
+    for( int i = 0; i<256 ; i++)
     {
         //if(i%64 == 0) cout<<endl<<i<<" # "<<endl;
 
         //cout<<ins->GetValue(i)<<" ";
         if(ins->GetValue(i)> ins->GetValue(i+1)) cout<<"NOT SORTED at "<<i<<" "<<ins->GetValue(i)<<endl;
     }
-    for( int i = 64; i<127 ; i++)
-    {
-        //if(i%64 == 0) cout<<endl<<i<<" # "<<endl;
-
-        cout<<ins->GetValue(i)<<" ";
-        //if(ins->GetValue(i)> ins->GetValue(i+1)) cout<<"NOT SORTED at "<<i<<" "<<ins->GetValue(i)<<endl;
-    }
-    cout<<endl;
-    for( int i = 64; i<127 ; i++)
-    {
-        //if(i%64 == 0) cout<<endl<<i<<" # "<<endl;
-
-        //cout<<ins->GetValue(i)<<" ";
-        if(ins->GetValue(i)> ins->GetValue(i+1)) cout<<"NOT SORTED at "<<i<<" "<<ins->GetValue(i)<<endl;
-    }
+    
     exit(0);
     /*int size = 1024*1024;
     for(int j = 1; j <5 ; j++)
