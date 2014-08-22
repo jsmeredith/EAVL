@@ -1980,7 +1980,7 @@ void eavlRayTracerMutator::Execute()
 
     /*Radix sort Testing*/
 
-    int s = 64*4;
+    int s = 129;
     eavlIntArray * ins =  new eavlIntArray("",1,s);
     eavlIntArray * outs =  new eavlIntArray("",1,s);
     for( int i = 0; i<s ; i++)
@@ -1996,7 +1996,7 @@ void eavlRayTracerMutator::Execute()
                                                      "");
     eavlExecutor::Go();
     cout<<"OUTPUT"<<endl;
-    for( int i = 0; i<256 ; i++)
+    for( int i = 0; i<s ; i++)
     {
         //if(i%64 == 0) cout<<endl<<i<<" # "<<endl;
 
@@ -2004,7 +2004,7 @@ void eavlRayTracerMutator::Execute()
         //if(ins->GetValue(i)> ins->GetValue(i+1)) cout<<"NOT SORTED at "<<i<<endl;
     }
     cout<<endl;
-    for( int i = 0; i<256 ; i++)
+    for( int i = 0; i<s ; i++)
     {
         //if(i%64 == 0) cout<<endl<<i<<" # "<<endl;
 
