@@ -155,8 +155,9 @@ __device__ int binarySearch(int first, int last, volatile T * array, volatile T 
     int mx = last;
     int mn = first;
 
-    if(last - first < 1 )
+    if(last - first < 0 )
     {
+        printf(" 1 nothing left\n");
         index = 0;
         end = true;
         return index;
@@ -257,8 +258,9 @@ __device__ int binarySearch2(int first, int last,volatile T * array, volatile T 
     int mx = last;
     int mn = first;
 
-    if(last - first < 1 )
+    if(last - first < 0 )
     {
+        printf("nothing left\n");
         index = 0;
         end = true;
         return index;
@@ -302,12 +304,12 @@ __device__ int binarySearch2(int first, int last,volatile T * array, volatile T 
 }
 
 template<class K, class T>
-__global__ void mergeKernel(int first1, int last1, int first2, int last2, volatile K *keys, volatile K *outKeys, volatile T* ids)
+__global__ void mergeKernel(int nItems,int first1, int last1, int first2, int last2, volatile K *keys, volatile K *outKeys, volatile T* ids, K maxKey)
 {
-    //const int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
+    const int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
     const unsigned int idx = threadIdx.x;
-    //const int threadID = blockId * blockDim.x + threadIdx.x;
-
+    const int threadID = blockId * blockDim.x + threadIdx.x;
+    printf("Nitems %d \n", nItems);
     volatile __shared__ K    sm_keys1[64];
     volatile __shared__ K    sm_keys2[64];
     volatile __shared__ K    sm_out[128];  /*write out to a larger buffer so we don't scatter to global mem*/
@@ -323,7 +325,7 @@ __global__ void mergeKernel(int first1, int last1, int first2, int last2, volati
     __shared__ int partialShift2;
     __shared__ int shiftAmount;
     __shared__ int done;
-    int counter=0;
+    //int counter=0;
     //__shared__ int gStart = first1;
 
     if(idx == 0) 
@@ -359,12 +361,18 @@ __global__ void mergeKernel(int first1, int last1, int first2, int last2, volati
         int numItems2 = last2 - keys2Start;
         if(numItems1 > 63) numItems1 = 63;
         if(numItems2 > 63) numItems2 = 63;
-        if(idx == 0 ) printf("Items left 1 %d 2 %d", numItems1, numItems2);
+        numItems1 = 63;
+        numItems2 = 63;
+        if(idx == 0 ) printf("Items left 1 %d 2 %d\n", numItems1, numItems2);
         /* -1 indicates that the keys are greater than the last value of the other key array */
-        int sa1 = binarySearch(0,numItems1,sm_keys2, sm_keys1[idx]);
+        int sa1 = binarySearch(0,numItems2,sm_keys2, sm_keys1[idx]);
         if(sa1 != -1) sa1 += idx;
-        int sa2 = binarySearch2(0,numItems2,sm_keys1, sm_keys2[idx]);
+        if(numItems1 < 0) sa1 = -1;
+        //if(numItems2 < 63 && sa1 == -1) sa1 = numItems2 + 1 + idx; /* Nothing left on the other list of keys, so it is safe to append it*/
+        int sa2 = binarySearch2(0,numItems1,sm_keys1, sm_keys2[idx]);
+        if(numItems2 < 0) sa2 = -1;
         if(sa2 != -1) sa2 += idx;
+        //if(numItems1 < 63 && sa2 == -1) sa2 = numItems1 + 1 + idx;
          
         __syncthreads();
         printf("Thread %d key1 %d  sa1 %d  key2 %d sa2 %d\n", idx, sm_keys1[idx], sa1, sm_keys2[idx], sa2);
@@ -375,7 +383,7 @@ __global__ void mergeKernel(int first1, int last1, int first2, int last2, volati
         } 
 
         if(sa2 != -1) sm_out[sa2] = sm_keys2[idx];
-        
+        /* end condition test */
         if(idx == 0)
         {
             partialShift1 = 0;
@@ -411,13 +419,29 @@ __global__ void mergeKernel(int first1, int last1, int first2, int last2, volati
         __syncthreads();
 
         /* write the output back to global mem */
+        if(idx == 0) printf("Max SCATTER %d writePtr %d\n", maxScatter, writePtr);
         if(idx <= maxScatter)
         {
-            outKeys[writePtr + idx] = sm_out[idx];  
-            printf("writing to gmem at %d with value %d\n",writePtr + idx, sm_out[idx]);
-        } 
-        if(idx + 64 <= maxScatter) outKeys[writePtr + idx + 64] = sm_out[idx + 64];
+            if(writePtr + idx < nItems)
+            { 
+                outKeys[writePtr + idx] = sm_out[idx];
+                printf("writing to gmem at %d with value %d ITEMS %d\n",writePtr + idx, sm_out[idx], nItems); 
+            } 
+            if(idx == 0)
+            {
+                printf("Out:\n");
+                for(int i=0; i<128;i++) printf("%d ", sm_out[i]);
+                printf("\n");
+            }
 
+            
+        } 
+        if(idx + 64 <= maxScatter && writePtr + idx + 64 < nItems)
+        { 
+            outKeys[writePtr + idx + 64] = sm_out[idx + 64];
+            printf("Writing to address %d num Items %d \n",writePtr + idx + 64, nItems );
+        }
+        
         __syncthreads();
         /*advance the write pointer*/
         if(idx == 0) writePtr += maxScatter + 1;
@@ -449,6 +473,7 @@ __global__ void mergeKernel(int first1, int last1, int first2, int last2, volati
                 shiftAmount = idx;
                 printf("sm1 Shift amount %d\n", shiftAmount);
             }
+            K shiftVal = sm_keys1[idx];
             __syncthreads();
             if(idx == 0)
             {
@@ -456,7 +481,7 @@ __global__ void mergeKernel(int first1, int last1, int first2, int last2, volati
                 keys1Start += shiftAmount;
             } 
             /* perform the shift*/
-            if(idx >= shiftAmount) sm_keys1[idx - shiftAmount] = sm_keys1[idx];
+            if(idx >= shiftAmount) sm_keys1[idx - shiftAmount] = shiftVal;
             
             __syncthreads();
             
@@ -466,9 +491,9 @@ __global__ void mergeKernel(int first1, int last1, int first2, int last2, volati
             }
 
             /*Pull in new chunk for the other array*/
-            int newIdx = (keys2Start + idx <= last2) ? keys2Start + idx : -1;
+            int newIdx = (keys2Start + idx <= last2) ? keys2Start + idx : maxKey;
             
-            if(newIdx != -1) sm_keys2[idx] = keys[newIdx];
+            if(newIdx != maxKey) sm_keys2[idx] = keys[newIdx];
             else sm_keys2[idx] = newIdx;
             printf("Thread %d with new index %d with value %d\n", idx, newIdx, sm_keys2[idx]);
             
@@ -479,7 +504,9 @@ __global__ void mergeKernel(int first1, int last1, int first2, int last2, volati
             if (idx < shiftAmount ) 
             {
                 //printf("Before Keys 1 Thread %d Getting new index for shift %d value %d into sm at %d\n",idx, readStart , sm_keys1[64-shiftAmount+ idx],64-shiftAmount+ idx );
-                sm_keys1[64 - shiftAmount + idx] = keys[readStart];
+                
+                if(readStart > last1) sm_keys1[64 - shiftAmount + idx] = maxKey;
+                else sm_keys1[64 - shiftAmount + idx] = keys[readStart];
                 printf("Keys 1 Thread %d Getting new index for shift %d value %d into sm at %d\n",idx, readStart , sm_keys1[64-shiftAmount+ idx],64-shiftAmount+ idx );
             }
             //if(idx == 0) sm_keys1[2]=99;
@@ -498,8 +525,9 @@ __global__ void mergeKernel(int first1, int last1, int first2, int last2, volati
             if(sm_sa[idx] == 1 ) 
             {
                 shiftAmount = idx;
-                printf("sm1 Shift amount %d\n", shiftAmount);
+                printf("sm2 Shift amount %d\n", shiftAmount);
             }
+            K shiftVal = sm_keys2[idx];
             __syncthreads();
             if(idx == 0)
             {
@@ -507,7 +535,7 @@ __global__ void mergeKernel(int first1, int last1, int first2, int last2, volati
                 keys2Start += shiftAmount;
             } 
             /* perform the shift*/
-            if(idx >= shiftAmount) sm_keys2[idx - shiftAmount] = sm_keys2[idx];
+            if(idx >= shiftAmount) sm_keys2[idx - shiftAmount] = shiftVal;
             
             __syncthreads();
             
@@ -517,21 +545,22 @@ __global__ void mergeKernel(int first1, int last1, int first2, int last2, volati
             }
 
             /*Pull in new chunk for the other array*/
-            int newIdx = (keys1Start + idx <= last1) ? keys1Start + idx : -1;
+            int newIdx = (keys1Start + idx <= last1) ? keys1Start + idx : maxKey;
             
-            if(newIdx != -1) sm_keys1[idx] = keys[newIdx];
+            if(newIdx != maxKey) sm_keys1[idx] = keys[newIdx];
             else sm_keys1[idx] = newIdx;
             printf("Thread %d with new index %d with value %d\n", idx, newIdx, sm_keys1[idx]);
             
             __syncthreads();
             /*pull in new values to fill remaining empty slots */
             //newIdx = 
-            int readStart = keys1Start - shiftAmount + 64 + idx;
+            int readStart = keys2Start - shiftAmount + 64 + idx;
             if (idx < shiftAmount ) 
             {
                 //printf("Before Keys 1 Thread %d Getting new index for shift %d value %d into sm at %d\n",idx, readStart , sm_keys1[64-shiftAmount+ idx],64-shiftAmount+ idx );
-                sm_keys2[64 - shiftAmount + idx] = keys[readStart];
-                printf("Keys 1 Thread %d Getting new index for shift %d value %d into sm at %d\n",idx, readStart , sm_keys2[64-shiftAmount+ idx],64-shiftAmount+ idx );
+                if(readStart > last2) sm_keys2[64 - shiftAmount + idx] = maxKey;
+                else sm_keys2[64 - shiftAmount + idx] = keys[readStart];
+                printf("Keys 2 Thread %d Getting new index for shift %d value %d into sm at %d\n",idx, readStart , sm_keys2[64-shiftAmount+ idx],64-shiftAmount+ idx );
             }
             //if(idx == 0) sm_keys1[2]=99;
             
@@ -552,12 +581,12 @@ __global__ void mergeKernel(int first1, int last1, int first2, int last2, volati
                 printf("Key start 1 %d keyStart2 %d last2 %d\n", keys1Start, keys2Start, last2);
             }
 
-            int newIdx = (keys1Start + idx <= last1) ? keys1Start + idx : -1;
-            if(newIdx != -1) sm_keys1[idx] = keys[newIdx];
+            int newIdx = (keys1Start + idx <= last1) ? keys1Start + idx : maxKey;
+            if(newIdx != maxKey) sm_keys1[idx] = keys[newIdx];
             else sm_keys1[idx] = newIdx;
 
-            newIdx = (keys2Start + idx <= last2) ? keys2Start + idx : -1;
-            if(newIdx != -1) sm_keys2[idx] = keys[newIdx];
+            newIdx = (keys2Start + idx <= last2) ? keys2Start + idx : maxKey;
+            if(newIdx != maxKey) sm_keys2[idx] = keys[newIdx];
             else sm_keys2[idx] = newIdx;
 
             __syncthreads();
@@ -591,9 +620,9 @@ __global__ void mergeKernel(int first1, int last1, int first2, int last2, volati
        
         if(idx == 0) 
         {
-            if(counter == 2 ) done = 1;
-            counter++;  
-            //if(keys1Start > last1 && keys2Start > last2) done = 1;
+            //if(counter == 2 ) done = 1;
+            //counter++;  
+            if(keys1Start > last1 && keys2Start > last2) done = 1;
         }
         __syncthreads();
     }
@@ -626,7 +655,7 @@ __global__ void sortBlocksKernel(int nitems, volatile K *keys, volatile T *ids)
     sm_keys[idx] = keys[threadID];
     sm_ids[idx]  = ids[threadID];
     /* Change this to sizeOf(K)*8 or something, or find msb using max scan*/
-    for(int i = 0; i<16; i++)
+    for(int i = 0; i<32; i++)
     {   //if(idx==0) printf("---------------------------------------- round %d\n",i);
         sm_mask[idx] = sm_keys[idx] & mask;
         //printf(" mask %d key %d\n", sm_mask[idx], sm_keys[idx]);
@@ -693,9 +722,9 @@ struct eavlRadixSortOp_GPU
                      IN inputs, OUT outputs, F&)
     {
                  
-        int *_inputs  = get<0>(inputs).array;
-        int *_outputs = get<0>(outputs).array;
-        int *tempOut;
+        int *_keys  = get<0>(inputs).array;
+        int *_values = get<0>(outputs).array;
+        int *tempKeys;
 
         int numBlocks = nitems / 64;
         if(nitems%256 > 0) numBlocks++;
@@ -707,15 +736,16 @@ struct eavlRadixSortOp_GPU
             numBlocksY = numBlocks / 32768;
             numBlocksX = (numBlocks + numBlocksY-1) / numBlocksY;
         }
-        cudaMalloc((void **)&tempOut,nitems*sizeof(int));
+        cudaMalloc((void **)&tempKeys,nitems*sizeof(int));
         CUDA_CHECK_ERROR();
         //cudaMemcpy(tempFlags, &(_flags[0]),
         //           nitems*sizeof(int), cudaMemcpyDeviceToDevice);
         //CUDA_CHECK_ERROR();
-        //cudaMemcpy(_outputs, &(_inputs[0]),
+        //cudaMemcpy(_values, &(_keys[0]),
         //           nitems*sizeof(int), cudaMemcpyDeviceToDevice);
         //CUDA_CHECK_ERROR();
         
+
 
         dim3 one(1,1,1);
         dim3 t(64,1,1);
@@ -723,14 +753,14 @@ struct eavlRadixSortOp_GPU
         dim3 threads(numThreads,   1, 1);
         dim3 blocks (numBlocksX,numBlocksY, 1);
 
-        interatorKernel<<< blocks, threads >>>(nitems, _outputs);
+        interatorKernel<<< blocks, threads >>>(nitems, _values);
         CUDA_CHECK_ERROR();
-        sortBlocksKernel<<< blocks, threads >>>(nitems, _inputs, _outputs);
+        sortBlocksKernel<<< blocks, threads >>>(nitems, _keys, _values);
         CUDA_CHECK_ERROR();
         
-        mergeKernel<<< one, t>>>(0,127,128,255, _inputs, tempOut, _outputs); 
+        mergeKernel<<< one, t>>>(nitems,0,127,128,255, _keys, tempKeys, _values,std::numeric_limits<int>::max()); 
         CUDA_CHECK_ERROR();
-        cudaMemcpy( &(_inputs[0]),tempOut,
+        cudaMemcpy( &(_keys[0]),tempKeys,
                    nitems*sizeof(int), cudaMemcpyDeviceToDevice);
         CUDA_CHECK_ERROR();
 

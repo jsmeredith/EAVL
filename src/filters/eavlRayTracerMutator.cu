@@ -1985,8 +1985,8 @@ void eavlRayTracerMutator::Execute()
     eavlIntArray * outs =  new eavlIntArray("",1,s);
     for( int i = 0; i<s ; i++)
     {
-        ins->SetValue(i,rand()%16); 
-        if(i<128) ins->SetValue(i,rand()%16 + 8);
+        ins->SetValue(i,rand()%1000); 
+        //if(i>127) ins->SetValue(i,rand()%16 + 8);
         cout<<" "<<ins->GetValue(i);
 
     }
