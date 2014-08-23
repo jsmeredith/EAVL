@@ -23,6 +23,10 @@ vtkDataSet *ConvertEAVLToVTK(eavlDataSet *in)
     exporter.Export(stream);
     string str = stream.str();
 
+    // ofstream tmp; tmp.open("./eavl_to_vtk_str.out", std::ios_base::out);
+    // tmp.write(str.c_str(),str.length());
+    // tmp.close();
+
     // Note: VisIt does this: (I ask because we're getting a 1-byte
     // invalid read in valgrind; maybe this fixes it?):
     //vtkCharArray *charArray = vtkCharArray::New();
@@ -32,6 +36,9 @@ vtkDataSet *ConvertEAVLToVTK(eavlDataSet *in)
     //reader->SetInputArray(charArray);
 
     vtkDataSetReader *rdr = vtkDataSetReader::New();
+    rdr->ReadAllScalarsOn();
+    rdr->ReadAllVectorsOn();
+    rdr->ReadAllTensorsOn();
     rdr->SetReadFromInputString(1);
     rdr->SetInputString(str.c_str());
 

@@ -17,7 +17,7 @@
 #include <cfloat>
 #include <cmath>
 
-//#define DEBUG_ARRAY_TRANSFERS
+#define DEBUG_ARRAY_TRANSFERS
 
 // ****************************************************************************
 // Class:  eavlArray

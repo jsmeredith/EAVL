@@ -396,7 +396,10 @@ eavlIsosurfaceFilter::~eavlIsosurfaceFilter()
 void
 eavlIsosurfaceFilter::Execute()
 {
-    eavlTimer::Suspend();
+    eavlTimer::Resume();
+    //eavlTimer::Suspend();
+
+    std::cout<<"starting eavlIsosurfaceFilter...\n";
 
     int th_init = eavlTimer::Start();
     eavlInitializeIsoTables();
@@ -947,6 +950,7 @@ eavlIsosurfaceFilter::Execute()
         delete outconn;
         delete alpha;
     }
-
-    eavlTimer::Resume();
+    
+    eavlTimer::Dump(std::cout);
+    //eavlTimer::Resume();
 }
