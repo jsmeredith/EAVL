@@ -1101,7 +1101,7 @@ SUBDIRS="$""(SUBDIRS_COMMON)"
 if test "$MPI" != "no"; then
   SUBDIRS="$SUBDIRS $""(SUBDIRS_MPI)"
 fi
-if test "$CUDA" != "no"; thena
+if test "$CUDA" != "no"; then
   SUBDIRS="$SUBDIRS $""(SUBDIRS_CUDA)"
 fi
 AC_SUBST(SUBDIRS)
