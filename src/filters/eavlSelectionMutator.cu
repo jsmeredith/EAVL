@@ -61,12 +61,14 @@ eavlSelectionMutator::Execute()
     {
         //----dump interesting paticles to array that qsort can use
         int array[chosenElements->GetNumberOfTuples()];
+#pragma omp parallel for
         for(int n = 0 ; n < chosenElements->GetNumberOfTuples(); n++ ) 
         {
             array[n] = chosenElements->GetValue(n);
 
         }
         qsort(array, chosenElements->GetNumberOfTuples(), sizeof(int), cmpfunc);
+#pragma omp parallel for
         for(int n = 0 ; n < chosenElements->GetNumberOfTuples(); n++ ) 
         {
             chosenElements->SetValue(n, array[n]);

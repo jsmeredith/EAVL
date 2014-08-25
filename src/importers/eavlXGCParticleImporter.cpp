@@ -17,6 +17,16 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(const string &filename)
     totalIParticles = 0;
     totalEParticles = 0;
     fp = NULL;
+    getR = true;
+    getZ = true;
+    getPhi = true;
+    getRho = true;
+    getW1 = true;
+    getW2 = true;
+    getMu = true;
+    getW0 = true;
+    getF0 = true;
+    getOriginNode = true;
     
     string::size_type i0 = filename.rfind("xgc.");
     string::size_type i1 = filename.rfind(".bp");
@@ -63,7 +73,19 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(   const string &filename,
     totalIParticles = 0;
     totalEParticles = 0;
     fp = NULL;
-                                
+    fp = NULL;
+    getR = true;
+    getZ = true;
+    getPhi = true;
+    getRho = true;
+    getW1 = true;
+    getW2 = true;
+    getMu = true;
+    getW0 = true;
+    getF0 = true;
+    getOriginNode = true;
+
+                   
     string::size_type i0 = filename.rfind("xgc.");
     string::size_type i1 = filename.rfind(".bp");
     comm = communicator;
@@ -128,16 +150,16 @@ eavlXGCParticleImporter::Initialize()
     //----Set indexes for each reader if there is more than one
     int endIndex;
     int startIndex = (nvars / numMPITasks) * mpiRank;
-        if (nvars % numMPITasks > mpiRank)
-        {
+    if (nvars % numMPITasks > mpiRank)
+    {
         startIndex += mpiRank;
         endIndex = startIndex + (nvars / numMPITasks) + 1;
-        }
-        else
-        {
+    }
+    else
+    {
         startIndex += nvars % numMPITasks;
         endIndex = startIndex + (nvars / numMPITasks);
-        }
+    }
     startIndex *= 13;
     endIndex *= 13;
     //--
@@ -280,16 +302,36 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
         
         //Set all of the axis values to the x, y, z coordinates of the 
         //iphase particles; set computational node origin
-        eavlIntArray *originNode = new eavlIntArray("originNode", 1, totalIParticles);
-        eavlFloatArray *r = new eavlFloatArray("R", 1, totalIParticles);
-        eavlFloatArray *z = new eavlFloatArray("Z", 1, totalIParticles);
-        eavlFloatArray *phi = new eavlFloatArray("phi", 1, totalIParticles);
-        eavlFloatArray *rho = new eavlFloatArray("rho", 1, totalIParticles);
-        eavlFloatArray *w1 = new eavlFloatArray("w1", 1, totalIParticles);
-        eavlFloatArray *w2 = new eavlFloatArray("w2", 1, totalIParticles);
-        eavlFloatArray *mu = new eavlFloatArray("mu", 1, totalIParticles);
-        eavlFloatArray *w0 = new eavlFloatArray("w0", 1, totalIParticles);
-        eavlFloatArray *f0 = new eavlFloatArray("f0", 1, totalIParticles);
+        eavlIntArray *originNode;
+        if(getOriginNode) 
+            originNode = new eavlIntArray("originNode", 1, totalIParticles);
+        eavlFloatArray *r;
+        if(getR)
+            r = new eavlFloatArray("R", 1, totalIParticles);
+        eavlFloatArray *z;
+        if(getZ)
+            z = new eavlFloatArray("Z", 1, totalIParticles);
+        eavlFloatArray *phi;
+        if(getPhi)
+            phi = new eavlFloatArray("phi", 1, totalIParticles);
+        eavlFloatArray *rho;
+        if(getRho)
+            rho = new eavlFloatArray("rho", 1, totalIParticles);
+        eavlFloatArray *w1;
+        if(getW1)
+            w1 = new eavlFloatArray("w1", 1, totalIParticles);
+        eavlFloatArray *w2;
+        if(getW2)
+            w2 = new eavlFloatArray("w2", 1, totalIParticles);
+        eavlFloatArray *mu;
+        if(getMu)
+            mu = new eavlFloatArray("mu", 1, totalIParticles);
+        eavlFloatArray *w0;
+        if(getW0)
+            w0 = new eavlFloatArray("w0", 1, totalIParticles);
+        eavlFloatArray *f0;
+        if(getF0)
+            f0 = new eavlFloatArray("f0", 1, totalIParticles);
         
         uint64_t s[3], c[3];
         double *buff;
@@ -307,23 +349,24 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
             adios_perform_reads(fp, 1);
             adios_selection_delete(sel);
             
-            string nodeNum = it->first.substr(it->first.find("_",1,1)+1, 5);
-            
+            string nodeNum;
+            if(getOriginNode) nodeNum = it->first.substr(it->first.find("_",1,1)+1, 5);
+
             for(int i = 0; i < nt; i+=9) 
             {
-                r->SetValue(idx, buff[i]);
-                z->SetValue(idx, buff[i+1]);
-                phi->SetValue(idx, buff[i+2]);
-                rho->SetValue(idx, buff[i+3]);
-                w1->SetValue(idx, buff[i+4]);
-                w2->SetValue(idx, buff[i+5]);
-                mu->SetValue(idx, buff[i+6]);
-                w0->SetValue(idx, buff[i+7]);
-                f0->SetValue(idx, buff[i+8]);
+                if(getR)   r->SetValue(idx, buff[i]);
+                if(getZ)   z->SetValue(idx, buff[i+1]);
+                if(getPhi) phi->SetValue(idx, buff[i+2]);
+                if(getRho) rho->SetValue(idx, buff[i+3]);
+                if(getW1)  w1->SetValue(idx, buff[i+4]);
+                if(getW2)  w2->SetValue(idx, buff[i+5]);
+                if(getMu)  mu->SetValue(idx, buff[i+6]);
+                if(getW0)  w0->SetValue(idx, buff[i+7]);
+                if(getF0)  f0->SetValue(idx, buff[i+8]);
                 axisValues[0]->SetComponentFromDouble(idx, 0, r->GetValue(idx)*cos(phi->GetValue(idx)));
                 axisValues[1]->SetComponentFromDouble(idx, 0, r->GetValue(idx)*sin(phi->GetValue(idx)));
                 axisValues[2]->SetComponentFromDouble(idx, 0, z->GetValue(idx));
-                originNode->SetValue(idx, atoi(nodeNum.c_str()));
+                if(getOriginNode) originNode->SetValue(idx, atoi(nodeNum.c_str()));
                 idx++;
             }
             delete [] buff;
@@ -332,16 +375,16 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
         ds->AddField(new eavlField(1, axisValues[0], eavlField::ASSOC_POINTS));
         ds->AddField(new eavlField(1, axisValues[1], eavlField::ASSOC_POINTS));
         ds->AddField(new eavlField(1, axisValues[2], eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, originNode, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, r, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, z, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, phi, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, rho, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, w1, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, w2, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, mu, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, w0, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, f0, eavlField::ASSOC_POINTS));
+        if(getOriginNode) ds->AddField(new eavlField(1, originNode, eavlField::ASSOC_POINTS));
+        if(getR)   ds->AddField(new eavlField(1, r,   eavlField::ASSOC_POINTS));
+        if(getZ)   ds->AddField(new eavlField(1, z,   eavlField::ASSOC_POINTS));
+        if(getPhi) ds->AddField(new eavlField(1, phi, eavlField::ASSOC_POINTS));
+        if(getRho) ds->AddField(new eavlField(1, rho, eavlField::ASSOC_POINTS));
+        if(getW1)  ds->AddField(new eavlField(1, w1,  eavlField::ASSOC_POINTS));
+        if(getW2)  ds->AddField(new eavlField(1, w2,  eavlField::ASSOC_POINTS));
+        if(getMu)  ds->AddField(new eavlField(1, mu,  eavlField::ASSOC_POINTS));
+        if(getW0)  ds->AddField(new eavlField(1, w0,  eavlField::ASSOC_POINTS));
+        if(getF0)  ds->AddField(new eavlField(1, f0,  eavlField::ASSOC_POINTS));
         
         eavlCellSet *cellSet = new eavlCellSetAllPoints(name + "_cells", totalIParticles);
         ds->AddCellSet(cellSet);
@@ -397,16 +440,36 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 
         //Set all of the axis values to the x, y, z coordinates of the 
         //ephase particles; set computational node origin
-        eavlIntArray *originNode = new eavlIntArray("originNode", 1, totalEParticles);
-        eavlFloatArray *r = new eavlFloatArray("R", 1, totalEParticles);
-        eavlFloatArray *z = new eavlFloatArray("Z", 1, totalEParticles);
-        eavlFloatArray *phi = new eavlFloatArray("phi", 1, totalEParticles);
-        eavlFloatArray *rho = new eavlFloatArray("rho", 1, totalEParticles);
-        eavlFloatArray *w1 = new eavlFloatArray("w1", 1, totalEParticles);
-        eavlFloatArray *w2 = new eavlFloatArray("w2", 1, totalEParticles);
-        eavlFloatArray *mu = new eavlFloatArray("mu", 1, totalEParticles);
-        eavlFloatArray *w0 = new eavlFloatArray("w0", 1, totalEParticles);
-        eavlFloatArray *f0 = new eavlFloatArray("f0", 1, totalEParticles);
+        eavlIntArray *originNode;
+        if(getOriginNode) 
+            originNode = new eavlIntArray("originNode", 1, totalIParticles);
+        eavlFloatArray *r;
+        if(getR)
+            r = new eavlFloatArray("R", 1, totalIParticles);
+        eavlFloatArray *z;
+        if(getZ)
+            z = new eavlFloatArray("Z", 1, totalIParticles);
+        eavlFloatArray *phi;
+        if(getPhi)
+            phi = new eavlFloatArray("phi", 1, totalIParticles);
+        eavlFloatArray *rho;
+        if(getRho)
+            rho = new eavlFloatArray("rho", 1, totalIParticles);
+        eavlFloatArray *w1;
+        if(getW1)
+            w1 = new eavlFloatArray("w1", 1, totalIParticles);
+        eavlFloatArray *w2;
+        if(getW2)
+            w2 = new eavlFloatArray("w2", 1, totalIParticles);
+        eavlFloatArray *mu;
+        if(getMu)
+            mu = new eavlFloatArray("mu", 1, totalIParticles);
+        eavlFloatArray *w0;
+        if(getW0)
+            w0 = new eavlFloatArray("w0", 1, totalIParticles);
+        eavlFloatArray *f0;
+        if(getF0)
+            f0 = new eavlFloatArray("f0", 1, totalIParticles);
         
         uint64_t s[3], c[3];
         int nt = 1, idx = 0;
@@ -424,23 +487,24 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
             adios_perform_reads(fp, 1);
             adios_selection_delete(sel);
             
-            string nodeNum = it->first.substr(it->first.find("_",1,1)+1, 5);
+            string nodeNum;
+            if(getOriginNode) nodeNum = it->first.substr(it->first.find("_",1,1)+1, 5);
             
             for(int i = 0; i < nt; i+=9) 
             {
-                r->SetValue(idx, buff[i]);
-                z->SetValue(idx, buff[i+1]);
-                phi->SetValue(idx, buff[i+2]);
-                rho->SetValue(idx, buff[i+3]);
-                w1->SetValue(idx, buff[i+4]);
-                w2->SetValue(idx, buff[i+5]);
-                mu->SetValue(idx, buff[i+6]);
-                w0->SetValue(idx, buff[i+7]);
-                f0->SetValue(idx, buff[i+8]);
+                if(getR)   r->SetValue(idx, buff[i]);
+                if(getZ)   z->SetValue(idx, buff[i+1]);
+                if(getPhi) phi->SetValue(idx, buff[i+2]);
+                if(getRho) rho->SetValue(idx, buff[i+3]);
+                if(getW1)  w1->SetValue(idx, buff[i+4]);
+                if(getW2)  w2->SetValue(idx, buff[i+5]);
+                if(getMu)  mu->SetValue(idx, buff[i+6]);
+                if(getW0)  w0->SetValue(idx, buff[i+7]);
+                if(getF0)  f0->SetValue(idx, buff[i+8]);
                 axisValues[0]->SetComponentFromDouble(idx, 0, r->GetValue(idx)*cos(phi->GetValue(idx)));
                 axisValues[1]->SetComponentFromDouble(idx, 0, r->GetValue(idx)*sin(phi->GetValue(idx)));
                 axisValues[2]->SetComponentFromDouble(idx, 0, z->GetValue(idx));
-                originNode->SetValue(idx, atoi(nodeNum.c_str()));
+                if(getOriginNode) originNode->SetValue(idx, atoi(nodeNum.c_str()));
                 idx++;
             }
             delete [] buff;
@@ -449,16 +513,16 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
         ds->AddField(new eavlField(1, axisValues[0], eavlField::ASSOC_POINTS));
         ds->AddField(new eavlField(1, axisValues[1], eavlField::ASSOC_POINTS));
         ds->AddField(new eavlField(1, axisValues[2], eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, originNode, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, r, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, z, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, phi, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, rho, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, w1, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, w2, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, mu, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, w0, eavlField::ASSOC_POINTS));
-        ds->AddField(new eavlField(1, f0, eavlField::ASSOC_POINTS));
+        if(getOriginNode) ds->AddField(new eavlField(1, originNode, eavlField::ASSOC_POINTS));
+        if(getR)   ds->AddField(new eavlField(1, r,   eavlField::ASSOC_POINTS));
+        if(getZ)   ds->AddField(new eavlField(1, z,   eavlField::ASSOC_POINTS));
+        if(getPhi) ds->AddField(new eavlField(1, phi, eavlField::ASSOC_POINTS));
+        if(getRho) ds->AddField(new eavlField(1, rho, eavlField::ASSOC_POINTS));
+        if(getW1)  ds->AddField(new eavlField(1, w1,  eavlField::ASSOC_POINTS));
+        if(getW2)  ds->AddField(new eavlField(1, w2,  eavlField::ASSOC_POINTS));
+        if(getMu)  ds->AddField(new eavlField(1, mu,  eavlField::ASSOC_POINTS));
+        if(getW0)  ds->AddField(new eavlField(1, w0,  eavlField::ASSOC_POINTS));
+        if(getF0)  ds->AddField(new eavlField(1, f0,  eavlField::ASSOC_POINTS));
         
         eavlCellSet *cellSet = new eavlCellSetAllPoints(name + "_cells", totalEParticles);
         ds->AddCellSet(cellSet);
@@ -674,5 +738,22 @@ eavlXGCParticleImporter::AdvanceTimeStep(int step, int timeout_sec)
     
     Initialize();
     return 0;
+}
+
+void
+eavlXGCParticleImporter::SetActiveFields(bool r, bool z, bool phi, bool rho, bool w1, bool w2, 
+                                         bool mu, bool w0, bool f0, bool originNode
+                                        )
+{
+    getR = r;
+    getZ = z;
+    getPhi = phi;
+    getRho = rho;
+    getW1 = w1;
+    getW2 = w2;
+    getMu = mu;
+    getW0 = w0;
+    getF0 = f0;
+    getOriginNode = originNode;
 }
 

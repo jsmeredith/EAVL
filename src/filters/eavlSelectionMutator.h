@@ -8,6 +8,10 @@
 #include "eavlFilter.h"
 #include "eavlArray.h"
 
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
+
 // ****************************************************************************
 // Class:  eavlSelectionMutator
 //
