@@ -1980,31 +1980,47 @@ void eavlRayTracerMutator::Execute()
 
     /*Radix sort Testing*/
 
-    int s = 129;
+    int * verify = new int[width];
+
+    int s = width;
     eavlIntArray * ins =  new eavlIntArray("",1,s);
     eavlIntArray * outs =  new eavlIntArray("",1,s);
-    for( int i = 0; i<s ; i++)
+    for(int j = 0; j<2; j++)
     {
-        ins->SetValue(i,rand()%1000); 
-        //if(i>127) ins->SetValue(i,rand()%16 + 8);
-        cout<<" "<<ins->GetValue(i);
+        for( int i = 0; i<s ; i++)
+        {
+            int val = rand()%1000;
+            ins->SetValue(i,val);
+            verify[i] = val;
+            //ins->SetValue(i,testArray[i]); 
+            //if(i>127) ins->SetValue(i,rand()%128 + 20);
+            //cout<<" "<<ins->GetValue(i);
 
-    }
-    cout<<endl;
-    eavlExecutor::AddOperation(new_eavlRadixSortOp(eavlOpArgs(ins),
-                                                     eavlOpArgs(outs)),
-                                                     "");
-    eavlExecutor::Go();
-    cout<<"OUTPUT"<<endl;
-    for( int i = 0; i<s ; i++)
-    {
-        //if(i%64 == 0) cout<<endl<<i<<" # "<<endl;
+        }
+        cout<<endl;
 
-        cout<<ins->GetValue(i)<<" ";
-        //if(ins->GetValue(i)> ins->GetValue(i+1)) cout<<"NOT SORTED at "<<i<<endl;
+        int tGPU  = eavlTimer::Start();
+        eavlExecutor::AddOperation(new_eavlRadixSortOp(eavlOpArgs(ins),
+                                                         eavlOpArgs(outs)),
+                                                         "");
+        eavlExecutor::Go();
+        cout<<"GPU SORT  RUNTIME: "<<eavlTimer::Stop(tGPU,"")<<endl;
+
+        int tCPU  = eavlTimer::Start();
+        std::sort(verify, verify + width);
+        cout<<"CPU SORT  RUNTIME: "<<eavlTimer::Stop(tCPU,"")<<endl;
+
+        cout<<"Verify"<<endl;
+        for( int i = 0; i<s ; i++)
+        {
+            //if(i%64 == 0) cout<<endl<<i<<" # "<<endl;
+
+            if( verify[i] != ins->GetValue(i))  cout<<"Baseline varies at "<<i<<" vals b "<<verify[i]<<" != "<< ins->GetValue(i)<<" ";
+            //if(ins->GetValue(i)> ins->GetValue(i+1)) cout<<"NOT SORTED at "<<i<<endl;
+        }
+        cout<<endl;
     }
-    cout<<endl;
-    for( int i = 0; i<s ; i++)
+    for( int i = 0; i<s-1 ; i++)
     {
         //if(i%64 == 0) cout<<endl<<i<<" # "<<endl;
 
