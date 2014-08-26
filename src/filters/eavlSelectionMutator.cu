@@ -2,6 +2,7 @@
 #include "eavlSelectionMutator.h"
 #include "eavlCellSetExplicit.h"
 #include "eavlCellSetAllPoints.h"
+#include "eavlNewIsoTables.h"
 #include "eavlExecutor.h"
 #include "eavlException.h"
 #include "eavlMapOp.h"
@@ -9,6 +10,11 @@
 #include "eavlReduceOp_1.h"
 #include "eavlReverseIndexOp.h"
 #include "eavlSimpleReverseIndexOp.h"
+
+#define INIT(TYPE, TABLE, COUNT)                \
+    {                                           \
+        TABLE = new TYPE(TABLE ## _raw, COUNT); \
+    }
 
 //compare function for qsort
 int cmpfunc (const void * a, const void * b)
@@ -20,19 +26,20 @@ int cmpfunc (const void * a, const void * b)
 //eavl map functor
 struct FindSelection
 {
-    eavlIntArray *checkArray;
-    FindSelection(eavlIntArray *inArray) : checkArray(inArray) { }
+    int size;
+    eavlConstArray<int> checkArray;
+    FindSelection(eavlConstArray<int> *inArray, int _size) : checkArray(*inArray), size(_size) { }
     EAVL_FUNCTOR int operator()(int key) 
     {
         int minIndex, maxIndex, midPoint;
         minIndex = 0;
-        maxIndex = checkArray->GetNumberOfTuples();
+        maxIndex = size;
         while(maxIndex >= minIndex)
         {
             midPoint = minIndex + ((maxIndex - minIndex) / 2);
-            if(checkArray->GetValue(midPoint) == key)
+            if(checkArray[midPoint] == key)
                 return 1;
-            else if(checkArray->GetValue(midPoint) < key)
+            else if(checkArray[midPoint] < key)
                 minIndex = midPoint + 1;
             else
                 maxIndex = midPoint - 1;
@@ -57,28 +64,30 @@ eavlSelectionMutator::Execute()
     eavlArray *arrayToOperateOn = inField->GetArray();
     eavlIntArray *mapOutput = new eavlIntArray("inSelection", 1, arrayToOperateOn->GetNumberOfTuples());
     
+    
+    //----dump interesting paticles to array that qsort can use
+    int constArray_raw[chosenElements->GetNumberOfTuples()];
+    #pragma omp parallel for
+    for(int n = 0 ; n < chosenElements->GetNumberOfTuples(); n++ ) 
+    {
+        constArray_raw[n] = chosenElements->GetValue(n);
+
+    }
+        
     if(!presorted)
     {
-        //----dump interesting paticles to array that qsort can use
-        int array[chosenElements->GetNumberOfTuples()];
-        for(int n = 0 ; n < chosenElements->GetNumberOfTuples(); n++ ) 
-        {
-            array[n] = chosenElements->GetValue(n);
-
-        }
-        qsort(array, chosenElements->GetNumberOfTuples(), sizeof(int), cmpfunc);
-        for(int n = 0 ; n < chosenElements->GetNumberOfTuples(); n++ ) 
-        {
-            chosenElements->SetValue(n, array[n]);
-        }
-        //--
+        qsort(constArray_raw, chosenElements->GetNumberOfTuples(), sizeof(int), cmpfunc);
     }
    
-
+   //----put elements in const array for use in fuctor
+    eavlConstArray<int> *constArray;
+    INIT(eavlConstArray<int>,  constArray,  chosenElements->GetNumberOfTuples());
+    //--
+    
     //----perform map with custom selection fuctor
     eavlExecutor::AddOperation(new_eavlMapOp( eavlOpArgs(arrayToOperateOn),
                                               eavlOpArgs(mapOutput),
-                                              FindSelection(chosenElements)
+                                              FindSelection(constArray, chosenElements->GetNumberOfTuples())
                                              ),
                                 "test if in selection"
                                );
@@ -110,7 +119,7 @@ eavlSelectionMutator::Execute()
                                );
     eavlExecutor::Go();
     //--
-    
+
 
     //----perform reverse index
     eavlIntArray *interestingIndexes = new eavlIntArray("interestingIndexes", 

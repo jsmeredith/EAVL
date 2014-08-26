@@ -187,11 +187,15 @@ if test "$detect_mpi_flags" = "yes"; then
       # option 2: -show
       if test "$?" -ne "0"; then
          MPISHOW_C=`$MPI -show 2>&AS_MESSAGE_LOG_FD`
+      fi
+      if test "$?" -ne "0"; then
+         MPISHOW_C=`$MPI --cray-print-opts=cflags 2>&AS_MESSAGE_LOG_FD`
          if test "$?" -ne "0"; then
             MPI="no"
             AC_MSG_WARN(could not extract compile flags from MPI compiler; disabling MPI)
          fi
       fi
+      
    fi
 
    # extract MPI link info from compiler
@@ -201,6 +205,9 @@ if test "$detect_mpi_flags" = "yes"; then
       # option 2: -show
       if test "$?" -ne "0"; then
          MPISHOW_L=`$MPI -show 2>&AS_MESSAGE_LOG_FD`
+      fi
+      if test "$?" -ne "0"; then
+         MPISHOW_L=`$MPI --cray-print-opts=libs 2>&AS_MESSAGE_LOG_FD`
          if test "$?" -ne "0"; then
             MPI="no"
             AC_MSG_WARN(could not extract link flags from MPI compiler; disabling MPI)
