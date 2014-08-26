@@ -15,7 +15,11 @@ ifneq (@VTK@, no)
 VTKTESTS=testvtk
 endif
 
-TESTS = testimport testiso testnormal testrecenter testthreshold testbox testmath testdatamodel testxform testbin testdistancefield testgraphlayout testatompipeline testserialize testrender $(VTKTESTS)
+ifneq (@MESA@, no)
+RENDERTESTS=testrender
+endif
+
+TESTS = testimport testiso testnormal testrecenter testthreshold testbox testmath testdatamodel testxform testbin testdistancefield testgraphlayout testatompipeline testserialize $(RENDERTESTS) $(VTKTESTS)
 OBJ = $(TESTS:=.o)
 LIBDEP=$(TOPDIR)/lib/libeavl.a
 
