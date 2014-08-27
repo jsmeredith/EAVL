@@ -83,6 +83,8 @@ __device__ T rscanWarp(volatile T *data, const unsigned int idx = threadIdx.x)
     }
 }
 
+
+
 /*Exclusive scan of block length shared memory */
 template<class OP, bool INCLUSIVE, class T>
 __device__ void scanBlock(volatile T *flags)
@@ -166,17 +168,9 @@ __device__ int binarySearch(int first, int last, volatile T * array, volatile T 
     int mx = last;
     int mn = first;
 
-    if(last - first < 0 )
-    {
-        //printf(" 1 nothing left\n");
-        index = 0;
-        end = true;
-        return index;
-    }
-
     if(key > array[last]) 
     {
-        index = -1;
+        index = last + 1;
         end = true;
         //printf("greater than last array key %d  last val %d id %d \n", key, array[last], threadIdx.x);
     }
@@ -209,51 +203,6 @@ __device__ int binarySearch(int first, int last, volatile T * array, volatile T 
     return index;
 
 }
-template<class T>
-__device__ int binarySearchPrint(int first, int last,volatile T * array, T key)
-{
-    int index = -99;
-    bool found = false;
-    bool end = false;
-
-
-    int mx = last;
-    int mn = first;
-
-    if(key > array[last]) 
-    {
-        index = -1;
-        end = true;
-       
-    }
-
-    if(key <= array[first]) 
-    {
-        index = 0;
-        end = true;
-    }
-
-
-        
-        while(!end  && ! found)
-    {
-        int gap = mx - mn;
-        int mid = mn + gap/2;
-        end = gap < 1;
-        
-        if(array[mid-1] < key && key <=array[mid])
-        {
-            found = true;
-            index = mid;
-        }
-
-        if(key <= array[mid]) mx = mid -1;
-        else mn = mid +1;
-    }
-
-    return index;
-
-}
 
 template<class T>
 __device__ int binarySearch2(int first, int last,volatile T * array, volatile T key)
@@ -266,21 +215,8 @@ __device__ int binarySearch2(int first, int last,volatile T * array, volatile T 
     int mx = last;
     int mn = first;
 
-    if(last - first < 0 )
-    {
-        //printf("nothing left\n");
-        index = 0;
-        end = true;
-        return index;
-    }
 
-    if(key > array[last]) 
-    {
-        index = -1;
-        end = true;
-    }
-
-    if(key == array[last])
+    if(key >= array[last])
     {
         index = last + 1;
         end = true;
@@ -313,48 +249,36 @@ __device__ int binarySearch2(int first, int last,volatile T * array, volatile T 
 
 #define BLOCK_WIDTH 512
 #define BLOCK_MAX 511
+
+#define R_BLOCK_WIDTH 512
+#define R_BLOCK_MAX 511
 template<class K, class T>
-__device__ void merge(int nItems, int first1, int last1, int first2, int last2, volatile K *keys, volatile K *outKeys, volatile T* values, volatile T* outValues, K maxKey)
+__device__ void merge(int nItems, int first1, int last1, int first2, int last2, volatile K *keys, volatile T* values, K maxKey)
 {
     const unsigned int idx = threadIdx.x;
-
+    int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
     volatile __shared__ K    sm_keys1[BLOCK_WIDTH];
     volatile __shared__ K    sm_keys2[BLOCK_WIDTH];
     volatile __shared__ K    sm_vals1[BLOCK_WIDTH];
     volatile __shared__ K    sm_vals2[BLOCK_WIDTH];
-    volatile __shared__ K    sm_out[BLOCK_WIDTH*2];  /*write out to a larger buffer so we don't scatter to global mem*/
+    volatile __shared__ K    sm_out[BLOCK_WIDTH*2];      /*write out to a larger buffer so we don't scatter to global mem*/
     volatile __shared__ K    sm_outVals[BLOCK_WIDTH*2];
-    volatile __shared__ int  sm_sa[BLOCK_WIDTH];    /*need to scan all the scatter addresses to find the max*/
 
+    int numItems1 = last1 - first1; 
+    int numItems2 = last2 - first2;
 
-    __shared__ int keys1Start;  /* should always point to the beginning of the current working chunk*/
-    __shared__ int writePtr;
-    __shared__ int keys2Start;
-    __shared__ int maxScatter;
-
-    __shared__ int partialShift1;
-    __shared__ int partialShift2;
-    __shared__ int shiftAmount;
-    __shared__ int done;
-
-    if(idx == 0)
-    {
-        keys1Start = first1;
-        keys2Start = first2;
-        writePtr = first1;
-        done = 0;
-        
-        
-    }
-    __syncthreads();
+    
+    //if(idx == 0 ) printf("blockID %d first1 %d last1 %d first2 %d last2 %d \n", blockId, first1, last1, first2, last2);
+    //__syncthreads();
     
 
-    /* load starting chunks into share mem*/
-
-    if(idx < last1 - first1 + 1) 
+    /* load chunks into share mem*/
+    //printf("blockID %d idx %d less than %d\n",blockId, idx, last1 - first1 + 1);
+    //printf("blockID %d idx %d less than %d\n",blockId, idx, last2 - first2 + 1);
+    if(idx <= numItems1) 
     {
-        sm_keys1[idx] = keys[keys1Start+idx];
-        sm_vals1[idx] = values[keys1Start+idx];
+        sm_keys1[idx] = keys[first1 + idx];
+        sm_vals1[idx] = values[first1 + idx];
     }
     else 
     {
@@ -363,10 +287,10 @@ __device__ void merge(int nItems, int first1, int last1, int first2, int last2, 
     }
 
     
-    if(idx < last2 - first2 + 1) 
+    if(idx <= numItems2 ) 
     {
-        sm_keys2[idx] = keys[keys2Start+idx];
-        sm_vals2[idx] = values[keys2Start+idx];
+        sm_keys2[idx] = keys[first2 + idx];
+        sm_vals2[idx] = values[first2 + idx];
     }
     else 
     {
@@ -374,337 +298,74 @@ __device__ void merge(int nItems, int first1, int last1, int first2, int last2, 
         sm_vals2[idx] = -1;
     }
     __syncthreads();
-    while(!done)
+
+   
+    /* -1 indicates that the keys are greater than the last value of the other key array */
+    int sa1 = binarySearch(0, BLOCK_MAX, sm_keys2, sm_keys1[idx]);
+    if(sa1 != -1) sa1 += idx;
+
+    
+    int sa2 = binarySearch2(0, BLOCK_MAX, sm_keys1, sm_keys2[idx]);
+    if(sa2 != -1) sa2 += idx;
+    
+    if(sa1 != -1)
     {
-        int numItems1 = last1 - keys1Start + 1; /* last inlcusive */
-        int numItems2 = last2 - keys2Start + 1;
-        if(numItems1 < 0) numItems1 = 0;
-        if(numItems2 < 0) numItems2 = 0;
-        /* -1 indicates that the keys are greater than the last value of the other key array */
-        int sa1 = binarySearch(0, BLOCK_MAX, sm_keys2, sm_keys1[idx]);
-        if(sa1 != -1) sa1 += idx;
-        if(numItems1 < 0) sa1 = -1;
-        
-        int sa2 = binarySearch2(0, BLOCK_MAX, sm_keys1, sm_keys2[idx]);
-        if(numItems2 < 0) sa2 = -1;
-        if(sa2 != -1) sa2 += idx;
-        
-        if(sa1 != -1)
-        {
-            sm_out[sa1] = sm_keys1[idx];
-            sm_outVals[sa1] = sm_vals1[idx];
-        } 
+        sm_out[sa1] = sm_keys1[idx];
+        sm_outVals[sa1] = sm_vals1[idx];
+    } 
 
-        if(sa2 != -1)
-        {
-            sm_out[sa2] = sm_keys2[idx];
-            sm_outVals[sa2] = sm_vals2[idx];
-        }
-        
-        if( sm_keys1[idx] ==  maxKey) sa1 = -1;
-        if( sm_keys2[idx] ==  maxKey) sa2 = -1;
-
-        
-        
-
-        if(idx == 0)
-        {
-            partialShift1 = 0;
-            partialShift2 = 0;
-            shiftAmount = 0;
-        }
-
-        __syncthreads();
-
-        /*Find the maximum scatter address*/    
-        sm_sa[idx] = sa1;
-
-        __syncthreads();
-        
-        scanBlock<RadixMaxFunctor<int>, true> (sm_sa);
-        
-        __syncthreads();
-        
-        if(idx == 0) maxScatter = sm_sa[BLOCK_MAX];
-        
-        __syncthreads();
-
-        sm_sa[idx] = sa2;
-        
-        __syncthreads();
-        
-        scanBlock<RadixMaxFunctor<int>, true> (sm_sa);
-        
-        __syncthreads();
-        
-        if(idx == 0) 
-        {
-            if(maxScatter < sm_sa[BLOCK_MAX]) maxScatter = sm_sa[BLOCK_MAX];
-        }
-        
-        __syncthreads();
-
-        /* write the output back to global mem */
-        if(idx <= maxScatter)
-        {   
-            if(writePtr + idx <= last2)
-            { 
-                outKeys[writePtr + idx] = sm_out[idx];
-                outValues[writePtr + idx] = sm_outVals[idx];
-            } 
-        } 
-
-        if(idx + BLOCK_WIDTH <= maxScatter && writePtr + idx + BLOCK_WIDTH <= last2)
-        { 
-            outKeys[writePtr + idx + BLOCK_WIDTH] = sm_out[idx + BLOCK_WIDTH];
-            outValues[writePtr + idx + BLOCK_WIDTH] = sm_outVals[idx + BLOCK_WIDTH];   
-        }
-        
-        if(idx == 0) 
-        {
-            if(keys1Start > last1 && keys2Start > last2) done = 1;
-            
-        }
-        __syncthreads();
-        /*advance the write pointer*/
-        if(idx == 0 ) {writePtr += maxScatter + 1; }
-        
-        /*calc the shift if there is one*/
-        if( sa1 == -1 && sm_keys1[idx] != maxKey) partialShift1 = 1;
-        if( sa2 == -1 && sm_keys2[idx] != maxKey) partialShift2 = 1;
-        
-        __syncthreads();
-
-        /*
-        if(partialShift1 == 1 && partialShift2 == 1)
-        {
-            printf("THIS SHOULD NEVER HAPPEN\n");
-        }
-        */
-
-        /* TODO: make this a 2d array and just index into the partial*/
-        if(partialShift1)
-        {   
-            sm_sa[idx] = sa1 == -1 ? 1 : 0;
-            scanBlock<RadixAddFunctor<int>,true>(sm_sa);
-            /* all the -1 will be grouped at the end so find the first 1*/
-            if(sm_sa[idx] == 1 ) 
-            {
-                shiftAmount = idx;
-            }
-            K shiftKey = sm_keys1[idx];
-            T shiftValue = sm_vals1[idx];
-            __syncthreads();
-            if(idx == 0)
-            {
-                keys2Start += BLOCK_WIDTH;
-                keys1Start += shiftAmount;
-            } 
-            /* perform the shift*/
-            if(idx >= shiftAmount)
-            {
-                sm_keys1[idx - shiftAmount] = shiftKey;
-                sm_vals1[idx - shiftAmount] = shiftValue;
-            } 
-            
-            __syncthreads();
-            
-
-            /*Pull in new chunk for the other array*/
-            int newIdx = (keys2Start + idx <= last2) ? keys2Start + idx : maxKey;
-            
-            if(newIdx != maxKey) 
-            {
-                sm_keys2[idx] = keys[newIdx];
-                sm_vals2[idx] = values[newIdx];
-             }
-            else
-            { 
-                sm_keys2[idx] = newIdx;
-                sm_vals2[idx] = -1;
-            }
-            
-            __syncthreads();
-
-            /*pull in new values to fill remaining empty slots */
-            //newIdx = 
-            int readIndex = keys1Start - shiftAmount + BLOCK_WIDTH + idx;
-            int writeIndex = BLOCK_WIDTH - shiftAmount + idx;
-            if (idx < shiftAmount ) 
-            {
-                
-                if(readIndex > last1)
-                { 
-                    sm_keys1[writeIndex] = maxKey;
-                    sm_vals1[writeIndex] = -1;
-
-                }
-                else
-                {
-                    sm_keys1[writeIndex] = keys[readIndex];
-                    sm_vals1[writeIndex] = values[readIndex];
-                }
-            }
-            
-             __syncthreads();
-             
-        }
-        
-        if(partialShift2)
-        {   
-            sm_sa[idx] = sa2 == -1 ? 1 : 0;
-            scanBlock<RadixAddFunctor<int>,true>(sm_sa);
-            /* all the -1 will be grouped at the end so find the first 1*/
-            if(sm_sa[idx] == 1 ) 
-            {
-                shiftAmount = idx;
-            }
-            K shiftKey = sm_keys2[idx];
-            T shiftValue = sm_vals2[idx];
-            __syncthreads();
-            if(idx == 0)
-            {
-                keys1Start += BLOCK_WIDTH ; 
-                keys2Start += shiftAmount;; 
-            } 
-            /* perform the shift*/
-            if(idx >= shiftAmount)
-            {
-                sm_keys2[idx - shiftAmount] = shiftKey;
-                sm_vals2[idx - shiftAmount] = shiftValue;
-            } 
-            
-            __syncthreads();
-
-
-            /*Pull in new chunk for the other array*/
-            int newIdx = (keys1Start + idx <= last1) ? keys1Start + idx : maxKey;
-            
-            if(newIdx != maxKey) 
-            {
-                sm_keys1[idx] = keys[newIdx];
-                sm_vals1[idx] = values[newIdx];
-             }
-            else
-            { 
-                sm_keys1[idx] = newIdx;
-                sm_vals1[idx] = -1;
-            }
-            
-            
-            __syncthreads();
-            /*pull in new values to fill remaining empty slots */
-            int readStart = keys2Start - shiftAmount + BLOCK_WIDTH + idx;
-            int writeStart = BLOCK_WIDTH - shiftAmount + idx;
-            if (idx < shiftAmount ) 
-            {
-                
-                if(readStart > last2)
-                { 
-                    sm_keys2[writeStart] = maxKey;
-                    sm_vals2[writeStart] = -1;
-                }
-                else
-                {
-                    sm_keys2[writeStart] = keys[readStart];
-                    sm_vals2[writeStart] = values[readStart];
-                }
-                
-            }
-            
-            
-            __syncthreads();
-        }
-        
-        if(!partialShift1 && !partialShift2)
-        {   
-            if(idx == 0)
-            {
-                keys2Start += BLOCK_WIDTH;
-                keys1Start += BLOCK_WIDTH;
-            } 
-            __syncthreads();
-            int newIdx = (keys1Start + idx <= last1) ? keys1Start + idx : maxKey;
-            if(newIdx != maxKey)
-            { 
-                sm_keys1[idx] = keys[newIdx];
-                sm_vals1[idx] = values[newIdx];
-            }
-            else
-            { 
-                sm_keys1[idx] = newIdx;
-                sm_vals1[idx] = -1;
-            }
-
-            newIdx = (keys2Start + idx <= last2) ? keys2Start + idx : maxKey;
-
-            if(newIdx != maxKey)
-            { 
-                sm_keys2[idx] = keys[newIdx];
-                sm_vals2[idx] = values[newIdx];
-            }
-            else
-            { 
-                sm_keys2[idx] = newIdx;
-                sm_vals2[idx] = -1;
-            }
-           
-
-            __syncthreads();
-        }
-        
-        if(idx == 0) 
-        {          
-            if(keys1Start > last1 && keys2Start > last2) done = 1;         
-        }
-        __syncthreads();
+    if(sa2 != -1)
+    {
+        sm_out[sa2] = sm_keys2[idx];
+        sm_outVals[sa2] = sm_vals2[idx];
     }
+    //printf("Block id %d idx %d key1 %d sa1 %d key2 %d sa2 %d \n", blockId, idx, sm_keys1[idx], sa1, sm_keys2[idx], sa2);
+    
+
+    __syncthreads();
+    keys[first1 + idx] = sm_out[idx];
+    values[first1 + idx] = sm_outVals[idx];
+    if(idx <= numItems2 )
+    {
+        keys[first2 + idx]   = sm_out[idx + BLOCK_WIDTH];
+        values[first2 + idx] = values[idx + BLOCK_WIDTH];
+
+    } 
+   
 
 }
 
 template<class K, class T>
-__global__ void mergeKernel(int nItems, int chunkSize, int numChunks, int extra, K *keys,  K *outKeys,  T* values,  T* outValues, K maxKey)
+__global__ void mergeKernel(int nitems, int nBlocks, int P, int R, int D, K *keys, T* values, K maxKey)
 {
     const int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
-    const unsigned int idx = threadIdx.x;
-    const int threadID = blockId * blockDim.x + threadIdx.x;
 
-    int chunk1 = blockId * 2;
-    int chunk2 = blockId * 2 + 1;
+    //for (int K=1; K <= N-D; ++K)
+    //{
+    //                if (((K-1) & P) == R)
+    //                    cout << "[" <<K-1<< "," << K+D-1 << "],";
+    //}
 
-    int first1 = chunkSize * chunk1;
-    int last1  = chunkSize * chunk1 + chunkSize - 1;
-
-    int first2 = chunkSize * chunk2;
-    int last2  = chunkSize * chunk2 + chunkSize - 1;
-    
-    if(chunk2 == numChunks - 1 && extra !=0 ) last2 = chunkSize * chunk2 + extra - 1;
-    else if(chunk1 == numChunks - 1 && extra != 0) last1 = chunkSize * chunk1 + extra - 1;
-    
-    if(chunk1 == numChunks - 1 && chunk2 >= numChunks)
+    int J = blockId + 1;
+    if(J <= nBlocks - D)
     {
-        for (int i = first1; i <= last1; i += blockDim.x)
+        if( ((J - 1) & P ) == R )
         {
-            int index = i + idx;
-            if(index <= last1)
+            int first1 = blockId * BLOCK_WIDTH;
+            int last1  = first1 + BLOCK_WIDTH - 1;
+
+            int first2 = (J + D - 1) * BLOCK_WIDTH;
+            int last2  = first2 + BLOCK_WIDTH - 1;
+            if((J+D-1) == nBlocks-1) 
             {
-                
-                outKeys[index] = keys[index];
-                outValues[index] = values[index];
-            }
-            
+                last2 = first2 + nitems % BLOCK_WIDTH - 1;
+            } 
+           // if( threadIdx.x == 0 ) printf("A %d == B %d \n",(J+D-1), nBlocks-1);
+            //if( threadIdx.x == 0 ) printf("Launching [%d,%d] P %d R %d D %d extra %d \n", blockId-1, J+D-1, P, R, D, nitems % nBlocks);
+            merge(nitems, first1, last1, first2, last2, keys, values, maxKey);
         }
     }
-
-    /* if odd number and last, do nothing */
-    if(chunk1 != numChunks - 1 && chunk2 < numChunks)
-    {
-        merge(nItems, first1, last1, first2, last2, keys, outKeys, values, outValues, maxKey);
-    }
     
-
-    
-
 }
 
 
@@ -713,11 +374,11 @@ __global__ void sortBlocksKernel(int nitems, volatile K *keys, volatile T *ids)
 {
 
     const unsigned int idx = threadIdx.x;
-    volatile __shared__ K sm_keys[1024];
-    volatile __shared__ K sm_mask[1024];  /*current bit set*/
-    volatile __shared__ K sm_nmask[1024]; /*current bit not set*/
-    volatile __shared__ K sm_t[1024];
-    volatile __shared__ T sm_ids[1024];
+    volatile __shared__ K sm_keys[R_BLOCK_WIDTH];
+    volatile __shared__ K sm_mask[R_BLOCK_WIDTH];  /*current bit set*/
+    volatile __shared__ K sm_nmask[R_BLOCK_WIDTH]; /*current bit not set*/
+    volatile __shared__ K sm_t[R_BLOCK_WIDTH];
+    volatile __shared__ T sm_ids[R_BLOCK_WIDTH];
     K mask = 1;
     __shared__ int totalFalses; 
     __shared__ int lastVal;
@@ -726,7 +387,7 @@ __global__ void sortBlocksKernel(int nitems, volatile K *keys, volatile T *ids)
     int extra = nitems %  blockDim.x;
     if(extra != 0) lastBlock++;
     lastBlock--; /* get the last block id*/
-    int lastIndex = 1023;
+    int lastIndex = R_BLOCK_MAX;
     if(blockId == lastBlock && extra != 0 ) lastIndex = extra - 1;
    
 
@@ -752,7 +413,7 @@ __global__ void sortBlocksKernel(int nitems, volatile K *keys, volatile T *ids)
         /* creates the scatter indexes of the true bits */
         scanBlock<RadixAddFunctor<T>,false>(sm_nmask);
 
-        __syncthreads();
+        //__syncthreads();
 
         if(idx == lastIndex) totalFalses = sm_nmask[lastIndex] + lastVal;
        
@@ -799,12 +460,11 @@ struct eavlRadixSortOp_GPU
                  
         int *_keys  = get<0>(inputs).array;
         int *_values = get<0>(outputs).array;
-        int *tempKeys;
-        int *tempVals;
 
         int numBlocks = nitems / BLOCK_WIDTH;
         if(nitems % BLOCK_WIDTH > 0) numBlocks++;
 
+        
         int numBlocksX = numBlocks;
         int numBlocksY = 1;
         if (numBlocks >= 32768)
@@ -813,34 +473,36 @@ struct eavlRadixSortOp_GPU
             numBlocksX = (numBlocks + numBlocksY-1) / numBlocksY;
         }
 
-        
+        int rnumBlocks = nitems / R_BLOCK_WIDTH;
+        if(nitems % R_BLOCK_WIDTH > 0) rnumBlocks++;
+
+        int rnumBlocksX = rnumBlocks;
+        int rnumBlocksY = 1;
+        if (rnumBlocks >= 32768)
+        {
+            rnumBlocksY = rnumBlocks / 32768;
+            rnumBlocksX = (rnumBlocks + rnumBlocksY-1) / rnumBlocksY;
+        }
 
         cout<<"Nitems NUM BLOCKS "<<numBlocksX<<endl;
-        cudaMalloc((void **)&tempKeys,nitems*sizeof(int));
-        CUDA_CHECK_ERROR();
-        cudaMalloc((void **)&tempVals,nitems*sizeof(int));
-        CUDA_CHECK_ERROR();
-        //cudaMemcpy(tempFlags, &(_flags[0]),
-        //           nitems*sizeof(int), cudaMemcpyDeviceToDevice);
-        //CUDA_CHECK_ERROR();
-        //cudaMemcpy(_values, &(_keys[0]),
-        //           nitems*sizeof(int), cudaMemcpyDeviceToDevice);
-        //CUDA_CHECK_ERROR();
         
-
-
         dim3 one(1,1,1);
         dim3 t(BLOCK_WIDTH,1,1);
-        int numThreads = 1024;
+        int numThreads = R_BLOCK_WIDTH;
         dim3 threads(numThreads,   1, 1);
         dim3 blocks (numBlocksX,numBlocksY, 1);
 
+        dim3 rthreads(numThreads,   1, 1);
+        dim3 rblocks (rnumBlocksX,rnumBlocksY, 1);
+
+
         interatorKernel<<< blocks, threads >>>(nitems, _values);
         CUDA_CHECK_ERROR();
-        sortBlocksKernel<<< blocks, threads >>>(nitems, _keys, _values);
+        sortBlocksKernel<<< rblocks, threads >>>(nitems, _keys, _values);
         CUDA_CHECK_ERROR();
         //printKernel<<< one, one>>>(nitems, _keys);
-        int sortSize = 1024;
+        //cudaDeviceSynchronize();
+        int sortSize = R_BLOCK_WIDTH;
         int chunkSize;
         int numChunks;
         int extra;
@@ -852,35 +514,36 @@ struct eavlRadixSortOp_GPU
         if(extra != 0) numChunks++;
         int counter = 0;
 
-        while( numChunks != 1)
-        {
+        int N = numBlocks;
+        int T = ceil(log(double(N))/log(2.));
+        //cout << "T="<<T<<endl;
         
-            if(counter % 2 == 0) mergeKernel<<< blocks, t>>>(nitems, chunkSize, numChunks, extra, _keys, tempKeys, _values, tempVals,std::numeric_limits<int>::max());
-            else mergeKernel<<< blocks, t>>>(nitems, chunkSize, numChunks, extra, tempKeys, _keys, tempVals, _values,std::numeric_limits<int>::max());
-            CUDA_CHECK_ERROR();
-            chunkSize = chunkSize * 2;
-            numChunks = nitems / chunkSize;
-            extra = nitems % chunkSize;
-            if(extra != 0) numChunks++;
-            counter++;
-            
+        for (int pp = T-1; pp >= 0; --pp)
+        {
+            int P = 1 << pp;
 
+            int R = 0;
+            int D = P;
+            for (int qq = T-1; qq >= pp ; --qq)
+            {
+                int Q = 1 << qq;
+                //cout << "pp="<<pp<<"  qq="<<qq<<"   P="<<P<<" Q="<<Q<<": ";
+
+                mergeKernel<<< blocks, t>>>(nitems, numBlocks, P, R, D, _keys, _values ,std::numeric_limits<int>::max());
+                CUDA_CHECK_ERROR();
+                //cout << endl;
+                D = Q - P;
+                R = P;
+            }
         }
+
         
-        if(counter % 2 == 1)
-        {
-            cout<<"Copying "<<counter%2<<endl;
-            CUDA_CHECK_ERROR();
-            cudaMemcpy( &(get<0>(inputs).array[0]),tempKeys,
-                       nitems*sizeof(int), cudaMemcpyDeviceToDevice);
-            CUDA_CHECK_ERROR();
-            cudaMemcpy( &(_values[0]),tempVals,
-                       nitems*sizeof(int), cudaMemcpyDeviceToDevice);
-            CUDA_CHECK_ERROR();
-        }   
+        //CUDA_CHECK_ERROR();
+        //printKernel<<< one, one>>>(nitems, _keys);
+        //cudaDeviceSynchronize();
+            
         
-        cudaFree(tempKeys);
-        cudaFree(tempVals);
+       
        
 
     }
