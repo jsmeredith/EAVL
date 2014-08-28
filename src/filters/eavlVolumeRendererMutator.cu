@@ -12,12 +12,6 @@
 #define INFINITE    1000000
 #define EPSILON     0.001f
 
-/* Triangle textures */
-texture<float4> tet_bvh_in_tref;            /* BVH inner nodes */
-texture<float4> tet_verts_tref;              /* vert+ scalar data */
-texture<float>  tet_bvh_lf_tref;            /* BVH leaf nodes */
-texture<float4>  color_map_tref;
-
 #ifndef HAVE_CUDA
 template<class T> class texture {};
 struct float4
@@ -25,6 +19,15 @@ struct float4
     float x,y,z,w;
 };
 #endif
+
+
+/* Triangle textures */
+texture<float4> tet_bvh_in_tref;            /* BVH inner nodes */
+texture<float4> tet_verts_tref;              /* vert+ scalar data */
+texture<float>  tet_bvh_lf_tref;            /* BVH leaf nodes */
+texture<float4>  color_map_tref;
+
+
 
 template<class T>
 class eavlConstArrayV2

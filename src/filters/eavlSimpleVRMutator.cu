@@ -216,7 +216,7 @@ struct ScreenSpaceFunctor
         }
         int clipped = 0;
 
-        float mn = min(maxe[2],min(maxe[1],min(maxe[0], 1e9)));
+        float mn = min(maxe[2],min(maxe[1],min(maxe[0], float(1e9) )));
         if(mn < 0) clipped = 1;
 
         //if (maxe[0] < 0)
@@ -285,7 +285,7 @@ EAVL_HOSTDEVICE bool TetBarycentricCoords(eavlPoint3 p0,
     float D3 = M3.Determinant();
 
     float mx = max(D3,max(D2,max(D1, max(D0,0.f))));   //if any are greater than 0, mx > 0
-    float mn = min(D3,min(D2,min(D1, min(D0,1e9)))); //if any are less than 0,    mn < 0
+    float mn = min(D3,min(D2,min(D1, min(D0,float(1e9))))); //if any are less than 0,    mn < 0
     if(Dn == 0) inside = false; 
     if (Dn<0)
     {
