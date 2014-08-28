@@ -44,11 +44,13 @@ class eavlXGCParticleImporter : public eavlImporter
                            );
     virtual ~eavlXGCParticleImporter();
 
-	int			   GetTimeStep();
-	int            GetEMaxGID();
-	int            GetIMaxGID();
+    int            GetTimeStep();
+    int            GetEMaxGID();
+    int            GetIMaxGID();
     int            GetNumChunks(const std::string &mesh) {return 1;}
-    int			   AdvanceTimeStep(int step, int timeout_sec);
+    int            AdvanceTimeStep(int step, int timeout_sec);
+    void           SetActiveFields(bool r, bool z, bool phi, bool rho, bool w1, 
+                                   bool w2, bool mu, bool w0, bool f0, bool originNode);
     vector<string> GetMeshList();
     vector<string> GetFieldList(const std::string &mesh);
     vector<string> GetCellSetList(const std::string &mesh);
@@ -60,7 +62,8 @@ class eavlXGCParticleImporter : public eavlImporter
     void Initialize();
     ADIOS_SELECTION *MakeSelection(ADIOS_VARINFO *avi, uint64_t *s, uint64_t *c);
     ADIOS_FILE *fp;
-	
+
+    bool            getR, getZ, getPhi, getRho, getW1, getW2, getMu, getW0, getF0, getOriginNode;	
     int             maxnum, enphase, inphase, nvars, retVal, numMPITasks, mpiRank;
     int	            totalIParticles, totalEParticles, timestep;
     double          time;

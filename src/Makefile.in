@@ -91,7 +91,7 @@ ifneq (@ADIOS@, no)
 endif
 
 CPPFLAGS+=-I../config -Icommon/ -Ifonts/ -Iimporters/ -Imath/ -Irendering/ -Iexecutor/ -Ifunctors/ -Ioperations/ -Ifilters/ -Iexporters/ -Ivtk/
-CPPFLAGS+=$(MPI_CPPFLAGS) $(BOOST_CPPFLAGS) $(NETCDF_CPPFLAGS) $(SILO_CPPFLAGS) $(CUDA_CPPFLAGS) $(ADIOS_CPPFLAGS) $(VTK_CPPFLAGS)
+CPPFLAGS+=$(MPI_CPPFLAGS) $(BOOST_CPPFLAGS) $(NETCDF_CPPFLAGS) $(SILO_CPPFLAGS) $(CUDA_CPPFLAGS) $(ADIOS_CPPFLAGS) $(VTK_CPPFLAGS) $(MESA_CPPFLAGS)
 
 LIBS=-lm
 

@@ -216,6 +216,7 @@ eavlRayTracerMutator::eavlRayTracerMutator()
 
     /*texture array Ptrs */
     tri_bvh_in_array    = NULL;
+
     tri_verts_array     = NULL;
     tri_bvh_lf_array    = NULL;
 
@@ -238,7 +239,10 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     sphr_verts_raw   = NULL;
     sphr_matIdx_raw  = NULL;
     mats_raw         = NULL;
-
+    tri_bvh_in_raw   = NULL;
+    tri_bvh_lf_raw   = NULL;
+    sphr_bvh_in_raw  = NULL;
+    sphr_bvh_lf_raw  = NULL;
     sphr_scalars_raw = NULL;
 
 
@@ -1977,79 +1981,10 @@ void eavlRayTracerMutator::shadowIntersect()
 
 void eavlRayTracerMutator::Execute()
 {
-    int N = 4;
-    int T = ceil(log(double(N))/log(2.));
-    cout << "T="<<T<<endl;
-    for (int pp = T-1; pp >= 0; --pp)
-    {
-        int P = 1 << pp;
-
-        int R = 0;
-        int D = P;
-        for (int qq = T-1; qq >= pp ; --qq)
-        {
-            int Q = 1 << qq;
-            cout << "pp="<<pp<<"  qq="<<qq<<"   P="<<P<<" Q="<<Q<<": ";
-            for (int K=1; K <= N-D; ++K)
-            {
-                if (((K-1) & P) == R)
-                    cout << "[" <<K-1<< "," << K+D-1 << "],";
-            }
-            cout << endl;
-            D = Q - P;
-            R = P;
-        }
-    }
-
-
-    int * verify = new int[width];
-
-    int s = width;
-    eavlIntArray * ins =  new eavlIntArray("",1,s);
-    eavlIntArray * outs =  new eavlIntArray("",1,s);
-    for(int j = 0; j<1; j++)
-    {
-        for( int i = 0; i<s ; i++)
-        {
-            int val = rand()%1000;
-            if(i>32) val += 3;
-            ins->SetValue(i,val);
-            verify[i] = val;
-            //ins->SetValue(i,testArray[i]); 
-            //if(i>127) ins->SetValue(i,rand()%128 + 20);
-            //cout<<" "<<ins->GetValue(i);
-
-        }
-        cout<<endl;
-
-        int tGPU  = eavlTimer::Start();
-        eavlExecutor::AddOperation(new_eavlRadixSortOp(eavlOpArgs(ins),
-                                                         eavlOpArgs(outs)),
-                                                         "");
-        eavlExecutor::Go();
-        cout<<"GPU SORT  RUNTIME: "<<eavlTimer::Stop(tGPU,"")<<endl;
-
-        int tCPU  = eavlTimer::Start();
-        std::sort(verify, verify + width);
-        cout<<"CPU SORT  RUNTIME: "<<eavlTimer::Stop(tCPU,"")<<endl;
-
-        cout<<"Verify"<<endl;
-        for( int i = 0; i<s ; i++)
-        {
-            //if(i%64 == 0) cout<<endl<<i<<" # "<<endl;
-            //cout<<ins->GetValue(i)<<" ";
-            if( verify[i] != ins->GetValue(i))  cout<<"Baseline varies at "<<i<<" vals b "<<verify[i]<<" != "<< ins->GetValue(i)<<" "<<endl;
-            //if(ins->GetValue(i)> ins->GetValue(i+1)) cout<<"NOT SORTED at "<<i<<endl;
-        }
-        cout<<endl;
-    }
-
-    
-    exit(0);
     /*int size = 1024*1024;
     for(int j = 1; j <5 ; j++)
     {
-        size*=2;
+        size*=2; 
     eavlIntArray * ins =  new eavlIntArray("",1,size);
     eavlIntArray * outs =  new eavlIntArray("",1,size);
     eavlIntArray * flags =  new eavlIntArray("",1,size);

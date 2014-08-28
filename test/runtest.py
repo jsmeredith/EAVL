@@ -170,7 +170,6 @@ def TestDistanceField(fn, dims, min, max):
 def TestSerialization(fn):
     RunTest("testserialize", fn, ["./testserialize", fn])
 
-
 # -----------------------------------------------------------------------------
 #                               Run Tests
 # -----------------------------------------------------------------------------
@@ -291,7 +290,6 @@ if __name__ == "__main__":
     TestSerialization("../data/ucd_cube.vtk")
     TestSerialization("../data/ucd_sphere.vtk")
     TestSerialization("../data/ucd_tets.vtk")
-
 
     errors = PrintResults()
 

@@ -297,7 +297,7 @@ int main(int argc, char *argv[])
 
         tracer->setBVHCache(true);
         tracer->setVerbose(true);    
-        tracer->setDepth(2);
+        tracer->setDepth(1);
         //eavlVector3 mov(0,0,.01);
         //float m=0.01;
 

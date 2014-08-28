@@ -15,7 +15,7 @@ struct float4
 texture<float4> tets_verts_tref;
 texture<float4> scalars_tref;
 /*color map texture */
-texture<float4> color_map_tref;
+texture<float4> cmap_tref;
 
 #define USE_TEXTURE_MEM
 template<class T>
@@ -456,7 +456,7 @@ struct CompositeFunctor
                 continue;
 
             int colorindex = float(ncolors-1) * value;
-            float4 clr = colorMap.getValue(color_map_tref, colorindex);
+            float4 clr = colorMap.getValue(cmap_tref, colorindex);
             eavlColor c(clr.x,
                         clr.y,
                         clr.z,
@@ -530,7 +530,7 @@ struct CompositeFunctorFB
                 continue;
 
             int colorindex = float(ncolors-1) * value;
-            float4 clr = colorMap.getValue(color_map_tref, colorindex);
+            float4 clr = colorMap.getValue(cmap_tref, colorindex);
             eavlColor c(clr.x,
                         clr.y,
                         clr.z,
@@ -573,7 +573,7 @@ void eavlSimpleVRMutator::setColorMap3f(float* cmap,int size)
     colormapSize = size;
     if(color_map_array != NULL)
     {
-        color_map_array->unbind(color_map_tref);
+        color_map_array->unbind(cmap_tref);
         delete color_map_array;
     }
     if(colormap_raw!=NULL)
@@ -589,14 +589,14 @@ void eavlSimpleVRMutator::setColorMap3f(float* cmap,int size)
         colormap_raw[i*4+2] = cmap[i*3+2];
         colormap_raw[i*4+3] = .05;          //test Alpha
     }
-    color_map_array = new eavlConstArrayV2<float4>((float4*)colormap_raw, colormapSize, color_map_tref);
+    color_map_array = new eavlConstArrayV2<float4>((float4*)colormap_raw, colormapSize, cmap_tref);
 }
 
 void eavlSimpleVRMutator::setDefaultColorMap()
 {   if(verbose) cout<<"setting defaul color map"<<endl;
     if(color_map_array!=NULL)
     {
-        color_map_array->unbind(color_map_tref);
+        color_map_array->unbind(cmap_tref);
         delete color_map_array;
     }
     if(colormap_raw!=NULL)
@@ -607,7 +607,7 @@ void eavlSimpleVRMutator::setDefaultColorMap()
     colormapSize=2;
     colormap_raw= new float[8];
     for(int i=0;i<8;i++) colormap_raw[i]=1.f;
-    color_map_array = new eavlConstArrayV2<float4>((float4*)colormap_raw, colormapSize, color_map_tref);
+    color_map_array = new eavlConstArrayV2<float4>((float4*)colormap_raw, colormapSize, cmap_tref);
     if(verbose) cout<<"Done setting defaul color map"<<endl;
 
 }

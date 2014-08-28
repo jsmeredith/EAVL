@@ -8,6 +8,10 @@
 #include "eavlFilter.h"
 #include "eavlArray.h"
 
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
+
 // ****************************************************************************
 // Class:  eavlSelectionMutator
 //
@@ -32,6 +36,7 @@ class eavlSelectionMutator : public eavlMutator
   protected:
     eavlIntArray *chosenElements;
     string fieldname, cellsetname;
+    bool presorted;
   public:
     eavlSelectionMutator();
     void SetArray(eavlIntArray *selectionarray)
@@ -45,6 +50,10 @@ class eavlSelectionMutator : public eavlMutator
     void SetCellSet(const string &name)
     {
         cellsetname = name;
+    }
+    void SetInputPreSorted(bool val)
+    {
+        presorted = val;
     }
     
     virtual void Execute();
