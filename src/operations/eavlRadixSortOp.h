@@ -8,13 +8,18 @@
 #include "eavlOperation.h"
 #include "eavlException.h"
 #include <time.h>
+#include <limits>
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
 
 #ifndef DOXYGEN
 
+#define BLOCK_WIDTH 512
+#define BLOCK_MAX BLOCK_WIDTH - 1
 
+#define R_BLOCK_WIDTH 512
+#define R_BLOCK_MAX R_BLOCK_WIDTH - 1
 
 struct eavlRadixSortOp_CPU
 {
@@ -247,16 +252,12 @@ __device__ int binarySearch2(int first, int last,volatile T * array, volatile T 
 
 }
 
-#define BLOCK_WIDTH 512
-#define BLOCK_MAX 511
 
-#define R_BLOCK_WIDTH 512
-#define R_BLOCK_MAX 511
 template<class K, class T>
 __device__ void merge(int nItems, int first1, int last1, int first2, int last2, volatile K *keys, volatile T* values, K maxKey)
 {
     const unsigned int idx = threadIdx.x;
-    int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
+    //int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
     volatile __shared__ K    sm_keys1[BLOCK_WIDTH];
     volatile __shared__ K    sm_keys2[BLOCK_WIDTH];
     volatile __shared__ K    sm_vals1[BLOCK_WIDTH];
@@ -484,7 +485,7 @@ struct eavlRadixSortOp_GPU
             rnumBlocksX = (rnumBlocks + rnumBlocksY-1) / rnumBlocksY;
         }
 
-        cout<<"Nitems NUM BLOCKS "<<numBlocksX<<endl;
+        cout<<"NUM BLOCKS "<<numBlocksX<<endl;
         
         dim3 one(1,1,1);
         dim3 t(BLOCK_WIDTH,1,1);
@@ -502,20 +503,9 @@ struct eavlRadixSortOp_GPU
         CUDA_CHECK_ERROR();
         //printKernel<<< one, one>>>(nitems, _keys);
         //cudaDeviceSynchronize();
-        int sortSize = R_BLOCK_WIDTH;
-        int chunkSize;
-        int numChunks;
-        int extra;
-       // int *badInput = new int[nitems];
-
-        chunkSize = sortSize;
-        numChunks = nitems / chunkSize;
-        extra = nitems % chunkSize;
-        if(extra != 0) numChunks++;
-        int counter = 0;
 
         int N = numBlocks;
-        int T = ceil(log(double(N))/log(2.));
+        int T = ceil(log(double(N-1))/log(2.));
         //cout << "T="<<T<<endl;
         
         for (int pp = T-1; pp >= 0; --pp)
@@ -527,25 +517,12 @@ struct eavlRadixSortOp_GPU
             for (int qq = T-1; qq >= pp ; --qq)
             {
                 int Q = 1 << qq;
-                //cout << "pp="<<pp<<"  qq="<<qq<<"   P="<<P<<" Q="<<Q<<": ";
-
                 mergeKernel<<< blocks, t>>>(nitems, numBlocks, P, R, D, _keys, _values ,std::numeric_limits<int>::max());
                 CUDA_CHECK_ERROR();
-                //cout << endl;
                 D = Q - P;
                 R = P;
             }
         }
-
-        
-        //CUDA_CHECK_ERROR();
-        //printKernel<<< one, one>>>(nitems, _keys);
-        //cudaDeviceSynchronize();
-            
-        
-       
-       
-
     }
 };
 
