@@ -8,7 +8,7 @@
 #include "eavlOperation.h"
 #include "eavlException.h"
 #include <time.h>
-#include <limits.h>
+#include <limits>
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
