@@ -2,7 +2,6 @@
 #ifndef EAVL_RENDER_SURFACE_OSMESA_H
 #define EAVL_RENDER_SURFACE_OSMESA_H
 
-#include "GL/gl_mangle.h"
 #include "GL/osmesa.h"
 #include "GL/gl.h"
 

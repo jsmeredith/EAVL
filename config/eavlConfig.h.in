@@ -74,3 +74,7 @@
 
 /* Define to 1 if you are building with OpenMP support */
 #undef HAVE_OPENMP
+
+/* Define to 1 if you are building with MESA support */
+#undef HAVE_MESA
+

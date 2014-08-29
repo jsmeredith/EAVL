@@ -1048,6 +1048,75 @@ AC_SUBST(ADIOS_LIBS)
 
 
 
+## ---------------------------------------------------------------------------
+## Mesa check
+## ---------------------------------------------------------------------------
+MESA_CPPFLAGS=""
+MESA_LDFLAGS=""
+MESA_LIBS=""
+AC_ARG_WITH(mesa,[
+Mesa Options:
+  --with-mesa             (DEFAULT) try Mesa with no paths
+  --with-mesa=path        specify location of ADIOS installation
+  --without-mesa          disable Mesa],
+        MESA="$withval",
+        if test -z "$MESA"; then MESA="yes"; fi)
+if test "$MESA" != "yes" -a "$MESA" != "no"; then
+   # specified path
+   MESA_CPPFLAGS="-I""$MESA""/include"
+   MESA_LDFLAGS="-L""$MESA""/lib $MPI_LDFLAGS"
+   rpathize(MESA_LDFLAGS, $MESA/lib)
+   MESA_LIBS="-lOSMesa"
+fi
+
+# make sure it works with those flags
+if test "$MESA" != "no"; then
+   old_cppflags=$CPPFLAGS
+   old_ldflags=$LDFLAGS
+   old_libs=$LIBS
+   CPPFLAGS="$CPPFLAGS $MESA_CPPFLAGS";
+   LDFLAGS="$LDFLAGS $MESA_LDFLAGS";
+   LIBS="$LIBS $MESA_LIBS"
+
+   AC_MSG_CHECKING(if MESA works)
+   AC_TRY_LINK([#include <GL/osmesa.h>],
+   	       [OSMesaContext ctx = OSMesaGetCurrentContext(); glEnable(GL_ALPHA_TEST); ],
+               AC_MSG_RESULT(yes);tryMangledMesa="no",
+               AC_MSG_RESULT(no);tryMangledMesa="yes")
+   if test "$tryMangledMesa" = "yes"; then
+      AC_MSG_CHECKING(if Mangled MESA works)
+      CPPFLAGS="$CPPFLAGS -DUSE_MGL_NAMESPACE";
+      AC_TRY_LINK([#include <GL/osmesa.h>],
+   	       [OSMesaContext ctx = OSMesaGetCurrentContext(); glEnable(GL_ALPHA_TEST); ],
+               AC_MSG_RESULT(yes),
+               AC_MSG_RESULT(no);MESA="no";AC_MSG_WARN(could not get Mesa to compile/link; disabling Mesa))
+   fi
+
+   CPPFLAGS=$old_cppflags
+   LDFLAGS=$old_ldflags
+   LIBS=$old_libs
+fi
+
+# set preprocessor definition
+if test "$MESA" != "no"; then
+   AC_DEFINE(HAVE_MESA,[1])
+   if test "$tryMangledMesa" = "yes"; then
+      MESA_CPPFLAGS="$MESA_CPPFLAGS -DUSE_MGL_NAMESPACE";
+   fi
+else
+   MESA_CPPFLAGS=""
+   MESA_LDFLAGS=""
+   MESA_LIBS=""
+fi
+
+AC_MSG_CHECKING(for Mesa)
+AC_MSG_RESULT($MESA)
+AC_SUBST(MESA)
+AC_SUBST(MESA_CPPFLAGS)
+AC_SUBST(MESA_LDFLAGS)
+AC_SUBST(MESA_LIBS)
+
+
 
 ## ---------------------------------------------------------------------------
 ## Add some directories to search for includes and libraries
