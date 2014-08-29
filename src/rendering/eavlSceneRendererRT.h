@@ -184,7 +184,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     virtual void Render()
     {
 
-        if(tracer->scene->getTotalPrimitives() == 0) return;
+        //if(tracer->scene->getTotalPrimitives() == 0) return;
         
         int tframe = eavlTimer::Start();
         tracer->setDefaultMaterial(Ka,Kd,Ks);
