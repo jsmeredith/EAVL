@@ -131,6 +131,11 @@ eavlXGCParticleImporter::~eavlXGCParticleImporter()
     igid.clear();
 }
 
+#define AdiosGetValue(fp, varid, data) \
+                adios_schedule_read_byid (fp, 0, varid, fp->current_step, 1, &data); \
+                adios_perform_reads (fp, 1);
+                
+
 void
 eavlXGCParticleImporter::Initialize()
 {
@@ -189,43 +194,56 @@ eavlXGCParticleImporter::Initialize()
         }
         else if(varNm == "inum")
         {
-            totalIParticles += (int)(*(int *)avi->value);
+            int ipart;
+            AdiosGetValue (fp, i, ipart);
+            totalIParticles += ipart;
+            //totalIParticles += (int)(*(int *)avi->value);
             adios_free_varinfo(avi);
         }
         else if(varNm == "enum")
         {
-            totalEParticles += (int)(*(int *)avi->value);
+            int epart;
+            AdiosGetValue (fp, i, epart);
+            totalEParticles += epart;
+            //totalEParticles += (int)(*(int *)avi->value);
             adios_free_varinfo(avi);
         }
         else if(i < startIndex + 13) 
         {
             if (varNm == "timestep") 
             {
-                timestep = (int)(*(int *)avi->value);
+                //timestep = (int)(*(int *)avi->value);
+                AdiosGetValue (fp, i, timestep);
             } 
             else if(varNm == "time") 
             {
-                time = (double)(*(double *)avi->value);
+                AdiosGetValue (fp, i, time);
+                //time = (double)(*(double *)avi->value);
             } 
             else if(varNm == "maxnum") 
             {
-                maxnum = (int)(*(int *)avi->value);
+                AdiosGetValue (fp, i, maxnum);
+                //maxnum = (int)(*(int *)avi->value);
             } 
             else if (varNm == "inphase") 
             {
-                inphase = (int)(*(int *)avi->value);
+                AdiosGetValue (fp, i, inphase);
+                //inphase = (int)(*(int *)avi->value);
             } 
             else if(varNm == "enphase") 
             {
-                enphase = (int)(*(int *)avi->value);
+                AdiosGetValue (fp, i, enphase);
+                //enphase = (int)(*(int *)avi->value);
             } 
             else if(varNm == "emaxgid") 
             {
-                emaxgid = (long long)(*(long long *)avi->value);
+                AdiosGetValue (fp, i, emaxgid);
+                //emaxgid = (long long)(*(long long *)avi->value);
             } 
             else if(varNm == "imaxgid") 
             {
-                imaxgid = (long long)(*(long long *)avi->value);
+                AdiosGetValue (fp, i, imaxgid);
+                //imaxgid = (long long)(*(long long *)avi->value);
             }
             adios_free_varinfo(avi);
         } 
@@ -705,10 +723,10 @@ eavlXGCParticleImporter::GetIMaxGID()
 int
 eavlXGCParticleImporter::AdvanceTimeStep(int step, int timeout_sec)
 {
-    int err = adios_advance_step (fp, step, timeout_sec);
+    int err = adios_advance_step(fp, step, timeout_sec);
 
     if(err != 0)
-        return -1;               
+        return err;               
     
     timestep = 0;
     maxnum = 0;
