@@ -8,18 +8,14 @@
 #include "eavlOperation.h"
 #include "eavlException.h"
 #include <time.h>
-#include <limits>
+#include <limits.h>
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
 
 #ifndef DOXYGEN
 
-#define BLOCK_WIDTH 1024
-#define BLOCK_MAX BLOCK_WIDTH - 1
 
-#define R_BLOCK_WIDTH 1024
-#define R_BLOCK_MAX R_BLOCK_WIDTH - 1
 
 struct eavlRadixSortOp_CPU
 {
@@ -252,85 +248,115 @@ __device__ int binarySearch2(int first, int last,volatile T * array, volatile T 
 
 }
 
+#define BLOCK_WIDTH 128
+#define BLOCK_MAX 127
 
+#define R_BLOCK_WIDTH 256
+#define R_BLOCK_MAX 255 
 template<class K, class T>
 __device__ void merge(int nItems, int first1, int last1, int first2, int last2, volatile K *keys, volatile T* values, K maxKey)
 {
     const unsigned int idx = threadIdx.x;
     int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
-    volatile __shared__ K    sm_keys1[BLOCK_WIDTH];
-    volatile __shared__ K    sm_keys2[BLOCK_WIDTH];
-    volatile __shared__ T    sm_vals1[BLOCK_WIDTH];
-    volatile __shared__ T    sm_vals2[BLOCK_WIDTH];
-    //volatile __shared__ K    sm_out[BLOCK_WIDTH*2];      /*write out to a larger buffer so we don't scatter to global mem*/
-    //volatile __shared__ K    sm_outVals[BLOCK_WIDTH*2];
+    volatile __shared__ K    sm_keys1[BLOCK_WIDTH*2];
+    volatile __shared__ K    sm_keys2[BLOCK_WIDTH*2];
+    volatile __shared__ K    sm_vals1[BLOCK_WIDTH*2];
+    volatile __shared__ K    sm_vals2[BLOCK_WIDTH*2];
 
     int numItems1 = last1 - first1; 
     int numItems2 = last2 - first2;
 
     
-    //if(idx == 0 ) printf("blockID %d first1 %d last1 %d first2 %d last2 %d \n", blockId, first1, last1, first2, last2);
+    //printf("blockID %d first1 %d last1 %d first2 %d last2 %d idx 1 %d idx 2 %d \n", blockId, first1, last1, first2, last2,idx*2, idx*2+1);
     //__syncthreads();
     
 
-    /* load chunks into share mem*/
+    /* load chunks into share mem*/ 
     //printf("blockID %d idx %d less than %d\n",blockId, idx, last1 - first1 + 1);
     //printf("blockID %d idx %d less than %d\n",blockId, idx, last2 - first2 + 1);
-    if(idx <= numItems1) 
+
+    sm_keys1[idx*2] = keys[first1 + idx*2];
+    sm_vals1[idx*2] = values[first1 + idx*2];
+
+
+    sm_keys1[idx*2 + 1] = keys[first1 + idx*2+1];
+    sm_vals1[idx*2 + 1] = values[first1 + idx*2+1];
+
+
+    if(idx*2 <= numItems2) 
     {
-        sm_keys1[idx] = keys[first1 + idx];
-        sm_vals1[idx] = values[first1 + idx];
+        sm_keys2[idx*2] = keys[first2 + idx*2];
+        sm_vals2[idx*2] = values[first2 + idx*2];
     }
     else 
     {
-        sm_keys1[idx] = maxKey;
-        sm_vals1[idx] = -1;
+        sm_keys2[idx*2] = maxKey;
+        sm_vals2[idx*2] = -1;
     }
 
-    
-    if(idx <= numItems2 ) 
+
+    if(idx*2+1 <= numItems2) 
     {
-        sm_keys2[idx] = keys[first2 + idx];
-        sm_vals2[idx] = values[first2 + idx];
+        sm_keys2[idx*2 + 1] = keys[first2 + idx*2+1];
+        sm_vals2[idx*2 + 1] = values[first2 + idx*2+1];
+
     }
     else 
     {
-        sm_keys2[idx] = maxKey;
-        sm_vals2[idx] = -1;
+        sm_keys2[idx*2+1] = maxKey;
+        sm_vals2[idx*2+1] = -1;
     }
+
     __syncthreads();
 
    
     /* -1 indicates that the keys are greater than the last value of the other key array */
-    int sa1 = binarySearch(0, BLOCK_MAX, sm_keys2, sm_keys1[idx]);
-    if(sa1 != -1) sa1 += idx;
+    int sa1 = binarySearch(0, BLOCK_WIDTH*2-1, sm_keys2, sm_keys1[idx*2]);
+    if(sa1 != -1) sa1 += idx*2;
 
+    int sa1b = binarySearch(0, BLOCK_WIDTH*2-1, sm_keys2, sm_keys1[idx*2+1]);
+    if(sa1b != -1) sa1b += idx*2+1;
     
-    int sa2 = binarySearch2(0, BLOCK_MAX, sm_keys1, sm_keys2[idx]);
-    if(sa2 != -1) sa2 += idx;
+    int sa2 = binarySearch2(0, BLOCK_WIDTH*2-1, sm_keys1, sm_keys2[idx*2]);
+    if(sa2 != -1) sa2 += idx*2;
+
+    int sa2b = binarySearch2(0, BLOCK_WIDTH*2-1, sm_keys1, sm_keys2[idx*2+1]);
+    if(sa2b != -1) sa2b += idx*2+1;
     
-    K key1, key2;
-    T val1, val2;
+
+    K key1, key1b, key2, key2b;
+    T val1, val1b, val2, val2b;
+
 
     if(sa1 != -1)
     {
-        key1 = sm_keys1[idx];
-        val1 = sm_vals1[idx];
+        key1 = sm_keys1[idx*2];
+        val1 = sm_vals1[idx*2];
+    } 
+
+    if(sa1b != -1)
+    {
+        key1b = sm_keys1[idx*2+1];
+        val1b = sm_vals1[idx*2+1];
     } 
 
     if(sa2 != -1)
     {
-        key2 = sm_keys2[idx];
-        val2 = sm_vals2[idx];
+        key2 = sm_keys2[idx*2];
+        val2 = sm_vals2[idx*2];
     }
-    //printf("Block id %d idx %d key1 %d sa1 %d key2 %d sa2 %d \n", blockId, idx, sm_keys1[idx], sa1, sm_keys2[idx], sa2);
-    
+    if(sa2b != -1)
+    {
+        key2b = sm_keys2[idx*2+1];
+        val2b = sm_vals2[idx*2+1];
+    }
+    //printf("Block id %d idx %d key1 %d sa1 %d key1b %d sa1b %d key2 %d sa2 %d  key2b %d sa2b %d \n", blockId, idx, sm_keys1[idx*2], sa1,sm_keys1[idx*2+1], sa1b, sm_keys2[idx*2], sa2, sm_keys2[idx*2+1], sa2b);
     __syncthreads();
 
-    if( sa1 >= BLOCK_WIDTH)
+    if( sa1 >= BLOCK_WIDTH*2)
     {
-        sm_keys2[sa1 - BLOCK_WIDTH] = key1;
-        sm_vals2[sa1 - BLOCK_WIDTH] = val1; 
+        sm_keys2[sa1 - BLOCK_WIDTH*2] = key1;
+        sm_vals2[sa1 - BLOCK_WIDTH*2] = val1; 
     }
     else 
     {
@@ -338,26 +364,58 @@ __device__ void merge(int nItems, int first1, int last1, int first2, int last2, 
         sm_vals1[sa1] = val1; 
     }
 
-    if( sa2 >= BLOCK_WIDTH)
+    if( sa2 >= BLOCK_WIDTH*2)
     {
-        sm_keys2[sa2 - BLOCK_WIDTH] = key2;
-        sm_vals2[sa2 - BLOCK_WIDTH] = val2; 
+        sm_keys2[sa2 - BLOCK_WIDTH*2] = key2;
+        sm_vals2[sa2 - BLOCK_WIDTH*2] = val2; 
     }
     else 
     {
         sm_keys1[sa2] = key2;
         sm_vals1[sa2] = val2; 
     }
-    __syncthreads();
-    //if(idx == 0 ) printf("Made it\n");
-    //__syncthreads();
-    keys[first1 + idx]   = sm_keys1[idx];
-    values[first1 + idx] = sm_vals1[idx];
 
-    if(idx <= numItems2 )
+    if( sa1b >= BLOCK_WIDTH*2)
     {
-        keys[first2 + idx]   = sm_keys2[idx];
-        values[first2 + idx] = sm_vals2[idx];
+        sm_keys2[sa1b - BLOCK_WIDTH*2] = key1b;
+        sm_vals2[sa1b - BLOCK_WIDTH*2] = val1b; 
+    }
+    else 
+    {
+        sm_keys1[sa1b] = key1b;
+        sm_vals1[sa1b] = val1b; 
+    }
+
+    if( sa2b >= BLOCK_WIDTH*2)
+    {
+        sm_keys2[sa2b - BLOCK_WIDTH*2] = key2b;
+        sm_vals2[sa2b - BLOCK_WIDTH*2] = val2b; 
+    }
+    else 
+    {
+        sm_keys1[sa2b] = key2b;
+        sm_vals1[sa2b] = val2b; 
+    }
+
+    __syncthreads();
+    
+    keys[first1 + idx*2] = sm_keys1[idx*2];
+    values[first1 + idx*2] = sm_vals1[idx*2];
+
+    keys[first1 + idx*2+1] = sm_keys1[idx*2+1];
+    values[first1 + idx*2+1] = sm_vals1[idx*2+1];
+    
+    if(idx*2 <= numItems2 )
+    {
+        keys[first2 + idx*2]   = sm_keys2[idx*2 + BLOCK_WIDTH*2];
+        values[first2 + idx*2] = sm_vals2[idx*2 + BLOCK_WIDTH*2];
+
+    } 
+
+    if(idx*2+1 <= numItems2 )
+    {
+        keys[first2 + idx*2+1]   = sm_keys2[idx*2+1 + BLOCK_WIDTH*2];
+        values[first2 + idx*2+1] = sm_vals2[idx*2+1 + BLOCK_WIDTH*2];
 
     } 
    
@@ -365,7 +423,7 @@ __device__ void merge(int nItems, int first1, int last1, int first2, int last2, 
 }
 
 template<class K, class T>
-__global__ void mergeKernel(int nitems, int nBlocks, int P, int R, int D, K *keys, T* values, K maxKey)
+__global__ void mergeKernel(int nitems, int nBlocks, int Z, int P, int D, int qq, K *keys, T* values, K maxKey)
 {
     const int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
 
@@ -375,7 +433,30 @@ __global__ void mergeKernel(int nitems, int nBlocks, int P, int R, int D, K *key
     //                    cout << "[" <<K-1<< "," << K+D-1 << "],";
     //}
 
-    int J = blockId + 1;
+    int groupsize = P;
+    int localindex = blockId % groupsize;
+    int groupindex = blockId / groupsize;
+    int groupbase  = groupsize * (groupindex * 2 + (qq == Z ? 0 : 1));
+    int b0 = groupbase + localindex;
+    int b1 = b0 + D;
+    if (b1 < nBlocks)
+    {
+        //MERGE_BLOCKS(b0,b1);
+        int first1 = b0 * R_BLOCK_WIDTH; 
+        int last1  = first1 + R_BLOCK_WIDTH - 1;
+
+        int first2 = b1 * R_BLOCK_WIDTH;
+        int last2  = first2 + R_BLOCK_WIDTH - 1;
+        if(b1 == nBlocks-1 && nitems % R_BLOCK_WIDTH != 0) 
+        {
+            last2 = first2 + nitems % R_BLOCK_WIDTH - 1;
+        } 
+       // if( threadIdx.x == 0 ) printf("A %d == B %d \n",(J+D-1), nBlocks-1);
+        //if( threadIdx.x == 0 ) printf("Block Id %d Launching [%d,%d] \n",blockId, b0, b1);
+        merge(nitems, first1, last1, first2, last2, keys, values, maxKey);
+    }
+
+    /*int J = blockId + 1;
     if(J <= nBlocks - D)
     {
         if( ((J - 1) & P ) == R )
@@ -393,7 +474,7 @@ __global__ void mergeKernel(int nitems, int nBlocks, int P, int R, int D, K *key
             //if( threadIdx.x == 0 ) printf("Launching [%d,%d] P %d R %d D %d extra %d \n", blockId-1, J+D-1, P, R, D, nitems % nBlocks);
             merge(nitems, first1, last1, first2, last2, keys, values, maxKey);
         }
-    }
+    }*/
     
 }
 
@@ -494,7 +575,7 @@ struct eavlRadixSortOp_GPU
         if(nitems % BLOCK_WIDTH > 0) numBlocks++;
 
         
-        int numBlocksX = numBlocks;
+        int numBlocksX = (numBlocks + 1) / 2;
         int numBlocksY = 1;
         if (numBlocks >= 32768)
         {
@@ -513,7 +594,7 @@ struct eavlRadixSortOp_GPU
             rnumBlocksX = (rnumBlocks + rnumBlocksY-1) / rnumBlocksY;
         }
 
-        cout<<"NUM BLOCKS "<<numBlocksX<<endl;
+        cout<<"Nitems NUM BLOCKS "<<numBlocksX<<endl;
         
         dim3 one(1,1,1);
         dim3 t(BLOCK_WIDTH,1,1);
@@ -532,25 +613,34 @@ struct eavlRadixSortOp_GPU
         //printKernel<<< one, one>>>(nitems, _keys);
         //cudaDeviceSynchronize();
 
-        int N = numBlocks;
-        int T = ceil(log(double(N-1))/log(2.));
+        int N = rnumBlocks;
+        int Z = ceil(log(double(N-1))/log(2.));
         //cout << "T="<<T<<endl;
         
-        for (int pp = T-1; pp >= 0; --pp)
+        for (int pp = Z; pp >= 0; --pp)
         {
             int P = 1 << pp;
-
-            int R = 0;
-            int D = P;
-            for (int qq = T-1; qq >= pp ; --qq)
+            for (int qq = Z; qq >= pp ; --qq)
             {
                 int Q = 1 << qq;
-                mergeKernel<<< blocks, t>>>(nitems, numBlocks, P, R, D, _keys, _values ,std::numeric_limits<int>::max());
+                int D = ((qq == Z) ? P : Q * 2 - P);
+                //cout << "pp="<<pp<<"  qq="<<qq<<"   P="<<P<<" Q="<<Q<<": ";
+
+                mergeKernel<<< blocks, t>>>(nitems, N, Z, P, D, qq, _keys, _values ,std::numeric_limits<int>::max());
                 CUDA_CHECK_ERROR();
-                D = Q - P;
-                R = P;
+                //cout << endl;
             }
         }
+
+        
+        //CUDA_CHECK_ERROR();
+        //printKernel<<< one, one>>>(nitems, _keys);
+        //cudaDeviceSynchronize();
+            
+        
+       
+       
+
     }
 };
 

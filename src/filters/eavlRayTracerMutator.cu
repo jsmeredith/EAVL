@@ -36,7 +36,7 @@
 #include "RT/eavlRTUtil.h"
 
 #include "eavlSegmentedScanOp.h"
-#include "eavlRadixSortOp.h"
+//#include "eavlRadixSortOp.h"
 
 #define TOLERANCE   0.00001
 #define BARY_TOLE   0.0001f
