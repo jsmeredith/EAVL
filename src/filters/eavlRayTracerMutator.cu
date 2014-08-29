@@ -1783,7 +1783,7 @@ void eavlRayTracerMutator::extractGeometry()
 
     bool cacheExists  =false;
     bool writeCache   =true;
-    
+     
 
     if(false )//useBVHCache)
     {
@@ -2757,10 +2757,36 @@ void eavlRayTracerMutator::freeRaw()
 
 }
 
+struct ScreenDepthFunctor{
+
+    float proj22;
+    float proj23;
+    float proj32;
+
+    ScreenDepthFunctor(float _proj22, float _proj23, float _proj32)
+        : proj32(_proj32), proj23(_proj23), proj22(_proj22)
+    {
+        
+    }                                                 
+    EAVL_FUNCTOR tuple<float> operator()(float depth){
+       
+        float projdepth = (proj22 + proj23 / (-depth)) / proj32;
+        projdepth = .5 * projdepth + .5;
+        return tuple<float>(projdepth);
+    }
+};
+
+eavlFloatArray* eavlRayTracerMutator::getDepthBuffer(float proj22, float proj23, float proj32)
+{ 
+
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(zBuffer), eavlOpArgs(zBuffer), ScreenDepthFunctor(proj22, proj23, proj32)),"covertDepth");
+        eavlExecutor::Go();
+        return zBuffer;
+}
 
 void eavlRayTracerMutator::freeTextures()
 {
-    cout<<"Free textures"<<endl;
+    //cout<<"Free textures"<<endl;
    if (tri_bvh_in_array != NULL) 
     {
         tri_bvh_in_array->unbind(tri_bvh_in_tref);

@@ -15,13 +15,14 @@ class eavlRayTracerMutator : public eavlMutator
 
     eavlRayTracerMutator();
     void printMemUsage();
+
     void SetField(const string &name) 
     {
       fieldname = name;
     }
 
     eavlByteArray* getFrameBuffer() { return frameBuffer; }
-    eavlFloatArray* getDepthBuffer() { return zBuffer; }
+    eavlFloatArray* getDepthBuffer(float, float, float);
 
     void setDefaultMaterial(float ka, float kd, float ks)
     {
