@@ -479,8 +479,8 @@ struct eavlRadixSortOp_GPU
         int *_values = get<0>(outputs).array;
 
         int numBlocks = nitems / BLOCK_WIDTH;
+        cout<<"Numb "<<numBlocks<<endl;
         if(nitems % BLOCK_WIDTH > 0) numBlocks++;
-
         
         int numBlocksX = numBlocks;
         int numBlocksY = 1;
@@ -517,13 +517,14 @@ struct eavlRadixSortOp_GPU
         CUDA_CHECK_ERROR();
         sortBlocksKernel<<< rblocks, threads >>>(nitems, _keys, _values);
         CUDA_CHECK_ERROR();
+        if(rnumBlocks == 1) return;
         //printKernel<<< one, one>>>(nitems, _keys);
         //cudaDeviceSynchronize();
 
         int N = numBlocks;
         int T = ceil(log(double(N-1))/log(2.));
         //cout << "T="<<T<<endl;
-        
+        int c = 0;
         for (int pp = T-1; pp >= 0; --pp)
         {
             int P = 1 << pp;
@@ -531,7 +532,8 @@ struct eavlRadixSortOp_GPU
             int R = 0;
             int D = P;
             for (int qq = T-1; qq >= pp ; --qq)
-            {
+            {   cout<<"C "<<c<<endl;
+                c++;
                 int Q = 1 << qq;
                 mergeKernel<<< blocks, t>>>(nitems, numBlocks, P, R, D, _keys, _values ,std::numeric_limits<int>::max());
                 CUDA_CHECK_ERROR();

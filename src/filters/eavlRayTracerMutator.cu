@@ -1870,6 +1870,7 @@ void eavlRayTracerMutator::intersect()
                Also could change primitive type to a usnigned char to save on data movement
     */
     /*set the minimum distances to INFINITE */
+
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(indexes), //dummy arg
                                              eavlOpArgs(minDistances),
                                              FloatMemsetFunctor(INFINITE)),
@@ -2050,10 +2051,14 @@ void eavlRayTracerMutator::Execute()
     int tinit;
     if(verbose) tinit = eavlTimer::Start();
     if(verbose) th = eavlTimer::Start();
+    /*if there are no primitives, just return black*/
     if(scene->getTotalPrimitives()==0) 
     {
-        cerr<<"Error:  Cannot render 0 primitives"<<endl;
-        return; //maybe throw
+        deleteClassPtr(frameBuffer);
+        frameBuffer = new eavlByteArray("",1, width*height*4);
+        deleteClassPtr(zBuffer);
+        zBuffer = new eavlFloatArray("",1, size);
+        return;
     }
 
     //if(verbose) cerr<<"Executing Before Init"<<endl;
