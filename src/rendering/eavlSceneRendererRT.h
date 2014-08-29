@@ -46,13 +46,23 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         setLight = true;
         ctName = "";
         tracer->setDefaultMaterial(Ka,Kd,Ks);
-        cout<<"END rt const"<<endl;
         pointRadius = .1f;
     }
     ~eavlSceneRendererRT()
     {
         delete tracer;
     }
+
+    void SetPointRadius(float r)
+    {
+        if(r > 0) pointRadius = r;
+    }
+
+    void SetBackGroundColor(float r, float g, float b)
+    {
+        tracer->setBackgroundColor(r,g,b);
+    }
+
     virtual void SetActiveColor(eavlColor c)
     {
         glColor3fv(c.c);
