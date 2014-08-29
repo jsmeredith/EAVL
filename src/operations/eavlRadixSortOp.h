@@ -15,10 +15,10 @@
 
 #ifndef DOXYGEN
 
-#define BLOCK_WIDTH 512
+#define BLOCK_WIDTH 1024
 #define BLOCK_MAX BLOCK_WIDTH - 1
 
-#define R_BLOCK_WIDTH 512
+#define R_BLOCK_WIDTH 1024
 #define R_BLOCK_MAX R_BLOCK_WIDTH - 1
 
 struct eavlRadixSortOp_CPU
@@ -257,13 +257,13 @@ template<class K, class T>
 __device__ void merge(int nItems, int first1, int last1, int first2, int last2, volatile K *keys, volatile T* values, K maxKey)
 {
     const unsigned int idx = threadIdx.x;
-    //int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
+    int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
     volatile __shared__ K    sm_keys1[BLOCK_WIDTH];
     volatile __shared__ K    sm_keys2[BLOCK_WIDTH];
-    volatile __shared__ K    sm_vals1[BLOCK_WIDTH];
-    volatile __shared__ K    sm_vals2[BLOCK_WIDTH];
-    volatile __shared__ K    sm_out[BLOCK_WIDTH*2];      /*write out to a larger buffer so we don't scatter to global mem*/
-    volatile __shared__ K    sm_outVals[BLOCK_WIDTH*2];
+    volatile __shared__ T    sm_vals1[BLOCK_WIDTH];
+    volatile __shared__ T    sm_vals2[BLOCK_WIDTH];
+    //volatile __shared__ K    sm_out[BLOCK_WIDTH*2];      /*write out to a larger buffer so we don't scatter to global mem*/
+    //volatile __shared__ K    sm_outVals[BLOCK_WIDTH*2];
 
     int numItems1 = last1 - first1; 
     int numItems2 = last2 - first2;
@@ -309,27 +309,55 @@ __device__ void merge(int nItems, int first1, int last1, int first2, int last2, 
     int sa2 = binarySearch2(0, BLOCK_MAX, sm_keys1, sm_keys2[idx]);
     if(sa2 != -1) sa2 += idx;
     
+    K key1, key2;
+    T val1, val2;
+
     if(sa1 != -1)
     {
-        sm_out[sa1] = sm_keys1[idx];
-        sm_outVals[sa1] = sm_vals1[idx];
+        key1 = sm_keys1[idx];
+        val1 = sm_vals1[idx];
     } 
 
     if(sa2 != -1)
     {
-        sm_out[sa2] = sm_keys2[idx];
-        sm_outVals[sa2] = sm_vals2[idx];
+        key2 = sm_keys2[idx];
+        val2 = sm_vals2[idx];
     }
     //printf("Block id %d idx %d key1 %d sa1 %d key2 %d sa2 %d \n", blockId, idx, sm_keys1[idx], sa1, sm_keys2[idx], sa2);
     
-
     __syncthreads();
-    keys[first1 + idx] = sm_out[idx];
-    values[first1 + idx] = sm_outVals[idx];
+
+    if( sa1 >= BLOCK_WIDTH)
+    {
+        sm_keys2[sa1 - BLOCK_WIDTH] = key1;
+        sm_vals2[sa1 - BLOCK_WIDTH] = val1; 
+    }
+    else 
+    {
+        sm_keys1[sa1] = key1;
+        sm_vals1[sa1] = val1; 
+    }
+
+    if( sa2 >= BLOCK_WIDTH)
+    {
+        sm_keys2[sa2 - BLOCK_WIDTH] = key2;
+        sm_vals2[sa2 - BLOCK_WIDTH] = val2; 
+    }
+    else 
+    {
+        sm_keys1[sa2] = key2;
+        sm_vals1[sa2] = val2; 
+    }
+    __syncthreads();
+    //if(idx == 0 ) printf("Made it\n");
+    //__syncthreads();
+    keys[first1 + idx]   = sm_keys1[idx];
+    values[first1 + idx] = sm_vals1[idx];
+
     if(idx <= numItems2 )
     {
-        keys[first2 + idx]   = sm_out[idx + BLOCK_WIDTH];
-        values[first2 + idx] = values[idx + BLOCK_WIDTH];
+        keys[first2 + idx]   = sm_keys2[idx];
+        values[first2 + idx] = sm_vals2[idx];
 
     } 
    

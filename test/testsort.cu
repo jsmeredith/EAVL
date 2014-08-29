@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
         {
             for( int i = 0; i<s ; i++)
             {
-                int val = rand();
+                int val = rand() % 20;
                 ins->SetValue(i,val);
                 verify[i] = val;
             }
