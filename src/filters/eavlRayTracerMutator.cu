@@ -693,7 +693,7 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
                     p.x = diry * e2.z - dirz * e2.y;
                     p.y = dirz * e2.x - dirx * e2.z;
                     p.z = dirx * e2.y - diry * e2.x;
-                    float dot=e1*p;
+                    float dot = e1.x * p.x + e1.y * p.y + e1.z * p.z;
                     if(dot != 0.f)
                     {
                         dot = 1.f/dot;
@@ -2544,11 +2544,11 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
     int warm = eavlTimer::Start(); //Dirs, origins
     for(int i=0; i<warmupRounds;i++)
     {
-        //eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
-        //                                         eavlOpArgs(dummy, dummyFloat, primitiveTypeHit),
-        //                                         RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array, TRIANGLE )),
-        //                                                                                            "intersect");
-        //eavlExecutor::Go();
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
+                                                 eavlOpArgs(dummy, dummyFloat, primitiveTypeHit),
+                                                 RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array, TRIANGLE )),
+                                                                                                    "intersect");
+        eavlExecutor::Go();
     }
 
     float rayper=size/(eavlTimer::Stop(warm,"warm")/(float)warmupRounds);
@@ -2597,6 +2597,7 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
 
     for(int i=0; i< size; i++)
     {
+        if( depthBuffer->GetValue(i) == INFINITE) depthBuffer->SetValue(i,0);
         maxDepth= max(depthBuffer->GetValue(i), maxDepth);  
         minDepth= max(0.f,min(minDepth,depthBuffer->GetValue(i)));//??
     } 

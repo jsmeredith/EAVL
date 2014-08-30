@@ -315,7 +315,7 @@ int main(int argc, char *argv[])
         //tracer->scene->addSphere(1,5,0,0,1);
 
         //tracer->scene->addSphere(1,0,0,0,1);
-        tracer->Execute();
+        //tracer->Execute();
         if(!isTest)
         {
             for(int i=0; i<1;i++)
