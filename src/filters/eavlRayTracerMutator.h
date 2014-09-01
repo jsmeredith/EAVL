@@ -267,6 +267,7 @@ class eavlRayTracerMutator : public eavlMutator
     void visualRayTrace(int rayId, const char * outfile);
     void writeSubtree(int);
     void traversalTest(int warmupRounds, int testRounds);
+    void traversalTestISPC(int warmupRounds, int testRounds);
     void fpsTest(int warmupRounds, int testRounds);
 
     ~eavlRayTracerMutator()

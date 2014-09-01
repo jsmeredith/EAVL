@@ -7,8 +7,10 @@
 #include <sys/time.h>
 #include <ctime>
 #include <sstream>
-#include <omp.h>
 
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 eavlDataSet *ReadWholeFile(const string &);
 void printUsage()
 {
@@ -30,7 +32,8 @@ void printUsage()
 }
 void openmpInfo()
 {
-   /* int maxThreads=32;
+#ifdef HAVE_OPENMP
+    int maxThreads=32;
     int * threads= new int[maxThreads];
     int * threadIds= new int[maxThreads];
     #pragma omp parallel for 
@@ -49,14 +52,15 @@ void openmpInfo()
     }
     cout<<"OpenMP Max threads : "<<maxT<<" Highest ThreadID : "<< maxId<<endl;
     delete[] threads;
-    delete[] threadIds;*/
+    delete[] threadIds;
+#endif
 }
 int main(int argc, char *argv[])
 {
     try
 
     {  
-        for(int k=0;k<2;k++){
+        for(int k=0;k<1;k++){
         char *filename;
         char *outFilename;
         bool forceCPU=false;
@@ -290,7 +294,7 @@ int main(int argc, char *argv[])
         tracer->setRawData(v,n,objreader->totalTriangles, theMats, mIdx, matCount);
         */
         tracer->scene->loadObjFile(filename);
-        //tracer->setBVHCacheName(filename);
+        tracer->setBVHCacheName(filename);
         //delete objreader;
         tracer->setCompactOp(false);
         //*************************************Testing****************************
@@ -318,6 +322,7 @@ int main(int argc, char *argv[])
         //tracer->Execute();
         if(!isTest)
         {
+            cout<<"Rendering to Framebuffer\n";
             for(int i=0; i<1;i++)
             {
                 tracer->Execute();
@@ -325,8 +330,11 @@ int main(int argc, char *argv[])
         }
         else 
         {
+            cout<<"Starting test.\n";
             //tracer->visualRayTrace(1,"something");
+            //tracer->traversalTestISPC(warmups,tests);
             tracer->traversalTest(warmups,tests);
+
             //tracer->fpsTest(warmups,tests);
         }
 
