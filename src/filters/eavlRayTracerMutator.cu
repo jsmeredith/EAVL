@@ -37,7 +37,7 @@
 
 #include "eavlSegmentedScanOp.h"
 //#include "eavlRadixSortOp.h"
-#define HAVE_ISPC 1
+#define HAVE_ISPC 0
 
 #ifdef HAVE_ISPC
 #include "RT/ispc/rt_ispc.h"
