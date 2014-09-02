@@ -37,7 +37,7 @@
 
 #include "eavlSegmentedScanOp.h"
 //#include "eavlRadixSortOp.h"
-#define HAVE_ISPC 0
+//#define HAVE_ISPC
 
 #ifdef HAVE_ISPC
 #include "RT/ispc/rt_ispc.h"
@@ -332,6 +332,7 @@ eavlRayTracerMutator::eavlRayTracerMutator()
 
 void eavlRayTracerMutator::setColorMap3f(float* cmap,int size)
 {
+    cout<<"Setting ColorMap of Size "<<size<<endl;
     colorMapSize=size;
     if(cmap_array!=NULL)
     {
@@ -356,6 +357,7 @@ void eavlRayTracerMutator::setColorMap3f(float* cmap,int size)
 }
 void eavlRayTracerMutator::setDefaultColorMap()
 {
+    cout<<"Setting defaul color map"<<endl;
     if(cmap_array!=NULL)
     {
         cmap_array->unbind(color_map_tref);
@@ -1422,14 +1424,14 @@ struct ShaderFunctor
     EAVL_FUNCTOR tuple<float,float,float> operator()(tuple<int,int,float,float,float,float,float,float,float,float,float,float,float,float,float,float > input)
     {
         //return tuple<float,float,float>(1,0,0);
-        int hitIdx=get<0>(input);
-        int hit=get<1>(input);
+        int hitIdx = get<0>(input);
+        int hit = get<1>(input);
         float specConst;
 
 
-        if(hitIdx==-1 ) return tuple<float,float,float>(bgColor.x, bgColor.y,bgColor.z);// primary ray never hit anything.
+        if(hitIdx == -1 ) return tuple<float,float,float>(bgColor.x, bgColor.y,bgColor.z);// primary ray never hit anything.
         //return tuple<float,float,float>(0,0,1);
-        int primitiveType=get<15>(input);
+        int primitiveType = get<15>(input);
         
 
         eavlVector3 normal(get<8>(input), get<9>(input), get<10>(input));
@@ -1437,7 +1439,7 @@ struct ShaderFunctor
         eavlVector3 rayOrigin(get<11>(input),get<12>(input),get<13>(input));
         eavlVector3 abg(get<5>(input),get<6>(input),1.f); //alpha beta gamma
         //return tuple<float,float,float>(1,0,0);
-        abg.z=abg.z-abg.x-abg.y; // get gamma
+        abg.z = abg.z - abg.x - abg.y; // get gamma
         eavlVector3 lightDir    = light-rayInt;
         eavlVector3 viewDir     = eye-rayOrigin;
         float dist = sqrt( lightDir.x*lightDir.x+lightDir.y*lightDir.y+lightDir.z*lightDir.z ); 
@@ -1447,16 +1449,16 @@ struct ShaderFunctor
         float ambPct=get<7>(input);
 
 
-        int id=0;
+        int id = 0;
 
-        if(primitiveType==TRIANGLE)       id = matIds->getValue(tri_matIdx_tref, hitIdx);
+        if(primitiveType == TRIANGLE)       id = matIds->getValue(tri_matIdx_tref, hitIdx);
         else if(primitiveType == SPHERE ) id = sphr_matIds->getValue(sphr_matIdx_tref, hitIdx);
 
-        eavlVector3* matPtr=(eavlVector3*)(&mats[0]+id*12);
-        eavlVector3 ka=matPtr[0];//these could be lerped if it is possible that a single tri could be made of several mats
-        eavlVector3 kd=matPtr[1];
-        eavlVector3 ks=matPtr[2];
-        float matShine=matPtr[3].x;
+        eavlVector3* matPtr = (eavlVector3*)(&mats[0]+id*12);
+        eavlVector3 ka = matPtr[0];//these could be lerped if it is possible that a single tri could be made of several mats
+        eavlVector3 kd = matPtr[1];
+        eavlVector3 ks = matPtr[2];
+        float matShine = matPtr[3].x;
 
 //********************************************************
         //pixel=aColor*abg.x+bColor*abg.y+cColor*abg.z;
@@ -1472,7 +1474,7 @@ struct ShaderFunctor
         
         viewDir.normalize();
         
-        float cosPhi = normal*halfVector;
+        float cosPhi = normal * halfVector;
         
         specConst = pow(max(cosPhi,0.0f),matShine);
         //cosTheta=.5;
@@ -1488,9 +1490,9 @@ struct ShaderFunctor
 
 
 
-        red   = ka.x*ambPct+ (kd.x*lightDiff.x*cosTheta + ks.x*lightSpec.x*specConst)*shadowHit*dist;
-        green = ka.y*ambPct+ (kd.y*lightDiff.y*cosTheta + ks.y*lightSpec.y*specConst)*shadowHit*dist;
-        blue  = ka.z*ambPct+ (kd.z*lightDiff.z*cosTheta + ks.z*lightSpec.z*specConst)*shadowHit*dist;
+        red   = ka.x*ambPct+ (kd.x * lightDiff.x * cosTheta + ks.x * lightSpec.x * specConst) * shadowHit*dist;
+        green = ka.y*ambPct+ (kd.y * lightDiff.y * cosTheta + ks.y * lightSpec.y * specConst) * shadowHit*dist;
+        blue  = ka.z*ambPct+ (kd.z * lightDiff.z * cosTheta + ks.z * lightSpec.z * specConst) * shadowHit*dist;
         
         /*Color map*/
         float scalar   = get<14>(input);
@@ -1515,8 +1517,8 @@ struct ShaderFunctor
 
 
         float reflectionCo=1;
-        if(depth==0) reflectionCo=1;
-        else reflectionCo=pow(.3f,depth);
+        if(depth == 0) reflectionCo = 1;
+        else reflectionCo = pow(.3f,depth);
         red   = red  *reflectionCo;
         green = green*reflectionCo;
         blue  = blue *reflectionCo;
