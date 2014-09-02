@@ -334,18 +334,18 @@ void eavlRayTracerMutator::setColorMap3f(float* cmap,int size)
 {
     cout<<"Setting ColorMap of Size "<<size<<endl;
     colorMapSize=size;
-    if(cmap_array!=NULL)
+    if(cmap_array != NULL)
     {
         cmap_array->unbind(color_map_tref);
         delete cmap_array;
     }
-    if(colorMap_raw!=NULL)
+    if(colorMap_raw != NULL)
     {
         delete colorMap_raw;
     }
-    colorMap_raw= new float[size*4];
+    colorMap_raw = new float[size*4];
     
-    for(int i=0;i<size;i++)
+    for(int i = 0; i < size; i++)
     {
         colorMap_raw[i*4  ] = cmap[i*3  ];
         colorMap_raw[i*4+1] = cmap[i*3+1];
@@ -1389,6 +1389,7 @@ struct ShaderFunctor
     int             size;
     int             colorMapSize;
     eavlVector3     bgColor;
+    float4          defaultColor;
 
     eavlConstArrayV2<int>*      matIds; //tris
     eavlConstArrayV2<int>*      sphr_matIds;
@@ -1419,6 +1420,10 @@ struct ShaderFunctor
         lightCoConst    = _lightCoConst;   //used as coefficients for light attenuation
         lightCoLinear   = _lightCoLinear;
         lightCoExponent = _lightCoExponent;
+        defaultColor.x = .5f;
+        defaultColor.y = .5f;
+        defaultColor.z = .5f;
+        defaultColor.w = 1.f;
     }
 
     EAVL_FUNCTOR tuple<float,float,float> operator()(tuple<int,int,float,float,float,float,float,float,float,float,float,float,float,float,float,float > input)
@@ -1490,16 +1495,16 @@ struct ShaderFunctor
 
 
 
-        red   = ka.x*ambPct+ (kd.x * lightDiff.x * cosTheta + ks.x * lightSpec.x * specConst) * shadowHit*dist;
-        green = ka.y*ambPct+ (kd.y * lightDiff.y * cosTheta + ks.y * lightSpec.y * specConst) * shadowHit*dist;
-        blue  = ka.z*ambPct+ (kd.z * lightDiff.z * cosTheta + ks.z * lightSpec.z * specConst) * shadowHit*dist;
+        red   = ka.x * ambPct+ (kd.x * lightDiff.x * cosTheta + ks.x * lightSpec.x * specConst) * shadowHit*dist;
+        green = ka.y * ambPct+ (kd.y * lightDiff.y * cosTheta + ks.y * lightSpec.y * specConst) * shadowHit*dist;
+        blue  = ka.z * ambPct+ (kd.z * lightDiff.z * cosTheta + ks.z * lightSpec.z * specConst) * shadowHit*dist;
         
         /*Color map*/
         float scalar   = get<14>(input);
-        int   colorIdx = floor(scalar*colorMapSize);
+        int   colorIdx = max(min(colorMapSize-1, (int)floor(scalar*colorMapSize)), 0); 
+
+        float4 color = (colorMapSize != 2) ? colorMap.getValue(color_map_tref, colorIdx) : defaultColor; 
         
-        float4 color = colorMap.getValue(color_map_tref, colorIdx); 
-       
         red   *= color.x;
         green *= color.y;
         blue  *= color.z;

@@ -47,6 +47,8 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         ctName = "";
         tracer->setDefaultMaterial(Ka,Kd,Ks);
         pointRadius = .1f;
+        //eavlExecutor::SetExecutionMode(eavlExecutor::ForceCPU);
+        //tracer->cpu=true;
     }
     ~eavlSceneRendererRT()
     {
