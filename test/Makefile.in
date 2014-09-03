@@ -19,7 +19,11 @@ ifneq (@MESA@, no)
 RENDERTESTS=testrender
 endif
 
-TESTS = testimport testiso testnormal testrecenter testthreshold testbox testmath testdatamodel testxform testbin testdistancefield testgraphlayout testatompipeline testserialize testray testsort $(RENDERTESTS) $(VTKTESTS)
+ifneq (@ADIOS@, no)
+ADIOSTESTS=testxgc
+endif
+
+TESTS = testimport testiso testnormal testrecenter testthreshold testbox testmath testdatamodel testxform testbin testdistancefield testgraphlayout testatompipeline testserialize testray testsort $(ADIOSTESTS)  $(RENDERTESTS) $(VTKTESTS)
 
 OBJ = $(TESTS:=.o)
 LIBDEP=$(TOPDIR)/lib/libeavl.a
@@ -82,10 +86,14 @@ testvtk: $(LIBDEP) testvtk.o
 testserialize: $(LIBDEP) testserialize.o
 	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
 
+<<<<<<< HEAD
 testray: $(LIBDEP) testray.o
 	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
 
 testsort: $(LIBDEP) testsort.o
+=======
+testxgc: $(LIBDEP) testxgc.o
+>>>>>>> master
 	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
 
 testrender: $(LIBDEP) testrender.o
