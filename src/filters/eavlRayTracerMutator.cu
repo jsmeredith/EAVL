@@ -2087,8 +2087,6 @@ void eavlRayTracerMutator::Execute()
     if(verbose) cerr<<"Number of triangles: "<<numTriangles<<endl;
     if(verbose) cerr<<"Number of Spheres: "<<numSpheres<<endl;
     
-    //Extract the triangles and normals from the isosurface
-   
 
     clearFrameBuffer(r,g,b);
 

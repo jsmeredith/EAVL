@@ -14,7 +14,7 @@ class eavlRTScene
 		BBox 				sceneBbox;
 		float 				surfaceArea; 
 		vector<RTMaterial>* mats;
-		vector<RTTriangle>* tris;					// Optimization idea: have a triangle class keep a struct of arrays and preformat the data as it is inserted. Just get pointer to the vector data
+		vector<RTTriangle>* tris;					// Optimization idea: have a triangle class keep a struct of arrays and preform as the data as it is inserted. Just get pointer to the vector data
 		vector<RTSphere>* 	spheres;
 		map<string, int> 	matMap;
 		int 				numMats;
@@ -26,6 +26,7 @@ class eavlRTScene
 		EAVL_HOSTONLY inline const  eavlVector3 getSceneExtent();
 		EAVL_HOSTONLY inline void 		addTriangle(const eavlVector3 &v0 , const eavlVector3 &v1, const eavlVector3 &v2,
 													const  float &scalarV0, const float &scalarV1, const float &scalarV2,  string matName="default");
+		EAVL_HOSTONLY inline void 		addTriangle(const eavlVector3 &v0 , const eavlVector3 &v1, const eavlVector3 &v2,  string matName="default");
 		EAVL_HOSTONLY inline void 		addTriangle(const eavlVector3 &v0 , const eavlVector3 &v1, const eavlVector3 &v2,
 													const  float &scalarV0, const float &scalarV1, const float &scalarV2,  const int &matId);
 		EAVL_HOSTONLY inline void 		addTriangle(const eavlVector3 &v0 , const eavlVector3 &v1, const eavlVector3 &v2,
@@ -116,6 +117,23 @@ EAVL_HOSTONLY inline void eavlRTScene::addTriangle(const eavlVector3 &v0 , const
 	}
 
 	RTTriangle t(v0, v1, v2, scalarV0, scalarV1, scalarV2, matId);
+	tris->push_back( t );
+	sceneBbox.expandToInclude(t.getBBox());
+}
+
+EAVL_HOSTONLY inline void eavlRTScene::addTriangle(const eavlVector3 &v0 , const eavlVector3 &v1, const eavlVector3 &v2, string matName)
+{
+
+	int matId=0;
+	if(matName!="default")
+	{
+		if ( matMap.find(matName) != matMap.end() ) 
+		{
+  			matId=matMap[matName];
+		} 
+	}
+
+	RTTriangle t(v0, v1, v2, 0, 0, 0, matId);
 	tris->push_back( t );
 	sceneBbox.expandToInclude(t.getBBox());
 }
