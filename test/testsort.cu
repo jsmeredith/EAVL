@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
 {
     try
     {   
-
+ 
 
 
         int size = atoi(argv[1]);
@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
         {
             for( int i = 0; i<s ; i++)
             {
-                int val = rand() % 20;
+                int val = rand()%200;
                 ins->SetValue(i,val);
                 verify[i] = val;
             }

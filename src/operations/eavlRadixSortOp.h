@@ -21,6 +21,12 @@
 #define R_BLOCK_WIDTH 1024
 #define R_BLOCK_MAX R_BLOCK_WIDTH - 1
 
+#define WARP_SIZE 32
+#define SORT_BLOCK_SIZE 128
+#define SCAN_BLOCK_SIZE 256
+typedef unsigned int uint;
+
+
 struct eavlRadixSortOp_CPU
 {
     static inline eavlArray::Location location() { return eavlArray::HOST; }
@@ -35,115 +41,424 @@ struct eavlRadixSortOp_CPU
 
 #if defined __CUDACC__
 
-template<typename T>
-class RadixAddFunctor
-{
-  public:
-    __device__ RadixAddFunctor(){}
+// Alternative macro to catch CUDA errors
+#define CUDA_SAFE_CALL( call) do {                                            \
+   cudaError err = call;                                                      \
+   if (cudaSuccess != err) {                                                  \
+       fprintf(stderr, "Cuda error in file '%s' in line %i : %s.\n",          \
+           __FILE__, __LINE__, cudaGetErrorString( err) );                    \
+       exit(1);                                               \
+   }                                                                          \
+} while (0)
 
-    __device__ T static op(T a, T b)
+// This kernel code based on CUDPP.  Please see the notice in
+// LICENSE_CUDPP.txt.
+
+__device__ uint scanLSB(const uint val, uint* s_data)
+{
+    // Shared mem is 256 uints long, set first half to 0's
+    int idx = threadIdx.x;
+    s_data[idx] = 0;
+    __syncthreads();
+
+    // Set 2nd half to thread local sum (sum of the 4 elems from global mem)
+    idx += blockDim.x; // += 128 in this case
+
+    // Unrolled scan in local memory
+
+    // Some of these __sync's are unnecessary due to warp synchronous
+    // execution.  Right now these are left in to be consistent with
+    // opencl version, since that has to execute on platforms where
+    // thread groups are not synchronous (i.e. CPUs)
+    uint t;
+    s_data[idx] = val;     __syncthreads();
+    t = s_data[idx -  1];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+    t = s_data[idx -  2];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+    t = s_data[idx -  4];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+    t = s_data[idx -  8];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+    t = s_data[idx - 16];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+    t = s_data[idx - 32];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+    t = s_data[idx - 64];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+
+    return s_data[idx] - val;  // convert inclusive -> exclusive
+}
+
+__device__ uint4 scan4(uint4 idata, uint* ptr)
+{
+    uint4 val4 = idata;
+    uint4 sum;
+
+    // Scan the 4 elements in idata within this thread
+    sum.x = val4.x;
+    sum.y = val4.y + sum.x;
+    sum.z = val4.z + sum.y;
+    uint val = val4.w + sum.z;
+
+    // Now scan those sums across the local work group
+    val = scanLSB(val, ptr);
+
+    val4.x = val;
+    val4.y = val + sum.x;
+    val4.z = val + sum.y;
+    val4.w = val + sum.z;
+
+    return val4;
+}
+
+//----------------------------------------------------------------------------
+//
+// radixSortBlocks sorts all blocks of data independently in shared
+// memory.  Each thread block (CTA) sorts one block of 4*CTA_SIZE elements
+//
+// The radix sort is done in two stages.  This stage calls radixSortBlock
+// on each block independently, sorting on the basis of bits
+// (startbit) -> (startbit + nbits)
+//----------------------------------------------------------------------------
+
+__global__ void radixSortBlocks(const uint nbits, const uint startbit,
+                              uint4* keysOut, uint4* valuesOut,
+                              uint4* keysIn,  uint4* valuesIn)
+{
+    __shared__ uint sMem[512];
+
+    // Get Indexing information
+    const uint i = threadIdx.x + (blockIdx.x * blockDim.x);
+    const uint tid = threadIdx.x;
+    const uint localSize = blockDim.x;
+
+    // Load keys and vals from global memory
+    uint4 key, value;
+    key = keysIn[i];
+    value = valuesIn[i];
+
+    // For each of the 4 bits
+    for(uint shift = startbit; shift < (startbit + nbits); ++shift)
     {
-        return a + b;
+        // Check if the LSB is 0
+        uint4 lsb;
+        lsb.x = !((key.x >> shift) & 0x1);
+        lsb.y = !((key.y >> shift) & 0x1);
+        lsb.z = !((key.z >> shift) & 0x1);
+        lsb.w = !((key.w >> shift) & 0x1);
+
+        // Do an exclusive scan of how many elems have 0's in the LSB
+        // When this is finished, address.n will contain the number of
+        // elems with 0 in the LSB which precede elem n
+        uint4 address = scan4(lsb, sMem);
+
+        __shared__ uint numtrue;
+
+        // Store the total number of elems with an LSB of 0
+        // to shared mem
+        if (tid == localSize - 1)
+        {
+            numtrue = address.w + lsb.w;
+        }
+        __syncthreads();
+
+        // Determine rank -- position in the block
+        // If you are a 0 --> your position is the scan of 0's
+        // If you are a 1 --> your position is calculated as below
+        uint4 rank;
+        const int idx = tid*4;
+        rank.x = lsb.x ? address.x : numtrue + idx     - address.x;
+        rank.y = lsb.y ? address.y : numtrue + idx + 1 - address.y;
+        rank.z = lsb.z ? address.z : numtrue + idx + 2 - address.z;
+        rank.w = lsb.w ? address.w : numtrue + idx + 3 - address.w;
+
+        // Scatter keys into local mem
+        sMem[(rank.x & 3) * localSize + (rank.x >> 2)] = key.x;
+        sMem[(rank.y & 3) * localSize + (rank.y >> 2)] = key.y;
+        sMem[(rank.z & 3) * localSize + (rank.z >> 2)] = key.z;
+        sMem[(rank.w & 3) * localSize + (rank.w >> 2)] = key.w;
+        __syncthreads();
+
+        // Read keys out of local mem into registers, in prep for
+        // write out to global mem
+        key.x = sMem[tid];
+        key.y = sMem[tid +     localSize];
+        key.z = sMem[tid + 2 * localSize];
+        key.w = sMem[tid + 3 * localSize];
+        __syncthreads();
+
+        // Scatter values into local mem
+        sMem[(rank.x & 3) * localSize + (rank.x >> 2)] = value.x;
+        sMem[(rank.y & 3) * localSize + (rank.y >> 2)] = value.y;
+        sMem[(rank.z & 3) * localSize + (rank.z >> 2)] = value.z;
+        sMem[(rank.w & 3) * localSize + (rank.w >> 2)] = value.w;
+        __syncthreads();
+
+        // Read keys out of local mem into registers, in prep for
+        // write out to global mem
+        value.x = sMem[tid];
+        value.y = sMem[tid +     localSize];
+        value.z = sMem[tid + 2 * localSize];
+        value.w = sMem[tid + 3 * localSize];
+        __syncthreads();
+    }
+    keysOut[i]   = key;
+    valuesOut[i] = value;
+}
+
+//----------------------------------------------------------------------------
+// Given an array with blocks sorted according to a 4-bit radix group, each
+// block counts the number of keys that fall into each radix in the group, and
+// finds the starting offset of each radix in the block.  It then writes the
+// radix counts to the counters array, and the starting offsets to the
+// blockOffsets array.
+//
+//----------------------------------------------------------------------------
+__global__ void findRadixOffsets(uint2* keys, uint* counters,
+        uint* blockOffsets, uint startbit, uint numElements, uint totalBlocks)
+{
+    __shared__ uint  sStartPointers[16];
+    extern __shared__ uint sRadix1[];
+
+    uint groupId = blockIdx.x;
+    uint localId = threadIdx.x;
+    uint groupSize = blockDim.x;
+
+    uint2 radix2;
+    radix2 = keys[threadIdx.x + (blockIdx.x * blockDim.x)];
+
+    sRadix1[2 * localId]     = (radix2.x >> startbit) & 0xF;
+    sRadix1[2 * localId + 1] = (radix2.y >> startbit) & 0xF;
+
+    // Finds the position where the sRadix1 entries differ and stores start
+    // index for each radix.
+    if(localId < 16)
+    {
+        sStartPointers[localId] = 0;
+    }
+    __syncthreads();
+
+    if((localId > 0) && (sRadix1[localId] != sRadix1[localId - 1]) )
+    {
+        sStartPointers[sRadix1[localId]] = localId;
+    }
+    if(sRadix1[localId + groupSize] != sRadix1[localId + groupSize - 1])
+    {
+        sStartPointers[sRadix1[localId + groupSize]] = localId + groupSize;
+    }
+    __syncthreads();
+
+    if(localId < 16)
+    {
+        blockOffsets[groupId*16 + localId] = sStartPointers[localId];
+    }
+    __syncthreads();
+
+    // Compute the sizes of each block.
+    if((localId > 0) && (sRadix1[localId] != sRadix1[localId - 1]) )
+    {
+        sStartPointers[sRadix1[localId - 1]] =
+            localId - sStartPointers[sRadix1[localId - 1]];
+    }
+    if(sRadix1[localId + groupSize] != sRadix1[localId + groupSize - 1] )
+    {
+        sStartPointers[sRadix1[localId + groupSize - 1]] =
+            localId + groupSize - sStartPointers[sRadix1[localId +
+                                                         groupSize - 1]];
     }
 
-    __device__ T static getIdentity(){return 0;}
-};
-
-template<typename T>
-class RadixMaxFunctor
-{
-  public:
-    __device__ RadixMaxFunctor(){}
-
-    __device__ T static op(T a, T b)
+    if(localId == groupSize - 1)
     {
-        return max(a, b);
+        sStartPointers[sRadix1[2 * groupSize - 1]] =
+            2 * groupSize - sStartPointers[sRadix1[2 * groupSize - 1]];
+    }
+    __syncthreads();
+
+    if(localId < 16)
+    {
+        counters[localId * totalBlocks + groupId] = sStartPointers[localId];
+    }
+}
+
+//----------------------------------------------------------------------------
+// reorderData shuffles data in the array globally after the radix offsets
+// have been found. On compute version 1.1 and earlier GPUs, this code depends
+// on SORT_BLOCK_SIZE being 16 * number of radices (i.e. 16 * 2^nbits).
+//----------------------------------------------------------------------------
+__global__ void reorderData(uint  startbit,
+                            uint  *outKeys,
+                            uint  *outValues,
+                            uint2 *keys,
+                            uint2 *values,
+                            uint  *blockOffsets,
+                            uint  *offsets,
+                            uint  *sizes,
+                            uint  totalBlocks)
+{
+    uint GROUP_SIZE = blockDim.x;
+    __shared__ uint2 sKeys2[256];
+    __shared__ uint2 sValues2[256];
+    __shared__ uint  sOffsets[16];
+    __shared__ uint  sBlockOffsets[16];
+    uint* sKeys1   = (uint*) sKeys2;
+    uint* sValues1 = (uint*) sValues2;
+
+    uint blockId = blockIdx.x;
+
+    uint i = blockId * blockDim.x + threadIdx.x;
+
+    sKeys2[threadIdx.x]   = keys[i];
+    sValues2[threadIdx.x] = values[i];
+
+    if(threadIdx.x < 16)
+    {
+        sOffsets[threadIdx.x]      = offsets[threadIdx.x * totalBlocks +
+                                             blockId];
+        sBlockOffsets[threadIdx.x] = blockOffsets[blockId * 16 + threadIdx.x];
+    }
+    __syncthreads();
+
+    uint radix = (sKeys1[threadIdx.x] >> startbit) & 0xF;
+    uint globalOffset = sOffsets[radix] + threadIdx.x - sBlockOffsets[radix];
+
+    outKeys[globalOffset]   = sKeys1[threadIdx.x];
+    outValues[globalOffset] = sValues1[threadIdx.x];
+
+    radix = (sKeys1[threadIdx.x + GROUP_SIZE] >> startbit) & 0xF;
+    globalOffset = sOffsets[radix] + threadIdx.x + GROUP_SIZE -
+                   sBlockOffsets[radix];
+
+    outKeys[globalOffset]   = sKeys1[threadIdx.x + GROUP_SIZE];
+    outValues[globalOffset] = sValues1[threadIdx.x + GROUP_SIZE];
+
+}
+
+__device__ uint scanLocalMem(const uint val, uint* s_data)
+{
+    // Shared mem is 512 uints long, set first half to 0
+    int idx = threadIdx.x;
+    s_data[idx] = 0.0f;
+    __syncthreads();
+
+    // Set 2nd half to thread local sum (sum of the 4 elems from global mem)
+    idx += blockDim.x; // += 256
+
+    // Some of these __sync's are unnecessary due to warp synchronous
+    // execution.  Right now these are left in to be consistent with
+    // opencl version, since that has to execute on platforms where
+    // thread groups are not synchronous (i.e. CPUs)
+    uint t;
+    s_data[idx] = val;     __syncthreads();
+    t = s_data[idx -  1];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+    t = s_data[idx -  2];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+    t = s_data[idx -  4];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+    t = s_data[idx -  8];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+    t = s_data[idx - 16];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+    t = s_data[idx - 32];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+    t = s_data[idx - 64];  __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+    t = s_data[idx - 128]; __syncthreads();
+    s_data[idx] += t;      __syncthreads();
+
+    return s_data[idx-1];
+}
+
+__global__ void
+scan(uint *g_odata, uint* g_idata, uint* g_blockSums, const int n,
+     const bool fullBlock, const bool storeSum)
+{
+    __shared__ uint s_data[512];
+
+    // Load data into shared mem
+    uint4 tempData;
+    uint4 threadScanT;
+    uint res;
+    uint4* inData  = (uint4*) g_idata;
+
+    const int gid = (blockIdx.x * blockDim.x) + threadIdx.x;
+    const int tid = threadIdx.x;
+    const int i = gid * 4;
+
+    // If possible, read from global mem in a uint4 chunk
+    if (fullBlock || i + 3 < n)
+    {
+        // scan the 4 elems read in from global
+        tempData       = inData[gid];
+        threadScanT.x = tempData.x;
+        threadScanT.y = tempData.y + threadScanT.x;
+        threadScanT.z = tempData.z + threadScanT.y;
+        threadScanT.w = tempData.w + threadScanT.z;
+        res = threadScanT.w;
+    }
+    else
+    {   // if not, read individual uints, scan & store in lmem
+        threadScanT.x = (i < n) ? g_idata[i] : 0.0f;
+        threadScanT.y = ((i+1 < n) ? g_idata[i+1] : 0.0f) + threadScanT.x;
+        threadScanT.z = ((i+2 < n) ? g_idata[i+2] : 0.0f) + threadScanT.y;
+        threadScanT.w = ((i+3 < n) ? g_idata[i+3] : 0.0f) + threadScanT.z;
+        res = threadScanT.w;
     }
 
-    __device__ T static getIdentity(){return 0;}
-};
+    res = scanLocalMem(res, s_data);
+    __syncthreads();
 
+    // If we have to store the sum for the block, have the last work item
+    // in the block write it out
+    if (storeSum && tid == blockDim.x-1) {
+        g_blockSums[blockIdx.x] = res + threadScanT.w;
+    }
 
+    // write results to global memory
+    uint4* outData = (uint4*) g_odata;
 
-template<class OP, bool INCLUSIVE, class T>
-__device__ T rscanWarp(volatile T *data, const unsigned int idx = threadIdx.x)
-{
-    const unsigned int simdLane = idx & 31;
-    if( simdLane >= 1  )  data[idx] = OP::op(data[idx -  1 ], data[idx]);
-    if( simdLane >= 2  )  data[idx] = OP::op(data[idx -  2 ], data[idx]);
-    if( simdLane >= 4  )  data[idx] = OP::op(data[idx -  4 ], data[idx]);
-    if( simdLane >= 8  )  data[idx] = OP::op(data[idx -  8 ], data[idx]);
-    if( simdLane >= 16 )  data[idx] = OP::op(data[idx -  16], data[idx]);
-    if(INCLUSIVE)
+    tempData.x = res;
+    tempData.y = res + threadScanT.x;
+    tempData.z = res + threadScanT.y;
+    tempData.w = res + threadScanT.z;
+
+    if (fullBlock || i + 3 < n)
     {
-        return data[idx];
+        outData[gid] = tempData;
     }
     else
     {
-        if(simdLane > 0)
-        {
-            return data[idx - 1];
-        }
-        else return OP::getIdentity();
+        if ( i    < n) { g_odata[i]   = tempData.x;
+        if ((i+1) < n) { g_odata[i+1] = tempData.y;
+        if ((i+2) < n) { g_odata[i+2] = tempData.z; } } }
     }
 }
 
-
-
-/*Exclusive scan of block length shared memory */
-template<class OP, bool INCLUSIVE, class T>
-__device__ void scanBlock(volatile T *flags)
+__global__ void
+vectorAddUniform4(uint *d_vector, const uint *d_uniforms, const int n)
 {
+    __shared__ uint uni[1];
 
-    const unsigned int idx = threadIdx.x;
-    unsigned int warpIdx   = idx >> 5;
-    unsigned int warpFirstThread = warpIdx << 5;                  
-    unsigned int warpLastThread  = warpFirstThread + 31;
-
-    T result = rscanWarp<OP,true>(flags);
-    
-    __syncthreads();
-
-    if(idx == warpLastThread) flags[warpIdx] = result;
-    
-    __syncthreads();
-    
-    if(warpIdx == 0) rscanWarp<OP,true>(flags);
-    
-    __syncthreads();
-
-    if(warpIdx !=0 ) result = OP::op(flags[warpIdx-1], result);
-    
-    __syncthreads();
-    
-    flags[idx] = result;
-    
-    __syncthreads();
-
-    if(!INCLUSIVE)
+    if (threadIdx.x == 0)
     {
-        if(idx != 0 ) result = flags[idx -1];
-        __syncthreads();
-
-        if(idx != 0 ) flags[idx] = result;
-        else flags[0] = OP::getIdentity();
-        __syncthreads();
+        uni[0] = d_uniforms[blockIdx.x];
     }
-    
-    
+
+    unsigned int address = threadIdx.x + (blockIdx.x *
+            blockDim.x * 4);
+
+    __syncthreads();
+
+    // 4 elems per thread
+    for (int i = 0; i < 4 && address < n; i++)
+    {
+        d_vector[address] += uni[0];
+        address += blockDim.x;
+    }
 }
 
-
-__global__ void interatorKernel(int nitems, volatile int * ids)
-{
-    int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
-    const int threadID = blockId * blockDim.x + threadIdx.x;
-
-    if(threadID > nitems) return;
-    ids[threadID] = threadID;
-}
-
-__global__ void printKernel(int nitems, volatile int * ids)
+__global__ void printKernel(int nitems, volatile uint * ids)
 {
 
     printf("temp keys \n");
@@ -154,318 +469,112 @@ __global__ void printKernel(int nitems, volatile int * ids)
     printf("\n");
 }
 
-/*
-    Do a binary search on sorted shared memory to find the scatter
-    position of the key in a merge sort.
 
-    search 1 will insert identical elements before those of the second array.
-    search 2 will insert identical elements after. This ensures that we do
-    not get scatter address collisions.
-*/
-template<class T>
-__device__ int binarySearch(int first, int last, volatile T * array, volatile T key)
+// ****************************************************************************
+// Function: radixSortStep
+//
+// Purpose:
+//   This function performs a radix sort, using bits startbit to
+//   (startbit + nbits).  It is designed to sort by 4 bits at a time.
+//   It also reorders the data in the values array based on the sort.
+//
+// Arguments:
+//      nbits: the number of key bits to use
+//      startbit: the bit to start on, 0 = lsb
+//      keys: the input array of keys
+//      values: the input array of values
+//      tempKeys: temporary storage, same size as keys
+//      tempValues: temporary storage, same size as values
+//      counters: storage for the index counters, used in sort
+//      countersSum: storage for the sum of the counters
+//      blockOffsets: storage used in sort
+//      scanBlockSums: input to Scan, see below
+//      numElements: the number of elements to sort
+//
+// Returns: nothing
+//
+// Programmer: Kyle Spafford
+// Creation: August 13, 2009
+//
+// Modifications:
+//
+// ****************************************************************************
+void scanArrayRecursive(uint* outArray, uint* inArray, int numElements,
+        int level, uint** blockSums)
 {
-    int index = -99;
-    bool found = false;
-    bool end = false;
+    // Kernels handle 8 elems per thread
+    unsigned int numBlocks = max(1,
+            (unsigned int)ceil((float)numElements/(4.f*SCAN_BLOCK_SIZE)));
+    unsigned int sharedEltsPerBlock = SCAN_BLOCK_SIZE * 2;
+    unsigned int sharedMemSize = sizeof(uint) * sharedEltsPerBlock;
 
+    bool fullBlock = (numElements == numBlocks * 4 * SCAN_BLOCK_SIZE);
 
-    int mx = last;
-    int mn = first;
+    dim3 grid(numBlocks, 1, 1);
+    dim3 threads(SCAN_BLOCK_SIZE, 1, 1);
 
-    if(key > array[last]) 
+    // execute the scan
+    if (numBlocks > 1)
     {
-        index = last + 1;
-        end = true;
-        //printf("greater than last array key %d  last val %d id %d \n", key, array[last], threadIdx.x);
-    }
-
-
-    if(key <= array[first]) 
+        scan<<<grid, threads, sharedMemSize>>>
+           (outArray, inArray, blockSums[level], numElements, fullBlock, true);
+    } else
     {
-        index = 0;
-        end = true;
-        //printf("Less than first array %d id %d\n", key, threadIdx.x);
+        scan<<<grid, threads, sharedMemSize>>>
+           (outArray, inArray, blockSums[level], numElements, fullBlock, false);
     }
-
-    while(!end  && ! found)
+    if (numBlocks > 1)
     {
-        int gap = mx - mn;
-        int mid = mn + gap/2;
-        end = gap < 1;
-        if(array[mid-1] < key && key <=array[mid])
-        {
-            found = true;
-
-            index = mid;
-            //if(key == array[mid]) index = mid;
-        }
-
-        if(key <= array[mid]) mx = mid -1;
-        else mn = mid +1;
+        scanArrayRecursive(blockSums[level], blockSums[level],
+                numBlocks, level + 1, blockSums);
+        vectorAddUniform4<<< grid, threads >>>
+                (outArray, blockSums[level], numElements);
     }
-
-    return index;
-
 }
 
-template<class T>
-__device__ int binarySearch2(int first, int last,volatile T * array, volatile T key)
+void radixSortStep(uint nbits, uint startbit, uint4* keys, uint4* values,
+        uint4* tempKeys, uint4* tempValues, uint* counters,
+        uint* countersSum, uint* blockOffsets, uint** scanBlockSums,
+        uint numElements)
 {
-    int index = -99;
-    bool found = false;
-    bool end = false;
+    // Threads handle either 4 or two elements each
+    const size_t radixGlobalWorkSize   = numElements / 4;
+    const size_t findGlobalWorkSize    = numElements / 2;
+    const size_t reorderGlobalWorkSize = numElements / 2;
 
+    // Radix kernel uses block size of 128, others use 256 (same as scan)
+    const size_t radixBlocks   = radixGlobalWorkSize   / SORT_BLOCK_SIZE;
+    const size_t findBlocks    = findGlobalWorkSize    / SCAN_BLOCK_SIZE;
+    const size_t reorderBlocks = reorderGlobalWorkSize / SCAN_BLOCK_SIZE;
 
-    int mx = last;
-    int mn = first;
+    radixSortBlocks
+        <<<radixBlocks, SORT_BLOCK_SIZE, 4 * sizeof(uint)*SORT_BLOCK_SIZE>>>
+        (nbits, startbit, tempKeys, tempValues, keys, values);
 
+    findRadixOffsets
+        <<<findBlocks, SCAN_BLOCK_SIZE, 2 * SCAN_BLOCK_SIZE*sizeof(uint)>>>
+        ((uint2*)tempKeys, counters, blockOffsets, startbit, numElements,
+         findBlocks);
 
-    if(key >= array[last])
-    {
-        index = last + 1;
-        end = true;
-    }
+    scanArrayRecursive(countersSum, counters, 16*reorderBlocks, 0,
+            scanBlockSums);
 
-    if(key < array[first]) 
-    {
-        index = 0;
-        end = true;
-    }
-
-    while(!end  && ! found)
-    {
-        int gap = mx - mn;
-        int mid = mn + gap/2;
-        end = gap < 1;
-        if(array[mid] <= key && key < array[mid + 1])
-        {
-            found = true;
-            index = mid +1;
-        }
-
-        if(key < array[mid]) mx = mid -1;
-        else mn = mid +1;
-    }
-
-    return index;
-
+    reorderData<<<reorderBlocks, SCAN_BLOCK_SIZE>>>
+        (startbit, (uint*)keys, (uint*)values, (uint2*)tempKeys,
+        (uint2*)tempValues, blockOffsets, countersSum, counters,
+        reorderBlocks);
 }
 
 
-template<class K, class T>
-__device__ void merge(int nItems, int first1, int last1, int first2, int last2, volatile K *keys, volatile T* values, K maxKey)
+
+__global__ void interatorKernel(int nitems, volatile uint * ids)
 {
-    const unsigned int idx = threadIdx.x;
     int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
-    volatile __shared__ K    sm_keys1[BLOCK_WIDTH];
-    volatile __shared__ K    sm_keys2[BLOCK_WIDTH];
-    volatile __shared__ T    sm_vals1[BLOCK_WIDTH];
-    volatile __shared__ T    sm_vals2[BLOCK_WIDTH];
-    //volatile __shared__ K    sm_out[BLOCK_WIDTH*2];      /*write out to a larger buffer so we don't scatter to global mem*/
-    //volatile __shared__ K    sm_outVals[BLOCK_WIDTH*2];
-
-    int numItems1 = last1 - first1; 
-    int numItems2 = last2 - first2;
-
-    
-    //if(idx == 0 ) printf("blockID %d first1 %d last1 %d first2 %d last2 %d \n", blockId, first1, last1, first2, last2);
-    //__syncthreads();
-    
-
-    /* load chunks into share mem*/
-    //printf("blockID %d idx %d less than %d\n",blockId, idx, last1 - first1 + 1);
-    //printf("blockID %d idx %d less than %d\n",blockId, idx, last2 - first2 + 1);
-
-    sm_keys1[idx] = keys[first1 + idx];
-    sm_vals1[idx] = values[first1 + idx];
-    
-    int loadIdx =  (idx <= numItems2) ? idx : numItems2;
-    
-    sm_keys2[idx] = keys[first2 + loadIdx];
-    sm_vals2[idx] = values[first2 + loadIdx];
-    
-   
-    __syncthreads();
-
-   
-    /* -1 indicates that the keys are greater than the last value of the other key array */
-    int sa1 = binarySearch(0, BLOCK_MAX, sm_keys2, sm_keys1[idx]);
-    if(sa1 != -1) sa1 += idx;
-
-    
-    int sa2 = binarySearch2(0, BLOCK_MAX, sm_keys1, sm_keys2[idx]);
-    if(sa2 != -1) sa2 += idx;
-    
-    K key1, key2;
-    T val1, val2;
-
-    if(sa1 != -1)
-    {
-        key1 = sm_keys1[idx];
-        val1 = sm_vals1[idx];
-    } 
-
-    if(sa2 != -1)
-    {
-        key2 = sm_keys2[idx];
-        val2 = sm_vals2[idx];
-    }
-    //printf("Block id %d idx %d key1 %d sa1 %d key2 %d sa2 %d \n", blockId, idx, sm_keys1[idx], sa1, sm_keys2[idx], sa2);
-    
-    __syncthreads();
-
-    if( sa1 >= BLOCK_WIDTH)
-    {
-        sm_keys2[sa1 - BLOCK_WIDTH] = key1;
-        sm_vals2[sa1 - BLOCK_WIDTH] = val1; 
-    }
-    else 
-    {
-        sm_keys1[sa1] = key1;
-        sm_vals1[sa1] = val1; 
-    }
-
-    if( sa2 >= BLOCK_WIDTH)
-    {
-        sm_keys2[sa2 - BLOCK_WIDTH] = key2;
-        sm_vals2[sa2 - BLOCK_WIDTH] = val2; 
-    }
-    else 
-    {
-        sm_keys1[sa2] = key2;
-        sm_vals1[sa2] = val2; 
-    }
-    __syncthreads();
-    //if(idx == 0 ) printf("Made it\n");
-    //__syncthreads();
-    keys[first1 + idx]   = sm_keys1[idx];
-    values[first1 + idx] = sm_vals1[idx];
-
-    if(idx <= numItems2 )
-    {
-        keys[first2 + idx]   = sm_keys2[idx];
-        values[first2 + idx] = sm_vals2[idx];
-
-    } 
-   
-
-}
-
-template<class K, class T>
-__global__ void mergeKernel(int nitems, int nBlocks, int P, int R, int D, K *keys, T* values, K maxKey)
-{
-    const int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
-
-    //for (int K=1; K <= N-D; ++K)
-    //{
-    //                if (((K-1) & P) == R)
-    //                    cout << "[" <<K-1<< "," << K+D-1 << "],";
-    //}
-
-    int J = blockId + 1;
-    if(J <= nBlocks - D)
-    {
-        if( ((J - 1) & P ) == R )
-        {
-            int first1 = blockId * BLOCK_WIDTH;
-            int last1  = first1 + BLOCK_WIDTH - 1;
-
-            int first2 = (J + D - 1) * BLOCK_WIDTH;
-            int last2  = first2 + BLOCK_WIDTH - 1;
-            if((J+D-1) == nBlocks-1) 
-            {
-                last2 = first2 + nitems % BLOCK_WIDTH - 1;
-            } 
-           // if( threadIdx.x == 0 ) printf("A %d == B %d \n",(J+D-1), nBlocks-1);
-            //if( threadIdx.x == 0 ) printf("Launching [%d,%d] P %d R %d D %d extra %d \n", blockId-1, J+D-1, P, R, D, nitems % nBlocks);
-            merge(nitems, first1, last1, first2, last2, keys, values, maxKey);
-        }
-    }
-    
-}
-
-
-template<class K, class T>
-__global__ void sortBlocksKernel(int nitems, volatile K *keys, volatile T *ids)
-{
-
-    const unsigned int idx = threadIdx.x;
-    volatile __shared__ K sm_keys[R_BLOCK_WIDTH];
-    volatile __shared__ K sm_mask[R_BLOCK_WIDTH];  /*current bit set*/
-    volatile __shared__ K sm_nmask[R_BLOCK_WIDTH]; /*current bit not set*/
-    volatile __shared__ K sm_t[R_BLOCK_WIDTH];
-    volatile __shared__ T sm_ids[R_BLOCK_WIDTH];
-    K mask = 1;
-    __shared__ int totalFalses; 
-    __shared__ int lastVal;
-    int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
-    int lastBlock = nitems / blockDim.x;
-    int extra = nitems %  blockDim.x;
-    if(extra != 0) lastBlock++;
-    lastBlock--; /* get the last block id*/
-    int lastIndex = R_BLOCK_MAX;
-    if(blockId == lastBlock && extra != 0 ) lastIndex = extra - 1;
-   
-
-    
     const int threadID = blockId * blockDim.x + threadIdx.x;
-    
-    if( threadID >= nitems) return;
-    
-    sm_keys[idx] = keys[threadID];
-    sm_ids[idx]  = ids[threadID];
-    /* Change this to sizeOf(K)*8 or something, or find msb using max scan*/
-    for(int i = 0; i<32; i++)
-    {   
-        sm_mask[idx] = sm_keys[idx] & mask;
-        
-        /*flip it*/
-        sm_nmask[idx] = (sm_mask[idx] > 0) ? 0 : 1; 
-        
-        if(idx == lastIndex) lastVal = sm_nmask[lastIndex];  
 
-        __syncthreads(); 
-
-        /* creates the scatter indexes of the true bits */
-        scanBlock<RadixAddFunctor<T>,false>(sm_nmask);
-
-        //__syncthreads();
-
-        if(idx == lastIndex) totalFalses = sm_nmask[lastIndex] + lastVal;
-       
-        __syncthreads();
-
-        /*scatter indexes of false bits*/
-        sm_t[idx] = idx - sm_nmask[idx] + totalFalses;
-        /*re-use nmask store the combined scatter indexes */
-        sm_nmask[idx]  = (sm_mask[idx] > 0) ?  sm_t[idx] : sm_nmask[idx]; 
-        /* Hold onto the old values so race conditions don't blow it away */
-        T value = sm_ids[idx];
-        K key   = sm_keys[idx];
-        int sIndex = sm_nmask[idx]; 
-
-        __syncthreads();
-
-        /* scatter */
-        
-        sm_ids[sIndex]  = value;
-        sm_keys[sIndex] = key;
-        mask = mask << 1;
-        __syncthreads();
-    }
-  
-    keys[threadID] = sm_keys[idx];
-    ids[threadID]  = sm_ids[idx];
-
-    __syncthreads();
-
+    if(threadID > nitems) return;
+    ids[threadID] = threadID;
 }
-
-
-
-
-
 
 struct eavlRadixSortOp_GPU
 {
@@ -475,9 +584,162 @@ struct eavlRadixSortOp_GPU
                      IN inputs, OUT outputs, F&)
     {
                  
-        int *_keys  = get<0>(inputs).array;
-        int *_values = get<0>(outputs).array;
+        uint *_keys;  //= get<0>(inputs).array;
+        uint *_values; //= get<0>(outputs).array;
 
+        //needs to be multiple of 1024;
+        int extra = nitems % 1024;
+        int newSize = nitems;
+        uint bytes = nitems*sizeof(uint);
+        dim3 one(1,1,1);
+
+        if(extra != 0)
+        {
+            // if the size is not a multiple of 1024, get the padding amount
+            newSize += 1024 - extra;
+            bytes = newSize * sizeof(uint);
+            // create new arrays
+            cudaMalloc((void**)&_keys, bytes);
+            CUDA_CHECK_ERROR();
+            cudaMalloc((void**)&_values, bytes);
+            CUDA_CHECK_ERROR();
+            // copy the values over
+            cout<<"Size in bytes "<<bytes<<endl;
+            cudaMemcpy(_keys, get<0>(inputs).array, nitems*sizeof(uint), cudaMemcpyDeviceToDevice);
+            CUDA_CHECK_ERROR();
+            // pad the array with max values.
+            uint * temp = &_keys[nitems];
+            uint maxVal = std::numeric_limits<uint>::max();
+            cudaMemset(temp, maxVal, (1024 - extra)*sizeof(uint) );
+            CUDA_CHECK_ERROR();
+
+            //printKernel<<< one, one>>>(newSize, _keys);
+
+        }
+        else
+        {
+            cudaMalloc((void**)&_keys, bytes);
+            CUDA_CHECK_ERROR();
+            cudaMalloc((void**)&_values, bytes);
+            CUDA_CHECK_ERROR();
+
+            cudaMemcpy(_keys, get<0>(inputs).array, nitems*sizeof(uint), cudaMemcpyDeviceToDevice);
+            CUDA_CHECK_ERROR();
+        }
+        
+        // Fill values with the original index position 
+        int numBlocks = nitems / 256;
+        
+        if(nitems % 256 > 0) numBlocks++;
+        
+        int numBlocksX = numBlocks;
+        int numBlocksY = 1;
+        
+        if (numBlocks >= 32768)
+        {
+            numBlocksY = numBlocks / 32768;
+            numBlocksX = (numBlocks + numBlocksY-1) / numBlocksY;
+        }
+
+        dim3 threads(256,   1, 1);
+        dim3 blocks (numBlocksX,numBlocksY, 1);
+        
+        interatorKernel<<< blocks, threads >>>(newSize, _values);
+        CUDA_CHECK_ERROR();
+
+        // Allocate space for block sums in the scan kernel.
+        uint numLevelsAllocated = 0;
+        uint maxNumScanElements = newSize;
+        uint numScanElts = maxNumScanElements;
+        uint level = 0;
+
+        do
+        {
+            uint numBlocks = max(1, (int) ceil((float) numScanElts / (4
+                    * SCAN_BLOCK_SIZE)));
+            if (numBlocks > 1)
+            {
+                level++;
+            }
+            numScanElts = numBlocks;
+        }
+        while (numScanElts > 1);
+
+        uint** scanBlockSums = (uint**) malloc((level + 1) * sizeof(uint*));
+        assert(scanBlockSums != NULL);
+        numLevelsAllocated = level + 1;
+        numScanElts = maxNumScanElements;
+        level = 0;
+
+        do
+        {
+            uint numBlocks = max(1, (int) ceil((float) numScanElts / (4
+                    * SCAN_BLOCK_SIZE)));
+            if (numBlocks > 1)
+            {
+                // Malloc device mem for block sums
+                CUDA_SAFE_CALL(cudaMalloc((void**)&(scanBlockSums[level]),
+                        numBlocks*sizeof(uint)));
+                level++;
+            }
+            numScanElts = numBlocks;
+        }
+        while (numScanElts > 1);
+
+        CUDA_SAFE_CALL(cudaMalloc((void**)&(scanBlockSums[level]),
+                sizeof(uint)));
+
+        // Allocate device mem for sorting kernels
+        uint *dTempKeys, *dTempVals;
+
+        //CUDA_SAFE_CALL(cudaMalloc((void**)&dKeys, bytes));
+        //CUDA_SAFE_CALL(cudaMalloc((void**)&dVals, bytes));
+        CUDA_SAFE_CALL(cudaMalloc((void**)&dTempKeys, bytes));
+        CUDA_SAFE_CALL(cudaMalloc((void**)&dTempVals, bytes));
+
+        // Each thread in the sort kernel handles 4 elements
+        size_t numSortGroups = newSize / (4 * SORT_BLOCK_SIZE);
+
+        uint* dCounters, *dCounterSums, *dBlockOffsets;
+        CUDA_SAFE_CALL(cudaMalloc((void**)&dCounters, WARP_SIZE
+                * numSortGroups * sizeof(uint)));
+        CUDA_SAFE_CALL(cudaMalloc((void**)&dCounterSums, WARP_SIZE
+                * numSortGroups * sizeof(uint)));
+        CUDA_SAFE_CALL(cudaMalloc((void**)&dBlockOffsets, WARP_SIZE
+                * numSortGroups * sizeof(uint)));
+
+
+        for (int i = 0; i < 32; i += 4)
+        {
+            radixSortStep(4, i, (uint4*)_keys, (uint4*)_values,
+                    (uint4*)dTempKeys, (uint4*)dTempVals, dCounters,
+                    dCounterSums, dBlockOffsets, scanBlockSums, newSize);
+        }
+        //printKernel<<< one, one>>>(newSize, _keys);
+        // Copy values back
+        cudaMemcpy(get<0>(inputs).array, _keys, nitems*sizeof(uint), cudaMemcpyDeviceToDevice);
+        CUDA_CHECK_ERROR();
+        cudaMemcpy(get<0>(outputs).array, _keys, nitems*sizeof(uint), cudaMemcpyDeviceToDevice);
+        CUDA_CHECK_ERROR();
+
+        
+
+        // Clean up
+        for (int i = 0; i < numLevelsAllocated; i++)
+        {
+            CUDA_SAFE_CALL(cudaFree(scanBlockSums[i]));
+        }
+
+        CUDA_SAFE_CALL(cudaFree(_keys));
+        CUDA_SAFE_CALL(cudaFree(_values));
+        CUDA_SAFE_CALL(cudaFree(dTempKeys));
+        CUDA_SAFE_CALL(cudaFree(dTempVals));
+        CUDA_SAFE_CALL(cudaFree(dCounters));
+        CUDA_SAFE_CALL(cudaFree(dCounterSums));
+        CUDA_SAFE_CALL(cudaFree(dBlockOffsets));
+    
+
+/*
         int numBlocks = nitems / BLOCK_WIDTH;
         cout<<"Numb "<<numBlocks<<endl;
         if(nitems % BLOCK_WIDTH > 0) numBlocks++;
@@ -540,7 +802,7 @@ struct eavlRadixSortOp_GPU
                 D = Q - P;
                 R = P;
             }
-        }
+        }*/
     }
 };
 
