@@ -10,6 +10,8 @@
 #include "eavlXGCImporter.h"
 #include "eavlCellSetExplicit.h"
 
+//#include "eavlRayQueryMutator.h"
+
 eavlDataSet *ReadMeshFromFile(const string &filename, int meshindex)
 {
     eavlImporter *importer = eavlImporterFactory::GetImporterForFile(filename);
@@ -220,6 +222,38 @@ IsRegion1(double R, double Z, double psi)
     return false;
 }
 
+/*
+static void
+AddTriangles(eavlDataSet *psiMesh, eavlRayQueryMutator *rqm)
+{
+    //Get cells, vertices.
+    eavlCellSet *cells = psiMesh->GetCellSet(0);
+    eavlField *Rf = psiMesh->GetField("xcoords");
+    eavlField *Zf = psiMesh->GetField("ycoords");
+    eavlField *psiF = psiMesh->GetField("psi");
+
+    eavlVector3 p0, p1, p2;
+    int nCells = cells->GetNumCells();
+    for (int i = 0; i < nCells; i++)
+    {
+	eavlCell c = cells->GetCellNodes(i);
+	p0[0] = Rf->GetArray()->GetComponentAsDouble(c.indices[0], 0);
+	p0[1] = Zf->GetArray()->GetComponentAsDouble(c.indices[0], 0);
+	p0[2] = 0.0f;
+
+	p1[0] = Rf->GetArray()->GetComponentAsDouble(c.indices[1], 0);
+	p1[1] = Zf->GetArray()->GetComponentAsDouble(c.indices[1], 0);
+	p1[2] = 0.0f;
+
+	p2[0] = Rf->GetArray()->GetComponentAsDouble(c.indices[2], 0);
+	p2[1] = Zf->GetArray()->GetComponentAsDouble(c.indices[2], 0);
+	p2[2] = 0.0f;
+	
+	rqm->addTriangle(p0, p1, p2);
+    }
+}
+*/
+
 int main(int argc, char *argv[])
 {
     try
@@ -237,6 +271,11 @@ int main(int argc, char *argv[])
 	//particles->PrintSummary(cout);
 	//psiMesh->PrintSummary(cout);
 
+	/*
+	eavlRayQueryMutator *rqm = new eavlRayQueryMutator;
+
+	AddTriangles(psiMesh, rqm);
+	*/
 
 	int nP = particles->GetNumPoints();
 	eavlField *Rf = particles->GetField("R");
