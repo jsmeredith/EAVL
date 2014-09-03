@@ -15,17 +15,11 @@
 
 #ifndef DOXYGEN
 
-#define BLOCK_WIDTH 1024
-#define BLOCK_MAX BLOCK_WIDTH - 1
-
-#define R_BLOCK_WIDTH 1024
-#define R_BLOCK_MAX R_BLOCK_WIDTH - 1
-
 #define WARP_SIZE 32
 #define SORT_BLOCK_SIZE 128
 #define SCAN_BLOCK_SIZE 256
-typedef unsigned int uint;
 
+typedef unsigned int uint;
 
 struct eavlRadixSortOp_CPU
 {

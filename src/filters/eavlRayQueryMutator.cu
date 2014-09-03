@@ -294,6 +294,8 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
                                 float dist = (e2.x * q.x + e2.y * q.y + e2.z * q.z) * dot;
                                 if((dist > EPSILON && dist < minDistance) && !(u + v > 1) )
                                 {
+                                    _v = v;
+                                    _u = u;
                                     minDistance = dist;
                                     minIndex = triIndex;
                                     if(occlusion) return minIndex;//or set todo to -1
