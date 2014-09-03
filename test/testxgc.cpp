@@ -204,6 +204,22 @@ double GetPsi(float R, float Z, eavlDataSet *psiMesh)
     return psi;
 }
 
+static bool
+IsRegion1(double R, double Z, double psi)
+{
+    static const double eq_x_psi = 0.266196;
+    static const double eq_x_r = 1.55755;
+    static const double eq_x_z = -1.17707;
+    static const double eq_axis_r = 1.72485;
+    static const double eq_axis_z = 0.020562;
+    static const double eq_x_slope = -(eq_x_r - eq_axis_r)/(eq_x_z - eq_axis_z);
+    
+    if (psi <= (eq_x_psi-1e-5) && -(R-eq_x_r) * eq_x_slope + (Z-eq_x_z) > 0.0)
+	return true;
+    
+    return false;
+}
+
 int main(int argc, char *argv[])
 {
     try
@@ -234,7 +250,7 @@ int main(int argc, char *argv[])
 	    double Z = Zf->GetArray()->GetComponentAsDouble(i,0);
 	    double psi = GetPsi(R,Z, psiMesh);
 
-	    if (psi > eq_x_psi)
+	    if (!IsRegion1(R,Z,psi))
 		cout<<i<<": open field"<<endl;
 	}
 
