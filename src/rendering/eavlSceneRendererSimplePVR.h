@@ -1,6 +1,6 @@
 // Copyright 2010-2014 UT-Battelle, LLC.  See LICENSE.txt for more information.
-#ifndef EAVL_SCENE_RENDERER_SIMPLEP_VR_H
-#define EAVL_SCENE_RENDERER_SIMPLEP_VR_H
+#ifndef EAVL_SCENE_RENDERER_SIMPLEP_PVR_H
+#define EAVL_SCENE_RENDERER_SIMPLEP_PVR_H
 
 #include "eavlDataSet.h"
 #include "eavlCellSet.h"
@@ -11,15 +11,15 @@
 #include "eavlSimpleVRMutator.h"
 
 // ****************************************************************************
-// Class:  eavlSceneRendererSimpleVR
+// Class:  eavlSceneRendererSimplePVR
 //
 // Purpose:
-///   A very simple volume renderer.
+///   A parallel verion of the very simple volume renderer.
 //
 // Programmer:  Jeremy Meredith
 // Creation:    July 28, 2014
 //
-// Modifications:
+// Modifications: Matt Larsen - Parallel version
 //
 // ****************************************************************************
 class eavlSceneRendererSimplePVR : public eavlSceneRenderer
@@ -33,7 +33,6 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
     {
         numSamples = 300;
         vr = new eavlSimpleVRMutator();
-        vr->setGPU(true);
         vr->setVerbose(true);
         doOnce = true;
         ctName = "";
@@ -128,44 +127,10 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
 
     // ------------------------------------------------------------------------
     virtual void Render()
-    {
-        if(vr->scene->getNumTets() == 0) return;
-        
+    {   
         int tframe = eavlTimer::Start();
         vr->setView(view);
         vr->Execute();
-
-        /*glColor3f(1,1,1);
-        glDisable(GL_BLEND);
-        glDisable(GL_LIGHTING);
-        glDisable(GL_DEPTH_TEST);
-        const float* rgba   = vr->getFrameBuffer()->GetTuple(0);
-        const float* depth = vr->getDepthBuffer()->GetTuple(0);
-        // draw the pixel colors
-        glDrawPixels(view.w, view.h, GL_RGBA, GL_FLOAT, &rgba[0]);
-        
-        // drawing the Z buffer will overwrite the pixel colors
-        // unless you actively prevent it....
-        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        glDepthMask(GL_TRUE);
-        // For some bizarre reason, you need GL_DEPTH_TEST enabled for
-        // it to write into the Z buffer. 
-        glEnable(GL_DEPTH_TEST);
-
-        // draw the z buffer
-        glDrawPixels(view.w, view.h, GL_DEPTH_COMPONENT, GL_FLOAT, &depth[0]);
-
-        // set the various masks back to "normal"
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glDepthMask(GL_TRUE);
-        
-        
-        doOnce =  true;
-        */
-        //int* tmp = (int*) vr->getFrameBuffer()->GetHostArray();
-        //for (int i=0 ; i<1000; i++) cout<<" "<<tmp[i];
-        //cout<<"Byte "<<(int)b<<endl;
-
         cerr<<"\nTotal Frame Time   : "<<eavlTimer::Stop(tframe,"")<<endl;
     }
 
@@ -176,7 +141,11 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
 
     virtual float *GetDepthPixels()
     {    
-        return (float *) vr->getDepthBuffer()->GetHostArray();
+        float proj22=view.P(2,2);
+        float proj23=view.P(2,3);
+        float proj32=view.P(3,2);
+
+        return (float *) vr->getDepthBuffer(proj22,proj23,proj32)->GetHostArray();
     }
 
 

@@ -78,6 +78,26 @@ struct RayGenFunctor
     }
 
 };
+
+struct ScreenDepthFunctor{
+
+    float proj22;
+    float proj23;
+    float proj32;
+
+    ScreenDepthFunctor(float _proj22, float _proj23, float _proj32)
+        : proj32(_proj32), proj23(_proj23), proj22(_proj22)
+    {
+        
+    }                                                 
+    EAVL_FUNCTOR tuple<float> operator()(float depth){
+       
+        float projdepth = (proj22 + proj23 / (-depth)) / proj32;
+        projdepth = .5 * projdepth + .5;
+        return tuple<float>(projdepth);
+    }
+};
+
 /*----------------------Utility Functors---------------------------------- */
 struct ThreshFunctor
 {

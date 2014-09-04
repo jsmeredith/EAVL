@@ -328,7 +328,6 @@ eavlRayTracerMutator::eavlRayTracerMutator()
 
 void eavlRayTracerMutator::setColorMap3f(float* cmap,int size)
 {
-    cout<<"Setting ColorMap of Size "<<size<<endl;
     colorMapSize=size;
     if(cmap_array != NULL)
     {
@@ -353,7 +352,6 @@ void eavlRayTracerMutator::setColorMap3f(float* cmap,int size)
 }
 void eavlRayTracerMutator::setDefaultColorMap()
 {
-    cout<<"Setting defaul color map"<<endl;
     if(cmap_array!=NULL)
     {
         cmap_array->unbind(color_map_tref);
@@ -1608,8 +1606,6 @@ void eavlRayTracerMutator::allocateArrays()
          deleteClassPtr(indexScan);
     }
 
-    
-    cout<<"alloc "<<size<<endl;
     /*Temp arrays for compact*/
     compactTempInt   = new eavlIntArray("temp",1,size);
     compactTempFloat = new eavlFloatArray("temp",1,size);
@@ -1802,7 +1798,7 @@ void eavlRayTracerMutator::extractGeometry()
 
         if(!cacheExists)
         {  
-            cout<<"Building BVH...."<<endl;
+            cout<<"Building BVH....Triangles"<<endl;
             SplitBVH *testSplit= new SplitBVH(tri_verts_raw, numTriangles, TRIANGLE); // 0=triangle
             testSplit->getFlatArray(tri_bvh_in_size, tri_bvh_lf_size, tri_bvh_in_raw, tri_bvh_lf_raw);
             if( writeCache) writeBVHCache(tri_bvh_in_raw, tri_bvh_in_size, tri_bvh_lf_raw, tri_bvh_lf_size, bvhCacheName.c_str());
@@ -1992,19 +1988,12 @@ void eavlRayTracerMutator::Execute()
     int tinit;
     if(verbose) tinit = eavlTimer::Start();
     if(verbose) th = eavlTimer::Start();
-    /*if there are no primitives, just return black*/
-    if(scene->getTotalPrimitives()==0) 
-    {
-        deleteClassPtr(frameBuffer);
-        frameBuffer = new eavlByteArray("",1, width*height*4);
-        deleteClassPtr(zBuffer);
-        zBuffer = new eavlFloatArray("",1, size);
-        return;
-    }
 
     //if(verbose) cerr<<"Executing Before Init"<<endl;
 
     Init();
+    /*if there are no primitives, just return black*/
+    if(scene->getTotalPrimitives()==0) return;
     //if(verbose) cerr<<"Executing After Init"<<endl;
    
     if(verbose) cerr<<"Number of triangles: "<<numTriangles<<endl;
@@ -2855,33 +2844,13 @@ void eavlRayTracerMutator::freeRaw()
     deleteArrayPtr(sphr_matIdx_raw);
     deleteArrayPtr(mats_raw);
     deleteArrayPtr(sphr_scalars_raw);
-    cout<<"Free raw"<<endl;
 
 }
-
-struct ScreenDepthFunctor{
-
-    float proj22;
-    float proj23;
-    float proj32;
-
-    ScreenDepthFunctor(float _proj22, float _proj23, float _proj32)
-        : proj32(_proj32), proj23(_proj23), proj22(_proj22)
-    {
-        
-    }                                                 
-    EAVL_FUNCTOR tuple<float> operator()(float depth){
-       
-        float projdepth = (proj22 + proj23 / (-depth)) / proj32;
-        projdepth = .5 * projdepth + .5;
-        return tuple<float>(projdepth);
-    }
-};
 
 eavlFloatArray* eavlRayTracerMutator::getDepthBuffer(float proj22, float proj23, float proj32)
 { 
 
-        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(zBuffer), eavlOpArgs(zBuffer), ScreenDepthFunctor(proj22, proj23, proj32)),"covertDepth");
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(zBuffer), eavlOpArgs(zBuffer), ScreenDepthFunctor(proj22, proj23, proj32)),"convertDepth");
         eavlExecutor::Go();
         return zBuffer;
 }

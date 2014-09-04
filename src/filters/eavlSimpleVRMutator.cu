@@ -562,7 +562,13 @@ struct CompositeFunctorFB
 
 };
 
+eavlFloatArray* eavlSimpleVRMutator::getDepthBuffer(float proj22, float proj23, float proj32)
+{ 
 
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(zBuffer), eavlOpArgs(zBuffer), ScreenDepthFunctor(proj22, proj23, proj32)),"convertDepth");
+        eavlExecutor::Go();
+        return zBuffer;
+}
 
 void eavlSimpleVRMutator::setColorMap3f(float* cmap,int size)
 {
@@ -635,7 +641,7 @@ void eavlSimpleVRMutator::init()
         sizeDirty = false;
     }
 
-    if(geomDirty)
+    if(geomDirty && numTets > 0)
     {   
         if(verbose) cout<<"Geometry Dirty"<<endl;
 
@@ -652,12 +658,10 @@ void eavlSimpleVRMutator::init()
 
         tets_raw = scene->getTetPtr();
         scalars_raw = scene->getScalarPtr();
-        for(int i=0 ; i<100; i++) cout<<scalars_raw[i]<<" ";
-        cout<<endl;
+        
         tets_verts_array    = new eavlConstArrayV2<float4>( (float4*) tets_raw, numTets*4, tets_verts_tref, cpu); 
         scalars_array       = new eavlConstArrayV2<float4>( (float4*) scalars_raw, numTets, scalars_tref, cpu);
-        for(int i=0 ; i<100; i++) cout<<scalars_array->getValue(scalars_tref,i).x<<" "<<scalars_array->getValue(scalars_tref,i).y<<" ";
-        cout<<endl;
+      
         ssa = new eavlFloatArray("",1, numTets*3);
         ssb = new eavlFloatArray("",1, numTets*3);
         ssc = new eavlFloatArray("",1, numTets*3);
@@ -683,16 +687,17 @@ void  eavlSimpleVRMutator::Execute()
         geomDirty = true;
         numTets = tets;
     }
-    
-    if(numTets < 1)
-    {
-        cout<<"Nothing to render."<<endl;
-        return;
-    }
     int tinit;
     if(verbose) tinit = eavlTimer::Start();
     init();
     if(verbose) cout<<"Init        RUNTIME: "<<eavlTimer::Stop(tinit,"init")<<endl;
+
+    if(numTets < 1)
+    {
+        //cout<<"Nothing to render."<<endl;
+        return;
+    }
+
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(framebuffer),
                                              eavlOpArgs(framebuffer),
                                              IntMemsetFunctor(0.f)),
