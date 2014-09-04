@@ -23,7 +23,7 @@ ifneq (@ADIOS@, no)
 ADIOSTESTS=testxgc
 endif
 
-TESTS = testimport testiso testnormal testrecenter testthreshold testbox testmath testdatamodel testxform testbin testdistancefield testgraphlayout testatompipeline testserialize testray testsort $(ADIOSTESTS)  $(RENDERTESTS) $(VTKTESTS)
+TESTS = testimport testiso testnormal testrecenter testthreshold testbox testmath testdatamodel testxform testbin testdistancefield testgraphlayout testatompipeline testserialize testray $(ADIOSTESTS)  $(RENDERTESTS) $(VTKTESTS)
 
 OBJ = $(TESTS:=.o)
 LIBDEP=$(TOPDIR)/lib/libeavl.a
@@ -89,8 +89,6 @@ testserialize: $(LIBDEP) testserialize.o
 testray: $(LIBDEP) testray.o
 	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
 
-testsort: $(LIBDEP) testsort.o
-	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
 testxgc: $(LIBDEP) testxgc.o
 	$(CXX) $(@:=.o) -o $@ $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) $(LIBS)
 

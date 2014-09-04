@@ -28,7 +28,7 @@ struct eavl1toNScatterOp_CPU
         for (int index = 0; index < nitems; ++index)
         {
             typename collecttype<IN>::const_type in(collect(index, inputs));
-            for (int i = 0; i < n; di++)
+            for (int i = 0; i < n; i++)
             {
                 // Passing random number and index into functor
                 collect(index*n+i, outputs) =functor(collect(index, inputs),seed, i);    

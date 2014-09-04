@@ -33,8 +33,6 @@
 
 #include "eavlRTUtil.h"
 
-#include "eavlSegmentedScanOp.h"
-//#include "eavlRadixSortOp.h"
 //#define HAVE_ISPC
 
 #ifdef HAVE_ISPC
