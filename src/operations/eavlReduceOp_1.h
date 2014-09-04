@@ -31,7 +31,7 @@ struct cpuReduceOp_1_function
         IO0 *tmp = NULL;
 #pragma omp parallel default(none) shared(cerr,tmp,n,i0,i0div,i0mod,i0mul,i0add,o0,o0mul,o0add,functor)
         {
-            int nthreads = omp_get_num_threads();
+            int nthreads = std::min(omp_get_num_threads(), n);
             int threadid = omp_get_thread_num();
 #pragma omp single
             {

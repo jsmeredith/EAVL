@@ -79,7 +79,7 @@ eavlSelectionMutator::Execute()
         qsort(constArray_raw, chosenElements->GetNumberOfTuples(), sizeof(int), cmpfunc);
     }
    
-   //----put elements in const array for use in fuctor
+    //----put elements in const array for use in fuctor
     eavlConstArray<int> *constArray;
     INIT(eavlConstArray<int>,  constArray,  chosenElements->GetNumberOfTuples());
     //--
