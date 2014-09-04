@@ -265,63 +265,17 @@ int main(int argc, char *argv[])
             tracer->cpu=false;
         }
         openmpInfo();
-        //eavlInitializeGPU();
         
-        //cerr<<"Reading obj"<<endl; 
-        //ObjReader *objreader= new ObjReader(filename);
-        //if(!objreader->hasNormals) objreader->extractNormals();
-        //float *v;
-        //float *n;
-        //int *mIdx;
-        //Material *mats;
-        //int matCount;
-        
-        //objreader->getRawData(v,n,mats,mIdx,matCount);
-        //float *theMats= new float[matCount*9];
-        //cout<<"Mat Count : "<<matCount<<endl;
-        /*for (int i=0;i<matCount;i++)
-        {   
-            theMats[i*9  ]=mats[i].Ka.x;
-            theMats[i*9+1]=mats[i].Ka.y;
-            theMats[i*9+2]=mats[i].Ka.z;
-
-            theMats[i*9+3]=mats[i].Kd.x;
-            theMats[i*9+4]=mats[i].Kd.y;
-            theMats[i*9+5]=mats[i].Kd.z;
-
-            theMats[i*9+6]=mats[i].Ks.x;
-            theMats[i*9+7]=mats[i].Ks.y;
-            theMats[i*9+8]=mats[i].Ks.z;
-        }
-        tracer->setRawData(v,n,objreader->totalTriangles, theMats, mIdx, matCount);
-        */
         tracer->scene->loadObjFile(filename);
         tracer->setBVHCacheName(filename);
-        //delete objreader;
+        
         tracer->setCompactOp(false);
         //*************************************Testing****************************
 
         tracer->setBVHCache(true);
         tracer->setVerbose(true);    
         tracer->setDepth(1);
-        //eavlVector3 mov(0,0,.01);
-        //float m=0.01;
 
-        //tracer->startScene();
-        //tracer->scene->addSphere(1,0,0,0,1);
-        //tracer->scene->addSphere(1,0,4,0,1);
-        //tracer->scene->addSphere(1,2,0,0,1);
-        //tracer->scene->addSphere(1,6,0,0,1);
-        //tracer->scene->addSphere(1,0,5,0,1);
-        //tracer->scene->addSphere(1,0,0,0,1);
-        //tracer->scene->addSphere(1,0,6,0,1);
-        //tracer->scene->addSphere(1,0,0,0,1);
-        //tracer->scene->addSphere(1,0,7,0,1);
-        //tracer->scene->addSphere(1,0,0,7,1);
-        //tracer->scene->addSphere(1,5,0,0,1);
-
-        //tracer->scene->addSphere(1,0,0,0,1);
-        //tracer->Execute();
         if(!isTest)
         {
             cout<<"Rendering to Framebuffer\n";
