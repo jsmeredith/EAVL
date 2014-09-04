@@ -3,9 +3,10 @@
 #include "eavlFilter.h"
 #include "eavlNewIsoTables.h"   //const Array
 #include "eavlVector3.h"
+#include "eavlVector3i.h"
 #include "eavlMatrix4x4.h"
-#include "RT/eavlRTScene.h"
-#include "RT/eavlRTUtil.h"
+#include "eavlRTScene.h"
+#include "eavlRTUtil.h"
 
 class eavlRayTracerMutator : public eavlMutator
 {
@@ -16,7 +17,7 @@ class eavlRayTracerMutator : public eavlMutator
     eavlRayTracerMutator();
     void printMemUsage();
 
-    void SetField(const string &name) 
+    void SetField(const string &name)  
     {
       fieldname = name;
     }

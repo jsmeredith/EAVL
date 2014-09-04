@@ -201,7 +201,6 @@ EAVL_HOSTONLY inline void eavlRTScene::loadObjFile(const char * _filename)
     objreader->getRawData(v,n,mats,mIdx,matCount);
     map<int,int> newMatidxs; 				//create a mapping of indexs
     int matId=0;
-    cout<<matCount<<endl;
     for (int i=0;i<matCount;i++)
 	{   		
 		matId=addMaterial( RTMaterial(eavlVector3(mats[i*12   ], mats[i*12+1 ], mats[i*12+2 ]),
@@ -241,7 +240,6 @@ void inline eavlRTScene::clear()
 EAVL_HOSTONLY  inline float*  eavlRTScene::getTrianglePtr()
 {
 	if(getNumTriangles() < 1) return NULL;
-	cout<<"Num Tris "<<getNumTriangles()<<endl;
 	int n = getNumTriangles();
 	float *tris_raw = new float[getNumTriangles()*12];
 	for(int i=0; i<n;i++)
@@ -322,7 +320,6 @@ EAVL_HOSTONLY inline float* eavlRTScene::getMatsPtr()
 	int numMats=mats->size();
 	
 	mats_raw= new float[12*numMats];
-	cout<<"Dumping mats "<<numMats<<endl;
 	for(int i=0;i<numMats;i++)
 	{
 		mats_raw[i*12   ] = mats->at(i).ka.x;
@@ -339,7 +336,7 @@ EAVL_HOSTONLY inline float* eavlRTScene::getMatsPtr()
 		mats_raw[i*12+11] = 0.f;
 
 	}
-	cout<<"After mat dump"<<endl;
+
 
 
 	return mats_raw;
@@ -350,7 +347,6 @@ EAVL_HOSTONLY inline int* eavlRTScene::getTriMatIdxsPtr()
 	if(getNumTriangles()==0) return NULL;
 	int n = getNumTriangles();
 	int* trisMatIdxs	= new int[getNumTriangles()];
-	cout<<"Dumping verts and Mats "<<mats->size()<<endl;
 	for(int i=0; i<n;i++)
 	{
 		trisMatIdxs[i] = tris->at(i).getMatIndex();

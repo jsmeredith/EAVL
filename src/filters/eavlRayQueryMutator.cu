@@ -1,11 +1,11 @@
 #include "eavlRayQueryMutator.h"
 #include "eavlException.h"
 #include "eavlExecutor.h"
-#include "RT/eavlRTUtil.h"
+#include "eavlRTUtil.h"
 #include "eavlMapOp.h"
 #include "eavlFilter.h"
 #include "eavlTimer.h" 
-#include "RT/SplitBVH.h"
+#include "SplitBVH.h"
 
 #define USE_TEXTURE_MEM
 #define END_FLAG    -1000000000

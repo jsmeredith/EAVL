@@ -185,42 +185,6 @@ eavlVector3i::operator*(const eavlVector3i &r) const
     return x*r.x + y*r.y + z*r.z;
 }
 
-#if 0 /* Not sure if normalization makes any sense for an integer vector */
-// 2-norm
-EAVL_HOSTDEVICE int
-eavlVector3i::norm() const
-{
-    int n = (x*x + y*y + z*z);
-    if (n>0)
-        n = sqrt(n);
-    return n;
-}
-
-// normalize
-EAVL_HOSTDEVICE void
-eavlVector3i::normalize()
-{
-    int n = (x*x + y*y + z*z);
-    if (n>0)
-    {
-        n = 1./sqrt(n);
-        x *= n;
-        y *= n;
-        z *= n;
-    }
-}
-
-EAVL_HOSTDEVICE eavlVector3i
-eavlVector3i::normalized() const
-{
-    int n = (x*x + y*y + z*z);
-    if (n==0)
-        return *this;
-
-    n = 1./sqrt(n);
-    return eavlVector3i(x*n, y*n, z*n);
-}
-#endif
 EAVL_HOSTDEVICE eavlVector3i  eavlVector3i::min(const eavlVector3i &r) const
 {
     eavlVector3i result;

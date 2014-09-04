@@ -2,8 +2,8 @@
 #define EAVL_SIMPLE_VR_H
 #include "eavlView.h"
 #include "eavlFilter.h"
-#include "RT/eavlVRScene.h"
-#include "RT/eavlRTUtil.h"
+#include "eavlVRScene.h"
+#include "eavlRTUtil.h"
 
 class eavlSimpleVRMutator : public eavlMutator
 {
@@ -35,11 +35,6 @@ class eavlSimpleVRMutator : public eavlMutator
         width = neww;
     }   
 
-    void setGPU(bool isGPU)
-    {
-        isOnGPU = isGPU;
-    }
-
     void clear()
     {
         scene->clear();
@@ -67,7 +62,7 @@ class eavlSimpleVRMutator : public eavlMutator
     int 	colormapSize;
     bool 	geomDirty;
     bool	sizeDirty;
-    bool    isOnGPU;
+    bool    cpu;
     bool    verbose;
 
     eavlView view;

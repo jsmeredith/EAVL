@@ -23,17 +23,15 @@
 #include "eavlSimpleReverseIndexOp.h"
 
 #include <list>
-
-//#include "eavlAliasStencilOp.h" not using aa right now
 #include "eavl1toNScatterOp.h"
 #include "eavlNto1GatherOp.h"
-#include "RT/SplitBVH.h"
+#include "SplitBVH.h"
 
 #include <sstream>
 #include <iostream>
 #include <fstream>
 
-#include "RT/eavlRTUtil.h"
+#include "eavlRTUtil.h"
 
 #include "eavlSegmentedScanOp.h"
 //#include "eavlRadixSortOp.h"
@@ -1765,17 +1763,6 @@ void eavlRayTracerMutator::extractGeometry()
     
 
     if(verbose) cerr<<"Extracting Geometry"<<endl;
-    /*scene->addSphere(5.f, 22, 33,0,0);
-    scene->addSphere(5.f, 22, 33,0,0);
-    scene->addSphere(5.f, 26, 33,62,0);
-    scene->addSphere(5.f, 22, 33,0,0);
-    scene->addSphere(5.f, 22, 4,4,0);
-    scene->addSphere(5.f, 4, 33,0,0);
-    scene->addSphere(5.f, 22, 5,0,0);
-    scene->addSphere(5.f, 22, 33,0,0);
-
-    scene->addSphere(.5f, 0, 0,0,0);
-    //scene->addSphere(2.f, 10, .5,0); */
 
     freeRaw();
 
@@ -1850,19 +1837,6 @@ void eavlRayTracerMutator::extractGeometry()
         sphr_matIdx_array   = new eavlConstArrayV2<int>( sphr_matIdx_raw, numSpheres,  sphr_matIdx_tref, cpu );
         sphr_scalars_array  = new eavlConstArrayV2<float>(sphr_scalars_raw, numSpheres, sphr_scalars_tref, cpu);
         /*no need for normals, trivial calculation */
-        //INIT(eavlConstArray<int>, sphr_matIdx,numSpheres);
-
-        for(int i=0; i<numSpheres;i++)
-        {
-            //cout<<sphr_verts_raw[i*4]<<" "<<sphr_verts_raw[i*4+1]<<" "<<sphr_verts_raw[i*4+2]<<" "<<sphr_verts_raw[i*4+3]<<" "<<endl;
-            //cout<<sphr_verts_array->getValue(sphr_verts_tref,i).x<<" "<<sphr_verts_array->getValue(sphr_verts_tref,i).y<<" "<<sphr_verts_array->getValue(sphr_verts_tref,i).z<<" "<<sphr_verts_array->getValue(sphr_verts_tref,i).w<<endl;
-        }
-        for(int i=0; i<numSpheres; i++)
-        {
-            
-            //cout<<sphr_matIdx_raw[i]<<" ";
-        }
-        //exit(0);
     }
     
     
@@ -2016,55 +1990,6 @@ void eavlRayTracerMutator::shadowIntersect()
 
 void eavlRayTracerMutator::Execute()
 {
-    /*int size = 1024*1024;
-    for(int j = 1; j <5 ; j++)
-    {
-        size*=2; 
-    eavlIntArray * ins =  new eavlIntArray("",1,size);
-    eavlIntArray * outs =  new eavlIntArray("",1,size);
-    eavlIntArray * flags =  new eavlIntArray("",1,size);
-    for( int i = 0; i<size ; i++)
-    {
-        ins->SetValue(i,1);
-        //if(i%16 == 0 ) flags->SetValue(i,1);
-        //else flags->SetValue(i,0);
-        flags->SetValue(i,0);
-        //if(i==129) flags->SetValue(i,1);
-        //if(i==66) flags->SetValue(i,1);
-        if(i%254 == 0) 
-        {
-            flags->SetValue(i,1);
-            //cout<<"Flag set at "<<i<<endl;
-        }
-    }
-    for(int k =0 ; k<2; k++){
-        int scan = eavlTimer::Start();
-        eavlExecutor::AddOperation(new_eavlSegScanOp(eavlOpArgs(ins),
-                                                     eavlOpArgs(outs),
-                                                     eavlOpArgs(flags)),
-                                                     "");
-        eavlExecutor::Go();
-    
-        cout<<"Elements "<<size<<"scan       RUNTIME: "<<eavlTimer::Stop(scan,"scan")<<endl;}
-    delete ins;
-    delete outs;
-    delete flags;
-    }
-    //for( int i = 0; i<size ; i++)
-    //{
-    //    cout<<ins->GetValue(i)<<" ";
-    //}
-    cout<<endl;
-    //for( int i = 0; i<size ; i++)
-    //{
-    //    if(i%256 == 0) cout<<endl<<i<<" # "<<endl;
-    //    cout<<outs->GetValue(i)<<" ";
-
-    //}
-
-    exit(0);
-    */
-
     int th ;
     int tinit;
     if(verbose) tinit = eavlTimer::Start();

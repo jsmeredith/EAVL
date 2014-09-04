@@ -1,8 +1,8 @@
 #ifndef EAVL_RAY_QUERY_MUTATOR_H
 #define EAVL_RAY_QUERY_MUTATOR_H
 #include "eavlFilter.h"
-#include "RT/eavlRTScene.h"
-#include "RT/eavlRTUtil.h"
+#include "eavlRTScene.h"
+#include "eavlRTUtil.h"
 
 
 class eavlRayQueryMutator : public eavlMutator

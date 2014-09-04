@@ -21,34 +21,43 @@ texture<float4> cmap_tref;
 template<class T>
 class eavlConstArrayV2
 {
+  private: 
+    bool cpu;
   public:
     T *host;
     T *device;
+    
   public:
-    eavlConstArrayV2(T *from, int N, texture<T> &g_textureRef)
+    eavlConstArrayV2(T *from, int N, texture<T> &g_textureRef, bool CPU)
     {
         host = from;
-
+        cpu = CPU;
+        if(!CPU)
+        {
 #ifdef HAVE_CUDA
-        int nbytes = N * sizeof(T);
-        cudaMalloc((void**)&device, nbytes);
-        CUDA_CHECK_ERROR();
-        cudaMemcpy(device, &(host[0]),
+        
+        
+            int nbytes = N * sizeof(T);
+            cudaMalloc((void**)&device, nbytes);
+            CUDA_CHECK_ERROR();
+            cudaMemcpy(device, &(host[0]),
                    nbytes, cudaMemcpyHostToDevice);
-        CUDA_CHECK_ERROR();
+            CUDA_CHECK_ERROR();
 #ifdef USE_TEXTURE_MEM
-        cudaBindTexture(0, g_textureRef,device,nbytes);
-        CUDA_CHECK_ERROR();
+            cudaBindTexture(0, g_textureRef,device,nbytes);
+            CUDA_CHECK_ERROR();
 #endif
 
 #endif
+        }
     }
     ~eavlConstArrayV2()
     {
         
 
 #ifdef HAVE_CUDA
-       
+        //cudaFree(device);
+        //CUDA_CHECK_ERROR();
 #endif
 
 
@@ -61,8 +70,12 @@ class eavlConstArrayV2
     }
     EAVL_HOSTONLY  void unbind(texture<T> g_textureRef)
     {
-        cudaUnbindTexture(g_textureRef);
-        CUDA_CHECK_ERROR();
+        if(!cpu)
+        {
+            cudaUnbindTexture(g_textureRef);
+            CUDA_CHECK_ERROR();
+        }
+        
     }
 #else
     EAVL_DEVICEONLY const T &getValue(texture<T> g_textureRef, int index) const
@@ -134,6 +147,9 @@ eavlSimpleVRMutator::eavlSimpleVRMutator()
 
     verbose = false;
     setDefaultColorMap();
+
+    if(eavlExecutor::GetExecutionMode() == eavlExecutor::ForceCPU ) cpu = true;
+    else cpu = false;
 }
 
 eavlSimpleVRMutator::~eavlSimpleVRMutator()
@@ -362,19 +378,6 @@ struct SampleFunctor
         maxe[0] = min(float(view.w-1), maxe[0]); //??
         maxe[1] = min(float(view.h-1), maxe[1]);
         maxe[2] = min(float(nSamples-1), maxe[2]);
-        /*if(mine[0]<0) printf("min x below 0 : %f at tet %d", mine[0], tet);
-        if (mine[0] < 0)
-            mine[0] = 0;
-        if (mine[1] < 0)
-            mine[1] = 0;
-        if (mine[2] < 0)
-            mine[2] = 0;
-        if (maxe[0] >= view.w)
-            maxe[0] = view.w-1;
-        if (maxe[1] >= view.h)
-            maxe[1] = view.h-1;
-        if (maxe[2] >= nSamples)
-            maxe[2] = nSamples-1;*/
         
         int xmin = ceil(mine[0]);
         int xmax = floor(maxe[0]);
@@ -386,7 +389,7 @@ struct SampleFunctor
         float value;
         if (xmin > xmax || ymin > ymax || zmin > zmax) return tuple<float>(0.f);
         float4 s = scalars.getValue(scalars_tref, tet);
-        //if(tet> 200000) printf("Xmin %d , Ymin %d Zmin %d xmax %d ymax %d zmax %d \n", xmin, ymin, zmin, xmax, ymax, zmax);
+        
         for(int x=xmin; x<=xmax; ++x)
         {
             for(int y=ymin; y<=ymax; ++y)
@@ -437,7 +440,7 @@ struct CompositeFunctor
         eavlPoint3 closest(0,0,-dist+view.size*.5);
         eavlPoint3 farthest(0,0,-dist-view.size*.5);
         mindepth = (view.P * closest).z;
-        maxdepth = (view.P * farthest).z;
+        maxdepth = (view.P * farthest).z; 
 
     }
 
@@ -447,7 +450,7 @@ struct CompositeFunctor
         int minz = nSamples;
         int x = idx%w;
         int y = idx/w;
-        eavlColor color(0,0,0,0);
+        float4 color= {0,0,0,0};
         for(int z = nSamples ; z>=0; --z)
         {
             int index3d = (y*w + x)*nSamples + z;
@@ -456,11 +459,8 @@ struct CompositeFunctor
                 continue;
 
             int colorindex = float(ncolors-1) * value;
-            float4 clr = colorMap.getValue(cmap_tref, colorindex);
-            eavlColor c(clr.x,
-                        clr.y,
-                        clr.z,
-                        1.0);
+            float4 c = colorMap.getValue(cmap_tref, colorindex);
+            c.w = 1;
             // use a gaussian density function as the opactiy
             float center = 0.5;
             float sigma = 0.13;
@@ -468,10 +468,10 @@ struct CompositeFunctor
             float alpha = exp(-(value-center)*(value-center)/(2*sigma*sigma));
             //float alpha = value;
             alpha *= attenuation;
-            color.c[0] = color.c[0] * (1.-alpha) + c.c[0] * alpha;
-            color.c[1] = color.c[1] * (1.-alpha) + c.c[1] * alpha;
-            color.c[2] = color.c[2] * (1.-alpha) + c.c[2] * alpha;
-            color.c[3] = color.c[3] * (1.-alpha) + c.c[3] * alpha;
+            color.x = color.x * (1.-alpha) + c.x * alpha;
+            color.y = color.y * (1.-alpha) + c.y * alpha;
+            color.z = color.z * (1.-alpha) + c.z * alpha;
+            color.w = color.w * (1.-alpha) + c.w * alpha;
             minz = z;
  
         }
@@ -483,7 +483,7 @@ struct CompositeFunctor
             depth = .5 * projdepth + .5;
         }
 
-        return tuple<byte,byte,byte,byte,float>(color.c[0]*255., color.c[1]*255., color.c[2]*255.,color.c[3]*255.,depth);
+        return tuple<byte,byte,byte,byte,float>(color.x*255., color.y*255., color.z*255.,color.w*255.,depth);
         
     }
    
@@ -521,7 +521,7 @@ struct CompositeFunctorFB
         int minz = nSamples;
         int x = idx%w;
         int y = idx/w;
-        eavlColor color(0,0,0,0);
+        float4 color= {0,0,0,0};
         for(int z = 0 ; z < nSamples; z++)
         {
             int index3d = (y*w + x)*nSamples + z;
@@ -530,11 +530,8 @@ struct CompositeFunctorFB
                 continue;
 
             int colorindex = float(ncolors-1) * value;
-            float4 clr = colorMap.getValue(cmap_tref, colorindex);
-            eavlColor c(clr.x,
-                        clr.y,
-                        clr.z,
-                        1.0);
+            float4 c = colorMap.getValue(cmap_tref, colorindex);
+            c.w = 1;
             // use a gaussian density function as the opactiy
             float center = 0.5;
             float sigma = 0.13;
@@ -542,12 +539,12 @@ struct CompositeFunctorFB
             float alpha = exp(-(value-center)*(value-center)/(2*sigma*sigma));
             //float alpha = value;
             alpha *= attenuation;
-            color.c[0] = color.c[0]  + c.c[0] * (1.-color.c[3])*alpha;
-            color.c[1] = color.c[1]  + c.c[1] * (1.-color.c[3])*alpha;
-            color.c[2] = color.c[2]  + c.c[2] * (1.-color.c[3])*alpha;
-            color.c[3] = color.c[3]  + c.c[3] * (1.-color.c[3])*alpha;
+            color.x = color.x  + c.x * (1.-color.x)*alpha;
+            color.y = color.y  + c.y * (1.-color.y)*alpha;
+            color.z = color.z  + c.z * (1.-color.z)*alpha;
+            color.w = color.w  + c.w * (1.-color.w)*alpha;
             minz = z;
-            if(color.c[3] >=1 ) break;
+            if(color.w >=1 ) break;
 
         }
         
@@ -558,7 +555,7 @@ struct CompositeFunctorFB
             depth = .5 * projdepth + .5;
         }
 
-        return tuple<byte,byte,byte,byte,float>(color.c[0]*255., color.c[1]*255., color.c[2]*255.,color.c[3]*255.,depth);
+        return tuple<byte,byte,byte,byte,float>(color.x*255., color.y*255., color.z*255.,color.w*255.,depth);
         
     }
    
@@ -589,7 +586,7 @@ void eavlSimpleVRMutator::setColorMap3f(float* cmap,int size)
         colormap_raw[i*4+2] = cmap[i*3+2];
         colormap_raw[i*4+3] = .05;          //test Alpha
     }
-    color_map_array = new eavlConstArrayV2<float4>((float4*)colormap_raw, colormapSize, cmap_tref);
+    color_map_array = new eavlConstArrayV2<float4>((float4*)colormap_raw, colormapSize, cmap_tref, cpu);
 }
 
 void eavlSimpleVRMutator::setDefaultColorMap()
@@ -607,7 +604,7 @@ void eavlSimpleVRMutator::setDefaultColorMap()
     colormapSize=2;
     colormap_raw= new float[8];
     for(int i=0;i<8;i++) colormap_raw[i]=1.f;
-    color_map_array = new eavlConstArrayV2<float4>((float4*)colormap_raw, colormapSize, cmap_tref);
+    color_map_array = new eavlConstArrayV2<float4>((float4*)colormap_raw, colormapSize, cmap_tref, cpu);
     if(verbose) cout<<"Done setting defaul color map"<<endl;
 
 }
@@ -657,8 +654,8 @@ void eavlSimpleVRMutator::init()
         scalars_raw = scene->getScalarPtr();
         for(int i=0 ; i<100; i++) cout<<scalars_raw[i]<<" ";
         cout<<endl;
-        tets_verts_array    = new eavlConstArrayV2<float4>( (float4*) tets_raw, numTets*4, tets_verts_tref); // maybe reorganize the array to push all scalars to the end, better mem accessses
-        scalars_array       = new eavlConstArrayV2<float4>( (float4*) scalars_raw, numTets, scalars_tref);
+        tets_verts_array    = new eavlConstArrayV2<float4>( (float4*) tets_raw, numTets*4, tets_verts_tref, cpu); 
+        scalars_array       = new eavlConstArrayV2<float4>( (float4*) scalars_raw, numTets, scalars_tref, cpu);
         for(int i=0 ; i<100; i++) cout<<scalars_array->getValue(scalars_tref,i).x<<" "<<scalars_array->getValue(scalars_tref,i).y<<" ";
         cout<<endl;
         ssa = new eavlFloatArray("",1, numTets*3);
@@ -679,8 +676,6 @@ void eavlSimpleVRMutator::init()
 
 void  eavlSimpleVRMutator::Execute()
 {
-    if(isOnGPU) {cout<<"GPU\n"; eavlExecutor::SetExecutionMode(eavlExecutor::ForceGPU);}
-    else        {cout<<"CPU\n"; eavlExecutor::SetExecutionMode(eavlExecutor::ForceCPU);}
 
     int tets = scene->getNumTets();
     if(tets != numTets)
@@ -694,7 +689,6 @@ void  eavlSimpleVRMutator::Execute()
         cout<<"Nothing to render."<<endl;
         return;
     }
-    cout<<"Rendering "<<numTets<<" tets Color map Size : "<<colormapSize<<endl;
     int tinit;
     if(verbose) tinit = eavlTimer::Start();
     init();
@@ -740,7 +734,7 @@ void  eavlSimpleVRMutator::Execute()
 
     float* samplePtr;
    
-    if(isOnGPU)
+    if(!cpu)
     {
         samplePtr = (float*) samples->GetCUDAArray();
     }

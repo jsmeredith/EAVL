@@ -25,14 +25,14 @@ struct eavlNto1GatherOp_CPU
         for (int index = 0; index < nitems; ++index)
         {
             typename collecttype<IN>::const_type in(collect(index, inputs));
-            float acc=0;
+            float acc = 0;
             tuple<float> p;
-            for(int i=0;i<n;i++){
+            for(int i = 0; i < n; i++){
                
-                p=collect(index*n+i, inputs);
-                acc+=get<0>(p);
+                p=collect(index * n + i, inputs);
+                acc += get<0>(p);
             }
-            collect(index, outputs) =tuple<float>(acc/(float)n);
+            collect(index, outputs) = tuple<float>(acc/(float)n);
         }
     }
 };
@@ -49,11 +49,11 @@ nTo1GatherKernel(int nitems,int n, const IN inputs, OUT outputs, F functor)
     for (int index = threadID; index < nitems; index += numThreads)//why??
     {   
         typename collecttype<IN>::const_type in(collect(index, inputs));
-        float acc=0;
+        float acc = 0;
         tuple<float> p;
-        for(int i=0;i<n;i++){
-            p=collect(index*n+i, inputs);
-            acc+=get<0>(p);
+        for(int i = 0; i < n; i++){
+            p = collect(index * n + i, inputs);
+            acc += get<0>(p);
         }
         collect(index, outputs) =tuple<float>(acc/(float)n);        
     }
@@ -77,7 +77,16 @@ struct eavlNto1GatherOp_GPU
 #endif
 
 #endif // DOXYGEN
-
+// ****************************************************************************
+// Class:  eavlNto1GatherOp
+//
+// Purpose:
+///   Used in conjuction with 1 to N scatter for ray tracing. This operation
+///   gathers n contiguous values from the input array and averages them to
+///   a single floating point value. Input should be n times larger than the 
+///   output.
+//
+// ****************************************************************************
 template <class I, class O>
 class eavlNto1GatherOp : public eavlOperation
 {

@@ -43,7 +43,6 @@ OBJ=\
  filters/eavlPointDistanceFieldFilter.o \
  filters/eavlRayTracerMutator.o \
  filters/eavlRayQueryMutator.o \
- filters/eavlVolumeRendererMutator.o \
  filters/eavlSimpleVRMutator.o \
  filters/eavlScalarBinFilter.o \
  filters/eavlSubsetMutator.o \
@@ -91,7 +90,7 @@ ifneq (@ADIOS@, no)
  OBJ+=importers/eavlXGCParticleImporter.o
 endif
 
-CPPFLAGS+=-I../config -Icommon/ -Ifonts/ -Iimporters/ -Imath/ -Irendering/ -Iexecutor/ -Ifunctors/ -Ioperations/ -Ifilters/ -Iexporters/ -Ivtk/
+CPPFLAGS+=-I../config -Icommon/ -Ifonts/ -Iimporters/ -Imath/ -Irendering/ -Iexecutor/ -Ifunctors/ -Ioperations/ -Ifilters/ -Iexporters/ -Ivtk/ -Iraytracing/
 CPPFLAGS+=$(MPI_CPPFLAGS) $(BOOST_CPPFLAGS) $(NETCDF_CPPFLAGS) $(SILO_CPPFLAGS) $(CUDA_CPPFLAGS) $(ADIOS_CPPFLAGS) $(VTK_CPPFLAGS) $(MESA_CPPFLAGS)
 
 LIBS=-lm

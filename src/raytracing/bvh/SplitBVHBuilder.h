@@ -274,13 +274,13 @@ BVHNode* SplitBVHBuilder::run(void)
     BVHNode* root = buildNode(rootSpec, 0, 0.0f, 1.0f);
     float s=0;
     root->computeSubtreeProbabilities(m_platform,1.f,s);
-    cout<<" ------------------BVH Stats--------------------------------"<<endl;
-    cout<<"Bounds "<<rootSpec.bounds.area()<<"   SAH : "<<s<<endl;
-    cout<<"Num Primitive Refs "<<m_numPrimitives+m_numDuplicates<<" InnerNodes "<<m_innerNodeCount<<" leaf nodes "<<m_leafNodeCount<<" Max Depth "<<m_maxDepth<<endl;
+    //cout<<" ------------------BVH Stats--------------------------------"<<endl;
+    //cout<<"Bounds "<<rootSpec.bounds.area()<<"   SAH : "<<s<<endl;
+    //cout<<"Num Primitive Refs "<<m_numPrimitives+m_numDuplicates<<" InnerNodes "<<m_innerNodeCount<<" leaf nodes "<<m_leafNodeCount<<" Max Depth "<<m_maxDepth<<endl;
 
-    if (m_params.enablePrints)
-        printf("duplicates %.0f%% Spacial Splits %d\n" , (float)m_numDuplicates / (float)m_numPrimitives * 100.0f, numSpacialSplits);
-    cout<<" ------------------End BVH Stats----------------------------"<<endl;
+    //if (m_params.enablePrints)
+    //    printf("duplicates %.0f%% Spacial Splits %d\n" , (float)m_numDuplicates / (float)m_numPrimitives * 100.0f, numSpacialSplits);
+    //cout<<" ------------------End BVH Stats----------------------------"<<endl;
     //m_params.stats->SAHCost           = sah;
      
     //cout<<"Leaf Count "<<root->getSubtreeSize(BVH_STAT_LEAF_COUNT)<<endl;
@@ -944,7 +944,7 @@ void SplitBVHBuilder::bvhToFlatArray(BVHNode * root, int &innerSize, int &leafSi
     float *leafraw = new float[-currentLeafIndex];
     int numLeafVals=-currentLeafIndex;
 
-    cout<<"Dumping Flat Array"<<endl;
+    \
     for (int i=0; i < currentIndex;i++)
     {
         innerraw[i] = flat_inner_array->at(i);

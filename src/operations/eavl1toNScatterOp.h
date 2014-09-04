@@ -23,21 +23,16 @@ struct eavl1toNScatterOp_CPU
     template <class F, class IN, class OUT>
     static void call(int nitems, int n, const IN inputs, OUT outputs, F &functor)
     {
-        cerr<<"calling"<<endl;
         int seed=nitems*n;
         #pragma omp parallel for
         for (int index = 0; index < nitems; ++index)
         {
             typename collecttype<IN>::const_type in(collect(index, inputs));
-            for (int i=0;i<n;i++){
-                //cerr<<"Index : " <<index<<" n "<<n<<endl;
-               //typename collecttype<OUT>::type out(collect(index*n+i, outputs));
-                collect(index*n+i, outputs) =functor(collect(index, inputs),seed, i);
-                //collect(denseindex, outputs).CopyFrom(collect(sparseindex, inputs));
+            for (int i = 0; i < n; di++)
+            {
+                // Passing random number and index into functor
+                collect(index*n+i, outputs) =functor(collect(index, inputs),seed, i);    
             }
-            // or more simply:
-            //collect(index, outputs) = functor(collect(index, inputs));
-            //cerr<<"1 to n scatter CPU not implemented"<<endl;
         }
     }
 };
@@ -51,17 +46,11 @@ oneToNScatterKernel(int nitems,int n, const IN inputs, OUT outputs, F functor, i
 {
     const int numThreads = blockDim.x * gridDim.x;
     const int threadID   = blockIdx.x * blockDim.x + threadIdx.x;
-    for (int index = threadID; index < nitems; index += numThreads)//why??
-    {   //int rgbWidth=width-1;
-        //int rgbHeight=(nitems-1)/rgbWidth;
-        //typename collecttype<IN>::const_type in(collect(index, inputs));
-        for(int i=0;i<n;i++){
-            collect(index*n+i, outputs) =functor(collect(index, inputs),rndm+threadID,i);
+    for (int index = threadID; index < nitems; index += numThreads)
+    {   
+        for(int i = 0; i < n; i++){
+            collect(index * n + i, outputs) =functor(collect(index, inputs),rndm + threadID,i);
         }
-        //collect(outIndex, outputs) =tuple<float,float,float>(r,g,b);
-
-
-        
     }
 }
 
@@ -83,7 +72,16 @@ struct eavl1toNScatterOp_GPU
 #endif
 
 #endif // DOXYGEN
-
+// ****************************************************************************
+// Class:  eavl1toNScatterOp
+//
+// Purpose:
+///   Used in conjuction with N to one gather for ray tracing. This operation
+///   scatters n values from each input. To enable unique results for each 
+///   functor output, a random value and the index (0-n) is passed into the 
+///   functor.
+//
+// ****************************************************************************
 template <class I, class O, class F>
 class eavl1toNScatterOp : public eavlOperation
 {
@@ -101,9 +99,7 @@ class eavl1toNScatterOp : public eavlOperation
     }
     virtual void GoCPU()
     {
-        cerr<<"goCPU "<<endl;
         int n = inputs.first.length(); 
-        cerr<<"goCPU2 size "<<n<<"mutl " << multiplyer<<" "<<outputs.first.length()<<endl;
         rand();
         eavlOpDispatch<eavl1toNScatterOp_CPU>(n, multiplyer, inputs, outputs, functor);
     }
