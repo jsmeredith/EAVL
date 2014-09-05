@@ -91,7 +91,7 @@ eavlImporterFactory::GetImporterForFile(const std::string &fn_orig)
     {
 	if (filename.find("xgc.3d") != string::npos)
 	    importer = new eavlXGCImporter(fn_orig);
-	else if (filename.find("xgc.restart") != string::npos)
+	else if (filename.find("xgc.restart") != string::npos || filename.find("xgc.couplingp") != string::npos)
 		importer = new eavlXGCParticleImporter(fn_orig);
 	else
 	    importer = new eavlADIOSImporter(fn_orig);

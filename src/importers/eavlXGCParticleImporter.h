@@ -24,7 +24,7 @@ extern "C"
 // Class:  eavlXGCParticleImporter
 //
 // Purpose:
-///   Import a XGC ADIOS restart file.
+///   Import a XGC ADIOS restart or couplingp file.
 //
 // Programmer:  James Kress
 // Creation:    July 1, 2014
@@ -61,11 +61,13 @@ class eavlXGCParticleImporter : public eavlImporter
   protected:
     void Initialize();
     ADIOS_SELECTION *MakeSelection(ADIOS_VARINFO *avi, uint64_t *s, uint64_t *c);
+    ADIOS_SELECTION *MakeLimitedSelection(ADIOS_VARINFO *avi, uint64_t *s, uint64_t *c, int ION);
     ADIOS_FILE *fp;
 
     bool            getR, getZ, getPhi, getRho, getW1, getW2, getMu, getW0, getF0, getOriginNode;	
     int             maxnum, enphase, inphase, nvars, retVal, numMPITasks, mpiRank;
-    int	            totalIParticles, totalEParticles, timestep;
+    int	            totalIParticles, totalEParticles, timestep, readingRestartFile;
+    int             IONendIndex, ELECTRONendIndex, IONstartIndex, ELECTRONstartIndex;
     double          time;
     MPI_Comm        comm;
     long long       emaxgid, imaxgid;    

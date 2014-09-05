@@ -28,11 +28,16 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(const string &filename)
     getF0 = true;
     getOriginNode = true;
     
-    string::size_type i0 = filename.rfind("xgc.");
-    string::size_type i1 = filename.rfind(".bp");
+    
+    std::string key (".restart");
+    std::size_t found = filename.find(key);
+    if(found != std::string::npos)
+        readingRestartFile = 1;
+    else
+        readingRestartFile = 0;
+    
 
     MPI_Comm comm_dummy = comm = 0;
-    
     char        hostname[MPI_MAX_PROCESSOR_NAME];
     char        str [256];
     int         len = 0;
@@ -84,11 +89,16 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(   const string &filename,
     getW0 = true;
     getF0 = true;
     getOriginNode = true;
-
-                   
-    string::size_type i0 = filename.rfind("xgc.");
-    string::size_type i1 = filename.rfind(".bp");
     comm = communicator;
+    
+    
+    std::string key (".restart");
+    std::size_t found = filename.find(key);
+    if(found != std::string::npos)
+        readingRestartFile = 1;
+    else
+        readingRestartFile = 0;
+    
     
     char        hostname[MPI_MAX_PROCESSOR_NAME];
     char        str [256];
@@ -144,113 +154,226 @@ eavlXGCParticleImporter::Initialize()
     egid.clear();
     igid.clear();
     
-    nvars = fp->nvars/13;
-    
-    if(nvars <= mpiRank)
+    if(readingRestartFile)
     {
-        printf("Warning! :: Thread[%i] is wasting cycles :: too many processors for data\n", mpiRank);
-        return;     
-    }
-    
-    //----Set indexes for each reader if there is more than one
-    int endIndex;
-    int startIndex = (nvars / numMPITasks) * mpiRank;
-    if (nvars % numMPITasks > mpiRank)
-    {
-        startIndex += mpiRank;
-        endIndex = startIndex + (nvars / numMPITasks) + 1;
+        nvars = fp->nvars/13;
+        
+        if(nvars <= mpiRank)
+        {
+            printf("Warning! :: Thread[%i] is wasting cycles :: too many processors for data\n", mpiRank);
+            return;     
+        }
+        
+        //----Set indexes for each reader if there is more than one
+        int endIndex;
+        int startIndex = (nvars / numMPITasks) * mpiRank;
+        if (nvars % numMPITasks > mpiRank)
+        {
+            startIndex += mpiRank;
+            endIndex = startIndex + (nvars / numMPITasks) + 1;
+        }
+        else
+        {
+            startIndex += nvars % numMPITasks;
+            endIndex = startIndex + (nvars / numMPITasks);
+        }
+        startIndex *= 13;
+        endIndex *= 13;
+        //--
+        
+        for(int i = startIndex; i < endIndex; i++)
+        {
+            ADIOS_VARINFO *avi = adios_inq_var_byid(fp, i);
+            string longvarNm(&fp->var_namelist[i][1]);
+            string varNm = longvarNm.substr(longvarNm.find("/",1,1)+1,longvarNm.length());    
+            
+            if(varNm == "ephase") 
+            {
+                ephase[longvarNm] = avi;
+            } 
+            else if(varNm == "egid") 
+            {
+                egid[longvarNm] = avi;
+            } 
+            else if(varNm == "iphase") 
+            {
+                iphase[longvarNm] = avi;
+            }
+            else if(varNm == "igid") 
+            {
+                igid[longvarNm] = avi;
+            }
+            else if(varNm == "inum")
+            {
+                int ipart;
+                AdiosGetValue (fp, i, ipart);
+                totalIParticles += ipart;
+                //totalIParticles += (int)(*(int *)avi->value);
+                adios_free_varinfo(avi);
+            }
+            else if(varNm == "enum")
+            {
+                int epart;
+                AdiosGetValue (fp, i, epart);
+                totalEParticles += epart;
+                //totalEParticles += (int)(*(int *)avi->value);
+                adios_free_varinfo(avi);
+            }
+            else if(i < startIndex + 13) 
+            {
+                if (varNm == "timestep") 
+                {
+                    //timestep = (int)(*(int *)avi->value);
+                    AdiosGetValue (fp, i, timestep);
+                } 
+                else if(varNm == "time") 
+                {
+                    AdiosGetValue (fp, i, time);
+                    //time = (double)(*(double *)avi->value);
+                } 
+                else if(varNm == "maxnum") 
+                {
+                    AdiosGetValue (fp, i, maxnum);
+                    //maxnum = (int)(*(int *)avi->value);
+                } 
+                else if (varNm == "inphase") 
+                {
+                    AdiosGetValue (fp, i, inphase);
+                    //inphase = (int)(*(int *)avi->value);
+                } 
+                else if(varNm == "enphase") 
+                {
+                    AdiosGetValue (fp, i, enphase);
+                    //enphase = (int)(*(int *)avi->value);
+                } 
+                else if(varNm == "emaxgid") 
+                {
+                    AdiosGetValue (fp, i, emaxgid);
+                    //emaxgid = (long long)(*(long long *)avi->value);
+                } 
+                else if(varNm == "imaxgid") 
+                {
+                    AdiosGetValue (fp, i, imaxgid);
+                    //imaxgid = (long long)(*(long long *)avi->value);
+                }
+                adios_free_varinfo(avi);
+            } 
+            else 
+            {
+                adios_free_varinfo(avi);
+            }       
+        }
     }
     else
     {
-        startIndex += nvars % numMPITasks;
-        endIndex = startIndex + (nvars / numMPITasks);
-    }
-    startIndex *= 13;
-    endIndex *= 13;
-    //--
-    
-    for(int i = startIndex; i < endIndex; i++)
-    {
-        ADIOS_VARINFO *avi = adios_inq_var_byid(fp, i);
-        string longvarNm(&fp->var_namelist[i][1]);
-        string varNm = longvarNm.substr(longvarNm.find("/",1,1)+1,longvarNm.length());
-        string nodeNum = longvarNm.substr(longvarNm.find("_",1,1)+1, 5);    
+        //----Set indexes for each reader for the IONS
+        ADIOS_VARINFO *avi = adios_inq_var(fp, "iphase");
+        nvars = avi->dims[0];
+        int endIndex;
+        int startIndex = (nvars / numMPITasks) * mpiRank;
+        if (nvars % numMPITasks > mpiRank)
+        {
+            startIndex += mpiRank;
+            endIndex = startIndex + (nvars / numMPITasks) + 1;
+        }
+        else
+        {
+            startIndex += nvars % numMPITasks;
+            endIndex = startIndex + (nvars / numMPITasks);
+        }
+        IONendIndex = endIndex;
+        IONstartIndex = startIndex;
+        adios_free_varinfo(avi);
+        //--
         
-        if(varNm == "ephase") 
+        
+        //----Set indexes for each reader for the ELECTRONS
+        avi = adios_inq_var(fp, "ephase");
+        nvars = avi->dims[0];
+        startIndex = (nvars / numMPITasks) * mpiRank;
+        if (nvars % numMPITasks > mpiRank)
         {
-            ephase[longvarNm] = avi;
-        } 
-        else if(varNm == "egid") 
-        {
-            egid[longvarNm] = avi;
-        } 
-        else if(varNm == "iphase") 
-        {
-            iphase[longvarNm] = avi;
+            startIndex += mpiRank;
+            endIndex = startIndex + (nvars / numMPITasks) + 1;
         }
-        else if(varNm == "igid") 
+        else
         {
-            igid[longvarNm] = avi;
+            startIndex += nvars % numMPITasks;
+            endIndex = startIndex + (nvars / numMPITasks);
         }
-        else if(varNm == "inum")
+        ELECTRONendIndex = endIndex;
+        ELECTRONstartIndex = startIndex;
+        adios_free_varinfo(avi);
+        //--
+        
+        for(int i = 0; i < fp->nvars; i++)
         {
-            int ipart;
-            AdiosGetValue (fp, i, ipart);
-            totalIParticles += ipart;
-            //totalIParticles += (int)(*(int *)avi->value);
-            adios_free_varinfo(avi);
-        }
-        else if(varNm == "enum")
-        {
-            int epart;
-            AdiosGetValue (fp, i, epart);
-            totalEParticles += epart;
-            //totalEParticles += (int)(*(int *)avi->value);
-            adios_free_varinfo(avi);
-        }
-        else if(i < startIndex + 13) 
-        {
-            if (varNm == "timestep") 
+            ADIOS_VARINFO *avi = adios_inq_var_byid(fp, i);
+            string varNm(&fp->var_namelist[i][0]); 
+            
+            if(varNm == "ephase")
+            {
+                ephase[varNm] = avi;
+            } 
+            else if(varNm == "egid") 
+            {
+                egid[varNm] = avi;
+            } 
+            else if(varNm == "iphase") 
+            {
+                iphase[varNm] = avi;
+            }
+            else if(varNm == "igid") 
+            {
+                igid[varNm] = avi;
+            }
+            else if(varNm == "inum")
+            {
+                totalIParticles = IONendIndex - IONstartIndex;
+                adios_free_varinfo(avi);
+            }
+            else if(varNm == "enum")
+            {
+                totalEParticles = ELECTRONendIndex - ELECTRONstartIndex;
+                adios_free_varinfo(avi);
+            }
+            else if (varNm == "timestep") 
             {
                 //timestep = (int)(*(int *)avi->value);
                 AdiosGetValue (fp, i, timestep);
+                adios_free_varinfo(avi);
             } 
             else if(varNm == "time") 
             {
                 AdiosGetValue (fp, i, time);
                 //time = (double)(*(double *)avi->value);
-            } 
-            else if(varNm == "maxnum") 
-            {
-                AdiosGetValue (fp, i, maxnum);
-                //maxnum = (int)(*(int *)avi->value);
+                adios_free_varinfo(avi);
             } 
             else if (varNm == "inphase") 
             {
                 AdiosGetValue (fp, i, inphase);
                 //inphase = (int)(*(int *)avi->value);
+                adios_free_varinfo(avi);
             } 
             else if(varNm == "enphase") 
             {
                 AdiosGetValue (fp, i, enphase);
                 //enphase = (int)(*(int *)avi->value);
+                adios_free_varinfo(avi);
             } 
-            else if(varNm == "emaxgid") 
+            else if(varNm == "enum_total") 
             {
                 AdiosGetValue (fp, i, emaxgid);
                 //emaxgid = (long long)(*(long long *)avi->value);
+                adios_free_varinfo(avi);
             } 
-            else if(varNm == "imaxgid") 
+            else if(varNm == "inum_total") 
             {
                 AdiosGetValue (fp, i, imaxgid);
                 //imaxgid = (long long)(*(long long *)avi->value);
-            }
-            adios_free_varinfo(avi);
-        } 
-        else 
-        {
-            adios_free_varinfo(avi);
-        }       
+                adios_free_varinfo(avi);
+            }     
+        }
     }
 }
 
@@ -298,7 +421,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
     eavlDataSet *ds = new eavlDataSet;
     
     if(name == "iMesh") 
-    {
+    {   
         ds->SetNumPoints(totalIParticles);
         eavlCoordinatesCartesian *coords = new eavlCoordinatesCartesian(NULL,
                                         eavlCoordinatesCartesian::X,
@@ -321,7 +444,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
         //Set all of the axis values to the x, y, z coordinates of the 
         //iphase particles; set computational node origin
         eavlIntArray *originNode;
-        if(getOriginNode) 
+        if(getOriginNode && readingRestartFile) 
             originNode = new eavlIntArray("originNode", 1, totalIParticles);
         eavlFloatArray *r;
         if(getR)
@@ -357,7 +480,12 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
         map<string, ADIOS_VARINFO*>::const_iterator it;
         for(it = iphase.begin(); it != iphase.end(); it++) 
         {
-            ADIOS_SELECTION *sel = MakeSelection(it->second, s, c);
+            ADIOS_SELECTION *sel;
+            if(readingRestartFile) 
+                sel = MakeSelection(it->second, s, c);
+            else
+                sel = MakeLimitedSelection(it->second, s, c, 1);
+                
             nt = 1;
             for (int i = 0; i < it->second->ndim; i++)
                 nt *= c[i];
@@ -368,7 +496,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
             adios_selection_delete(sel);
             
             string nodeNum;
-            if(getOriginNode) nodeNum = it->first.substr(it->first.find("_",1,1)+1, 5);
+            if(getOriginNode && readingRestartFile) nodeNum = it->first.substr(it->first.find("_",1,1)+1, 5);
 
             for(int i = 0; i < nt; i+=9) 
             {
@@ -384,7 +512,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
                 axisValues[0]->SetComponentFromDouble(idx, 0, r->GetValue(idx)*cos(phi->GetValue(idx)));
                 axisValues[1]->SetComponentFromDouble(idx, 0, r->GetValue(idx)*sin(phi->GetValue(idx)));
                 axisValues[2]->SetComponentFromDouble(idx, 0, z->GetValue(idx));
-                if(getOriginNode) originNode->SetValue(idx, atoi(nodeNum.c_str()));
+                if(getOriginNode && readingRestartFile) originNode->SetValue(idx, atoi(nodeNum.c_str()));
                 idx++;
             }
             delete [] buff;
@@ -393,7 +521,8 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
         ds->AddField(new eavlField(1, axisValues[0], eavlField::ASSOC_POINTS));
         ds->AddField(new eavlField(1, axisValues[1], eavlField::ASSOC_POINTS));
         ds->AddField(new eavlField(1, axisValues[2], eavlField::ASSOC_POINTS));
-        if(getOriginNode) ds->AddField(new eavlField(1, originNode, eavlField::ASSOC_POINTS));
+        if(getOriginNode && readingRestartFile) 
+            ds->AddField(new eavlField(1, originNode, eavlField::ASSOC_POINTS));
         if(getR)   ds->AddField(new eavlField(1, r,   eavlField::ASSOC_POINTS));
         if(getZ)   ds->AddField(new eavlField(1, z,   eavlField::ASSOC_POINTS));
         if(getPhi) ds->AddField(new eavlField(1, phi, eavlField::ASSOC_POINTS));
@@ -414,7 +543,12 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
         eavlIntArray *axisIds = new eavlIntArray("id", 1, totalIParticles);
         for(it = igid.begin(); it != igid.end(); it++) 
         {
-            ADIOS_SELECTION *sel = MakeSelection(it->second, s, c);
+            ADIOS_SELECTION *sel;
+            if(readingRestartFile) 
+                sel = MakeSelection(it->second, s, c);
+            else
+                sel = MakeLimitedSelection(it->second, s, c, 1);
+                
             nt = 1;
             for (int i = 0; i < it->second->ndim; i++)
                 nt *= c[i];
@@ -459,7 +593,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
         //Set all of the axis values to the x, y, z coordinates of the 
         //ephase particles; set computational node origin
         eavlIntArray *originNode;
-        if(getOriginNode) 
+        if(getOriginNode && readingRestartFile) 
             originNode = new eavlIntArray("originNode", 1, totalIParticles);
         eavlFloatArray *r;
         if(getR)
@@ -495,7 +629,12 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
         map<string, ADIOS_VARINFO*>::const_iterator it;
         for(it = ephase.begin(); it != ephase.end(); it++) 
         {
-            ADIOS_SELECTION *sel = MakeSelection(it->second, s, c);
+            ADIOS_SELECTION *sel;
+            if(readingRestartFile) 
+                sel = MakeSelection(it->second, s, c);
+            else
+                sel = MakeLimitedSelection(it->second, s, c, 0);
+                
             nt = 1;
             for(int i = 0; i < it->second->ndim; i++)
                 nt *= c[i];
@@ -506,7 +645,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
             adios_selection_delete(sel);
             
             string nodeNum;
-            if(getOriginNode) nodeNum = it->first.substr(it->first.find("_",1,1)+1, 5);
+            if(getOriginNode && readingRestartFile) nodeNum = it->first.substr(it->first.find("_",1,1)+1, 5);
             
             for(int i = 0; i < nt; i+=9) 
             {
@@ -522,7 +661,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
                 axisValues[0]->SetComponentFromDouble(idx, 0, r->GetValue(idx)*cos(phi->GetValue(idx)));
                 axisValues[1]->SetComponentFromDouble(idx, 0, r->GetValue(idx)*sin(phi->GetValue(idx)));
                 axisValues[2]->SetComponentFromDouble(idx, 0, z->GetValue(idx));
-                if(getOriginNode) originNode->SetValue(idx, atoi(nodeNum.c_str()));
+                if(getOriginNode && readingRestartFile) originNode->SetValue(idx, atoi(nodeNum.c_str()));
                 idx++;
             }
             delete [] buff;
@@ -531,7 +670,8 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
         ds->AddField(new eavlField(1, axisValues[0], eavlField::ASSOC_POINTS));
         ds->AddField(new eavlField(1, axisValues[1], eavlField::ASSOC_POINTS));
         ds->AddField(new eavlField(1, axisValues[2], eavlField::ASSOC_POINTS));
-        if(getOriginNode) ds->AddField(new eavlField(1, originNode, eavlField::ASSOC_POINTS));
+        if(getOriginNode && readingRestartFile) 
+            ds->AddField(new eavlField(1, originNode, eavlField::ASSOC_POINTS));
         if(getR)   ds->AddField(new eavlField(1, r,   eavlField::ASSOC_POINTS));
         if(getZ)   ds->AddField(new eavlField(1, z,   eavlField::ASSOC_POINTS));
         if(getPhi) ds->AddField(new eavlField(1, phi, eavlField::ASSOC_POINTS));
@@ -554,7 +694,12 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
         
         for(it = egid.begin(); it != egid.end(); it++) 
         {
-            ADIOS_SELECTION *sel = MakeSelection(it->second, s, c);
+            ADIOS_SELECTION *sel;
+            if(readingRestartFile) 
+                sel = MakeSelection(it->second, s, c);
+            else
+                sel = MakeLimitedSelection(it->second, s, c, 0);
+                
             nt = 1;
             for (int i = 0; i < it->second->ndim; i++)
                 nt *= c[i];
@@ -591,7 +736,12 @@ eavlXGCParticleImporter::GetField(const string &name, const string &mesh, int ch
         for(it = ephase.begin(); it != ephase.end(); it++)
         {   
             int nt = 1;
-            ADIOS_SELECTION *sel = MakeSelection(it->second, s, c);
+            ADIOS_SELECTION *sel;
+            if(readingRestartFile) 
+                sel = MakeSelection(it->second, s, c);
+            else
+                sel = MakeLimitedSelection(it->second, s, c, 0);
+                
             for(int i = 0; i < it->second->ndim; i++)
                 nt *= c[i];
             
@@ -616,7 +766,12 @@ eavlXGCParticleImporter::GetField(const string &name, const string &mesh, int ch
         for(it = iphase.begin(); it != iphase.end(); it++) 
         {
             int nt = 1;
-            ADIOS_SELECTION *sel = MakeSelection(it->second, s, c);
+            ADIOS_SELECTION *sel;
+            if(readingRestartFile) 
+                sel = MakeSelection(it->second, s, c);
+            else
+                sel = MakeLimitedSelection(it->second, s, c, 1);
+                
             for (int i = 0; i < it->second->ndim; i++)
                 nt *= c[i];
             
@@ -641,7 +796,12 @@ eavlXGCParticleImporter::GetField(const string &name, const string &mesh, int ch
         for(it = igid.begin(); it != igid.end(); it++) 
         {
             int nt = 1;
-            ADIOS_SELECTION *sel = MakeSelection(it->second, s, c);
+            ADIOS_SELECTION *sel;
+            if(readingRestartFile) 
+                sel = MakeSelection(it->second, s, c);
+            else
+                sel = MakeLimitedSelection(it->second, s, c, 1);
+                
             for(int i = 0; i < it->second->ndim; i++)
                 nt *= c[i];
                 
@@ -666,7 +826,12 @@ eavlXGCParticleImporter::GetField(const string &name, const string &mesh, int ch
         for (it = egid.begin(); it != egid.end(); it++) 
         {
             int nt = 1;
-            ADIOS_SELECTION *sel = MakeSelection(it->second, s, c);
+            ADIOS_SELECTION *sel;
+            if(readingRestartFile) 
+                sel = MakeSelection(it->second, s, c);
+            else
+                sel = MakeLimitedSelection(it->second, s, c, 0);
+                
             for(int i = 0; i < it->second->ndim; i++)
                 nt *= c[i];
             long long *buff = new long long[nt];
@@ -688,6 +853,42 @@ eavlXGCParticleImporter::GetField(const string &name, const string &mesh, int ch
         THROW(eavlException, string("Variable not found: ")+name);
     }
     return field;
+}
+
+
+ADIOS_SELECTION *
+eavlXGCParticleImporter::MakeLimitedSelection(ADIOS_VARINFO *avi, uint64_t *s, uint64_t *c, int ION)
+{
+    if(ION)
+    {
+        s[0] = IONstartIndex;
+        s[1] = 0;
+        s[2] = 0;
+        c[0] = IONendIndex-IONstartIndex;
+        c[1] = 0;
+        c[2] = 0;
+        
+        for(int i = 1; i < avi->ndim; i++)
+        {
+            c[i] = avi->dims[i];
+        }
+    }
+    else
+    {
+        s[0] = ELECTRONstartIndex;
+        s[1] = 0;
+        s[2] = 0;
+        c[0] = ELECTRONendIndex - ELECTRONstartIndex;
+        c[1] = 0;
+        c[2] = 0;
+        
+        for(int i = 1; i < avi->ndim; i++)
+        {
+            c[i] = avi->dims[i];
+        }    
+    }
+    
+    return adios_selection_boundingbox(avi->ndim, s, c);
 }
 
 
