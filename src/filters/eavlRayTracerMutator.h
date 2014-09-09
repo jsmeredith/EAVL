@@ -505,6 +505,13 @@ class eavlRayTracerMutator : public eavlMutator
     float     *sphr_bvh_lf_raw;
     float     *sphr_scalars_raw;
     int       *sphr_matIdx_raw;
+
+    float     *cyl_verts_raw;
+    float     *cyl_bvh_in_raw;            /* BVH broken up into inner nodes and leaf nodes */
+    float     *cyl_bvh_lf_raw;
+    float     *cyl_scalars_raw;
+    int       *cyl_matIdx_raw;
+
     float     *mats_raw;
 
     void Init();

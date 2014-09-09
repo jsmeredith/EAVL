@@ -16,6 +16,7 @@ class eavlRTScene
 		vector<RTMaterial>* mats;
 		vector<RTTriangle>* tris;					// Optimization idea: have a triangle class keep a struct of arrays and preform as the data as it is inserted. Just get pointer to the vector data
 		vector<RTSphere>* 	spheres;
+		vector<RTCyl>* 	    cyls;
 		map<string, int> 	matMap;
 		int 				numMats;
 		string 				filename;
@@ -37,6 +38,8 @@ class eavlRTScene
 													const  float &scalarV0, const float &scalarV1, const float &scalarV2,  const int &matId);
 		EAVL_HOSTONLY inline void 		addSphere(const float &radius, const float &centerX, const float &centerY, const float &centerZ, const float _scalar , string matName="default");
 		EAVL_HOSTONLY inline void 		addSphere(const float &radius, const float &centerX, const float &centerY, const float &centerZ, const float _scalar , const int &matId);
+		EAVL_HOSTONLY inline void 		addLine(const float &radius, const eavlVector3 &p0, const float &s0, const eavlVector3 &p1, const float &s1, string matName="default");
+		EAVL_HOSTONLY inline void 		addLine(const float &radius, const eavlVector3 &p0, const float &s0, const eavlVector3 &p1, const float &s1, const int &matId);
 		EAVL_HOSTONLY inline void 		setDefaultMaterial(const RTMaterial &_mat);
 		EAVL_HOSTONLY inline int 		addMaterial( RTMaterial _mat, string matName);
 		EAVL_HOSTONLY inline int 		addMaterial( RTMaterial _mat);
@@ -187,6 +190,29 @@ EAVL_HOSTONLY  inline void eavlRTScene::addSphere(const float &radius, const flo
 	RTSphere t ( radius, eavlVector3(centerX, centerY, centerZ),_scalar, matId );
 	spheres->push_back( t );
 	sceneBbox.expandToInclude(t.getBBox());
+}
+
+EAVL_HOSTONLY inline void eavlRTScene::addLine(const float &radius, const eavlVector3 &p0, const float &s0, const eavlVector3 &p1, const float &s1, string matName)
+{
+	int matId=0;
+	if(matName!="default")
+	{
+		if ( matMap.find(matName) != matMap.end() ) 
+		{
+  			matId=matMap[matName];
+		} 
+	}
+
+	eavlVector3 axis = p1 - p0;
+ 	float h = sqrt(axis * axis);
+	RTCyl t(radius, p0, h, axis, s0, s1, matId);
+}
+
+EAVL_HOSTONLY inline void eavlRTScene::addLine(const float &radius, const eavlVector3 &p0, const float &s0, const eavlVector3 &p1, const float &s1, const int & matId)
+{
+	eavlVector3 axis = p1 - p0;
+ 	float h = sqrt(axis * axis);
+	RTCyl t(radius, p0, h, axis, s0, s1, matId);
 }
 
 EAVL_HOSTONLY inline void eavlRTScene::loadObjFile(const char * _filename)

@@ -4,20 +4,23 @@
 #include "eavlMapOp.h"
 #include "eavlColor.h"
 
-//declare the texture reference even if we are not using texture memory
+#define USE_TEXTURE_MEM
+
 #ifndef HAVE_CUDA
 template<class T> class texture {};
+
 struct float4
 {
     float x,y,z,w;
 };
 #endif
+
+
 texture<float4> tets_verts_tref;
 texture<float4> scalars_tref;
 /*color map texture */
 texture<float4> cmap_tref;
 
-#define USE_TEXTURE_MEM
 template<class T>
 class eavlConstArrayV2
 {

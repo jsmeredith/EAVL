@@ -5,6 +5,7 @@
 #include "eavlVRScene.h"
 #include "eavlRTUtil.h"
 
+
 class eavlSimpleVRMutator : public eavlMutator
 {
   public:

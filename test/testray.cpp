@@ -12,6 +12,8 @@
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
+
+
 eavlDataSet *ReadWholeFile(const string &);
 void printUsage()
 {

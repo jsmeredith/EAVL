@@ -4,6 +4,7 @@
 
 #define PI          3.14159265359f
 
+
 EAVL_HOSTDEVICE float rcp(float f){ return 1.0f/f;}
 EAVL_HOSTDEVICE float rcp_safe(float f) { return rcp((fabs(f) < 1e-8f) ? 1e-8f : f); }
 
@@ -37,15 +38,15 @@ struct RayGenFunctor
     eavlVector3 delta_y;
 
     RayGenFunctor(int width, int height, float half_fovX, float half_fovY, eavlVector3 look, eavlVector3 up, float _zoom)
-        : h(height), w(width)
+        : w(width), h(height)
     {
         float thx = tan(half_fovX*PI/180);
         float thy = tan(half_fovY*PI/180);
 
-        //eavlVector3 ru= look%up;// % == cross
+
         eavlVector3 ru = up%look;
         ru.normalize();
-        //eavlVector3 rv= look%ru;
+
         eavlVector3 rv = ru%look;
         rv.normalize();
 
@@ -86,7 +87,7 @@ struct ScreenDepthFunctor{
     float proj32;
 
     ScreenDepthFunctor(float _proj22, float _proj23, float _proj32)
-        : proj32(_proj32), proj23(_proj23), proj22(_proj22)
+        : proj22(_proj22), proj23(_proj23), proj32(_proj32) 
     {
         
     }                                                 

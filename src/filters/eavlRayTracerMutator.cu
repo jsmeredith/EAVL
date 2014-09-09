@@ -35,6 +35,7 @@
 
 
 
+
 #define TOLERANCE   0.00001
 #define BARY_TOLE   0.0001f
 #define EPSILON     0.01f
@@ -42,15 +43,18 @@
 #define END_FLAG    -1000000000
 
 #define FILE_LEAF -100001
+#define USE_TEXTURE_MEM
 
-//declare the texture reference even if we are not using texture memory
 #ifndef HAVE_CUDA
 template<class T> class texture {};
+
 struct float4
 {
     float x,y,z,w;
 };
 #endif
+//declare the texture reference even if we are not using texture memory
+
 /* Triangle textures */
 texture<float4> tri_bvh_in_tref;            /* BVH inner nodes */
 texture<float4> tri_verts_tref;             /* vert+ scalar data */
@@ -60,13 +64,21 @@ texture<float4> sphr_verts_tref;
 texture<float4> sphr_bvh_in_tref;
 texture<float>  sphr_bvh_lf_tref;
 texture<float>  sphr_scalars_tref;
+/*Cylinder textures */
+texture<float4> cyl_bvh_in_tref;         
+texture<float4> cyl_verts_tref;             
+texture<float>  cyl_bvh_lf_tref;            
+texture<float>  cyl_scalars_tref;
+
+
 /*material Index textures*/
 texture<int>    tri_matIdx_tref;
 texture<int>    sphr_matIdx_tref;
+texture<int>    cyl_matIdx_tref;
+
 /*color map texture */
 texture<float4> color_map_tref;
 
-#define USE_TEXTURE_MEM
 template<class T>
 class eavlConstArrayV2
 {
@@ -149,17 +161,25 @@ class eavlConstArrayV2
 
 };
 
+
 eavlConstArrayV2<float4>* tri_bvh_in_array;
 eavlConstArrayV2<float4>* tri_verts_array;
 eavlConstArrayV2<float>*  tri_bvh_lf_array;
+eavlConstArrayV2<int>*    tri_matIdx_array;    
 
 eavlConstArrayV2<float4>* sphr_bvh_in_array;
 eavlConstArrayV2<float4>* sphr_verts_array;
 eavlConstArrayV2<float>*  sphr_bvh_lf_array;
 eavlConstArrayV2<float>*  sphr_scalars_array;
-
 eavlConstArrayV2<int>*    sphr_matIdx_array;
-eavlConstArrayV2<int>*    tri_matIdx_array;    
+
+eavlConstArrayV2<float4>* cyl_bvh_in_array;
+eavlConstArrayV2<float4>* cyl_verts_array;
+eavlConstArrayV2<float>*  cyl_bvh_lf_array;
+eavlConstArrayV2<float>*  cyl_scalars_array;
+eavlConstArrayV2<int>*    cyl_matIdx_array;
+
+
 
 eavlConstArrayV2<float4>* cmap_array;
 
@@ -225,34 +245,54 @@ eavlRayTracerMutator::eavlRayTracerMutator()
 
     /*texture array Ptrs */
     tri_bvh_in_array    = NULL;
-
     tri_verts_array     = NULL;
     tri_bvh_lf_array    = NULL;
 
     sphr_bvh_in_array   = NULL;
     sphr_verts_array    = NULL;
     sphr_bvh_lf_array   = NULL;
-
     sphr_scalars_array  = NULL;
-
     sphr_matIdx_array   = NULL;
+
+    cyl_bvh_in_array   = NULL;
+    cyl_verts_array    = NULL;
+    cyl_bvh_lf_array   = NULL;
+    cyl_scalars_array  = NULL;
+    cyl_matIdx_array   = NULL;
+
     tri_matIdx_array    = NULL;
 
     cmap_array     = NULL;
 
 
-
+    /* Raw arrays */
     tri_verts_raw    = NULL;
     tri_norms_raw    = NULL;
     tri_matIdx_raw   = NULL;
-    sphr_verts_raw   = NULL;
-    sphr_matIdx_raw  = NULL;
-    mats_raw         = NULL;
     tri_bvh_in_raw   = NULL;
     tri_bvh_lf_raw   = NULL;
+
+    sphr_verts_raw   = NULL;
+    sphr_matIdx_raw  = NULL;
     sphr_bvh_in_raw  = NULL;
     sphr_bvh_lf_raw  = NULL;
     sphr_scalars_raw = NULL;
+
+    cyl_verts_raw   = NULL;
+    cyl_matIdx_raw  = NULL;
+    cyl_bvh_in_raw  = NULL;
+    cyl_bvh_lf_raw  = NULL;
+    cyl_scalars_raw = NULL;
+
+    mats_raw         = NULL;
+
+    
+
+    
+
+    cyl_bvh_in_raw  = NULL;
+    cyl_bvh_lf_raw  = NULL;
+    cyl_scalars_raw = NULL;
 
 
 
@@ -1979,8 +2019,6 @@ void eavlRayTracerMutator::Execute()
     int tinit;
     if(verbose) tinit = eavlTimer::Start();
     if(verbose) th = eavlTimer::Start();
-
-    //if(verbose) cerr<<"Executing Before Init"<<endl;
 
     Init();
     /*if there are no primitives, just return black*/

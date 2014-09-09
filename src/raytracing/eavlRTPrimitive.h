@@ -290,6 +290,68 @@ class RTSphere : public RTPrimitive
 
 };
 
+class RTCyl : public RTPrimitive
+{
+		
+	public:
+		float data[8]; //center(base point) - radius - axis - height
+		float scalar[2];
+		EAVL_HOSTDEVICE RTCyl(const float &_radius, const eavlVector3 &_base, const float _height,
+							  eavlVector3 axis, const float &_scalar1, 
+							  const float &_scalar2, const int &_matIdx )
+		{
+			matIdx = _matIdx;
+			axis.normalize();
+			// Conservative bounding capsule
+
+			eavlVector3 top = _base + axis * _height;
+			eavlVector3 temp(0,0,0);
+			temp.x = _radius;
+			temp.y = 0;
+			temp.z = 0;
+			bbox.expandToInclude(_base + temp);
+			bbox.expandToInclude( top + temp);
+			bbox.expandToInclude(_base - temp);
+			bbox.expandToInclude( top - temp);
+			temp.x = 0;
+			temp.y = _radius;
+			temp.z = 0;
+			bbox.expandToInclude(_base + temp);
+			bbox.expandToInclude( top + temp);
+			bbox.expandToInclude(_base - temp);
+			bbox.expandToInclude( top - temp);
+			temp.x = 0;
+			temp.y = 0;
+			temp.z = _radius;
+			bbox.expandToInclude(_base + temp);
+			bbox.expandToInclude( top + temp);
+			bbox.expandToInclude(_base - temp);
+			bbox.expandToInclude( top - temp);
+
+
+
+			data[0] = _base.x;
+			data[1] = _base.y;
+			data[2] = _base.z;
+			data[3] = _radius;
+			data[4] = axis.x;
+			data[5] = axis.y;
+			data[6] = axis.z;
+			data[7] = _height;
+			scalar[0] = _scalar1;
+			scalar[1] = _scalar2;
+		}
+
+		EAVL_HOSTDEVICE int 		  getRadius() 		const  { return data[3]; }
+		EAVL_HOSTDEVICE eavlVector3   getCenter()      	const  { return eavlVector3(data[0],data[1],data[2]); }
+		EAVL_HOSTDEVICE float		  getSurfaceArea() 	const  { return 4.f*data[3]*data[3]*3.1415926535f;}
+		EAVL_HOSTDEVICE float 		  operator[](int i) const 
+		{
+			return data[i];
+		}
+
+};
+
 class VRTetrahedron : public RTPrimitive
 {
 	public:

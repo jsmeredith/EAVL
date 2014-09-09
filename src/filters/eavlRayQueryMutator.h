@@ -4,7 +4,6 @@
 #include "eavlRTScene.h"
 #include "eavlRTUtil.h"
 
-
 class eavlRayQueryMutator : public eavlMutator
 {
   public:

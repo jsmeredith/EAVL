@@ -12,21 +12,22 @@
 #define INFINITE    1000000
 #define EPSILON     0.001f
 
+#define USE_TEXTURE_MEM
+
 #ifndef HAVE_CUDA
 template<class T> class texture {};
+
 struct float4
 {
     float x,y,z,w;
 };
 #endif
 
-
 /* Triangle textures */
 texture<float4> tri_bvh_in_tref;            /* BVH inner nodes */
 texture<float4> tri_verts_tref;              /* vert+ scalar data */
 texture<float>  tri_bvh_lf_tref;            /* BVH leaf nodes */
 
-#define USE_TEXTURE_MEM
 template<class T>
 class eavlConstArrayV2
 {
