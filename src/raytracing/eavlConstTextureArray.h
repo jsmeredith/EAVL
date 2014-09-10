@@ -1,7 +1,26 @@
 #ifndef EAVL_CONST_TEX_ARRAY_H
 #define EAVL_CONST_TEX_ARRAY_H
-
 #define USE_TEXTURE_MEM
+
+/*******************************************************
+/ Class: eavlConstArrayTexture
+/ Purpose: 
+/	This class implements an constant array accessible
+/   from functors as a member of the fucntor. The texure
+/	fecthes can be benificial to performance since the 
+/   texture units on a GPU provide a alternative path to
+/   global memory. Additionaly, fetching a float4 
+/   retrieves all four values in a single instruction.
+/  
+/   
+/   Note: The CUDA texture reference must be declared 
+/         globally in the same file as the fucntor that
+/		  uses it. See the eavlRayQuery Mutator for an
+/		  example.
+/	  	  
+/
+/
+*******************************************************/
 
 #ifndef __CUDACC__
 template<class T> class texture {};
@@ -49,14 +68,10 @@ class eavlConstTexArray
     }
     ~eavlConstTexArray()
     {
-        
-
 #ifdef HAVE_CUDA
         cudaFree(device);
         CUDA_CHECK_ERROR();
 #endif
-
-
     }
 #ifdef __CUDA_ARCH__
 #ifdef USE_TEXTURE_MEM
