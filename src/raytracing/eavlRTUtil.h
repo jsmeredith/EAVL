@@ -8,7 +8,7 @@
 EAVL_HOSTDEVICE float rcp(float f){ return 1.0f/f;}
 EAVL_HOSTDEVICE float rcp_safe(float f) { return rcp((fabs(f) < 1e-8f) ? 1e-8f : f); }
 
-enum primitive_t { TRIANGLE = 0, SPHERE = 1 , TET = 2};
+enum primitive_t { TRIANGLE = 0, SPHERE = 1 , TET = 2 , CYLINDER = 3};
 
 template <class T>  void deleteClassPtr(T * &ptr)
 {
@@ -478,5 +478,28 @@ inline bool spacialCompare(const raySort &lhs,const raySort &rhs)
 {
     return lhs.mortonCode < rhs.mortonCode;
 }
+
+template<typename T>
+EAVL_HOSTDEVICE bool solveQuadratic(const T &a, const T &b, const T &c, T &x0, T &x1)
+{
+    T discr = b * b - 4 * a * c;
+    if (discr < 0) return false;
+    else if (discr == 0) x0 = x1 = - 0.5 * b / a;
+    else {
+        T q = (b > 0) ?
+            -0.5 * (b + sqrt(discr)) :
+            -0.5 * (b - sqrt(discr));
+        x0 = q / a;
+        x1 = c / q;
+    }
+    if (x0 > x1) 
+    {
+        T tmp = x0;
+        x0 = x1;
+        x1 = tmp;
+    }
+    return true;
+}
+
 
 #endif

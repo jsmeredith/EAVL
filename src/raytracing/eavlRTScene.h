@@ -46,6 +46,7 @@ class eavlRTScene
 		EAVL_HOSTONLY inline int 		getNumTriangles(){ return tris->size(); };
 		EAVL_HOSTONLY inline int 		getNumMaterials(){ return mats->size(); };
 		EAVL_HOSTONLY inline int 		getNumSpheres(){ return spheres->size(); };
+		EAVL_HOSTONLY inline int 		getNumCyls(){ return cyls->size(); };
 		EAVL_HOSTONLY inline int 		getTotalPrimitives();
 		EAVL_HOSTONLY inline void       loadObjFile(const char* filename);
 		EAVL_HOSTONLY inline void       clear();   												/* clears primitives */
@@ -54,6 +55,9 @@ class eavlRTScene
 		EAVL_HOSTONLY inline float*     getSpherePtr();
 		EAVL_HOSTONLY inline float*     getSphereScalarPtr();
 	    EAVL_HOSTONLY inline int*       getSphrMatIdxPtr();
+	    EAVL_HOSTONLY inline float*     getCylPtr();
+		EAVL_HOSTONLY inline float*     getCylScalarPtr();
+	    EAVL_HOSTONLY inline int*       getCylMatIdxPtr();
 		EAVL_HOSTONLY inline float*     getMatsPtr();
 		EAVL_HOSTONLY inline int*       getTriMatIdxsPtr();
 		EAVL_HOSTONLY inline float 		getSceneExtentMagnitude();
@@ -70,8 +74,9 @@ EAVL_HOSTONLY inline eavlRTScene::eavlRTScene(RTMaterial defaultMaterial)
 	matMap.insert(pair<string, int> ("default", 0));
 	numMats = 1;
 
-	tris= new vector<RTTriangle>();
-	spheres= new vector<RTSphere>();
+	tris    = new vector<RTTriangle>();
+	spheres = new vector<RTSphere>();
+	cyls    = new vector<RTCyl>();
 }
 
 EAVL_HOSTONLY inline eavlRTScene::~eavlRTScene()
@@ -206,6 +211,8 @@ EAVL_HOSTONLY inline void eavlRTScene::addLine(const float &radius, const eavlVe
 	eavlVector3 axis = p1 - p0;
  	float h = sqrt(axis * axis);
 	RTCyl t(radius, p0, h, axis, s0, s1, matId);
+	cyls->push_back( t );
+	sceneBbox.expandToInclude(t.getBBox());
 }
 
 EAVL_HOSTONLY inline void eavlRTScene::addLine(const float &radius, const eavlVector3 &p0, const float &s0, const eavlVector3 &p1, const float &s1, const int & matId)
@@ -326,6 +333,27 @@ EAVL_HOSTONLY inline float* eavlRTScene::getSpherePtr()
  	return spheres_raw;
 };
 
+EAVL_HOSTONLY inline float* eavlRTScene::getCylPtr()
+{
+	if(getNumCyls()==0) return NULL;
+	float * cyls_raw;
+ 	int numCyls = getNumCyls();
+	cyls_raw= new float[numCyls*8];
+	for(int i=0; i< numCyls ; i++)
+	{
+		cyls_raw[i*8  ] = cyls->at(i).data[0]; //BasePoint
+		cyls_raw[i*8+1] = cyls->at(i).data[1];
+		cyls_raw[i*8+2] = cyls->at(i).data[2];
+		cyls_raw[i*8+3] = cyls->at(i).data[3]; //radius
+		cyls_raw[i*8+4] = cyls->at(i).data[4]; //axis
+		cyls_raw[i*8+5] = cyls->at(i).data[5];
+		cyls_raw[i*8+6] = cyls->at(i).data[6];
+		cyls_raw[i*8+7] = cyls->at(i).data[7]; //height
+	}
+			
+ 	return cyls_raw;
+};
+
 EAVL_HOSTONLY inline int*   eavlRTScene::getSphrMatIdxPtr()
 { 
 	if(getNumSpheres()==0) return NULL;
@@ -337,6 +365,19 @@ EAVL_HOSTONLY inline int*   eavlRTScene::getSphrMatIdxPtr()
 		sphrMatIdx [i]= spheres->at(i).getMatIndex();
 	}
 	return sphrMatIdx;
+};
+
+EAVL_HOSTONLY inline int*   eavlRTScene::getCylMatIdxPtr()
+{ 
+	if(getNumCyls()==0) return NULL;
+	int* cylMatIdx;
+ 	int numCyls= getNumCyls();
+	cylMatIdx = new int[numCyls];
+	for(int i=0; i< numCyls ; i++)
+	{
+		cylMatIdx [i]= cyls->at(i).getMatIndex();
+	}
+	return cylMatIdx;
 };
 
 EAVL_HOSTONLY inline float* eavlRTScene::getMatsPtr()
@@ -387,7 +428,7 @@ EAVL_HOSTONLY inline float eavlRTScene::getSceneExtentMagnitude()
 
 EAVL_HOSTONLY  inline int  eavlRTScene::getTotalPrimitives()
 {
-	return getNumTriangles()+getNumSpheres();
+	return getNumTriangles()+getNumSpheres()+getNumCyls();
 }
 
 EAVL_HOSTONLY inline float* eavlRTScene::getSphereScalarPtr()
@@ -401,5 +442,19 @@ EAVL_HOSTONLY inline float* eavlRTScene::getSphereScalarPtr()
 		sphrScalars [i]= spheres->at(i).scalar;
 	}
 	return sphrScalars;
+}
+
+EAVL_HOSTONLY inline float* eavlRTScene::getCylScalarPtr()
+{
+	if(getNumCyls()==0) return NULL;
+	float* cylScalars;
+ 	int numCyls= getNumSpheres();
+	cylScalars = new float[numCyls*2];
+	for(int i=0; i< numCyls ; i++)
+	{
+		cylScalars [i*2  ]= cyls->at(i).scalar[0];
+		cylScalars [i*2+1]= cyls->at(i).scalar[1];
+	}
+	return cylScalars;
 }
 #endif

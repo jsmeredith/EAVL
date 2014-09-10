@@ -31,12 +31,13 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     bool setLight;
     string ctName;
     float pointRadius;
+    float lineWidth;
   public:
     eavlSceneRendererRT()
     {
         tracer = new eavlRayTracerMutator();
         tracer->setDepth(1);
-        //tracer->setVerbose(true);
+        // /tracer->setVerbose(true);
         tracer->setAOMax(5);
         tracer->setOccSamples(4);
         tracer->setAO(true);
@@ -47,6 +48,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         ctName = "";
         tracer->setDefaultMaterial(Ka,Kd,Ks);
         pointRadius = .1f;
+        lineWidth = .05f;
 
     }
     ~eavlSceneRendererRT()
@@ -110,19 +112,6 @@ class eavlSceneRendererRT : public eavlSceneRenderer
                                  double u2, double v2, double w2,
                                  double s0, double s1, double s2)
     {
-        //cout<<"Calling add trianles"<<endl;
-        /*glNormal3d(u0,v0,w0);
-        glTexCoord1f(s0);
-        glVertex3d(x0,y0,z0);
-
-        glNormal3d(u1,v1,w1);
-        glTexCoord1f(s1);
-        glVertex3d(x1,y1,z1);
-
-        glNormal3d(u2,v2,w2);
-        glTexCoord1f(s2);
-        glVertex3d(x2,y2,z2);*/
-
         tracer->scene->addTriangle(eavlVector3(x0,y0,z0) , eavlVector3(x1,y1,z1), eavlVector3(x2,y2,z2),
                                    eavlVector3(u0,v0,w0) , eavlVector3(u1,v1,w1), eavlVector3(u2,v2,w2),
                                    s0,s1,s2,  "default");
@@ -133,13 +122,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
     virtual void StartPoints()
     {
-        //glDisable(GL_LIGHTING);
-        //glPointSize(3);
-        //glBegin(GL_POINTS);
-        //canRender=false;
-        //cout<<"Starting points"<<endl;
         tracer->startScene();
-        //tracer->scene->addSphere(5,0,-5.f,0, "default");
     }
 
     virtual void EndPoints()
@@ -149,8 +132,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
     virtual void AddPointVs(double x, double y, double z, double r, double s)
     {
-        //glTexCoord1f(s);
-        //glVertex3d(x,y,z);
+        
         tracer->scene->addSphere(pointRadius,x,y,z,s,"default");
     }
 
@@ -158,10 +140,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
     virtual void StartLines()
     {
-        //cout<<"Starting lines"<<endl;
-        //glDisable(GL_LIGHTING);
-        //glLineWidth(2);
-        //glBegin(GL_LINES);
+        tracer->startScene();
     }
 
     virtual void EndLines()
@@ -173,11 +152,8 @@ class eavlSceneRendererRT : public eavlSceneRenderer
                            double x1, double y1, double z1,
                            double s0, double s1)
     {
-        //glTexCoord1f(s0);
-        //glVertex3d(x0,y0,z0);
-
-        //glTexCoord1f(s1);
-        //glVertex3d(x1,y1,z1);
+        //cout<<"ADDING LINE"<<endl;
+        tracer->scene->addLine(lineWidth, eavlVector3(x0,y0,z0),s0, eavlVector3(x1,y1,z1),s1 );
     }
 
 
@@ -213,7 +189,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setCameraPos(view.view3d.from.x,view.view3d.from.y,view.view3d.from.z);
         //tracer->setCameraPos(20,20,20);
         tracer->setUp(up.x,up.y,up.z);
-        
+        //tracer->scene->addLine(lineWidth, eavlVector3(0,0,0),0, eavlVector3(7,7,7),0 );
         /*Otherwise the light will move with the camera*/
         if(eyeLight)//setLight)
         {
