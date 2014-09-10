@@ -110,12 +110,24 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(   const string &filename,
     MPI_Get_processor_name(hostname, &len);
     
     fp = adios_read_open(filename.c_str(), method, comm, mode, timeout_sec);
-        
-    if(fp == NULL)
+    
+    if (fp == NULL)
     {
-        fprintf (stderr, "Error at opening adios stream: %s\n", adios_errmsg());
-        THROW(eavlException, "Adios stream error, or XGC variable file not found.");
-    }
+        if(adios_errno == err_end_of_stream)
+        {
+            printf ("End of stream, no more steps expected. Quit. %s\n",
+                        adios_errmsg()
+                   );
+            THROW(eavlException, "XGC variable file not found.");
+        }
+        else
+        {
+            printf ("No new step arrived within the timeout. Quit. %s\n",
+                     adios_errmsg()
+                    );
+            THROW(eavlException, "XGC variable file not found.");
+        }
+    }    
     
     Initialize();
 }
