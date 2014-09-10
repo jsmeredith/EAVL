@@ -7,6 +7,7 @@
 #include "eavlMatrix4x4.h"
 #include "eavlRTScene.h"
 #include "eavlRTUtil.h"
+#include "eavlConstTextureArray.h"
 
 class eavlRayTracerMutator : public eavlMutator
 {

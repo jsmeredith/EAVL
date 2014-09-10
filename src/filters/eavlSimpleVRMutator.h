@@ -4,6 +4,7 @@
 #include "eavlFilter.h"
 #include "eavlVRScene.h"
 #include "eavlRTUtil.h"
+#include "eavlConstTextureArray.h"
 
 
 class eavlSimpleVRMutator : public eavlMutator

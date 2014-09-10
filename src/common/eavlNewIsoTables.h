@@ -25,6 +25,7 @@ class eavlConstArray
         cudaMalloc((void**)&device, nbytes);
         cudaMemcpy(device, &(host[0]),
                    nbytes, cudaMemcpyHostToDevice);
+        CUDA_CHECK_ERROR();
 #endif
     }
 #ifdef __CUDA_ARCH__

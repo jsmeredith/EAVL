@@ -3,6 +3,7 @@
 #include "eavlFilter.h"
 #include "eavlRTScene.h"
 #include "eavlRTUtil.h"
+#include "eavlConstTextureArray.h"
 
 class eavlRayQueryMutator : public eavlMutator
 {

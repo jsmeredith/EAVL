@@ -4,108 +4,14 @@
 #include "eavlMapOp.h"
 #include "eavlColor.h"
 
-#define USE_TEXTURE_MEM
-
-#ifndef HAVE_CUDA
-template<class T> class texture {};
-
-struct float4
-{
-    float x,y,z,w;
-};
-#endif
-
-
 texture<float4> tets_verts_tref;
 texture<float4> scalars_tref;
 /*color map texture */
 texture<float4> cmap_tref;
 
-template<class T>
-class eavlConstArrayV2
-{
-  private: 
-    bool cpu;
-  public:
-    T *host;
-    T *device;
-    
-  public:
-    eavlConstArrayV2(T *from, int N, texture<T> &g_textureRef, bool CPU)
-    {
-        host = from;
-        cpu = CPU;
-        if(!CPU)
-        {
-#ifdef HAVE_CUDA
-        
-        
-            int nbytes = N * sizeof(T);
-            cudaMalloc((void**)&device, nbytes);
-            CUDA_CHECK_ERROR();
-            cudaMemcpy(device, &(host[0]),
-                   nbytes, cudaMemcpyHostToDevice);
-            CUDA_CHECK_ERROR();
-#ifdef USE_TEXTURE_MEM
-            cudaBindTexture(0, g_textureRef,device,nbytes);
-            CUDA_CHECK_ERROR();
-#endif
-
-#endif
-        }
-    }
-    ~eavlConstArrayV2()
-    {
-        
-
-#ifdef HAVE_CUDA
-        //cudaFree(device);
-        //CUDA_CHECK_ERROR();
-#endif
-
-
-    }
-#ifdef __CUDA_ARCH__
-#ifdef USE_TEXTURE_MEM
-    EAVL_DEVICEONLY  const T getValue(texture<T> g_textureRef, int index) const
-    {
-        return tex1Dfetch(g_textureRef, index);
-    }
-    EAVL_HOSTONLY  void unbind(texture<T> g_textureRef)
-    {
-        if(!cpu)
-        {
-            cudaUnbindTexture(g_textureRef);
-            CUDA_CHECK_ERROR();
-        }
-        
-    }
-#else
-    EAVL_DEVICEONLY const T &getValue(texture<T> g_textureRef, int index) const
-    {
-        return device[index];
-    }
-    EAVL_HOSTONLY  void unbind(texture<T> g_textureRef)
-    {
-        //do nothing
-    }
-#endif
-#else
-    EAVL_HOSTONLY const T &getValue(texture<T> g_textureRef, int index) const
-    {
-        return host[index];
-    }
-    EAVL_HOSTONLY  void unbind(texture<T> g_textureRef)
-    {
-        //do nothing
-    }
-#endif
-
-};
-
-eavlConstArrayV2<float4>* tets_verts_array;
-eavlConstArrayV2<float4>* color_map_array;
-eavlConstArrayV2<float4>* scalars_array;
+eavlConstTexArray<float4>* tets_verts_array;
+eavlConstTexArray<float4>* color_map_array;
+eavlConstTexArray<float4>* scalars_array;
 
 eavlSimpleVRMutator::eavlSimpleVRMutator()
 {
@@ -126,6 +32,10 @@ eavlSimpleVRMutator::eavlSimpleVRMutator()
 	tets_raw = NULL;
 	colormap_raw = NULL;
     scalars_raw = NULL;
+
+    tets_verts_array = NULL;
+    tets_verts_array = NULL;
+    tets_verts_array = NULL;
 
 	scene = new eavlVRScene();
 
@@ -184,13 +94,13 @@ eavlSimpleVRMutator::~eavlSimpleVRMutator()
 
 struct ScreenSpaceFunctor
 {   
-    eavlConstArrayV2<float4> verts;
+    const eavlConstTexArray<float4> *verts;
     eavlView         view;
     int              nSamples;
     float            mindepth;
     float            maxdepth;
-    ScreenSpaceFunctor(eavlConstArrayV2<float4>* _verts, eavlView _view, int _nSamples)
-    : view(_view), verts(*_verts), nSamples(_nSamples)
+    ScreenSpaceFunctor(const eavlConstTexArray<float4> *_verts, eavlView _view, int _nSamples)
+    : view(_view), verts(_verts), nSamples(_nSamples)
     {
         float dist = (view.view3d.from - view.view3d.at).norm();
         eavlPoint3 closest(0,0,-dist+view.size*.5);
@@ -206,10 +116,10 @@ struct ScreenSpaceFunctor
         eavlPoint3 mine(FLT_MAX,FLT_MAX,FLT_MAX);
         eavlPoint3 maxe(-FLT_MAX,-FLT_MAX,-FLT_MAX);
         float4 v[4];
-        v[0] = verts.getValue(tets_verts_tref, tet*4   );
-        v[1] = verts.getValue(tets_verts_tref, tet*4+1 );
-        v[2] = verts.getValue(tets_verts_tref, tet*4+2 );
-        v[3] = verts.getValue(tets_verts_tref, tet*4+3 );
+        v[0] = verts->getValue(tets_verts_tref, tet*4   );
+        v[1] = verts->getValue(tets_verts_tref, tet*4+1 );
+        v[2] = verts->getValue(tets_verts_tref, tet*4+2 );
+        v[3] = verts->getValue(tets_verts_tref, tet*4+3 );
         
         eavlPoint3 p[4];
 
@@ -331,12 +241,12 @@ EAVL_HOSTDEVICE bool TetBarycentricCoords(eavlPoint3 p0,
 
 struct SampleFunctor
 {   
-    eavlConstArrayV2<float4> scalars;
+    const eavlConstTexArray<float4> *scalars;
     eavlView         view;
     int              nSamples;
     float*           samples;
-    SampleFunctor(eavlConstArrayV2<float4>* _scalars, eavlView _view, int _nSamples, float* _samples)
-    : view(_view), scalars(*_scalars), nSamples(_nSamples), samples(_samples)
+    SampleFunctor(const eavlConstTexArray<float4> *_scalars, eavlView _view, int _nSamples, float* _samples)
+    : view(_view), scalars(_scalars), nSamples(_nSamples), samples(_samples)
     {
 
     }
@@ -391,7 +301,7 @@ struct SampleFunctor
 
         float value;
         if (xmin > xmax || ymin > ymax || zmin > zmax) return tuple<float>(0.f);
-        float4 s = scalars.getValue(scalars_tref, tet);
+        float4 s = scalars->getValue(scalars_tref, tet);
         
         for(int x=xmin; x<=xmax; ++x)
         {
@@ -424,7 +334,7 @@ struct SampleFunctor
 
 struct CompositeFunctor
 {   
-    eavlConstArrayV2<float4> colorMap;
+    const eavlConstTexArray<float4> *colorMap;
     eavlView         view;
     int              nSamples;
     float*           samples;
@@ -433,8 +343,8 @@ struct CompositeFunctor
     int              ncolors;
     float            mindepth;
     float            maxdepth;
-    CompositeFunctor( eavlView _view, int _nSamples, float* _samples,eavlConstArrayV2<float4>* _colorMap, int _ncolors)
-    : view(_view), nSamples(_nSamples), samples(_samples), colorMap(*_colorMap), ncolors(_ncolors)
+    CompositeFunctor( eavlView _view, int _nSamples, float* _samples, const eavlConstTexArray<float4> *_colorMap, int _ncolors)
+    : view(_view), nSamples(_nSamples), samples(_samples), colorMap(_colorMap), ncolors(_ncolors)
     {
 
         w = view.w;
@@ -462,7 +372,7 @@ struct CompositeFunctor
                 continue;
 
             int colorindex = float(ncolors-1) * value;
-            float4 c = colorMap.getValue(cmap_tref, colorindex);
+            float4 c = colorMap->getValue(cmap_tref, colorindex);
             c.w = 1;
             // use a gaussian density function as the opactiy
             float center = 0.5;
@@ -495,7 +405,7 @@ struct CompositeFunctor
 
 struct CompositeFunctorFB
 {   
-    eavlConstArrayV2<float4> colorMap;
+    const eavlConstTexArray<float4> *colorMap;
     eavlView         view;
     int              nSamples;
     float*           samples;
@@ -504,8 +414,8 @@ struct CompositeFunctorFB
     int              ncolors;
     float            mindepth;
     float            maxdepth;
-    CompositeFunctorFB( eavlView _view, int _nSamples, float* _samples,eavlConstArrayV2<float4>* _colorMap, int _ncolors)
-    : view(_view), nSamples(_nSamples), samples(_samples), colorMap(*_colorMap), ncolors(_ncolors)
+    CompositeFunctorFB( eavlView _view, int _nSamples, float* _samples, const eavlConstTexArray<float4> *_colorMap, int _ncolors)
+    : view(_view), nSamples(_nSamples), samples(_samples), colorMap(_colorMap), ncolors(_ncolors)
     {
 
         w = view.w;
@@ -533,7 +443,7 @@ struct CompositeFunctorFB
                 continue;
 
             int colorindex = float(ncolors-1) * value;
-            float4 c = colorMap.getValue(cmap_tref, colorindex);
+            float4 c = colorMap->getValue(cmap_tref, colorindex);
             c.w = 1;
             // use a gaussian density function as the opactiy
             float center = 0.5;
@@ -580,11 +490,16 @@ void eavlSimpleVRMutator::setColorMap3f(float* cmap,int size)
     if(color_map_array != NULL)
     {
         color_map_array->unbind(cmap_tref);
-        delete color_map_array;
+        try
+        {
+            delete color_map_array;
+        } catch (const eavlException &e) {} 
+        color_map_array = NULL;
     }
-    if(colormap_raw!=NULL)
+    if(colormap_raw != NULL)
     {
-        delete colormap_raw;
+        delete[] colormap_raw;
+        colormap_raw = NULL;
     }
     colormap_raw= new float[size*4];
     
@@ -595,7 +510,7 @@ void eavlSimpleVRMutator::setColorMap3f(float* cmap,int size)
         colormap_raw[i*4+2] = cmap[i*3+2];
         colormap_raw[i*4+3] = .05;          //test Alpha
     }
-    color_map_array = new eavlConstArrayV2<float4>((float4*)colormap_raw, colormapSize, cmap_tref, cpu);
+    color_map_array = new eavlConstTexArray<float4>((float4*)colormap_raw, colormapSize, cmap_tref, cpu);
 }
 
 void eavlSimpleVRMutator::setDefaultColorMap()
@@ -604,16 +519,18 @@ void eavlSimpleVRMutator::setDefaultColorMap()
     {
         color_map_array->unbind(cmap_tref);
         delete color_map_array;
+        color_map_array = NULL;
     }
     if(colormap_raw!=NULL)
     {
         delete[] colormap_raw;
+        colormap_raw = NULL;
     }
     //two values all 1s
     colormapSize=2;
     colormap_raw= new float[8];
     for(int i=0;i<8;i++) colormap_raw[i]=1.f;
-    color_map_array = new eavlConstArrayV2<float4>((float4*)colormap_raw, colormapSize, cmap_tref, cpu);
+    color_map_array = new eavlConstTexArray<float4>((float4*)colormap_raw, colormapSize, cmap_tref, cpu);
     if(verbose) cout<<"Done setting defaul color map"<<endl;
 
 }
@@ -662,8 +579,8 @@ void eavlSimpleVRMutator::init()
         tets_raw = scene->getTetPtr();
         scalars_raw = scene->getScalarPtr();
         
-        tets_verts_array    = new eavlConstArrayV2<float4>( (float4*) tets_raw, numTets*4, tets_verts_tref, cpu); 
-        scalars_array       = new eavlConstArrayV2<float4>( (float4*) scalars_raw, numTets, scalars_tref, cpu);
+        tets_verts_array    = new eavlConstTexArray<float4>( (float4*) tets_raw, numTets*4, tets_verts_tref, cpu); 
+        scalars_array       = new eavlConstTexArray<float4>( (float4*) scalars_raw, numTets, scalars_tref, cpu);
       
         ssa = new eavlFloatArray("",1, numTets*3);
         ssb = new eavlFloatArray("",1, numTets*3);
@@ -801,7 +718,7 @@ void  eavlSimpleVRMutator::freeTextures()
     if (scalars_array != NULL) 
     {
         scalars_array->unbind(scalars_tref);
-        delete color_map_array;
+        delete scalars_array;
         scalars_array = NULL;
     }
    

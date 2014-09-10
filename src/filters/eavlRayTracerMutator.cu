@@ -43,16 +43,7 @@
 #define END_FLAG    -1000000000
 
 #define FILE_LEAF -100001
-#define USE_TEXTURE_MEM
 
-#ifndef HAVE_CUDA
-template<class T> class texture {};
-
-struct float4
-{
-    float x,y,z,w;
-};
-#endif
 //declare the texture reference even if we are not using texture memory
 
 /* Triangle textures */
@@ -79,109 +70,27 @@ texture<int>    cyl_matIdx_tref;
 /*color map texture */
 texture<float4> color_map_tref;
 
-template<class T>
-class eavlConstArrayV2
-{
-  private: 
-    bool cpu;
-  public:
-    T *host;
-    T *device;
-    
-  public:
-    eavlConstArrayV2(T *from, int N, texture<T> &g_textureRef, bool CPU)
-    {
-        host = from;
-        cpu = CPU;
-        if(!CPU)
-        {
-#ifdef HAVE_CUDA
-        
-        
-            int nbytes = N * sizeof(T);
-            cudaMalloc((void**)&device, nbytes);
-            CUDA_CHECK_ERROR();
-            cudaMemcpy(device, &(host[0]),
-                   nbytes, cudaMemcpyHostToDevice);
-            CUDA_CHECK_ERROR();
-#ifdef USE_TEXTURE_MEM
-            cudaBindTexture(0, g_textureRef,device,nbytes);
-            CUDA_CHECK_ERROR();
-#endif
 
-#endif
-        }
-    }
-    ~eavlConstArrayV2()
-    {
-        
+eavlConstTexArray<float4>* tri_bvh_in_array;
+eavlConstTexArray<float4>* tri_verts_array;
+eavlConstTexArray<float>*  tri_bvh_lf_array;
+eavlConstTexArray<int>*    tri_matIdx_array;    
 
-#ifdef HAVE_CUDA
-        //cudaFree(device);
-        //CUDA_CHECK_ERROR();
-#endif
+eavlConstTexArray<float4>* sphr_bvh_in_array;
+eavlConstTexArray<float4>* sphr_verts_array;
+eavlConstTexArray<float>*  sphr_bvh_lf_array;
+eavlConstTexArray<float>*  sphr_scalars_array;
+eavlConstTexArray<int>*    sphr_matIdx_array;
 
-
-    }
-#ifdef __CUDA_ARCH__
-#ifdef USE_TEXTURE_MEM
-    EAVL_DEVICEONLY  const T getValue(texture<T> g_textureRef, int index) const
-    {
-        return tex1Dfetch(g_textureRef, index);
-    }
-    EAVL_HOSTONLY  void unbind(texture<T> g_textureRef)
-    {
-        if(!cpu)
-        {
-            cudaUnbindTexture(g_textureRef);
-            CUDA_CHECK_ERROR();
-        }
-        
-    }
-#else
-    EAVL_DEVICEONLY const T &getValue(texture<T> g_textureRef, int index) const
-    {
-        return device[index];
-    }
-    EAVL_HOSTONLY  void unbind(texture<T> g_textureRef)
-    {
-        //do nothing
-    }
-#endif
-#else
-    EAVL_HOSTONLY const T &getValue(texture<T> g_textureRef, int index) const
-    {
-        return host[index];
-    }
-    EAVL_HOSTONLY  void unbind(texture<T> g_textureRef)
-    {
-        //do nothing
-    }
-#endif
-
-};
-
-
-eavlConstArrayV2<float4>* tri_bvh_in_array;
-eavlConstArrayV2<float4>* tri_verts_array;
-eavlConstArrayV2<float>*  tri_bvh_lf_array;
-eavlConstArrayV2<int>*    tri_matIdx_array;    
-
-eavlConstArrayV2<float4>* sphr_bvh_in_array;
-eavlConstArrayV2<float4>* sphr_verts_array;
-eavlConstArrayV2<float>*  sphr_bvh_lf_array;
-eavlConstArrayV2<float>*  sphr_scalars_array;
-eavlConstArrayV2<int>*    sphr_matIdx_array;
-
-eavlConstArrayV2<float4>* cyl_bvh_in_array;
-eavlConstArrayV2<float4>* cyl_verts_array;
-eavlConstArrayV2<float>*  cyl_bvh_lf_array;
-eavlConstArrayV2<float>*  cyl_scalars_array;
-eavlConstArrayV2<int>*    cyl_matIdx_array;
+eavlConstTexArray<float4>* cyl_bvh_in_array;
+eavlConstTexArray<float4>* cyl_verts_array;
+eavlConstTexArray<float>*  cyl_bvh_lf_array;
+eavlConstTexArray<float>*  cyl_scalars_array;
+eavlConstTexArray<int>*    cyl_matIdx_array;
 
 
 
-eavlConstArrayV2<float4>* cmap_array;
+eavlConstTexArray<float4>* cmap_array;
 
 
 
@@ -213,9 +122,9 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     light.y = 0;
     light.z = -20;
     
-    bgColor.x = 1;
-    bgColor.y = 1;
-    bgColor.z = 1;
+    bgColor.x = 0;
+    bgColor.y = 0;
+    bgColor.z = 0;
 
     compactOp   = false;
     geomDirty   = true;
@@ -240,13 +149,14 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     blueIndexer  = new eavlArrayIndexer(4,2);
     alphaIndexer = new eavlArrayIndexer(4,3);
     
-    cmap_array = NULL;
-    colorMap_raw    = NULL;
+    cmap_array   = NULL;
+    colorMap_raw = NULL;
 
     /*texture array Ptrs */
     tri_bvh_in_array    = NULL;
     tri_verts_array     = NULL;
     tri_bvh_lf_array    = NULL;
+    tri_matIdx_array    = NULL;
 
     sphr_bvh_in_array   = NULL;
     sphr_verts_array    = NULL;
@@ -260,7 +170,7 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     cyl_scalars_array  = NULL;
     cyl_matIdx_array   = NULL;
 
-    tri_matIdx_array    = NULL;
+   
 
     cmap_array     = NULL;
 
@@ -285,10 +195,6 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     cyl_scalars_raw = NULL;
 
     mats_raw         = NULL;
-
-    
-
-    
 
     cyl_bvh_in_raw  = NULL;
     cyl_bvh_lf_raw  = NULL;
@@ -350,24 +256,30 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     count = NULL;
     indexScan = NULL;
     setDefaultColorMap();
-    cout<<"Construtor Done. Dirty"<<endl;
-
 
     if(eavlExecutor::GetExecutionMode() == eavlExecutor::ForceCPU ) cpu = true;
     else cpu = false;
+    if(verbose) cout<<"Constructor finished\n";
 }
 
-void eavlRayTracerMutator::setColorMap3f(float* cmap,int size)
+void eavlRayTracerMutator::setColorMap3f(float* cmap, int size)
 {
     colorMapSize=size;
+    if (verbose) cout<<"Setting color map size "<<colorMapSize<<endl;
+
     if(cmap_array != NULL)
     {
         cmap_array->unbind(color_map_tref);
-        delete cmap_array;
+        try 
+        {
+            delete cmap_array;
+        } catch (eavlException &e) {}  //TODO: first call is invalid device ptr
+        cmap_array = NULL;
     }
     if(colorMap_raw != NULL)
     {
-        delete colorMap_raw;
+        delete[] colorMap_raw;
+        colorMap_raw = NULL;
     }
     colorMap_raw = new float[size*4];
     
@@ -377,26 +289,28 @@ void eavlRayTracerMutator::setColorMap3f(float* cmap,int size)
         colorMap_raw[i*4+1] = cmap[i*3+1];
         colorMap_raw[i*4+2] = cmap[i*3+2];
         colorMap_raw[i*4+3] = 0;
-        //cout<<cmap[i*3]<<" "<<cmap[i*3+1]<<" "<<cmap[i*3+2]<<endl;
     }
-    cmap_array = new eavlConstArrayV2<float4>((float4*)colorMap_raw, colorMapSize, color_map_tref, cpu);
+    cmap_array = new eavlConstTexArray<float4>((float4*)colorMap_raw, colorMapSize, color_map_tref, cpu);
 }
 void eavlRayTracerMutator::setDefaultColorMap()
 {
+    if(verbose) cout<<"Setting default color map"<<endl;
     if(cmap_array!=NULL)
     {
         cmap_array->unbind(color_map_tref);
         delete cmap_array;
+        cmap_array = NULL;
     }
     if(colorMap_raw!=NULL)
     {
         delete[] colorMap_raw;
+        colorMap_raw = NULL;
     }
     //two values all 1s
     colorMapSize=2;
     colorMap_raw= new float[8];
     for(int i=0;i<8;i++) colorMap_raw[i]=1.f;
-    cmap_array = new eavlConstArrayV2<float4>((float4*)colorMap_raw, colorMapSize, color_map_tref, cpu);
+    cmap_array = new eavlConstTexArray<float4>((float4*)colorMap_raw, colorMapSize, color_map_tref, cpu);
 
 }
 
@@ -611,7 +525,8 @@ EAVL_HOSTDEVICE eavlVector3 triangleIntersectionABG(const eavlVector3 ray,const 
 
 
 
-EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &tri_bvh_lf_raw,eavlConstArrayV2<float4> &verts,const float &maxDistance, float &distance)
+EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstTexArray<float4> *bvh,
+                                       const eavlConstTexArray<float> *tri_bvh_lf_raw, const eavlConstTexArray<float4> *verts,const float &maxDistance, float &distance)
 {
 
 
@@ -646,9 +561,9 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
         if(currentNode>-1)
         {
 
-            float4 n1 = bvh.getValue(tri_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
-            float4 n2 = bvh.getValue(tri_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
-            float4 n3 = bvh.getValue(tri_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
+            float4 n1 = bvh->getValue(tri_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
+            float4 n2 = bvh->getValue(tri_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
+            float4 n3 = bvh->getValue(tri_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
             
             float txmin0 = n1.x * invDirx - odirx;       
             float tymin0 = n1.y * invDiry - odiry;         
@@ -682,7 +597,7 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
         }
         else
         {
-            float4 n4 = bvh.getValue(tri_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
+            float4 n4 = bvh->getValue(tri_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
             int leftChild = (int)n4.x;
             int rightChild = (int)n4.y;
 
@@ -713,15 +628,15 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
             
 
             currentNode = -currentNode; //swap the neg address 
-            int numTri = (int)tri_bvh_lf_raw.getValue(tri_bvh_lf_tref,currentNode)+1;
+            int numTri = (int)tri_bvh_lf_raw->getValue(tri_bvh_lf_tref,currentNode)+1;
 
             for(int i = 1; i < numTri; i++)
             {        
-                    int triIndex = (int)tri_bvh_lf_raw.getValue(tri_bvh_lf_tref,currentNode+i);
+                    int triIndex = (int)tri_bvh_lf_raw->getValue(tri_bvh_lf_tref,currentNode+i);
                    
-                    float4 a4 = verts.getValue(tri_verts_tref, triIndex*3);
-                    float4 b4 = verts.getValue(tri_verts_tref, triIndex*3+1);
-                    float4 c4 = verts.getValue(tri_verts_tref, triIndex*3+2);
+                    float4 a4 = verts->getValue(tri_verts_tref, triIndex*3);
+                    float4 b4 = verts->getValue(tri_verts_tref, triIndex*3+1);
+                    float4 c4 = verts->getValue(tri_verts_tref, triIndex*3+2);
                     eavlVector3 e1( a4.w - a4.x , b4.x - a4.y, b4.y - a4.z ); 
                     eavlVector3 e2( b4.z - a4.x , b4.w - a4.y, c4.x - a4.z );
 
@@ -772,7 +687,8 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
 }
 
 
-EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &bvh_lf,eavlConstArrayV2<float4> &verts,const float &maxDistance, float &distance)
+EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstTexArray<float4> *bvh,
+                                          const eavlConstTexArray<float> *bvh_lf,const eavlConstTexArray<float4> *verts, const float &maxDistance, float &distance)
 {
 
 
@@ -807,9 +723,9 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
         if(currentNode>-1)
         {
 
-            float4 n1=bvh.getValue(sphr_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
-            float4 n2=bvh.getValue(sphr_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
-            float4 n3=bvh.getValue(sphr_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
+            float4 n1=bvh->getValue(sphr_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
+            float4 n2=bvh->getValue(sphr_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
+            float4 n3=bvh->getValue(sphr_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
             
             float txmin0 = n1.x* invDirx -odirx;       
             float tymin0 = n1.y* invDiry -odiry;         
@@ -843,7 +759,7 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
             }
             else
             {
-                float4 n4=bvh.getValue(sphr_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
+                float4 n4=bvh->getValue(sphr_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
                 int leftChild =(int)n4.x;
                 int rightChild=(int)n4.y;
 
@@ -874,7 +790,7 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
             
 
             currentNode=-currentNode; //swap the neg address 
-            int numSheres=(int)bvh_lf.getValue(sphr_bvh_lf_tref,currentNode)+1;
+            int numSheres=(int)bvh_lf->getValue(sphr_bvh_lf_tref,currentNode)+1;
             //cout<<"Origin "<<ox<<" "<<oy<<" "<<oz<<endl;
             //cout<<"Dir "<<dirx<<" "<<diry<<" "<<dirz<<endl;
 
@@ -882,9 +798,9 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
 
             for(int i=1;i<numSheres;i++)
             {        
-                int sphereIndex=(int)bvh_lf.getValue(sphr_bvh_lf_tref,currentNode+i);
+                int sphereIndex=(int)bvh_lf->getValue(sphr_bvh_lf_tref,currentNode+i);
                 
-                float4 data = verts.getValue(sphr_verts_tref, sphereIndex);
+                float4 data = verts->getValue(sphr_verts_tref, sphereIndex);
 
                 float lx = data.x-ox;
                 float ly = data.y-oy;
@@ -936,7 +852,7 @@ EAVL_HOSTDEVICE float intersectSphereDist(eavlVector3 rayDir, eavlVector3 rayOri
 
 }
 
-EAVL_HOSTDEVICE float getIntersectionDepth(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstArrayV2<float4> &bvh,const eavlConstArrayV2<float> &tri_bvh_lf_raw,eavlConstArrayV2<float4> &verts,const float &maxDistance)
+EAVL_HOSTDEVICE float getIntersectionDepth(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstTexArray<float4> &bvh,const eavlConstTexArray<float> &tri_bvh_lf_raw,eavlConstTexArray<float4> &verts,const float &maxDistance)
 {
 
 
@@ -1095,15 +1011,16 @@ EAVL_HOSTDEVICE float getIntersectionDepth(const eavlVector3 rayDir, const eavlV
 struct RayIntersectFunctor{
 
 
-    eavlConstArrayV2<float4> verts;
-    eavlConstArrayV2<float4> bvh;
-    eavlConstArrayV2<float>  bvh_inner;
-    primitive_t              primitiveType;
+    const eavlConstTexArray<float4> *verts;
+    const eavlConstTexArray<float4> *bvh;
+    const eavlConstTexArray<float>  *bvh_inner;
+    primitive_t                     primitiveType;
 
-    RayIntersectFunctor(eavlConstArrayV2<float4> *_verts, eavlConstArrayV2<float4> *theBvh,eavlConstArrayV2<float> *_bvh_inner, primitive_t _primitveType)
-        :verts(*_verts),
-         bvh(*theBvh),
-         bvh_inner(*_bvh_inner),
+    RayIntersectFunctor(const eavlConstTexArray<float4> *_verts, const eavlConstTexArray<float4> *theBvh,
+                        const eavlConstTexArray<float> *_bvh_inner, primitive_t _primitveType)
+        :verts(_verts),
+         bvh(theBvh),
+         bvh_inner(_bvh_inner),
          primitiveType(_primitveType)
     {}                                                 
     EAVL_HOSTDEVICE tuple<int,float,int> operator()( tuple<float,float,float,float,float,float,int, int, float> rayTuple){
@@ -1135,12 +1052,12 @@ struct RayIntersectFunctor{
 
 struct ReflectTriFunctor{
 
-    eavlConstArrayV2<float4> verts;
-    eavlConstArray<float> norms;
+    const eavlConstTexArray<float4> *verts;
+    eavlConstArray<float>     norms;
 
 
-    ReflectTriFunctor(eavlConstArrayV2<float4> *_verts,eavlConstArray<float> *xnorm)
-        :verts(*_verts),
+    ReflectTriFunctor(const eavlConstTexArray<float4> *_verts, const eavlConstArray<float> *xnorm)
+        :verts(_verts),
          norms(*xnorm)
     {
         
@@ -1160,9 +1077,9 @@ struct ReflectTriFunctor{
         eavlVector3 ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
         float alpha=0, beta=0, gamma=0;
 
-        float4 a4=verts.getValue(tri_verts_tref, hitIndex*3);
-        float4 b4=verts.getValue(tri_verts_tref, hitIndex*3+1);
-        float4 c4=verts.getValue(tri_verts_tref, hitIndex*3+2); //scalars are stored in c.yzw
+        float4 a4=verts->getValue(tri_verts_tref, hitIndex*3);
+        float4 b4=verts->getValue(tri_verts_tref, hitIndex*3+1);
+        float4 c4=verts->getValue(tri_verts_tref, hitIndex*3+2); //scalars are stored in c.yzw
         eavlVector3 a(a4.x,a4.y,a4.z);
         eavlVector3 b(a4.w,b4.x,b4.y);
         eavlVector3 c(b4.z,b4.w,c4.x);
@@ -1191,12 +1108,12 @@ struct ReflectTriFunctor{
 
 struct ReflectSphrFunctor{
 
-    eavlConstArrayV2<float4> verts;
-    eavlConstArrayV2<float>  sphr_scalars;
+    const eavlConstTexArray<float4> *verts;
+    const eavlConstTexArray<float>  *sphr_scalars;
 
 
-    ReflectSphrFunctor(eavlConstArrayV2<float4> *_verts,eavlConstArrayV2<float> *_sphr_scalars )
-        :verts(*_verts), sphr_scalars(*_sphr_scalars)
+    ReflectSphrFunctor(const eavlConstTexArray<float4> *_verts, const eavlConstTexArray<float> *_sphr_scalars )
+        :verts(_verts), sphr_scalars(_sphr_scalars)
     {
         
     }                                                
@@ -1215,7 +1132,7 @@ struct ReflectSphrFunctor{
         eavlVector3 ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
         float alpha=0, beta=0;
         ray.normalize();
-        float4 data = verts.getValue(sphr_verts_tref, hitIndex);
+        float4 data = verts->getValue(sphr_verts_tref, hitIndex);
         float distance = intersectSphereDist(ray,rayOrigin, data);
         intersect = rayOrigin+distance*ray;
         eavlVector3 normal;
@@ -1231,7 +1148,7 @@ struct ReflectSphrFunctor{
         reflection=ray-normal*2.f*(normal*ray);
         reflection.normalize();
         intersect=intersect+(-ray*BARY_TOLE);
-        float scalar = sphr_scalars.getValue(sphr_scalars_tref, hitIndex);
+        float scalar = sphr_scalars->getValue(sphr_scalars_tref, hitIndex);
 
         return tuple<float,float,float,float,float,float,float,float,float,float,float,float>(intersect.x, intersect.y,intersect.z,reflection.x,reflection.y,reflection.z,normal.x,normal.y,normal.z,alpha,beta,scalar);
     }
@@ -1240,11 +1157,11 @@ struct ReflectSphrFunctor{
 
 struct DepthFunctor{
 
-    eavlConstArrayV2<float4> verts;
+    const eavlConstTexArray<float4> *verts;
 
 
-    DepthFunctor(eavlConstArrayV2<float4> *_verts)
-        :verts(*_verts)
+    DepthFunctor(const eavlConstTexArray<float4> *_verts)
+        :verts(_verts)
     {
         
     }                                                    
@@ -1256,9 +1173,9 @@ struct DepthFunctor{
         eavlVector3 rayOrigin(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
         eavlVector3       ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
 
-        float4 a4=verts.getValue(tri_verts_tref, hitIndex*3);
-        float4 b4=verts.getValue(tri_verts_tref, hitIndex*3+1);
-        float4 c4=verts.getValue(tri_verts_tref, hitIndex*3+2);
+        float4 a4=verts->getValue(tri_verts_tref, hitIndex*3);
+        float4 b4=verts->getValue(tri_verts_tref, hitIndex*3+1);
+        float4 c4=verts->getValue(tri_verts_tref, hitIndex*3+2);
         eavlVector3 a(a4.x,a4.y,a4.z);
         eavlVector3 b(a4.w,b4.x,b4.y);
         eavlVector3 c(b4.z,b4.w,c4.x);
@@ -1310,17 +1227,16 @@ struct ReflectTriFunctorBasic{
 struct occIntersectFunctor{
 
     float           maxDistance;
-    eavlConstArrayV2<float4> verts;
-    // /eavlConstArray<float> bvh;
-    eavlConstArrayV2<float4> bvh;
-    eavlConstArrayV2<float> bvh_lf;
-    primitive_t primitiveType;
+    const eavlConstTexArray<float4> *verts;
+    const eavlConstTexArray<float4> *bvh;
+    const eavlConstTexArray<float>  *bvh_lf;
+    primitive_t                     primitiveType;
 
 
-    occIntersectFunctor(eavlConstArrayV2<float4> *_verts, eavlConstArrayV2<float4> *theBvh, eavlConstArrayV2<float> *_bvh_lf, float max, primitive_t _primitveType)
-        :verts(*_verts),
-         bvh(*theBvh),
-         bvh_lf(*_bvh_lf),
+    occIntersectFunctor(const eavlConstTexArray<float4> *_verts, eavlConstTexArray<float4> *theBvh, eavlConstTexArray<float> *_bvh_lf, float max, primitive_t _primitveType)
+        :verts(_verts),
+         bvh(theBvh),
+         bvh_lf(_bvh_lf),
          primitiveType(_primitveType)
     {
 
@@ -1355,16 +1271,17 @@ struct occIntersectFunctor{
 
 struct ShadowRayFunctor
 {
-    eavlConstArrayV2<float4> verts;
-    eavlConstArrayV2<float4> bvh;
-    eavlConstArrayV2<float> bvh_lf;
+    const eavlConstTexArray<float4> *verts;
+    const eavlConstTexArray<float4> *bvh;
+    const eavlConstTexArray<float>  *bvh_lf;
     eavlVector3 light;
     primitive_t type;
 
-    ShadowRayFunctor(eavlVector3 theLight,eavlConstArrayV2<float4> *_verts,eavlConstArrayV2<float4> *theBvh,eavlConstArrayV2<float> *_bvh_lf, primitive_t _type)
-        :verts(*_verts),
-         bvh(*theBvh),
-         bvh_lf(*_bvh_lf),
+    ShadowRayFunctor(eavlVector3 theLight,const eavlConstTexArray<float4> *_verts, const eavlConstTexArray<float4> *theBvh,
+                     const eavlConstTexArray<float> *_bvh_lf, primitive_t _type)
+        :verts(_verts),
+         bvh(theBvh),
+         bvh_lf(_bvh_lf),
          light(theLight),
          type(_type)
     {}
@@ -1416,16 +1333,17 @@ struct ShaderFunctor
     eavlVector3     bgColor;
     float4          defaultColor;
 
-    eavlConstArrayV2<int>*      matIds; //tris
-    eavlConstArrayV2<int>*      sphr_matIds;
-    eavlConstArray<float>       mats;
-    eavlConstArrayV2<float4>    colorMap;
+    const eavlConstTexArray<int>      *matIds; //tris
+    const eavlConstTexArray<int>      *sphr_matIds;
+    eavlConstArray<float>             mats;
+    const eavlConstTexArray<float4>   *colorMap;
     
 
-    ShaderFunctor(int numTris,eavlVector3 theLight,eavlVector3 eyePos, int dpth,eavlConstArrayV2<int> *_matIds,eavlConstArray<float> *_mats,
-                  int _lightIntensity, float _lightCoConst, float _lightCoLinear, float _lightCoExponent, eavlConstArrayV2<float4>* _colorMap,
-                  int _colorMapSize,eavlConstArrayV2<int>* _sphr_matIds, int numTri, int numSpheres, eavlVector3 _bgColor)
-        : mats(*_mats), colorMap(*_colorMap), bgColor(_bgColor)
+    ShaderFunctor(int numTris,eavlVector3 theLight, eavlVector3 eyePos, int dpth, const eavlConstTexArray<int> *_matIds, 
+                  eavlConstArray<float> *_mats, int _lightIntensity, float _lightCoConst, float _lightCoLinear, 
+                  float _lightCoExponent, const eavlConstTexArray<float4> *_colorMap, int _colorMapSize, 
+                  const eavlConstTexArray<int>* _sphr_matIds, int numTri, int numSpheres, eavlVector3 _bgColor)
+        : mats(*_mats), colorMap(_colorMap), bgColor(_bgColor)
 
     {
 
@@ -1528,7 +1446,7 @@ struct ShaderFunctor
         float scalar   = get<14>(input);
         int   colorIdx = max(min(colorMapSize-1, (int)floor(scalar*colorMapSize)), 0); 
 
-        float4 color = (colorMapSize != 2) ? colorMap.getValue(color_map_tref, colorIdx) : defaultColor; 
+        float4 color = (colorMapSize != 2) ? colorMap->getValue(color_map_tref, colorIdx) : defaultColor; 
         
         red   *= color.x;
         green *= color.y;
@@ -1568,7 +1486,7 @@ struct ShaderFunctor
 void eavlRayTracerMutator::allocateArrays()
 {
 
-    cout<<"Deleting"<<rayDirX<<endl;
+    //cout<<"Deleting"<<rayDirX<<endl;
     deleteClassPtr(rayDirX);
     deleteClassPtr(rayDirY);
     deleteClassPtr(rayDirZ);
@@ -1790,7 +1708,7 @@ void eavlRayTracerMutator::extractGeometry()
     if(verbose) cerr<<"Extracting Geometry"<<endl;
 
     freeRaw();
-
+    cout<<"Before freeTextures"<<endl;
     freeTextures();
 
     numTriangles     = scene->getNumTriangles();
@@ -1836,10 +1754,10 @@ void eavlRayTracerMutator::extractGeometry()
             delete testSplit;
         }
 
-        tri_bvh_in_array   = new eavlConstArrayV2<float4>( (float4*)tri_bvh_in_raw, tri_bvh_in_size/4, tri_bvh_in_tref, cpu);
-        tri_bvh_lf_array   = new eavlConstArrayV2<float>( tri_bvh_lf_raw, tri_bvh_lf_size, tri_bvh_lf_tref, cpu);
-        tri_verts_array    = new eavlConstArrayV2<float4>( (float4*)tri_verts_raw,numTriangles*3, tri_verts_tref, cpu);
-        tri_matIdx_array   = new eavlConstArrayV2<int>( tri_matIdx_raw, numTriangles, tri_matIdx_tref, cpu );
+        tri_bvh_in_array   = new eavlConstTexArray<float4>( (float4*)tri_bvh_in_raw, tri_bvh_in_size/4, tri_bvh_in_tref, cpu);
+        tri_bvh_lf_array   = new eavlConstTexArray<float>( tri_bvh_lf_raw, tri_bvh_lf_size, tri_bvh_lf_tref, cpu);
+        tri_verts_array    = new eavlConstTexArray<float4>( (float4*)tri_verts_raw,numTriangles*3, tri_verts_tref, cpu);
+        tri_matIdx_array   = new eavlConstTexArray<int>( tri_matIdx_raw, numTriangles, tri_matIdx_tref, cpu );
 
         INIT(eavlConstArray<float>,tri_norms,numTriangles*9);
         //INIT(eavlConstArray<int>, tri_matIdx,numTriangles);
@@ -1856,11 +1774,11 @@ void eavlRayTracerMutator::extractGeometry()
             delete testSplit;
         }
 
-        sphr_bvh_in_array   = new eavlConstArrayV2<float4>( (float4*)sphr_bvh_in_raw, sphr_bvh_in_size/4, sphr_bvh_in_tref, cpu);
-        sphr_bvh_lf_array   = new eavlConstArrayV2<float>( sphr_bvh_lf_raw, sphr_bvh_lf_size, sphr_bvh_lf_tref, cpu);
-        sphr_verts_array    = new eavlConstArrayV2<float4>( (float4*)sphr_verts_raw,numSpheres, sphr_verts_tref, cpu);
-        sphr_matIdx_array   = new eavlConstArrayV2<int>( sphr_matIdx_raw, numSpheres,  sphr_matIdx_tref, cpu );
-        sphr_scalars_array  = new eavlConstArrayV2<float>(sphr_scalars_raw, numSpheres, sphr_scalars_tref, cpu);
+        sphr_bvh_in_array   = new eavlConstTexArray<float4>( (float4*)sphr_bvh_in_raw, sphr_bvh_in_size/4, sphr_bvh_in_tref, cpu);
+        sphr_bvh_lf_array   = new eavlConstTexArray<float>( sphr_bvh_lf_raw, sphr_bvh_lf_size, sphr_bvh_lf_tref, cpu);
+        sphr_verts_array    = new eavlConstTexArray<float4>( (float4*)sphr_verts_raw,numSpheres, sphr_verts_tref, cpu);
+        sphr_matIdx_array   = new eavlConstTexArray<int>( sphr_matIdx_raw, numSpheres,  sphr_matIdx_tref, cpu );
+        sphr_scalars_array  = new eavlConstTexArray<float>(sphr_scalars_raw, numSpheres, sphr_scalars_tref, cpu);
         /*no need for normals, trivial calculation */
     }
     
@@ -2724,7 +2642,7 @@ eavlFloatArray* eavlRayTracerMutator::getDepthBuffer(float proj22, float proj23,
 
 void eavlRayTracerMutator::freeTextures()
 {
-    //cout<<"Free textures"<<endl;
+    cout<<"Free textures"<<endl;
    if (tri_bvh_in_array != NULL) 
     {
         tri_bvh_in_array->unbind(tri_bvh_in_tref);
@@ -2781,5 +2699,6 @@ void eavlRayTracerMutator::freeTextures()
         delete sphr_matIdx_array;
         sphr_matIdx_array = NULL;
     }
+    cout<<"Done free"<<endl;
 }
 
