@@ -179,6 +179,7 @@ SplitBVHBuilder::SplitBVHBuilder(float *verts, int numPrimitives, const BuildPar
         m_doSpacialSplits=false;
         m_platform=*(new Platform(1)); /* Only one cell per leafNode */
     }
+    else if( m_primitiveType == 3) m_doSpacialSplits=false;
     //todo remove
     megaCounter=0;
 }
@@ -217,6 +218,7 @@ BVHNode* SplitBVHBuilder::run(void)
     eavlVector3 *triPtr    = (eavlVector3 *)&m_verts[0];
     eavlVector4 *spherePtr = (eavlVector4 *)&m_verts[0];
     eavlVector4 *tetPtr    = (eavlVector4 *)&m_verts[0];
+    eavlVector4 *cylPtr = (eavlVector4 *)&m_verts[0];
     for (int i = 0; i < rootSpec.numRef; i++)
     {
         m_refStack[i].triIdx = i;
@@ -231,19 +233,19 @@ BVHNode* SplitBVHBuilder::run(void)
             eavlVector3 temp(0,0,0);
             eavlVector3 center( spherePtr[i].x, spherePtr[i].y, spherePtr[i].z );
             float radius = spherePtr[i].w;
-            temp.x=radius;
-            temp.y=0;
-            temp.z=0;
+            temp.x = radius;
+            temp.y = 0;
+            temp.z = 0;
             m_refStack[i].bounds.grow(center+temp);
             m_refStack[i].bounds.grow(center-temp);
-            temp.x=0;
-            temp.y=radius;
-            temp.z=0;
+            temp.x = 0;
+            temp.y = radius;
+            temp.z = 0;
             m_refStack[i].bounds.grow(center+temp);
             m_refStack[i].bounds.grow(center-temp);
-            temp.x=0;
-            temp.y=0;
-            temp.z=radius;
+            temp.x = 0;
+            temp.y = 0;
+            temp.z = radius;
             m_refStack[i].bounds.grow(center+temp);
             m_refStack[i].bounds.grow(center-temp);
         }
@@ -255,6 +257,39 @@ BVHNode* SplitBVHBuilder::run(void)
                 m_refStack[i].bounds.grow(v);
             }
             
+        }
+        else if( m_primitiveType == 3 )
+        {
+            /* insert conservative bounding capsule*/
+            eavlVector3 temp(0,0,0);
+            eavlVector3 base( cylPtr[i*2].x, cylPtr[i*2].y, cylPtr[i*2].z );
+            float radius = cylPtr[i*2].w;
+            eavlVector3 axis( cylPtr[i*2+1].x, cylPtr[i*2+1].y, cylPtr[i*2+1].z );
+            float height = cylPtr[i*2+1].w;
+            eavlVector3 top = base + axis * height;
+
+            temp.x = radius;
+            temp.y = 0;
+            temp.z = 0;
+            m_refStack[i].bounds.grow(base+temp);
+            m_refStack[i].bounds.grow(base-temp);
+            m_refStack[i].bounds.grow(top +temp);
+            m_refStack[i].bounds.grow(top -temp);
+            temp.x = 0;
+            temp.y = radius;
+            temp.z = 0;
+            m_refStack[i].bounds.grow(base+temp);
+            m_refStack[i].bounds.grow(base-temp);
+            m_refStack[i].bounds.grow(top +temp);
+            m_refStack[i].bounds.grow(top -temp);
+            temp.x = 0;
+            temp.y = 0;
+            temp.z = radius;
+            m_refStack[i].bounds.grow(base+temp);
+            m_refStack[i].bounds.grow(base-temp);
+            m_refStack[i].bounds.grow(top +temp);
+            m_refStack[i].bounds.grow(top -temp);
+
         }
         
         
@@ -944,15 +979,16 @@ void SplitBVHBuilder::bvhToFlatArray(BVHNode * root, int &innerSize, int &leafSi
     float *leafraw = new float[-currentLeafIndex];
     int numLeafVals=-currentLeafIndex;
 
-    \
     for (int i=0; i < currentIndex;i++)
     {
         innerraw[i] = flat_inner_array->at(i);
     }
+    cout<<endl;
     for (int i=0; i < numLeafVals;i++)
     {
         leafraw[i] = flat_leaf_array->at(i);
     }
+    cout<<endl;
     innerNodes = innerraw;
     leafNodes = leafraw;
     delete flat_inner_array;

@@ -15,6 +15,9 @@ eavlConstTexArray<float4>* scalars_array;
 
 eavlSimpleVRMutator::eavlSimpleVRMutator()
 {
+    if(eavlExecutor::GetExecutionMode() == eavlExecutor::ForceCPU ) cpu = true;
+    else cpu = false;
+
 	height = 500;
 	width  = 500;
 
@@ -59,10 +62,10 @@ eavlSimpleVRMutator::eavlSimpleVRMutator()
     dummy = new eavlFloatArray("",1,2);
 
     verbose = false;
-    setDefaultColorMap();
 
-    if(eavlExecutor::GetExecutionMode() == eavlExecutor::ForceCPU ) cpu = true;
-    else cpu = false;
+    
+
+    setDefaultColorMap(); 
 }
 
 eavlSimpleVRMutator::~eavlSimpleVRMutator()
@@ -490,10 +493,9 @@ void eavlSimpleVRMutator::setColorMap3f(float* cmap,int size)
     if(color_map_array != NULL)
     {
         color_map_array->unbind(cmap_tref);
-        try
-        {
-            delete color_map_array;
-        } catch (const eavlException &e) {} 
+        
+        delete color_map_array;
+    
         color_map_array = NULL;
     }
     if(colormap_raw != NULL)

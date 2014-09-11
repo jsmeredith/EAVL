@@ -98,6 +98,11 @@ eavlConstTexArray<float4>* cmap_array;
 int test;
 eavlRayTracerMutator::eavlRayTracerMutator()
 {
+
+    //eavlExecutor::SetExecutionMode(eavlExecutor::ForceCPU);
+    if(eavlExecutor::GetExecutionMode() == eavlExecutor::ForceCPU ) cpu = true;
+    else cpu = false;
+
     scene= new eavlRTScene(RTMaterial());
     height  = 1080;         //set up some defaults
     width   = 1920;
@@ -255,10 +260,9 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     mask = NULL;
     count = NULL;
     indexScan = NULL;
-    setDefaultColorMap();
+    
 
-    if(eavlExecutor::GetExecutionMode() == eavlExecutor::ForceCPU ) cpu = true;
-    else cpu = false;
+    setDefaultColorMap();
     if(verbose) cout<<"Constructor finished\n";
 }
 
@@ -270,10 +274,9 @@ void eavlRayTracerMutator::setColorMap3f(float* cmap, int size)
     if(cmap_array != NULL)
     {
         cmap_array->unbind(color_map_tref);
-        try 
-        {
-            delete cmap_array;
-        } catch (eavlException &e) {}  //TODO: first call is invalid device ptr
+
+        delete cmap_array;
+       
         cmap_array = NULL;
     }
     if(colorMap_raw != NULL)
@@ -836,6 +839,182 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
  distance=minDistance;
  return minIndex;
 }
+
+EAVL_HOSTDEVICE int getIntersectionCyl(const eavlVector3 rayDir, const eavlVector3 rayOrigin, bool occlusion, const eavlConstTexArray<float4> *bvh,
+                                       const eavlConstTexArray<float> *cyl_bvh_lf_raw, const eavlConstTexArray<float4> *verts,const float &maxDistance, float &distance)
+{
+
+
+    float minDistance = maxDistance;
+    int   minIndex    = -1;
+    
+    float dirx = rayDir.x;
+    float diry = rayDir.y;
+    float dirz = rayDir.z;
+
+    float invDirx = rcp_safe(dirx);
+    float invDiry = rcp_safe(diry);
+    float invDirz = rcp_safe(dirz);
+    int currentNode;
+  
+    int todo[64]; //num of nodes to process
+    int stackptr = 0;
+    int barrier = (int)END_FLAG;
+    currentNode = 0;
+
+    todo[stackptr] = barrier;
+
+    float ox = rayOrigin.x;
+    float oy = rayOrigin.y;
+    float oz = rayOrigin.z;
+    float odirx = ox * invDirx;
+    float odiry = oy * invDiry;
+    float odirz = oz * invDirz;
+
+    while(currentNode != END_FLAG) {
+
+        if(currentNode>-1)
+        {
+
+            float4 n1 = bvh->getValue(cyl_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
+            float4 n2 = bvh->getValue(cyl_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
+            float4 n3 = bvh->getValue(cyl_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
+            
+            float txmin0 = n1.x * invDirx - odirx;       
+            float tymin0 = n1.y * invDiry - odiry;         
+            float tzmin0 = n1.z * invDirz - odirz;
+            float txmax0 = n1.w * invDirx - odirx;
+            float tymax0 = n2.x * invDiry - odiry;
+            float tzmax0 = n2.y * invDirz - odirz;
+           
+            float tmin0 = max(max(max(min(tymin0,tymax0),min(txmin0,txmax0)),min(tzmin0,tzmax0)),0.f);
+            float tmax0 = min(min(min(max(tymin0,tymax0),max(txmin0,txmax0)),max(tzmin0,tzmax0)), minDistance);
+            
+            bool traverseChild0 = (tmax0 >= tmin0);
+
+             
+            float txmin1 = n2.z * invDirx - odirx;       
+            float tymin1 = n2.w * invDiry - odiry;
+            float tzmin1 = n3.x * invDirz - odirz;
+            float txmax1 = n3.y * invDirx - odirx;
+            float tymax1 = n3.z * invDiry-  odiry;
+            float tzmax1 = n3.w * invDirz - odirz;
+            float tmin1 = max(max(max(min(tymin1,tymax1),min(txmin1,txmax1)),min(tzmin1,tzmax1)),0.f);
+            float tmax1 = min(min(min(max(tymin1,tymax1),max(txmin1,txmax1)),max(tzmin1,tzmax1)), minDistance);
+            
+            bool traverseChild1 = (tmax1 >= tmin1);
+
+        if(!traverseChild0 && !traverseChild1)
+        {
+
+            currentNode = todo[stackptr]; //go back put the stack
+            stackptr--;
+        }
+        else
+        {
+            float4 n4 = bvh->getValue(cyl_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
+            int leftChild = (int)n4.x;
+            int rightChild = (int)n4.y;
+
+            currentNode = (traverseChild0) ? leftChild : rightChild;
+            if(traverseChild1 && traverseChild0)
+            {
+                if(tmin0 > tmin1)
+                {
+
+                   
+                    currentNode = rightChild;
+                    stackptr++;
+                    todo[stackptr] = leftChild;
+                }
+                else
+                {   
+                    stackptr++;
+                    todo[stackptr] = rightChild;
+                }
+
+
+            }
+        }
+        }
+        
+        if(currentNode < 0 && currentNode != barrier)//check register usage
+        {
+
+            currentNode = -currentNode; //swap the neg address 
+            int numCyl = (int)cyl_bvh_lf_raw->getValue(cyl_bvh_lf_tref,currentNode)+1;
+            eavlVector3 dir(dirx, diry, dirz);
+            eavlVector3 o(ox, oy, oz);
+            for(int i = 1; i < numCyl; i++)
+            {        
+                int cylIndex = (int)cyl_bvh_lf_raw->getValue(cyl_bvh_lf_tref,currentNode+i);
+               
+                float4 a4 = verts->getValue(cyl_verts_tref, cylIndex*2);   /*basePoint + radius*/ 
+                float4 b4 = verts->getValue(cyl_verts_tref, cylIndex*2+1); /*axis + height*/
+                
+                eavlVector3 basePoint(a4.x, a4.y, a4.z);
+                eavlVector3 axis(b4.x, b4.y, b4.z);
+                /* project vectors onto the plane defined by the axis*/
+                eavlVector3 pdir = dir - (axis * dir) * axis;
+                eavlVector3 po = o - (axis * o) * axis;
+                eavlVector3 pc = basePoint - (axis * basePoint) * axis;
+                /* get quadratic values*/
+                eavlVector3 L = po - pc;
+                float a = pdir * pdir;
+                float b = 2 * pdir * L;
+                float c = L * L - a4.w * a4.w; 
+
+                float t0 = INFINITE;
+                float t1 = INFINITE;
+
+                solveQuadratic(a, b, c, t0,t1);
+                float dist1 = INFINITE;
+                float dist2 = INFINITE; //TODO consolidate t0-dist1
+                
+                if(t0 > 0)
+                {
+                    eavlVector3 hit = o + t0 * dir;
+                    eavlVector3 hp = hit - basePoint; 
+                    float dot = hp * axis;
+                    if(dot > 0 && dot < b4.w)
+                    {
+                        dist1 = t0;
+                        //cout<<"Hit 1 "<<endl;
+                    }
+                }
+
+                if(t1 > 0)
+                {
+                    eavlVector3 hit = o + t1 * dir;
+                    eavlVector3 hp = hit - basePoint; 
+                    float dot = hp * axis;
+                    if(dot > 0 && dot < b4.w)
+                    {
+                        dist2 = t1;
+                        //cout<<"Hit 1 "<<endl;
+                    }
+                }
+    
+                dist1 = min(dist1, dist2);
+
+                if(dist1 >EPSILON && dist1 > 0 && dist1 != INFINITE)
+                {
+                    minDistance = dist1;
+                    minIndex = cylIndex;
+                    if(occlusion) return minIndex;
+                }
+
+
+            }
+            currentNode = todo[stackptr];
+            stackptr--;
+        }
+
+    }
+ distance = minDistance;
+ return minIndex;
+}
+
 /* it is known that there is an intersection */
 EAVL_HOSTDEVICE float intersectSphereDist(eavlVector3 rayDir, eavlVector3 rayOrigin, float4 sphere)
 {
@@ -1043,6 +1222,11 @@ struct RayIntersectFunctor{
             
             minHit = getIntersectionSphere(ray, rayOrigin, false,bvh,bvh_inner, verts,maxDistance,distance);
         }
+        else if(primitiveType == CYLINDER)
+        {
+            
+            minHit = getIntersectionCyl(ray, rayOrigin, false,bvh,bvh_inner, verts,maxDistance,distance);
+        }
         
         if(minHit!=-1) return tuple<int,float,int>(minHit, distance, primitiveType);
         else           return tuple<int,float,int>(hitIdx, INFINITE, get<7>(rayTuple));
@@ -1154,6 +1338,58 @@ struct ReflectSphrFunctor{
     }
 };
 
+struct ReflectCylFunctor{
+
+    const eavlConstTexArray<float4> *verts;
+    const eavlConstTexArray<float>  *cyl_scalars;
+
+
+    ReflectCylFunctor(const eavlConstTexArray<float4> *_verts, const eavlConstTexArray<float> *_cyl_scalars )
+        :verts(_verts), cyl_scalars(_cyl_scalars)
+    {
+        
+    }                                                
+    EAVL_FUNCTOR tuple<float,float,float,float,float, float,float,float, float,float,float, float> operator()( tuple<float,float,float,float,float,float,int, int, float> rayTuple){
+       
+        
+        int hitIndex = get<6>(rayTuple);//hack for now
+        int primitiveType = get<7>(rayTuple);
+        if(hitIndex == -1 || primitiveType != CYLINDER) return tuple<float,float,float,float,float, float,float,float, float,float,float, float>(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0);
+        float distance = get<8>(rayTuple);
+        eavlVector3 intersect;
+
+        eavlVector3 reflection(0,0,0);
+        eavlVector3 rayOrigin(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
+
+        eavlVector3 ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
+        float alpha=0, beta=0;
+        ray.normalize();
+        float4 a4 = verts->getValue(cyl_verts_tref, hitIndex*2  );
+        float4 b4 = verts->getValue(cyl_verts_tref, hitIndex*2+1);
+        eavlVector3 basePoint(a4.x, a4.y, a4.z);
+        eavlVector3 axis(b4.x, b4.y, b4.z);
+        eavlVector3 top = basePoint + b4.w * axis;
+        intersect = rayOrigin + distance * ray;
+        eavlVector3 v1 = intersect - basePoint;
+        eavlVector3 v2 = (v1 * top) * top; //project v1 onto v2 
+        eavlVector3 normal = v1 - v2;
+
+        //reflect the ray
+        
+        normal.normalize();
+        //if ((normal*ray) > 0.0f) normal = -normal; //flip the normal if we hit the back side
+        reflection=ray-normal*2.f*(normal*ray);
+        reflection.normalize();
+        intersect=intersect+(-ray*BARY_TOLE);
+        float scalar1 = cyl_scalars->getValue(cyl_scalars_tref, hitIndex*2  );
+        //float scalar2 = cyl_scalars->getValue(cyl_scalars_tref, hitIndex*2+1);
+
+        //TODO : lerp
+
+        return tuple<float,float,float,float,float,float,float,float,float,float,float,float>(intersect.x, intersect.y,intersect.z,reflection.x,reflection.y,reflection.z,normal.x,normal.y,normal.z,alpha,beta,scalar1);
+    }
+};
+
 
 struct DepthFunctor{
 
@@ -1261,6 +1497,10 @@ struct occIntersectFunctor{
         {
             minHit= getIntersectionSphere(ray, intersect, true,bvh, bvh_lf, verts,maxDistance, distance);
         }
+        else if(primitiveType == CYLINDER)
+        {
+            minHit= getIntersectionCyl(ray, intersect, true,bvh, bvh_lf, verts,maxDistance, distance);
+        }
 
         if(minHit!=-1) return tuple<float>(0.0f);
         else return tuple<float>(1.0f);
@@ -1307,6 +1547,10 @@ struct ShadowRayFunctor
         else if(type == SPHERE)
         {
             minHit= getIntersectionSphere(shadowRay, rayOrigin, true,bvh, bvh_lf, verts,lightDistance, distance);
+        }
+        else if(type == CYLINDER)
+        {
+            minHit= getIntersectionCyl(shadowRay, rayOrigin, true,bvh, bvh_lf, verts,lightDistance, distance);
         }
         if(minHit!=-1) return tuple<int>(1);//in shadow
         else return tuple<int>(0);//clear view of the light
@@ -1708,17 +1952,21 @@ void eavlRayTracerMutator::extractGeometry()
     if(verbose) cerr<<"Extracting Geometry"<<endl;
 
     freeRaw();
-    cout<<"Before freeTextures"<<endl;
+    if(verbose) cout<<"Before freeTextures"<<endl;
     freeTextures();
 
     numTriangles     = scene->getNumTriangles();
     numSpheres       = scene->getNumSpheres();
+    numCyls          = scene->getNumCyls();
     tri_verts_raw    = scene->getTrianglePtr();
     tri_norms_raw    = scene->getTriangleNormPtr();
     tri_matIdx_raw   = scene->getTriMatIdxsPtr();
     sphr_verts_raw   = scene->getSpherePtr();
     sphr_matIdx_raw  = scene->getSphrMatIdxPtr();
     sphr_scalars_raw = scene->getSphereScalarPtr();
+    cyl_verts_raw    = scene->getCylPtr();
+    cyl_matIdx_raw   = scene->getCylMatIdxPtr();
+    cyl_scalars_raw  = scene->getCylScalarPtr();
     numMats          = scene->getNumMaterials();
     mats_raw         = scene->getMatsPtr();
     
@@ -1727,6 +1975,8 @@ void eavlRayTracerMutator::extractGeometry()
     int tri_bvh_lf_size   = 0;
     int sphr_bvh_in_size  = 0;
     int sphr_bvh_lf_size  = 0;
+    int cyl_bvh_in_size   = 0;
+    int cyl_bvh_lf_size   = 0;
 
 
     bool cacheExists  =false;
@@ -1762,7 +2012,7 @@ void eavlRayTracerMutator::extractGeometry()
         INIT(eavlConstArray<float>,tri_norms,numTriangles*9);
         //INIT(eavlConstArray<int>, tri_matIdx,numTriangles);
     }
-    cout<<"NUM SPHERES "<<numSpheres<<endl;
+    if(verbose) cout<<"NUM SPHERES "<<numSpheres<<endl;
     if(numSpheres > 0)
     {
 
@@ -1780,6 +2030,24 @@ void eavlRayTracerMutator::extractGeometry()
         sphr_matIdx_array   = new eavlConstTexArray<int>( sphr_matIdx_raw, numSpheres,  sphr_matIdx_tref, cpu );
         sphr_scalars_array  = new eavlConstTexArray<float>(sphr_scalars_raw, numSpheres, sphr_scalars_tref, cpu);
         /*no need for normals, trivial calculation */
+    }
+    if(verbose) cout<<"Num lines "<<numCyls<<endl;
+    if(numCyls > 0)
+    {
+
+        if(true) //!cacheExists)
+        {  
+            cout<<"Building BVH....Cylinders"<<endl;
+            SplitBVH *testSplit= new SplitBVH(cyl_verts_raw, numCyls, CYLINDER); 
+            testSplit->getFlatArray(cyl_bvh_in_size, cyl_bvh_lf_size, cyl_bvh_in_raw, cyl_bvh_lf_raw);
+            delete testSplit;
+        }
+
+        cyl_bvh_in_array   = new eavlConstTexArray<float4>( (float4*)cyl_bvh_in_raw, cyl_bvh_in_size/4, cyl_bvh_in_tref, cpu);
+        cyl_bvh_lf_array   = new eavlConstTexArray<float>( cyl_bvh_lf_raw, cyl_bvh_lf_size, cyl_bvh_lf_tref, cpu);
+        cyl_verts_array    = new eavlConstTexArray<float4>( (float4*)cyl_verts_raw,numCyls*2, cyl_verts_tref, cpu);
+        cyl_matIdx_array   = new eavlConstTexArray<int>( cyl_matIdx_raw, numCyls,  cyl_matIdx_tref, cpu );
+        cyl_scalars_array  = new eavlConstTexArray<float>(cyl_scalars_raw, numCyls*2, cyl_scalars_tref, cpu);
     }
     
     
@@ -1829,7 +2097,16 @@ void eavlRayTracerMutator::intersect()
         eavlExecutor::Go();
 
     }
-    //for (int i=0 ; i<size; i++) cout<< hitIdx->GetValue(i)<<" ";
+    if(numCyls>0)
+    {
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
+                                                 eavlOpArgs(hitIdx, minDistances, primitiveTypeHit),
+                                                 RayIntersectFunctor(cyl_verts_array,cyl_bvh_in_array,cyl_bvh_lf_array,CYLINDER)),
+                                                                                                        "intersect");
+        eavlExecutor::Go();
+
+    }
+    //for (int i=0 ; i<size; i++) cout<< hitIdx->GetValue(i)<<" "<<minDistances->GetValue(i)<<" | ";
 
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx),                /*On primary ray: hits some in as -2, and leave as -1 if it misses everything*/
                                              eavlOpArgs(hitIdx),                /*This allows dead rays to be filtered out on multiple bounces */
@@ -1877,6 +2154,22 @@ void eavlRayTracerMutator::occlusionIntersect()
                 
         eavlExecutor::Go();
     }
+    if(numCyls > 0)
+    {
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(occX),
+                                                            eavlIndexable<eavlFloatArray>(occY),
+                                                            eavlIndexable<eavlFloatArray>(occZ),
+                                                            eavlIndexable<eavlFloatArray>(interX, *occIndexer),
+                                                            eavlIndexable<eavlFloatArray>(interY, *occIndexer),
+                                                            eavlIndexable<eavlFloatArray>(interZ, *occIndexer),
+                                                            eavlIndexable<eavlIntArray>  (hitIdx, *occIndexer),
+                                                            eavlIndexable<eavlFloatArray>(localHits)),
+                                                 eavlOpArgs(localHits),
+                                                 occIntersectFunctor(cyl_verts_array,cyl_bvh_in_array,cyl_bvh_lf_array,aoMax, CYLINDER)),
+                                                 "occIntercept");
+                
+        eavlExecutor::Go();
+    }
 }
 
 void eavlRayTracerMutator::reflect()
@@ -1892,8 +2185,16 @@ void eavlRayTracerMutator::reflect()
     if(numSpheres > 0)
     {
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx, primitiveTypeHit),
+                                                 eavlOpArgs(interX, interY,interZ,rayDirX,rayDirY,rayDirZ,normX,normY,normZ,alphas,betas,scalars),
+                                                 ReflectSphrFunctor(sphr_verts_array, sphr_scalars_array)),
+                                                 "reflect");
+        eavlExecutor::Go();
+    } 
+    if(numCyls > 0)
+    {
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx, primitiveTypeHit, minDistances),
                                                       eavlOpArgs(interX, interY,interZ,rayDirX,rayDirY,rayDirZ,normX,normY,normZ,alphas,betas,scalars),
-                                                      ReflectSphrFunctor(sphr_verts_array, sphr_scalars_array)),
+                                                      ReflectCylFunctor(cyl_verts_array, cyl_scalars_array)),
                                                       "reflect");
         eavlExecutor::Go();
     }     
@@ -1928,7 +2229,15 @@ void eavlRayTracerMutator::shadowIntersect()
                                                  ShadowRayFunctor(light,sphr_verts_array,sphr_bvh_in_array,sphr_bvh_lf_array, SPHERE)),
                                                  "shadowRays");
         eavlExecutor::Go(); 
-    }     
+    }  
+    if(numCyls > 0)
+    {   
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(interX,interY,interZ,hitIdx, shadowHits),
+                                                 eavlOpArgs(shadowHits),
+                                                 ShadowRayFunctor(light, cyl_verts_array, cyl_bvh_in_array, cyl_bvh_lf_array, CYLINDER)),
+                                                 "shadowRays");
+        eavlExecutor::Go(); 
+    }       
 }
 
 void eavlRayTracerMutator::Execute()
@@ -1945,6 +2254,7 @@ void eavlRayTracerMutator::Execute()
    
     if(verbose) cerr<<"Number of triangles: "<<numTriangles<<endl;
     if(verbose) cerr<<"Number of Spheres: "<<numSpheres<<endl;
+    if(verbose) cerr<<"Number of Cylinders: "<<numCyls<<endl;
     
 
     clearFrameBuffer(r,g,b);
@@ -2635,9 +2945,24 @@ void eavlRayTracerMutator::freeRaw()
 eavlFloatArray* eavlRayTracerMutator::getDepthBuffer(float proj22, float proj23, float proj32)
 { 
 
-        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(zBuffer), eavlOpArgs(zBuffer), ScreenDepthFunctor(proj22, proj23, proj32)),"convertDepth");
-        eavlExecutor::Go();
-        return zBuffer;
+    /*float maxDepth=0;
+    float minDepth=INFINITE;
+
+    for(int i=0; i< size; i++)
+    {
+        if( zBuffer->GetValue(i) == INFINITE) zBuffer->SetValue(i,0);
+        maxDepth= max(zBuffer->GetValue(i), maxDepth);  
+        minDepth= max(0.f,min(minDepth,zBuffer->GetValue(i)));//??
+    } 
+    //for(int i=0; i< size; i++) cout<<depthBuffer->GetValue(i)<<" ";
+    maxDepth=maxDepth-minDepth;
+    for(int i=0; i< size; i++) zBuffer->SetValue(i, (zBuffer->GetValue(i)-minDepth)/maxDepth);
+    writeBMP(height,width,zBuffer,zBuffer,zBuffer,"depth.bmp");
+    */
+
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(zBuffer), eavlOpArgs(zBuffer), ScreenDepthFunctor(proj22, proj23, proj32)),"convertDepth");
+    eavlExecutor::Go();
+    return zBuffer;
 }
 
 void eavlRayTracerMutator::freeTextures()
