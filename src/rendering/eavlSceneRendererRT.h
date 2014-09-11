@@ -159,18 +159,14 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
     // ------------------------------------------------------------------------
     virtual void Render()
-    {
-
-        //if(tracer->scene->getTotalPrimitives() == 0) return;
-        
+    {        
         int tframe = eavlTimer::Start();
         tracer->setDefaultMaterial(Ka,Kd,Ks);
         tracer->setResolution(view.h,view.w);
         float magnitude=tracer->scene->getSceneExtentMagnitude();
-        //cout<<"Magnitude "<<magnitude<<endl;
-        //tracer->setAOMax(magnitude*.2f);
 
-       // tracer->setAOMax(.2);
+        tracer->setAOMax(magnitude*.2f);
+
         /*Set up field of view: tracer takes the half FOV in degrees*/
         float fovx= 2.f*atan(tan(view.view3d.fov/2.f)*view.w/view.h);
         fovx*=180.f/M_PI;
@@ -178,8 +174,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setFOVx( fovx/2.f );
 
         tracer->setZoom(view.view3d.zoom);
-        //tracer->setZoom(5.f);
-        //cout<<"ZOOM : "<<view.view3d.zoom<<endl;
+
         eavlVector3 lookdir = (view.view3d.at - view.view3d.from).normalized();
         eavlVector3 right = (lookdir % view.view3d.up).normalized();
         /* Tracer is a lefty, so this is flip so down is not up */
@@ -187,9 +182,9 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
         tracer->lookAtPos(view.view3d.at.x,view.view3d.at.y,view.view3d.at.z);
         tracer->setCameraPos(view.view3d.from.x,view.view3d.from.y,view.view3d.from.z);
-        //tracer->setCameraPos(20,20,20);
+
         tracer->setUp(up.x,up.y,up.z);
-        //tracer->scene->addLine(lineWidth, eavlVector3(0,0,0),0, eavlVector3(7,7,7),0 );
+
         /*Otherwise the light will move with the camera*/
         if(eyeLight)//setLight)
         {

@@ -59,6 +59,9 @@ class eavlVector3
     EAVL_HOSTDEVICE void        normalize();
     EAVL_HOSTDEVICE eavlVector3 normalized() const;
 
+    // project another vector onto this vector
+    EAVL_HOSTDEVICE eavlVector3 project(const eavlVector3 &) const;
+
     EAVL_HOSTDEVICE const float &operator[](int i) const {return (&x)[i];}
     EAVL_HOSTDEVICE float &operator[](int i) {return (&x)[i];}
 
@@ -245,5 +248,13 @@ eavlVector3::normalized() const
     return eavlVector3(x*n, y*n, z*n);
 }
 
+EAVL_HOSTDEVICE eavlVector3
+eavlVector3::project(const eavlVector3 &a) const
+{
+    float n = (x*x + y*y + z*z);
+    if (n==0)
+        return *this;
+    return eavlVector3( (*this) * ((a * (*this) )  / n ) );
+}
 
 #endif

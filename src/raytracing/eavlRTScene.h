@@ -448,12 +448,13 @@ EAVL_HOSTONLY inline float* eavlRTScene::getCylScalarPtr()
 {
 	if(getNumCyls()==0) return NULL;
 	float* cylScalars;
- 	int numCyls= getNumSpheres();
+ 	int numCyls= getNumCyls();
 	cylScalars = new float[numCyls*2];
 	for(int i=0; i< numCyls ; i++)
 	{
 		cylScalars [i*2  ]= cyls->at(i).scalar[0];
 		cylScalars [i*2+1]= cyls->at(i).scalar[1];
+		//cout<<"S "<<cyls->at(i).scalar[0]<<" "<<cyls->at(i).scalar[1]<<endl;
 	}
 	return cylScalars;
 }

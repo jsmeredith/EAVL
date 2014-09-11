@@ -976,10 +976,9 @@ EAVL_HOSTDEVICE int getIntersectionCyl(const eavlVector3 rayDir, const eavlVecto
                     eavlVector3 hit = o + t0 * dir;
                     eavlVector3 hp = hit - basePoint; 
                     float dot = hp * axis;
-                    if(dot > 0 && dot < b4.w)
+                    if(dot > 0 && dot < b4.w) /*b4.w == height of cylinder */
                     {
                         dist1 = t0;
-                        //cout<<"Hit 1 "<<endl;
                     }
                 }
 
@@ -991,7 +990,6 @@ EAVL_HOSTDEVICE int getIntersectionCyl(const eavlVector3 rayDir, const eavlVecto
                     if(dot > 0 && dot < b4.w)
                     {
                         dist2 = t1;
-                        //cout<<"Hit 1 "<<endl;
                     }
                 }
     
@@ -1338,6 +1336,13 @@ struct ReflectSphrFunctor{
     }
 };
 
+
+//EAVL_HOSTDEVICE eavlVector3 project(const eavlVector3 &a, const eavlVector3 &b)
+//{
+
+//    return eavlVector3( b * ((a * b) / (b * b)) );
+    //return proj;
+//}
 struct ReflectCylFunctor{
 
     const eavlConstTexArray<float4> *verts;
@@ -1368,25 +1373,29 @@ struct ReflectCylFunctor{
         float4 b4 = verts->getValue(cyl_verts_tref, hitIndex*2+1);
         eavlVector3 basePoint(a4.x, a4.y, a4.z);
         eavlVector3 axis(b4.x, b4.y, b4.z);
-        eavlVector3 top = basePoint + b4.w * axis;
         intersect = rayOrigin + distance * ray;
         eavlVector3 v1 = intersect - basePoint;
-        eavlVector3 v2 = (v1 * top) * top; //project v1 onto v2 
+        eavlVector3 v2 = axis.project(v1);
         eavlVector3 normal = v1 - v2;
 
         //reflect the ray
         
         normal.normalize();
-        //if ((normal*ray) > 0.0f) normal = -normal; //flip the normal if we hit the back side
-        reflection=ray-normal*2.f*(normal*ray);
+        if ((normal*ray) > 0.0f) normal = -normal; //flip the normal if we hit the back side
+        reflection = ray - normal * 2.f * (normal * ray);
         reflection.normalize();
         intersect=intersect+(-ray*BARY_TOLE);
+        
         float scalar1 = cyl_scalars->getValue(cyl_scalars_tref, hitIndex*2  );
-        //float scalar2 = cyl_scalars->getValue(cyl_scalars_tref, hitIndex*2+1);
+        float scalar2 = cyl_scalars->getValue(cyl_scalars_tref, hitIndex*2+1);
+        eavlVector3 top = basePoint + b4.w * axis;
+        
+        float t = sqrt(v2 * v2) / sqrt (top * top); 
+        float scalar = lerp(scalar1, scalar2, t);
+        
 
-        //TODO : lerp
 
-        return tuple<float,float,float,float,float,float,float,float,float,float,float,float>(intersect.x, intersect.y,intersect.z,reflection.x,reflection.y,reflection.z,normal.x,normal.y,normal.z,alpha,beta,scalar1);
+        return tuple<float,float,float,float,float,float,float,float,float,float,float,float>(intersect.x, intersect.y,intersect.z,reflection.x,reflection.y,reflection.z,normal.x,normal.y,normal.z,alpha,beta,scalar);
     }
 };
 
@@ -2295,7 +2304,7 @@ void eavlRayTracerMutator::Execute()
         {
             int tcompact = eavlTimer::Start();
             currentSize=compact();
-                    cout << "compact     RUNTIME: "<<eavlTimer::Stop(tcompact,"intersect")<<endl;
+            cout << "compact     RUNTIME: "<<eavlTimer::Stop(tcompact,"intersect")<<endl;
         }
 
         int treflect ;
@@ -2327,9 +2336,10 @@ void eavlRayTracerMutator::Execute()
             eavlExecutor::Go();
             if(verbose) cout << "occRayGen   RUNTIME: "<<eavlTimer::Stop(toccGen,"occGen")<<endl;
 
-            int toccInt = eavlTimer::Start(); 
+            int toccInt;
+            if(verbose) toccInt = eavlTimer::Start(); 
             occlusionIntersect();
-            if(verbose) cout<<"occInt      RUNTIME: "<<eavlTimer::Stop(toccGen,"occGen")<<endl;
+            if(verbose) cout<<"occInt      RUNTIME: "<<eavlTimer::Stop(toccInt,"occGen")<<endl;
 
             eavlExecutor::AddOperation(new_eavlNto1GatherOp(eavlOpArgs(localHits),
                                                             eavlOpArgs(tempAmbPct), 
@@ -2341,9 +2351,9 @@ void eavlRayTracerMutator::Execute()
             if(!cameraDirty&& depth==1)
             {
                 eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(ambPct,tempAmbPct),
-                                                     eavlOpArgs(ambPct),
-                                                     WeightedAccFunctor1to1(sampleCount,occSamples)),
-                                                     "weighted average");
+                                                         eavlOpArgs(ambPct),
+                                                         WeightedAccFunctor1to1(sampleCount,occSamples)),
+                                                         "weighted average");
                 eavlExecutor::Go();
                 sampleCount+=occSamples;
             }
