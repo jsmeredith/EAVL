@@ -69,6 +69,7 @@ class eavlXGCParticleImporter : public eavlImporter
     int             maxnum, enphase, inphase, nvars, retVal, numMPITasks, mpiRank;
     int	            totalIParticles, totalEParticles, timestep, readingRestartFile;
     int             IONendIndex, ELECTRONendIndex, IONstartIndex, ELECTRONstartIndex;
+    int             iphaseAvail, ephaseAvail;
     double          time;
     MPI_Comm        comm;
     long long       emaxgid, imaxgid;    

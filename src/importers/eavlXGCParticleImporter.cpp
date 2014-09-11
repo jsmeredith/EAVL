@@ -16,6 +16,8 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(const string &filename)
     retVal = 0;
     totalIParticles = 0;
     totalEParticles = 0;
+    iphaseAvail = 0;
+    ephaseAvail = 0;
     fp = NULL;
     getR = true;
     getZ = true;
@@ -38,9 +40,9 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(const string &filename)
     
 
     MPI_Comm comm_dummy = comm = 0;
-    char        hostname[MPI_MAX_PROCESSOR_NAME];
-    char        str [256];
-    int         len = 0;
+    char    hostname[MPI_MAX_PROCESSOR_NAME];
+    char    str [256];
+    int     len = 0;
     
     //Set local mpi vars so we know how many minions there are, and wich we are
     MPI_Comm_size(comm,&numMPITasks);
@@ -100,9 +102,9 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(   const string &filename,
         readingRestartFile = 0;
     
     
-    char        hostname[MPI_MAX_PROCESSOR_NAME];
-    char        str [256];
-    int len = 0;
+    char    hostname[MPI_MAX_PROCESSOR_NAME];
+    char    str [256];
+    int     len = 0;
     
     //Set local mpi vars so we know how many minions there are, and wich we are
     MPI_Comm_size(comm,&numMPITasks);
@@ -118,7 +120,6 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(   const string &filename,
             printf ("End of stream, no more steps expected. Quit. %s\n",
                         adios_errmsg()
                    );
-            THROW(eavlException, "XGC variable file not found.");
         }
         else
         {
@@ -202,6 +203,7 @@ eavlXGCParticleImporter::Initialize()
             if(varNm == "ephase") 
             {
                 ephase[longvarNm] = avi;
+                ephaseAvail = 1;
             } 
             else if(varNm == "egid") 
             {
@@ -210,6 +212,7 @@ eavlXGCParticleImporter::Initialize()
             else if(varNm == "iphase") 
             {
                 iphase[longvarNm] = avi;
+                iphaseAvail = 1;
             }
             else if(varNm == "igid") 
             {
@@ -277,46 +280,59 @@ eavlXGCParticleImporter::Initialize()
         }
     }
     else
-    {
-        //----Set indexes for each reader for the IONS
-        ADIOS_VARINFO *avi = adios_inq_var(fp, "iphase");
-        nvars = avi->dims[0];
-        int endIndex;
-        int startIndex = (nvars / numMPITasks) * mpiRank;
-        if (nvars % numMPITasks > mpiRank)
+    {   
+    
+        for(int i = 0; i < fp->nvars; i++)
         {
-            startIndex += mpiRank;
-            endIndex = startIndex + (nvars / numMPITasks) + 1;
+            string varNm(&fp->var_namelist[i][0]); 
+            
+            if(varNm == "ephase")
+            {                
+                ephaseAvail = 1;
+                //----Set indexes for each reader for the ELECTRONS
+                ADIOS_VARINFO *avi = adios_inq_var(fp, "ephase");
+                nvars = avi->dims[0];
+                int endIndex;
+                int startIndex = (nvars / numMPITasks) * mpiRank;
+                if (nvars % numMPITasks > mpiRank)
+                {
+                    startIndex += mpiRank;
+                    endIndex = startIndex + (nvars / numMPITasks) + 1;
+                }
+                else
+                {
+                    startIndex += nvars % numMPITasks;
+                    endIndex = startIndex + (nvars / numMPITasks);
+                }
+                ELECTRONendIndex = endIndex;
+                ELECTRONstartIndex = startIndex;
+                adios_free_varinfo(avi);
+                //--
+            }
+            else if(varNm == "iphase") 
+            {               
+                iphaseAvail = 1;
+                //----Set indexes for each reader for the IONS
+                ADIOS_VARINFO *avi = adios_inq_var(fp, "iphase");
+                nvars = avi->dims[0];
+                int endIndex;
+                int startIndex = (nvars / numMPITasks) * mpiRank;
+                if (nvars % numMPITasks > mpiRank)
+                {
+                    startIndex += mpiRank;
+                    endIndex = startIndex + (nvars / numMPITasks) + 1;
+                }
+                else
+                {
+                    startIndex += nvars % numMPITasks;
+                    endIndex = startIndex + (nvars / numMPITasks);
+                }
+                IONendIndex = endIndex;
+                IONstartIndex = startIndex;
+                adios_free_varinfo(avi);
+                //--
+            }
         }
-        else
-        {
-            startIndex += nvars % numMPITasks;
-            endIndex = startIndex + (nvars / numMPITasks);
-        }
-        IONendIndex = endIndex;
-        IONstartIndex = startIndex;
-        adios_free_varinfo(avi);
-        //--
-        
-        
-        //----Set indexes for each reader for the ELECTRONS
-        avi = adios_inq_var(fp, "ephase");
-        nvars = avi->dims[0];
-        startIndex = (nvars / numMPITasks) * mpiRank;
-        if (nvars % numMPITasks > mpiRank)
-        {
-            startIndex += mpiRank;
-            endIndex = startIndex + (nvars / numMPITasks) + 1;
-        }
-        else
-        {
-            startIndex += nvars % numMPITasks;
-            endIndex = startIndex + (nvars / numMPITasks);
-        }
-        ELECTRONendIndex = endIndex;
-        ELECTRONstartIndex = startIndex;
-        adios_free_varinfo(avi);
-        //--
         
         for(int i = 0; i < fp->nvars; i++)
         {
@@ -393,8 +409,8 @@ vector<string>
 eavlXGCParticleImporter::GetMeshList()
 {
     vector<string> m;
-    m.push_back("iMesh");
-    m.push_back("eMesh");
+    if(iphaseAvail) m.push_back("iMesh");
+    if(ephaseAvail) m.push_back("eMesh");
     return m;
 }
 
@@ -402,9 +418,9 @@ vector<string>
 eavlXGCParticleImporter::GetCellSetList(const std::string &mesh)
 {
     vector<string> m;
-    if(mesh == "iMesh")
+    if(mesh == "iMesh" && iphaseAvail)
         m.push_back("iMesh_cells");
-    else if(mesh == "eMesh")
+    else if(mesh == "eMesh" && ephaseAvail)
         m.push_back("eMesh_cells");
     return m;
 }
@@ -413,12 +429,12 @@ vector<string>
 eavlXGCParticleImporter::GetFieldList(const std::string &mesh)
 {
     vector<string> fields;
-    if(mesh == "iMesh") 
+    if(mesh == "iMesh" && iphaseAvail) 
     {
         fields.push_back("iphase");
         fields.push_back("igid");
     }
-    else if(mesh == "eMesh") 
+    else if(mesh == "eMesh" && ephaseAvail) 
     {
         fields.push_back("ephase");
         fields.push_back("egid");
@@ -432,7 +448,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
 {
     eavlDataSet *ds = new eavlDataSet;
     
-    if(name == "iMesh") 
+    if(name == "iMesh" && iphaseAvail) 
     {   
         ds->SetNumPoints(totalIParticles);
         eavlCoordinatesCartesian *coords = new eavlCoordinatesCartesian(NULL,
@@ -581,7 +597,7 @@ eavlXGCParticleImporter::GetMesh(const string &name, int chunk)
         //-- END set ids
         
     } 
-    else if(name == "eMesh") 
+    else if(name == "eMesh" && ephaseAvail) 
     {
         ds->SetNumPoints(totalEParticles);
         eavlCoordinatesCartesian *coords = new eavlCoordinatesCartesian(NULL,
@@ -741,7 +757,7 @@ eavlXGCParticleImporter::GetField(const string &name, const string &mesh, int ch
     eavlField *field;
     uint64_t s[3], c[3];
     map<string, ADIOS_VARINFO*>::const_iterator it;
-    if(name.compare("ephase") == 0)
+    if(name.compare("ephase") == 0 && ephaseAvail)
     {
         eavlFloatArray *arr = new eavlFloatArray(name, 1);
         arr->SetNumberOfTuples(totalEParticles*9);
@@ -771,7 +787,7 @@ eavlXGCParticleImporter::GetField(const string &name, const string &mesh, int ch
         }
         field = new eavlField(1, arr, eavlField::ASSOC_POINTS);
     } 
-    else if(name.compare("iphase") == 0)
+    else if(name.compare("iphase") == 0 && iphaseAvail)
     {
         eavlFloatArray *arr = new eavlFloatArray(name, 1);
         arr->SetNumberOfTuples(totalIParticles*9);
@@ -801,7 +817,7 @@ eavlXGCParticleImporter::GetField(const string &name, const string &mesh, int ch
         }
         field = new eavlField(1, arr, eavlField::ASSOC_POINTS);
     } 
-    else if(name.compare("igid") == 0) 
+    else if(name.compare("igid") == 0 && readingRestartFile && iphaseAvail) 
     {
         eavlIntArray *arr = new eavlIntArray(name, 1);
         arr->SetNumberOfTuples(totalIParticles);
@@ -831,7 +847,7 @@ eavlXGCParticleImporter::GetField(const string &name, const string &mesh, int ch
         }   
         field = new eavlField(1, arr, eavlField::ASSOC_POINTS);
     }
-    else if((name.compare("egid") == 0)) 
+    else if((name.compare("egid") == 0) && readingRestartFile && ephaseAvail ) 
     {
         eavlIntArray *arr = new eavlIntArray(name, 1);
         arr->SetNumberOfTuples(totalEParticles);
