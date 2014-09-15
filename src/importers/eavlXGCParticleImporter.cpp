@@ -64,8 +64,7 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(   const string &filename,
                                                     ADIOS_READ_METHOD method, 
                                                     MPI_Comm communicator, 
                                                     ADIOS_LOCKMODE mode, 
-                                                    int timeout_sec,
-                                                    int fromDataspaces
+                                                    int timeout_sec
                                                 )
 {
     timestep = 0;

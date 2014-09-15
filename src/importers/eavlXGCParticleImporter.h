@@ -40,8 +40,7 @@ class eavlXGCParticleImporter : public eavlImporter
                             ADIOS_READ_METHOD method, 
                             MPI_Comm comm, 
                             ADIOS_LOCKMODE mode, 
-                            int timeout_sec,
-                            int fromDataspaces
+                            int timeout_sec
                            );
     virtual ~eavlXGCParticleImporter();
 
