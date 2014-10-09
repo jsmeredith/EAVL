@@ -127,9 +127,9 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     light.y = 0;
     light.z = -20;
     
-    bgColor.x = 1;
-    bgColor.y = 1;
-    bgColor.z = 1;
+    bgColor.x = 0;
+    bgColor.y = 0;
+    bgColor.z = 0;
 
     compactOp   = false;
     geomDirty   = true;
@@ -1908,8 +1908,6 @@ void eavlRayTracerMutator::Init()
         sampleCount=0;
         cameraDirty=false;
     }
-
-
     //fill the const arrays with vertex and normal data
     
     /* Set ray origins to the eye */
@@ -2266,7 +2264,7 @@ void eavlRayTracerMutator::Execute()
     if(verbose) cerr<<"Number of triangles: "<<numTriangles<<endl;
     if(verbose) cerr<<"Number of Spheres: "<<numSpheres<<endl;
     if(verbose) cerr<<"Number of Cylinders: "<<numCyls<<endl;
-    if(verbose) printf("Camera -res %d %d -fovx %f -fovy %f -cp %f %f %f -cu %f %f %f -cla %f %f %f\n", height, width, fovx, fovy, eye.x,eye.y,eye.z, up.x, up.y, up.z, lookat.x, lookat.y, lookat.z);
+    
 
     clearFrameBuffer(r,g,b);
 
@@ -2819,24 +2817,124 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
 
 void eavlRayTracerMutator::fpsTest(int warmupRounds, int testRounds)
 {
-cout<<"Warming up "<<warmupRounds<<" rounds."<<endl;
+#if 0
+    Init();
+    look=lookat-eye;
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(indexes),
+                               eavlOpArgs(rayDirX,rayDirY,rayDirZ),
+                               RayGenFunctor(width,height,fovx,fovy,look,up)),
+                               "ray gen");
+    eavlExecutor::Go();
+
+    eavlFloatArray *eyex= new eavlFloatArray("x",1,size);
+    eavlFloatArray *eyey= new eavlFloatArray("y",1,size);
+    eavlFloatArray *eyez= new eavlFloatArray("z",1,size);
+
+    for(int i=0;i<size;i++) 
+    {
+        eyex->SetValue(i,eye.x);
+        eyey->SetValue(i,eye.y);
+        eyez->SetValue(i,eye.z);
+    }
+    
+    cout<<"Warming up "<<warmupRounds<<" rounds."<<endl;
     int warm = eavlTimer::Start(); //Dirs, origins
     for(int i=0; i<warmupRounds;i++)
     {
-        Execute();
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,eyex,eyey,eyez,hitIdx),
+                                                 eavlOpArgs(hitIdx,zBuffer),
+                                                 RayIntersectFunctor(tri_verts_array,tri_bvh_in_array, tri_bvh_lf_array)),
+                                                 "intersect");
+
+        eavlExecutor::Go();
+
+        //eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,interX,interY,interZ,hitIdx),
+        //                                         eavlOpArgs(interX, interY,interZ,alphas,betas),
+        //                                         ReflectTriFunctorBasic(tri_verts_array,norms)),
+        //                                         "reflectBasic");
+        //eavlExecutor::Go();
+
+        //eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx,shadowHits,interX,interY,interZ,alphas,betas,ambPct),
+        //                                         eavlOpArgs(r,g,b),
+        //                                         ShaderFunctor(numTriangles,light,eye,norms,0,matIdx,mats)),
+        //                                         "shader");
+        //eavlExecutor::Go();
+        cout<<"Warning: shading disabled"<<endl;
     }
 
     float rayper=size/(eavlTimer::Stop(warm,"warm")/(float)warmupRounds);
-    cout << "Warm up "<<rayper<< " Mrays/sec"<<endl;
+    cout << "Warm up "<<rayper/1000000.f<< " Mrays/sec"<<endl;
 
     int test = eavlTimer::Start(); //Dirs, origins
     for(int i=0; i<testRounds;i++)
     {
-        Execute();
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,eyex,eyey,eyez,hitIdx),
+                                                 eavlOpArgs(hitIdx,zBuffer),
+                                                 RayIntersectFunctor(tri_verts_array,tri_bvh_in_array, tri_bvh_lf_array)),
+                                                 "intersect");
+
+        eavlExecutor::Go();
+
+        //eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,interX,interY,interZ,hitIdx),
+        //                                         eavlOpArgs(interX, interY,interZ,alphas,betas),
+        //                                         ReflectTriFunctorBasic(tri_verts_array,norms)),
+        //                                         "reflectBasic");
+        //eavlExecutor::Go();
+
+        //eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(hitIdx,shadowHits,interX,interY,interZ,alphas,betas,ambPct),
+        //                                         eavlOpArgs(r,g,b),
+        //                                         ShaderFunctor(numTriangles,light,eye,norms,0,matIdx,mats)),
+        //                                         "shader");
+        //eavlExecutor::Go();
+        cout<<"Warning: shading disabled BIG PROBLEMS FIX LATER"<<endl;
+        if(!cpu)
+        {
+                eavlExecutor::AddOperation(
+                    new_eavlScatterOp(eavlOpArgs(r),
+                                eavlOpArgs(rOut),
+                                eavlOpArgs(indexes)),
+                                "scatter");
+                eavlExecutor::Go();
+
+                eavlExecutor::AddOperation(
+                    new_eavlScatterOp(eavlOpArgs(g),
+                                eavlOpArgs(gOut),
+                                eavlOpArgs(indexes)),
+                                "scatter");
+                eavlExecutor::Go();
+                eavlExecutor::AddOperation(
+                    new_eavlScatterOp(eavlOpArgs(b),
+                                eavlOpArgs(bOut),
+                                eavlOpArgs(indexes)),
+                                "scatter");
+                eavlExecutor::Go();
+            }
     }
     rayper=(float)testRounds/(eavlTimer::Stop(test,"test"));
     cout << "# "<<rayper<<endl;
-    writeBMP(height,width,r2, g2, b2,outfilename);
+    eavlExecutor::AddOperation(
+                    new_eavlScatterOp(eavlOpArgs(r),
+                                eavlOpArgs(rOut),
+                                eavlOpArgs(indexes)),
+                                "scatter");
+                eavlExecutor::Go();
+
+                eavlExecutor::AddOperation(
+                    new_eavlScatterOp(eavlOpArgs(g),
+                                eavlOpArgs(gOut),
+                                eavlOpArgs(indexes)),
+                                "scatter");
+                eavlExecutor::Go();
+                eavlExecutor::AddOperation(
+                    new_eavlScatterOp(eavlOpArgs(b),
+                                eavlOpArgs(bOut),
+                                eavlOpArgs(indexes)),
+                                "scatter");
+                eavlExecutor::Go();
+
+    writeBMP(height,width,rOut,gOut,bOut,outfilename);
+    exit(0);
+#endif
 }
 void eavlRayTracerMutator::freeRaw()
 {

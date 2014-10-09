@@ -12,6 +12,8 @@
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
+
+
 eavlDataSet *ReadWholeFile(const string &);
 void printUsage()
 {
@@ -265,20 +267,16 @@ int main(int argc, char *argv[])
             tracer->cpu=false;
         }
         openmpInfo();
+        
         tracer->scene->loadObjFile(filename);
         tracer->setBVHCacheName(filename);
-        //delete objreader;
+        
         tracer->setCompactOp(false);
         //*************************************Testing****************************
 
         tracer->setBVHCache(true);
-        tracer->setVerbose(false);    
-        tracer->setShadowsOn(true);
-        tracer->setAO(true);
-        tracer->setOccSamples(4);
+        tracer->setVerbose(true);    
         tracer->setDepth(1);
-        float magnitude=tracer->scene->getSceneExtentMagnitude();
-        tracer->setAOMax(magnitude*.2f);
 
         if(!isTest)
         {
@@ -292,11 +290,10 @@ int main(int argc, char *argv[])
         {
             cout<<"Starting test.\n";
             //tracer->visualRayTrace(1,"something");
-            //tracer->traversalTestISPCSOA(warmups,tests);
             //tracer->traversalTestISPC(warmups,tests);
-            //tracer->traversalTest(warmups,tests);
+            tracer->traversalTest(warmups,tests);
 
-            tracer->fpsTest(warmups,tests);
+            //tracer->fpsTest(warmups,tests);
         }
 
         
