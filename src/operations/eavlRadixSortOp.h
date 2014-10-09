@@ -35,7 +35,7 @@ void merge(T A[], T B[], T Av[], T Bv[], int m, int n)
     {
         if (A[i] <= B[j])
         {
-          C[k]  = A[i];
+          C[k]  = A[i]; 
           Cv[k] = Av[i++];  
         } 
         else
@@ -145,7 +145,7 @@ void keysmerge(uint *keys, uint *values, int size, int *index, int N)
     int i;
     while (N > 1) 
     {
-        for( i = 0; i < N; i++ ) index[i]=i*size/N;
+        for( i = 0; i < N; i++ ) index[i]=i*size/N; 
         index[N] = size;
 
 #pragma omp parallel for private(i) 
@@ -173,19 +173,19 @@ struct eavlRadixSortOp_CPU
 
 #ifdef HAVE_OPENMP
         int threads = omp_get_max_threads();
+        threads = pow(2, floor(log(threads)/log(2))); // needs to be power of 2
         int *index = (int *)malloc((threads+1)*sizeof(int));
-
         if(!useValues)
         {   
+
 #pragma omp parallel for
             for(int i = 0; i < nitems; i++)
             {
                 values[i] = i;
             }
         }
-
         for(int i = 0; i < threads; i++) index[i] = i*nitems/threads; 
-        index[threads]=nitems;
+        index[threads] = nitems;
 #pragma omp parallel for
         for(int i = 0; i < threads; i++) radix_sort(keys,values,index[i], index[i+1],24);
         /* Merge sorted keys pieces */
@@ -204,12 +204,9 @@ struct eavlRadixSortOp_CPU
    if (cudaSuccess != err) {                                                  \
        fprintf(stderr, "Cuda error in file '%s' in line %i : %s.\n",          \
            __FILE__, __LINE__, cudaGetErrorString( err) );                    \
-       exit(1);                                               \
+       exit(1);                                                               \
    }                                                                          \
 } while (0)
-
-// This kernel code based on CUDPP.  Please see the notice in
-// LICENSE_CUDPP.txt.
 
 
 template<class T, int maxlevel>
