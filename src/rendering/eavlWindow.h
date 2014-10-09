@@ -105,11 +105,11 @@ class eavlWindow
         }
 
         // render the window type specific annotations
-        RenderAnnotations();
+        //RenderAnnotations();
 
         // render any other annotations
-        for (unsigned int i=0; i<annotations.size(); ++i)
-            annotations[i]->Render(view);
+        //for (unsigned int i=0; i<annotations.size(); ++i)
+        //    annotations[i]->Render(view);
 
         surface->Finish();
     }

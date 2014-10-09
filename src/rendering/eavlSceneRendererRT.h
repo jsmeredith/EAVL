@@ -37,7 +37,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {
         tracer = new eavlRayTracerMutator();
         tracer->setDepth(1);
-        // /tracer->setVerbose(true);
+        tracer->setVerbose(true);
         tracer->setAOMax(5);
         tracer->setOccSamples(4);
         tracer->setAO(true);
