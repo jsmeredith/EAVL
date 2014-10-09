@@ -822,7 +822,7 @@ struct eavlRadixSortOp_GPU
 //                   [0 1 2 3]        
 //
 // Programmer: Matt Larsen 8/19/2014 (Cuda Kernels adapted from cudpp. CPU version 
-//             adapted from Erik Gorset. See LICENSE.txt )
+//             adapted from Erik Gorset. See COPYRIGHT.txt )
 //
 // Modifications:
 //    
