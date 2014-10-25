@@ -36,10 +36,10 @@ class eavlXGCParticleImporter : public eavlImporter
 {
   public:
     eavlXGCParticleImporter(const string &filename);
-    eavlXGCParticleImporter(const string &filename, 
-                            ADIOS_READ_METHOD method, 
-                            MPI_Comm comm, 
-                            ADIOS_LOCKMODE mode, 
+    eavlXGCParticleImporter(const string &filename,
+                            ADIOS_READ_METHOD method,
+                            MPI_Comm comm,
+                            ADIOS_LOCKMODE mode,
                             int timeout_sec
                            );
     virtual ~eavlXGCParticleImporter();
@@ -47,31 +47,33 @@ class eavlXGCParticleImporter : public eavlImporter
     int            GetTimeStep();
     int            GetEMaxGID();
     int            GetIMaxGID();
+    int            GetLastTimeStep();
     int            GetNumChunks(const std::string &mesh) {return 1;}
     int            AdvanceTimeStep(int step, int timeout_sec);
-    void           SetActiveFields(bool r, bool z, bool phi, bool rho, bool w1, 
+    int            AdvanceToTimeStep(int step, int timeout_sec);
+    void           SetActiveFields(bool r, bool z, bool phi, bool rho, bool w1,
                                    bool w2, bool mu, bool w0, bool f0, bool originNode);
     vector<string> GetMeshList();
     vector<string> GetFieldList(const std::string &mesh);
     vector<string> GetCellSetList(const std::string &mesh);
-    
+
     eavlDataSet*   GetMesh(const string &name, int chunk);
     eavlField*     GetField(const string &name, const string &mesh, int chunk);
-	
+
   protected:
     void Initialize();
     ADIOS_SELECTION *MakeSelection(ADIOS_VARINFO *avi, uint64_t *s, uint64_t *c);
     ADIOS_SELECTION *MakeLimitedSelection(ADIOS_VARINFO *avi, uint64_t *s, uint64_t *c, int ION);
     ADIOS_FILE *fp;
 
-    bool            getR, getZ, getPhi, getRho, getW1, getW2, getMu, getW0, getF0, getOriginNode;	
+    bool            getR, getZ, getPhi, getRho, getW1, getW2, getMu, getW0, getF0, getOriginNode;
     int             maxnum, enphase, inphase, nvars, retVal, numMPITasks, mpiRank;
     int	            totalIParticles, totalEParticles, timestep, readingRestartFile;
     int             IONendIndex, ELECTRONendIndex, IONstartIndex, ELECTRONstartIndex;
-    int             iphaseAvail, ephaseAvail;
+    int             iphaseAvail, ephaseAvail, last_available_timestep;
     double          time;
     MPI_Comm        comm;
-    long long       emaxgid, imaxgid;    
+    long long       emaxgid, imaxgid;
 
     map<string, ADIOS_VARINFO *> iphase, igid, ephase, egid;
 };
@@ -86,4 +88,3 @@ class eavlXGCParticleImporter : public eavlMissingImporter
 
 #endif //HAVE_ADIOS
 #endif //EAVL_XGC_PARTICLE_IMPORTER_H
-
