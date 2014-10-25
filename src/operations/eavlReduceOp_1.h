@@ -242,7 +242,8 @@ struct gpuReduceOp_1_function
 // Programmer:  Jeremy Meredith
 // Creation:    April 13, 2012
 //
-// Modifications:
+// Modifications: Matt Larse 10/21/2014 - added ability to process subset of
+//                                        input
 // ****************************************************************************
 template <class F>
 class eavlReduceOp_1 : public eavlOperation
@@ -251,19 +252,28 @@ class eavlReduceOp_1 : public eavlOperation
     eavlArrayWithLinearIndex inArray0;
     eavlArrayWithLinearIndex outArray0;
     F           functor;
+    int         nitems;
   public:
     eavlReduceOp_1(eavlArrayWithLinearIndex in0,
                    eavlArrayWithLinearIndex out0,
                    F f)
         : inArray0(in0), outArray0(out0), functor(f)
     {
+        nitems = -1;
+    }
+    eavlReduceOp_1(eavlArrayWithLinearIndex in0,
+                   eavlArrayWithLinearIndex out0,
+                   F f, int itemsToProcess)
+        : inArray0(in0), outArray0(out0), functor(f)
+    {
+        nitems = itemsToProcess;
     }
     virtual void GoCPU()
     {
-        int n = inArray0.array->GetNumberOfTuples();
+        if(nitems < 1) nitems = inArray0.array->GetNumberOfTuples();
 
         int dummy;
-        eavlDispatch_io1<cpuReduceOp_1_function>(n, eavlArray::HOST, dummy,
+        eavlDispatch_io1<cpuReduceOp_1_function>(nitems, eavlArray::HOST, dummy,
                      inArray0.array, inArray0.div, inArray0.mod, inArray0.mul, inArray0.add,
                      outArray0.array, outArray0.mul, outArray0.add,
                      functor);
@@ -271,10 +281,10 @@ class eavlReduceOp_1 : public eavlOperation
     virtual void GoGPU()
     {
 #if defined __CUDACC__
-        int n = inArray0.array->GetNumberOfTuples();
+        if(nitems < 1) nitems = inArray0.array->GetNumberOfTuples();
 
         int dummy;
-        eavlDispatch_io1<gpuReduceOp_1_function>(n, eavlArray::DEVICE, dummy,
+        eavlDispatch_io1<gpuReduceOp_1_function>(nitems, eavlArray::DEVICE, dummy,
                      inArray0.array, inArray0.div, inArray0.mod, inArray0.mul, inArray0.add,
                      outArray0.array, outArray0.mul, outArray0.add,
                      functor);

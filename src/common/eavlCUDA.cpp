@@ -63,11 +63,14 @@ void eavlInitializeGPU()
 {
 #ifdef HAVE_CUDA
     // Get a list of devices
-    int deviceCount;
-    cudaGetDeviceCount(&deviceCount);
-    if (deviceCount <= 0)
+    int deviceCount = 0;
+    cudaError_t err = cudaGetDeviceCount(&deviceCount);
+    if (err != cudaSuccess ||
+        deviceCount <= 0 ||
+        deviceCount > 256)
     {
-        cerr << "WARNING: CUDA was enabled, but no GPUs found.  "
+        cerr << "WARNING: CUDA is supported, but either no GPUs were found, "
+             << "or your driver needs to be updated.  "
              << "Forcing CPU execution." << endl;
         eavlExecutor::SetExecutionMode(eavlExecutor::ForceCPU);
         return;

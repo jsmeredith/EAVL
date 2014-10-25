@@ -195,6 +195,8 @@ int main(int argc, char *argv[])
             if (ni<2 || nj<2 || nk<2)
                 THROW(eavlException, "Expected ni,nj,nk >= 2");
             //eavlDataSet *data = GenerateRectXY(ni,nj);
+            cerr << "Forcing field name to 'rad'" << endl;
+            fieldname = "rad";
             data = GenerateRectXYZ(ni,nj,nk);
         }
 
