@@ -963,10 +963,10 @@ eavlXGCParticleImporter::AdvanceToTimeStep(int step, int timeout_sec)
     while(currentTimestep < step)
     {
         int err = adios_advance_step(fp, 0, timeout_sec);
-        currentTimestep++;
 
         if(err != 0)
             return err;
+        currentTimestep++;
     }
 
     timestep = 0;
