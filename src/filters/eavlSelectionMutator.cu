@@ -29,7 +29,7 @@ struct FindSelection
     int size;
     eavlConstArray<int> checkArray;
     FindSelection(eavlConstArray<int> *inArray, int _size) : checkArray(*inArray), size(_size) { }
-    EAVL_FUNCTOR int operator()(int key) 
+    EAVL_FUNCTOR int operator()(int key)
     {
         int minIndex, maxIndex, midPoint;
         minIndex = 0;
@@ -51,10 +51,10 @@ struct FindSelection
 
 eavlSelectionMutator::eavlSelectionMutator()
 {
-    presorted = false; 
+    presorted = false;
 }
 
-    
+
 void
 eavlSelectionMutator::Execute()
 {
@@ -63,27 +63,27 @@ eavlSelectionMutator::Execute()
     eavlField *inField = dataset->GetField(fieldname);
     eavlArray *arrayToOperateOn = inField->GetArray();
     eavlIntArray *mapOutput = new eavlIntArray("inSelection", 1, arrayToOperateOn->GetNumberOfTuples());
-    
-    
+
+
     //----dump interesting paticles to array that qsort can use
-    int constArray_raw[chosenElements->GetNumberOfTuples()];
+    int *constArray_raw = (int *)malloc(sizeof(int *)*chosenElements->GetNumberOfTuples());
     #pragma omp parallel for
-    for(int n = 0 ; n < chosenElements->GetNumberOfTuples(); n++ ) 
+    for(int n = 0 ; n < chosenElements->GetNumberOfTuples(); n++ )
     {
         constArray_raw[n] = chosenElements->GetValue(n);
 
     }
-        
+
     if(!presorted)
     {
         qsort(constArray_raw, chosenElements->GetNumberOfTuples(), sizeof(int), cmpfunc);
     }
-   
+
     //----put elements in const array for use in fuctor
     eavlConstArray<int> *constArray;
     INIT(eavlConstArray<int>,  constArray,  chosenElements->GetNumberOfTuples());
     //--
-    
+
     //----perform map with custom selection fuctor
     eavlExecutor::AddOperation(new_eavlMapOp( eavlOpArgs(arrayToOperateOn),
                                               eavlOpArgs(mapOutput),
@@ -106,7 +106,7 @@ eavlSelectionMutator::Execute()
                                );
     eavlExecutor::Go();
     //--
-	
+
 
 	//----perform reduction
 	eavlIntArray *totalInterestingIds = new eavlIntArray("totalInterestingIds", 1, 1);
@@ -122,10 +122,10 @@ eavlSelectionMutator::Execute()
 
 
     //----perform reverse index
-    eavlIntArray *interestingIndexes = new eavlIntArray("interestingIndexes", 
-                                                        1, 
+    eavlIntArray *interestingIndexes = new eavlIntArray("interestingIndexes",
+                                                        1,
                                                         totalInterestingIds->GetValue(0)
-                                                       ); 
+                                                       );
 
     if(totalInterestingIds->GetValue(0) > 0)
     {
@@ -140,8 +140,8 @@ eavlSelectionMutator::Execute()
         eavlExecutor::Go();
     }
     //--
-    
-    
+
+
     //----Create cell set from the selection
     unsigned int numnewcells = totalInterestingIds->GetValue(0);
     eavlExplicitConnectivity conn;
@@ -181,4 +181,3 @@ eavlSelectionMutator::Execute()
     }
     //--
 }
-
