@@ -402,6 +402,10 @@ eavlXGCParticleImporter::Initialize()
                 //imaxgid = (long long)(*(long long *)avi->value);
                 adios_free_varinfo(avi);
             }
+            else
+            {
+                 adios_free_varinfo(avi);
+            }
         }
     }
 }

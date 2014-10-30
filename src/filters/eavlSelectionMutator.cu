@@ -180,4 +180,11 @@ eavlSelectionMutator::Execute()
         }
     }
     //--
+
+    delete interestingIndexes;
+	delete totalInterestingIds;
+	delete exclusiveScanOut;
+	delete mapOutput;
+	delete constArray;
+	free(constArray_raw);
 }
