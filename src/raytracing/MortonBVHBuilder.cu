@@ -4,6 +4,8 @@
 #include "eavlMapOp.h"
 #include "eavlRadixSortOp.h"
 #include "eavlGatherOp.h"
+#include <algorithm>    
+using namespace std; 
 
 #ifdef HAVE_OPENMP
 #include <omp.h>
