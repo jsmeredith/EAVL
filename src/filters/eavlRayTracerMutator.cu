@@ -1,48 +1,35 @@
 #include "eavlException.h"
 #include "eavlExecutor.h"
-
-#include "eavlMapOp.h"
 #include "eavlFilter.h"
 #include "eavlTimer.h" 
-#include <string.h>
+
 #include <sys/time.h>
-#include <ctime> 
+#include <string.h>
 #include <cstdlib>
- 
-#include "eavlExecutor.h"
+#include <ctime> 
 
 #include "eavlRayTracerMutator.h"
 #include "eavlNewIsoTables.h" // need this for eavl const array
 
-#include "eavlGatherOp.h"
-#include "eavlScatterOp.h"
-#include "eavlReduceOp_1.h"
-#include "eavlMapOp.h"
-
-#include "eavlPrefixSumOp_1.h"
+//Operations
 #include "eavlSimpleReverseIndexOp.h"
-
-#include <list>
+#include "eavlPrefixSumOp_1.h"
 #include "eavl1toNScatterOp.h"
 #include "eavlNto1GatherOp.h"
-#include "SplitBVH.h"
-
-#include <sstream>
-#include <iostream>
-#include <fstream>
-
+#include "eavlReduceOp_1.h"
+#include "eavlScatterOp.h"
+#include "eavlGatherOp.h"
+#include "eavlMapOp.h"
+//RT
+#include "MortonBVHBuilder.h"
 #include "eavlRTUtil.h"
-
-
-
+#include "SplitBVH.h"
 
 #define TOLERANCE   0.00001
 #define BARY_TOLE   0.0001f
 #define EPSILON     0.01f
 #define INFINITE    1000000
 #define END_FLAG    -1000000000
-
-#define FILE_LEAF -100001
 
 //declare the texture reference even if we are not using texture memory
 
@@ -61,7 +48,6 @@ texture<float4> cyl_verts_tref;
 texture<float>  cyl_bvh_lf_tref;            
 texture<float>  cyl_scalars_tref;
 
-
 /*material Index textures*/
 texture<int>    tri_matIdx_tref;
 texture<int>    sphr_matIdx_tref;
@@ -69,7 +55,6 @@ texture<int>    cyl_matIdx_tref;
 
 /*color map texture */
 texture<float4> color_map_tref;
-
 
 eavlConstTexArray<float4>* tri_bvh_in_array;
 eavlConstTexArray<float4>* tri_verts_array;
@@ -88,14 +73,8 @@ eavlConstTexArray<float>*  cyl_bvh_lf_array;
 eavlConstTexArray<float>*  cyl_scalars_array;
 eavlConstTexArray<int>*    cyl_matIdx_array;
 
-
-
 eavlConstTexArray<float4>* cmap_array;
 
-
-
-
-int test;
 eavlRayTracerMutator::eavlRayTracerMutator()
 {
 
@@ -261,6 +240,7 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     count = NULL;
     indexScan = NULL;
     
+    fastBVHBuild = true; //Use the Morton LBVH Builder
 
     setDefaultColorMap();
     if(verbose) cout<<"Constructor finished\n";
@@ -319,82 +299,8 @@ void eavlRayTracerMutator::setDefaultColorMap()
 
 void eavlRayTracerMutator::setCompact(bool comp)
 {
-    compactOp=comp;
+    compactOp = comp;
 }
-
-
-
-struct RNG
-{
-   unsigned long x, y, z;
-
-    EAVL_HOSTDEVICE RNG(long seed)
-     {
-        x=123456789*seed;
-        y=362436069;
-        z=521288629;
-     }
-     EAVL_HOSTDEVICE float rand(void) {          //period 2^96-1
-        unsigned long t;
-        x ^= x << 16;
-        x ^= x >> 5;
-        x ^= x << 1;
-
-       t = x;
-       x = y;
-       y = z;
-       z = t ^ x ^ y;
-
-      return (float) x/((~0UL>>1)*1.0) - 1.0;
-    }
-};
-
-
-EAVL_HOSTDEVICE float RandomFloat(float a, float b) {
-    float random = ((float) rand()) / (float) RAND_MAX;
-    float diff = b - a;
-    float r = random * diff;
-    return a + r;
-}
-struct OccRayGenFunctor
-{   
-    OccRayGenFunctor()
-        
-    {}
-
-    EAVL_FUNCTOR tuple<float,float,float,float,float,float,int> operator()(tuple<float,float,float,float,float,float,int>input, int seed){
-        RNG rng(get<0>(input)+seed);
-        eavlVector3 normal(get<0>(input),get<1>(input),get<2>(input));
-        eavlVector3 dir;
-        //rng warm up
-        float out=rng.rand();
-        for(int i=0; i<25;i++) out=rng.rand();
-        
-        while(true)
-        {
-            dir.x=rng.rand();
-            dir.y=rng.rand();
-            dir.z=rng.rand();
-
-            //dir.x=RandomFloat(-1,1);
-            //dir.y=RandomFloat(-1,1);
-            //dir.z=RandomFloat(-1,1);
-
-            if(dir.x*dir.x+dir.y*dir.y+dir.z*dir.z >1) continue;
-            if(dir*normal<0) continue;
-            dir.normalize();
-            return tuple<float,float,float,float,float,float,int>(dir.x,dir.y,dir.z,get<3>(input),get<4>(input),get<5>(input),get<6>(input));
-        }
-
-
-
-        
-    }
-
-   
-
-};
-
 
 /* Next two functions use code adapted from NVIDIA rayGen kernels see headers in RT/bvh/ for full copyright information */
 EAVL_HOSTDEVICE void jenkinsMix(unsigned int & a, unsigned int & b, unsigned int & c)
@@ -414,46 +320,46 @@ struct OccRayGenFunctor2
     OccRayGenFunctor2(){}
 
     EAVL_FUNCTOR tuple<float,float,float> operator()(tuple<float,float,float,float,float,float,int>input, int seed, int sampleNum){
-        int hitIdx=get<6>(input);
-        if(hitIdx==-1) tuple<float,float,float>(0.f,0.f,0.f);
+        int hitIdx = get<6>(input);
+        if(hitIdx == -1) tuple<float,float,float>(0.f,0.f,0.f);
         eavlVector3 normal(get<0>(input),get<1>(input),get<2>(input));
         
         //rng warm up
         eavlVector3 absNormal;
-        absNormal.x=abs(normal.x);
-        absNormal.y=abs(normal.y);
-        absNormal.z=abs(normal.z);
+        absNormal.x = abs(normal.x);
+        absNormal.y = abs(normal.y);
+        absNormal.z = abs(normal.z);
         
-        float maxN=max(max(absNormal.x,absNormal.y),absNormal.z);
-        eavlVector3 perp=eavlVector3(normal.y,-normal.x,0.f);
-        if(maxN==absNormal.z)  
+        float maxN = max(max(absNormal.x,absNormal.y),absNormal.z);
+        eavlVector3 perp = eavlVector3(normal.y,-normal.x,0.f);
+        if(maxN == absNormal.z)  
         {
-            perp.x=0.f;
-            perp.y=normal.z;
-            perp.z=-normal.y;
+            perp.x = 0.f;
+            perp.y = normal.z;
+            perp.z = -normal.y;
         }
-        else if (maxN==absNormal.x)
+        else if (maxN == absNormal.x)
         {
-            perp.x=-normal.z;
-            perp.y=0.f;
-            perp.z=normal.x;
+            perp.x = -normal.z;
+            perp.y = 0.f;
+            perp.z = normal.x;
         }
         perp.normalize(); 
 
-        eavlVector3 biperp= normal%perp;
+        eavlVector3 biperp = normal % perp;
 
-        unsigned int hashA =6371625+seed;
-        unsigned int hashB =0x9e3779b9u;
-        unsigned int hashC =0x9e3779b9u;
+        unsigned int hashA = 6371625 + seed;
+        unsigned int hashB = 0x9e3779b9u;
+        unsigned int hashC = 0x9e3779b9u;
         jenkinsMix(hashA, hashB, hashC);
         jenkinsMix(hashA, hashB, hashC);
-        float angle=2.f*PI*(float)hashC*exp2(-32.f);
-        eavlVector3 t0= perp*cosf(angle)+biperp*sinf(angle);
-        eavlVector3 t1= perp* -sinf(angle)+biperp*cosf(angle);
+        float angle = 2.f * PI * (float)hashC * exp2(-32.f);
+        eavlVector3 t0 = perp * cosf(angle) + biperp * sinf(angle);
+        eavlVector3 t1 = perp * -sinf(angle) + biperp * cosf(angle);
 
         float  x = 0.0f;
         float  xadd = 1.0f;
-        unsigned int hc2 = 1+sampleNum;
+        unsigned int hc2 = 1 + sampleNum;
         while (hc2 != 0)
         {
             xadd *= 0.5f;
@@ -464,7 +370,7 @@ struct OccRayGenFunctor2
 
         float  y = 0.0f;
         float  yadd = 1.0f;
-        int hc3 = 1+sampleNum;
+        int hc3 = 1 + sampleNum;
         while (hc3 != 0)
         {
             yadd *= 1.0f / 3.0f;
@@ -480,7 +386,6 @@ struct OccRayGenFunctor2
         float z = sqrtf(1.0f - x * x - y * y);
         eavlVector3 dir=eavlVector3( t0*x  +  t1*y +  normal*z);
         dir.normalize();
-        //if(1087534==get<7>(input)) cout<<"DIR "<<dir<<" "<<t0<<" "<<x<<" "<<t1<<" "<<y<<" "<<angle<<" "<<normal<<endl;
         return tuple<float,float,float>(dir.x,dir.y,dir.z);
     }
 
@@ -498,31 +403,31 @@ EAVL_HOSTDEVICE void triangleIntersectionDistance(const eavlVector3 ray,const ea
 {
     eavlVector3 intersect,normal;
     float d,dot;//,area;
-    normal=(b-a)%(c-a);                                
-    dot=normal*ray;
-    d=normal*a; 
-    tempDist=(d-normal*rayOrigin)/dot; 
+    normal = (b-a)%(c-a);                                
+    dot = normal * ray;
+    d = normal * a; 
+    tempDist = (d - normal*rayOrigin) / dot; 
 }
 
 //if this is called we know that the there is a hit
 EAVL_HOSTDEVICE eavlVector3 triangleIntersectionABG(const eavlVector3 ray,const eavlVector3 rayOrigin,const eavlVector3 a, const eavlVector3 b, const eavlVector3 c, int index, float &alpha,float &beta)
 {
 
-    eavlVector3 intersect,normal;
-    float tempDistance,d,dot,area;
-    normal=(b-a)%(c-a);                                  //**I would think that the normal will already be calculated, otherwise add this to preprocessing step
-    dot=normal*ray;
+    eavlVector3 intersect , normal;
+    float tempDistance, d, dot, area;
+    normal = (b-a) % (c-a);
+    dot = normal * ray;
     //if(dot<TOLERANCE && dot >-TOLERANCE) return eavlVector3(-9999,-9999,-9999);    //traingle is parallel to the ray
-    d=normal*a; //solve for d using any point on the plane
-    tempDistance=(d-normal*rayOrigin)/dot; //**this could be preprocessed as well, but could be cost prohibitive if a lot of triangles are parallel to the ray( not likely i think)
-    intersect=rayOrigin+ray*tempDistance;
+    d = normal * a; //solve for d using any point on the plane
+    tempDistance = (d - normal*rayOrigin) / dot; //**this could be preprocessed as well, but could be cost prohibitive if a lot of triangles are parallel to the ray( not likely i think)
+    intersect=rayOrigin + ray * tempDistance;
     //inside test
-    alpha=((c-b)%(intersect-b))*normal; //angles between the intersect point and edges
-    beta =((a-c)%(intersect-c))*normal;
+    alpha= ((c-b) % (intersect-b)) * normal; //angles between the intersect point and edges
+    beta = ((a-c) % (intersect-c)) * normal;
     // this is for the barycentric coordinates for color, normal lerping.
-    area=normal*normal;
-    alpha=alpha/area;
-    beta =beta/area;
+    area = normal * normal;
+    alpha = alpha / area;
+    beta = beta / area;
     return intersect;
 }
 
@@ -630,7 +535,7 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
         {
             
 
-            currentNode = -currentNode; //swap the neg address 
+            currentNode = -currentNode - 1; //swap the neg address 
             int numTri = (int)tri_bvh_lf_raw->getValue(tri_bvh_lf_tref,currentNode)+1;
 
             for(int i = 1; i < numTri; i++)
@@ -695,92 +600,92 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
 {
 
 
-    float minDistance =maxDistance;
-    int   minIndex    =-1;
+    float minDistance = maxDistance;
+    int   minIndex    = -1;
     
-    float dirx=rayDir.x;
-    float diry=rayDir.y;
-    float dirz=rayDir.z;
+    float dirx = rayDir.x;
+    float diry = rayDir.y;
+    float dirz = rayDir.z;
 
-    float invDirx=rcp_safe(dirx);
-    float invDiry=rcp_safe(diry);
-    float invDirz=rcp_safe(dirz);
+    float invDirx = rcp_safe(dirx);
+    float invDiry = rcp_safe(diry);
+    float invDirz = rcp_safe(dirz);
     int currentNode;
   
     int todo[64]; //num of nodes to process
     int stackptr = 0;
-    int barrier=(int)END_FLAG;
-    currentNode=0;
+    int barrier = (int)END_FLAG;
+    currentNode = 0;
 
     todo[stackptr] = barrier;
 
-    float ox=rayOrigin.x;
-    float oy=rayOrigin.y;
-    float oz=rayOrigin.z;
-    float odirx=ox*invDirx;
-    float odiry=oy*invDiry;
-    float odirz=oz*invDirz;
+    float ox = rayOrigin.x;
+    float oy = rayOrigin.y;
+    float oz = rayOrigin.z;
+    float odirx = ox*invDirx;
+    float odiry = oy*invDiry;
+    float odirz = oz*invDirz;
 
-    while(currentNode!=END_FLAG) {
+    while(currentNode != END_FLAG) {
 
-        if(currentNode>-1)
+        if(currentNode > -1)
         {
 
-            float4 n1=bvh->getValue(sphr_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
-            float4 n2=bvh->getValue(sphr_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
-            float4 n3=bvh->getValue(sphr_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
+            float4 n1 = bvh->getValue(sphr_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
+            float4 n2 = bvh->getValue(sphr_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
+            float4 n3 = bvh->getValue(sphr_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
             
-            float txmin0 = n1.x* invDirx -odirx;       
-            float tymin0 = n1.y* invDiry -odiry;         
-            float tzmin0 = n1.z* invDirz -odirz;
-            float txmax0 = n1.w* invDirx -odirx;
-            float tymax0 = n2.x* invDiry -odiry;
-            float tzmax0 = n2.y* invDirz -odirz;
+            float txmin0 = n1.x* invDirx - odirx;       
+            float tymin0 = n1.y* invDiry - odiry;         
+            float tzmin0 = n1.z* invDirz - odirz;
+            float txmax0 = n1.w* invDirx - odirx;
+            float tymax0 = n2.x* invDiry - odiry;
+            float tzmax0 = n2.y* invDirz - odirz;
            
-            float tmin0=max(max(max(min(tymin0,tymax0),min(txmin0,txmax0)),min(tzmin0,tzmax0)),0.f);
-            float tmax0=min(min(min(max(tymin0,tymax0),max(txmin0,txmax0)),max(tzmin0,tzmax0)), minDistance);
+            float tmin0 = max(max(max(min(tymin0,tymax0),min(txmin0,txmax0)),min(tzmin0,tzmax0)),0.f);
+            float tmax0 = min(min(min(max(tymin0,tymax0),max(txmin0,txmax0)),max(tzmin0,tzmax0)), minDistance);
             
-            bool traverseChild0=(tmax0>=tmin0);
+            bool traverseChild0 = (tmax0 >= tmin0);
 
              
-            float txmin1 = n2.z* invDirx -odirx;       
-            float tymin1 = n2.w* invDiry -odiry;
-            float tzmin1 = n3.x* invDirz -odirz;
-            float txmax1 = n3.y* invDirx -odirx;
-            float tymax1 = n3.z* invDiry- odiry;
-            float tzmax1 = n3.w* invDirz -odirz;
-            float tmin1=max(max(max(min(tymin1,tymax1),min(txmin1,txmax1)),min(tzmin1,tzmax1)),0.f);
-            float tmax1=min(min(min(max(tymin1,tymax1),max(txmin1,txmax1)),max(tzmin1,tzmax1)), minDistance);
+            float txmin1 = n2.z* invDirx - odirx;       
+            float tymin1 = n2.w* invDiry - odiry;
+            float tzmin1 = n3.x* invDirz - odirz;
+            float txmax1 = n3.y* invDirx - odirx;
+            float tymax1 = n3.z* invDiry-  odiry;
+            float tzmax1 = n3.w* invDirz - odirz;
+            float tmin1 = max(max(max(min(tymin1,tymax1),min(txmin1,txmax1)),min(tzmin1,tzmax1)),0.f);
+            float tmax1 = min(min(min(max(tymin1,tymax1),max(txmin1,txmax1)),max(tzmin1,tzmax1)), minDistance);
             
-            bool traverseChild1=(tmax1>=tmin1);
+            bool traverseChild1 = (tmax1 >= tmin1);
 
             if(!traverseChild0 && !traverseChild1)
             {
 
-                currentNode=todo[stackptr]; //go back put the stack
+                currentNode = todo[stackptr]; //go back put the stack
                 stackptr--;
             }
             else
             {
-                float4 n4=bvh->getValue(sphr_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
-                int leftChild =(int)n4.x;
-                int rightChild=(int)n4.y;
+                float4 n4 = bvh->getValue(sphr_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
+                int leftChild = (int)n4.x;
+                int rightChild = (int)n4.y;
 
-                currentNode= (traverseChild0) ? leftChild : rightChild;
+                currentNode = (traverseChild0) ? leftChild : rightChild;
                 if(traverseChild1 && traverseChild0)
                 {
-                    if(tmin0>tmin1)
+                    if(tmin0 > tmin1)
                     {
 
                        
-                        currentNode=rightChild;
+                        currentNode = rightChild;
                         stackptr++;
-                        todo[stackptr]=leftChild;
+                        todo[stackptr] = leftChild;
                     }
                     else
                     {   
                         stackptr++;
-                        todo[stackptr]=rightChild;
+                        todo[stackptr] = rightChild;
                     }
 
 
@@ -790,18 +695,12 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
         
         if(currentNode < 0 && currentNode != barrier)//check register usage
         {
-            
-
-            currentNode=-currentNode; //swap the neg address 
-            int numSheres=(int)bvh_lf->getValue(sphr_bvh_lf_tref,currentNode)+1;
-            //cout<<"Origin "<<ox<<" "<<oy<<" "<<oz<<endl;
-            //cout<<"Dir "<<dirx<<" "<<diry<<" "<<dirz<<endl;
-
-            
-
-            for(int i=1;i<numSheres;i++)
+            currentNode = -currentNode - 1; //swap the neg address
+            int numSheres = (int)bvh_lf->getValue(sphr_bvh_lf_tref,currentNode)+1;
+ 
+            for(int i = 1; i < numSheres; i++)
             {        
-                int sphereIndex=(int)bvh_lf->getValue(sphr_bvh_lf_tref,currentNode+i);
+                int sphereIndex = (int)bvh_lf->getValue(sphr_bvh_lf_tref,currentNode+i);
                 
                 float4 data = verts->getValue(sphr_verts_tref, sphereIndex);
 
@@ -812,18 +711,18 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
                 float dot1 = lx*dirx+ly*diry+lz*dirz;
                 if(dot1 >= 0)
                 {
-                    float d = lx*lx+ly*ly+lz*lz-dot1*dot1;
-                    float r2=data.w*data.w;
+                    float d  = lx*lx + ly*ly + lz*lz - dot1*dot1;
+                    float r2 = data.w * data.w;
                     if(d <= r2 )
                     {
-                        float tch = sqrt(r2-d);
-                        float t0 = dot1-tch;
+                        float tch = sqrt(r2 - d);
+                        float t0  = dot1 - tch;
                         //float t1 = dot1+tch; /* if t1 is > 0 and t0<0 then the ray is inside the sphere.
 
                         if( t0 < minDistance && t0 > 0)
                         {
-                            minIndex=sphereIndex;
-                            minDistance=t0;
+                            minIndex = sphereIndex;
+                            minDistance = t0;
                             if(occlusion) return minIndex;
                         }
                         
@@ -831,12 +730,12 @@ EAVL_HOSTDEVICE int getIntersectionSphere(const eavlVector3 rayDir, const eavlVe
                 }
 
             }
-            currentNode=todo[stackptr];
+            currentNode = todo[stackptr];
             stackptr--;
         }
 
     }
- distance=minDistance;
+ distance = minDistance;
  return minIndex;
 }
 
@@ -941,7 +840,7 @@ EAVL_HOSTDEVICE int getIntersectionCyl(const eavlVector3 rayDir, const eavlVecto
         if(currentNode < 0 && currentNode != barrier)//check register usage
         {
 
-            currentNode = -currentNode; //swap the neg address 
+            currentNode = -currentNode - 1; //swap the neg address
             int numCyl = (int)cyl_bvh_lf_raw->getValue(cyl_bvh_lf_tref,currentNode)+1;
             eavlVector3 dir(dirx, diry, dirz);
             eavlVector3 o(ox, oy, oz);
@@ -1017,14 +916,13 @@ EAVL_HOSTDEVICE int getIntersectionCyl(const eavlVector3 rayDir, const eavlVecto
 EAVL_HOSTDEVICE float intersectSphereDist(eavlVector3 rayDir, eavlVector3 rayOrigin, float4 sphere)
 {
     eavlVector3 center(sphere.x, sphere.y,sphere.z);
-    eavlVector3 l=center-rayOrigin;
+    eavlVector3 l = center - rayOrigin;
     //cout<<l<<(l*l)<<endl;
-    float dot=l*rayDir;
-    float d=l*l-dot*dot;
-    float r2=sphere.w*sphere.w;
-    float tch=0;
-    if(d < r2) tch = sqrt(r2-d); /* Floating point precision is effecting this. Should already be a intersection.*/
-    //cout<<dot<<" "<<d<<" "<<r2<<" "<<tch<<" "<<d-tch<<endl;
+    float dot = l * rayDir;
+    float d = l*l - dot*dot;
+    float r2 = sphere.w * sphere.w;
+    float tch = 0;
+    if(d < r2) tch = sqrt(r2 - d); /* Floating point precision is effecting this. Should already be a intersection.*/
     return dot-tch;
 
 }
@@ -1033,92 +931,91 @@ EAVL_HOSTDEVICE float getIntersectionDepth(const eavlVector3 rayDir, const eavlV
 {
 
 
-    float minDistance=maxDistance;
-    int minIndex=-1;
+    float minDistance = maxDistance;
+    int minIndex = -1;
     
-    float dirx=rayDir.x;
-    float diry=rayDir.y;
-    float dirz=rayDir.z;
+    float dirx = rayDir.x;
+    float diry = rayDir.y;
+    float dirz = rayDir.z;
 
-    float invDirx=rcp_safe(dirx);
-    float invDiry=rcp_safe(diry);
-    float invDirz=rcp_safe(dirz);
+    float invDirx = rcp_safe(dirx);
+    float invDiry = rcp_safe(diry);
+    float invDirz = rcp_safe(dirz);
     int currentNode;
   
 
     int todo[64]; //num of nodes to process
     int stackptr = 0;
-    int barrier=(int)END_FLAG;
-    currentNode=0;
+    int barrier = (int)END_FLAG;
+    currentNode = 0;
 
     todo[stackptr] = barrier;
 
-    float ox=rayOrigin.x;
-    float oy=rayOrigin.y;
-    float oz=rayOrigin.z;
-    float odirx=ox*invDirx;
-    float odiry=oy*invDiry;
-    float odirz=oz*invDirz;
+    float ox = rayOrigin.x;
+    float oy = rayOrigin.y;
+    float oz = rayOrigin.z;
+    float odirx = ox * invDirx;
+    float odiry = oy * invDiry;
+    float odirz = oz * invDirz;
 
-    while(currentNode!=END_FLAG) {
+    while(currentNode != END_FLAG) {
         
         
-        if(currentNode>-1)
+        if(currentNode > -1)
         {
-            float4 n1=bvh.getValue(tri_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
-            //cout<<n1.x<<" "<<n1.y<<" "<<n1.z<<" "<<n1.w<<endl;
-            float4 n2=bvh.getValue(tri_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
-            float4 n3=bvh.getValue(tri_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
+            float4 n1 = bvh.getValue(tri_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0
+            float4 n2=bvh.getValue(tri_bvh_in_tref, currentNode+1);   //(tymax0, tzmax0, txmin1, tymin1)
+            float4 n3=bvh.getValue(tri_bvh_in_tref, currentNode+2);   //(tzmin1, txmax1, tymax1, tzmax1)
             
-            float txmin0 =   n1.x* invDirx -odirx;       
-            float tymin0 =   n1.y* invDiry -odiry;         
-            float tzmin0 =   n1.z* invDirz -odirz;
-            float txmax0 =   n1.w* invDirx -odirx;
-            float tymax0 =   n2.x* invDiry -odiry;
-            float tzmax0 =   n2.y* invDirz -odirz;
+            float txmin0 =   n1.x* invDirx - odirx;       
+            float tymin0 =   n1.y* invDiry - odiry;         
+            float tzmin0 =   n1.z* invDirz - odirz;
+            float txmax0 =   n1.w* invDirx - odirx;
+            float tymax0 =   n2.x* invDiry - odiry;
+            float tzmax0 =   n2.y* invDirz - odirz;
            
-            float tmin0=max(max(max(min(tymin0,tymax0),min(txmin0,txmax0)),min(tzmin0,tzmax0)),0.f);
-            float tmax0=min(min(min(max(tymin0,tymax0),max(txmin0,txmax0)),max(tzmin0,tzmax0)), minDistance);
+            float tmin0 = max(max(max(min(tymin0,tymax0),min(txmin0,txmax0)),min(tzmin0,tzmax0)),0.f);
+            float tmax0 = min(min(min(max(tymin0,tymax0),max(txmin0,txmax0)),max(tzmin0,tzmax0)), minDistance);
             
-            bool traverseChild0=(tmax0>=tmin0);
+            bool traverseChild0 = (tmax0 >= tmin0);
             //test if re-using the same variables makes a difference with instruction level parallism
              
-            float txmin1 =   n2.z* invDirx -odirx;       
-            float tymin1 =   n2.w* invDiry -odiry;
-            float tzmin1 =   n3.x* invDirz -odirz;
-            float txmax1 =   n3.y* invDirx -odirx;
-            float tymax1 =   n3.z* invDiry- odiry;
-            float tzmax1 =   n3.w* invDirz -odirz;
-            float tmin1=max(max(max(min(tymin1,tymax1),min(txmin1,txmax1)),min(tzmin1,tzmax1)),0.f);
-            float tmax1=min(min(min(max(tymin1,tymax1),max(txmin1,txmax1)),max(tzmin1,tzmax1)), minDistance);
+            float txmin1 =   n2.z* invDirx - odirx;       
+            float tymin1 =   n2.w* invDiry - odiry;
+            float tzmin1 =   n3.x* invDirz - odirz;
+            float txmax1 =   n3.y* invDirx - odirx;
+            float tymax1 =   n3.z* invDiry-  odiry;
+            float tzmax1 =   n3.w* invDirz - odirz;
+            float tmin1 = max(max(max(min(tymin1,tymax1),min(txmin1,txmax1)),min(tzmin1,tzmax1)),0.f);
+            float tmax1 = min(min(min(max(tymin1,tymax1),max(txmin1,txmax1)),max(tzmin1,tzmax1)), minDistance);
             
-            bool traverseChild1=(tmax1>=tmin1);
+            bool traverseChild1 = (tmax1 >= tmin1);
 
         if(!traverseChild0 && !traverseChild1)
         {
-            currentNode=todo[stackptr]; //go back put the stack
+            currentNode = todo[stackptr]; //go back put the stack
             stackptr--;
         }
         else
         {
-            float4 n4=bvh.getValue(tri_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
-            int leftChild =(int)n4.x;
-            int rightChild=(int)n4.y;
-            currentNode= (traverseChild0) ? leftChild : rightChild;
+            float4 n4 = bvh.getValue(tri_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
+            int leftChild  = (int)n4.x;
+            int rightChild = (int)n4.y;
+            currentNode = (traverseChild0) ? leftChild : rightChild;
             if(traverseChild1 && traverseChild0)
             {
-                if(tmin0>tmin1)
+                if(tmin0 > tmin1)
                 {
 
                    
-                    currentNode=rightChild;
+                    currentNode = rightChild;
                     stackptr++;
-                    todo[stackptr]=leftChild;
+                    todo[stackptr] = leftChild;
                 }
                 else
                 {   
                     stackptr++;
-                    todo[stackptr]=rightChild;
+                    todo[stackptr] = rightChild;
                 }
 
 
@@ -1126,47 +1023,47 @@ EAVL_HOSTDEVICE float getIntersectionDepth(const eavlVector3 rayDir, const eavlV
         }
         }
         
-        if(currentNode<0&&currentNode!=barrier)//check register usage
+        if(currentNode < 0 && currentNode != barrier)//check register usage
         {
             
 
-            currentNode=-currentNode; //swap the neg address 
-            int numTri=(int)tri_bvh_lf_raw.getValue(tri_bvh_lf_tref,currentNode)+1;
+            currentNode = -currentNode - 1; //swap the neg address
+            int numTri = (int)tri_bvh_lf_raw.getValue(tri_bvh_lf_tref,currentNode)+1;
 
-            for(int i=1;i<numTri;i++)
+            for(int i = 1; i < numTri; i++)
             {        
-                    int triIndex=(int)tri_bvh_lf_raw.getValue(tri_bvh_lf_tref,currentNode+i);
-                    float4 a4=verts.getValue(tri_verts_tref, triIndex*3);
-                    float4 b4=verts.getValue(tri_verts_tref, triIndex*3+1);
-                    float4 c4=verts.getValue(tri_verts_tref, triIndex*3+2);
+                    int triIndex = (int)tri_bvh_lf_raw.getValue(tri_bvh_lf_tref,currentNode+i);
+                    float4 a4 = verts.getValue(tri_verts_tref, triIndex*3);
+                    float4 b4 = verts.getValue(tri_verts_tref, triIndex*3+1);
+                    float4 c4 = verts.getValue(tri_verts_tref, triIndex*3+2);
                     eavlVector3 e1( a4.w-a4.x , b4.x-a4.y, b4.y-a4.z ); 
                     eavlVector3 e2( b4.z-a4.x , b4.w-a4.y, c4.x-a4.z );
 
                     eavlVector3 p;
-                    p.x=diry*e2.z-dirz*e2.y;
-                    p.y=dirz*e2.x-dirx*e2.z;
-                    p.z=dirx*e2.y-diry*e2.x;
-                    float dot=e1*p;
-                    if(dot!=0.f)
+                    p.x = diry*e2.z-dirz*e2.y;
+                    p.y = dirz*e2.x-dirx*e2.z;
+                    p.z = dirx*e2.y-diry*e2.x;
+                    float dot = e1*p;
+                    if(dot != 0.f)
                     {
-                        dot=1.f/dot;
+                        dot = 1.f / dot;
                         eavlVector3 t;
-                        t.x=ox-a4.x;
-                        t.y=oy-a4.y;
-                        t.z=oz-a4.z;
+                        t.x = ox - a4.x;
+                        t.y = oy - a4.y;
+                        t.z = oz - a4.z;
 
-                        float u=(t*p)*dot;
-                        if(u>=0.f && u<=1.f)
+                        float u = (t * p) * dot;
+                        if(u >= 0.f && u <= 1.f)
                         {
-                            eavlVector3 q=t%e1;
-                            float v=(dirx*q.x+diry*q.y+dirz*q.z)*dot;
-                            if(v>=0.f && v<=1.f)
+                            eavlVector3 q = t % e1;
+                            float v = (dirx*q.x + diry*q.y + dirz*q.z) * dot;
+                            if(v >= 0.f && v <= 1.f)
                             {
-                                float dist=(e2*q)*dot;
-                                if((dist>EPSILON && dist<minDistance) && !(u+v>1) )
+                                float dist = (e2 * q) * dot;
+                                if((dist > EPSILON && dist < minDistance) && !(u + v > 1) )
                                 {
-                                    minDistance=dist;
-                                    minIndex=triIndex;
+                                    minDistance = dist;
+                                    minIndex = triIndex;
                                     if(occlusion) return minIndex;//or set todo to -1
                                 }
                             }
@@ -1175,13 +1072,13 @@ EAVL_HOSTDEVICE float getIntersectionDepth(const eavlVector3 rayDir, const eavlV
                     }
                    
             }
-            currentNode=todo[stackptr];
+            currentNode = todo[stackptr];
             stackptr--;
         }
 
     }
 
- if(minIndex==-1) return INFINITE; //what value does a no hit need to be?
+ if(minIndex == -1) return INFINITE; 
  else  return minDistance;
 }
 
@@ -1203,10 +1100,10 @@ struct RayIntersectFunctor{
     EAVL_HOSTDEVICE tuple<int,float,int> operator()( tuple<float,float,float,float,float,float,int, int, float> rayTuple){
        
         
-        int hitIdx=get<6>(rayTuple);
-        if(hitIdx==-1) return tuple<int,float,int>(-1, INFINITE, -1);
+        int hitIdx = get<6>(rayTuple);
+        if(hitIdx == -1) return tuple<int,float,int>(-1, INFINITE, -1);
 
-        int   minHit=-1; 
+        int   minHit = -1; 
         float distance;
         float maxDistance = get<8>(rayTuple);
         eavlVector3 rayOrigin(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
@@ -1249,7 +1146,7 @@ struct ReflectTriFunctor{
         
         int hitIndex=get<6>(rayTuple);//hack for now
         int primitiveType=get<7>(rayTuple);
-        if(hitIndex==-1 || primitiveType != TRIANGLE) return tuple<float,float,float,float,float, float,float,float, float,float,float, float>(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0);
+        if(hitIndex == -1 || primitiveType != TRIANGLE) return tuple<float,float,float,float,float, float,float,float, float,float,float, float>(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0);
         
         eavlVector3 intersect;
 
@@ -1257,31 +1154,31 @@ struct ReflectTriFunctor{
         eavlVector3 rayOrigin(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
 
         eavlVector3 ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
-        float alpha=0, beta=0, gamma=0;
+        float alpha = 0, beta = 0, gamma = 0;
 
-        float4 a4=verts->getValue(tri_verts_tref, hitIndex*3);
-        float4 b4=verts->getValue(tri_verts_tref, hitIndex*3+1);
-        float4 c4=verts->getValue(tri_verts_tref, hitIndex*3+2); //scalars are stored in c.yzw
+        float4 a4 = verts->getValue(tri_verts_tref, hitIndex * 3);
+        float4 b4 = verts->getValue(tri_verts_tref, hitIndex * 3 + 1);
+        float4 c4 = verts->getValue(tri_verts_tref, hitIndex * 3 + 2); //scalars are stored in c.yzw
         eavlVector3 a(a4.x,a4.y,a4.z);
         eavlVector3 b(a4.w,b4.x,b4.y);
         eavlVector3 c(b4.z,b4.w,c4.x);
-        intersect= triangleIntersectionABG(ray, rayOrigin, a,b,c,0.0f,alpha,beta);
-        gamma=1-alpha-beta;
+        intersect = triangleIntersectionABG(ray, rayOrigin, a,b,c,0.0f,alpha,beta);
+        gamma = 1 - alpha - beta;
         eavlVector3 normal(999999.f,0,0);
 
-        eavlVector3* normalPtr=(eavlVector3*)(&norms[0]+hitIndex*9);
-        eavlVector3 aNorm=normalPtr[0];
-        eavlVector3 bNorm=normalPtr[1];
-        eavlVector3 cNorm=normalPtr[2];
-        normal=aNorm*alpha+bNorm*beta+cNorm*gamma;
-        float lerpedScalar = c4.y*alpha+c4.z*beta+c4.w*gamma;
+        eavlVector3* normalPtr = (eavlVector3*)(&norms[0] + hitIndex * 9);
+        eavlVector3 aNorm = normalPtr[0];
+        eavlVector3 bNorm = normalPtr[1];
+        eavlVector3 cNorm = normalPtr[2];
+        normal = aNorm*alpha + bNorm*beta + cNorm*gamma;
+        float lerpedScalar = c4.y*alpha + c4.z*beta + c4.w*gamma;
         //reflect the ray
         ray.normalize();
         normal.normalize();
-        if ((normal*ray) > 0.0f) normal = -normal; //flip the normal if we hit the back side
-        reflection=ray-normal*2.f*(normal*ray);
+        if ((normal * ray) > 0.0f) normal = -normal; //flip the normal if we hit the back side
+        reflection = ray - normal*2.f*(normal*ray);
         reflection.normalize();
-        intersect=intersect+(-ray*BARY_TOLE);
+        intersect = intersect+(-ray * BARY_TOLE);
 
 
         return tuple<float,float,float,float,float,float,float,float,float,float,float,float>(intersect.x, intersect.y,intersect.z,reflection.x,reflection.y,reflection.z,normal.x,normal.y,normal.z,alpha,beta, lerpedScalar);
@@ -1302,9 +1199,9 @@ struct ReflectSphrFunctor{
     EAVL_FUNCTOR tuple<float,float,float,float,float, float,float,float, float,float,float, float> operator()( tuple<float,float,float,float,float,float,int, int> rayTuple){
        
         
-        int hitIndex=get<6>(rayTuple);//hack for now
-        int primitiveType=get<7>(rayTuple);
-        if(hitIndex==-1 || primitiveType != SPHERE) return tuple<float,float,float,float,float, float,float,float, float,float,float, float>(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0);
+        int hitIndex = get<6>(rayTuple);//hack for now
+        int primitiveType = get<7>(rayTuple);
+        if(hitIndex == -1 || primitiveType != SPHERE) return tuple<float,float,float,float,float, float,float,float, float,float,float, float>(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0);
         
         eavlVector3 intersect;
 
@@ -1312,7 +1209,7 @@ struct ReflectSphrFunctor{
         eavlVector3 rayOrigin(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
 
         eavlVector3 ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
-        float alpha=0, beta=0;
+        float alpha = 0, beta = 0;
         ray.normalize();
         float4 data = verts->getValue(sphr_verts_tref, hitIndex);
         float distance = intersectSphereDist(ray,rayOrigin, data);
@@ -1321,28 +1218,17 @@ struct ReflectSphrFunctor{
         normal.x = intersect.x - data.x;
         normal.y = intersect.y - data.y;
         normal.z = intersect.z - data.z;
-
-        
         //reflect the ray
-        
         normal.normalize();
-        //if ((normal*ray) > 0.0f) normal = -normal; //flip the normal if we hit the back side
-        reflection=ray-normal*2.f*(normal*ray);
+        reflection = ray - normal*2.f*(normal*ray);
         reflection.normalize();
-        intersect=intersect+(-ray*BARY_TOLE);
+        intersect = intersect + (-ray*BARY_TOLE);
         float scalar = sphr_scalars->getValue(sphr_scalars_tref, hitIndex);
 
         return tuple<float,float,float,float,float,float,float,float,float,float,float,float>(intersect.x, intersect.y,intersect.z,reflection.x,reflection.y,reflection.z,normal.x,normal.y,normal.z,alpha,beta,scalar);
     }
 };
 
-
-//EAVL_HOSTDEVICE eavlVector3 project(const eavlVector3 &a, const eavlVector3 &b)
-//{
-
-//    return eavlVector3( b * ((a * b) / (b * b)) );
-    //return proj;
-//}
 struct ReflectCylFunctor{
 
     const eavlConstTexArray<float4> *verts;
@@ -1369,8 +1255,8 @@ struct ReflectCylFunctor{
         eavlVector3 ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
         float alpha=0, beta=0;
         ray.normalize();
-        float4 a4 = verts->getValue(cyl_verts_tref, hitIndex*2  );
-        float4 b4 = verts->getValue(cyl_verts_tref, hitIndex*2+1);
+        float4 a4 = verts->getValue(cyl_verts_tref, hitIndex * 2    );
+        float4 b4 = verts->getValue(cyl_verts_tref, hitIndex * 2 + 1);
         eavlVector3 basePoint(a4.x, a4.y, a4.z);
         eavlVector3 axis(b4.x, b4.y, b4.z);
         intersect = rayOrigin + distance * ray;
@@ -1384,10 +1270,10 @@ struct ReflectCylFunctor{
         if ((normal*ray) > 0.0f) normal = -normal; //flip the normal if we hit the back side
         reflection = ray - normal * 2.f * (normal * ray);
         reflection.normalize();
-        intersect=intersect+(-ray*BARY_TOLE);
+        intersect = intersect+(-ray*BARY_TOLE);
         
-        float scalar1 = cyl_scalars->getValue(cyl_scalars_tref, hitIndex*2  );
-        float scalar2 = cyl_scalars->getValue(cyl_scalars_tref, hitIndex*2+1);
+        float scalar1 = cyl_scalars->getValue(cyl_scalars_tref, hitIndex * 2    );
+        float scalar2 = cyl_scalars->getValue(cyl_scalars_tref, hitIndex * 2 + 1);
         eavlVector3 top = basePoint + b4.w * axis;
         
         float t = sqrt(v2 * v2) / sqrt (top * top); 
@@ -1413,59 +1299,20 @@ struct DepthFunctor{
     EAVL_FUNCTOR tuple<float> operator()( tuple<float,float,float,float,float,float,int> rayTuple){
        
         
-        int hitIndex=get<6>(rayTuple);
-        if(hitIndex==-1) return tuple<float>(INFINITE);
+        int hitIndex = get<6>(rayTuple);
+        if(hitIndex == -1) return tuple<float>(INFINITE);
         eavlVector3 rayOrigin(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
         eavlVector3       ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
 
-        float4 a4=verts->getValue(tri_verts_tref, hitIndex*3);
-        float4 b4=verts->getValue(tri_verts_tref, hitIndex*3+1);
-        float4 c4=verts->getValue(tri_verts_tref, hitIndex*3+2);
+        float4 a4 = verts->getValue(tri_verts_tref, hitIndex * 3);
+        float4 b4 = verts->getValue(tri_verts_tref, hitIndex * 3 + 1);
+        float4 c4 = verts->getValue(tri_verts_tref, hitIndex * 3 + 2);
         eavlVector3 a(a4.x,a4.y,a4.z);
         eavlVector3 b(a4.w,b4.x,b4.y);
         eavlVector3 c(b4.z,b4.w,c4.x);
         float depth;
         triangleIntersectionDistance(ray, rayOrigin, a,b,c,depth);
         return tuple<float>(depth);
-    }
-};
-
-struct ReflectTriFunctorBasic{
-
-    eavlConstArray<float> verts;
-    eavlConstArray<float> norms;
-
-    ReflectTriFunctorBasic(eavlConstArray<float> *_verts,eavlConstArray<float> *xnorm)
-        :verts(*_verts),
-         norms(*xnorm)
-    {
-        
-    }                                                    //order a b c clockwise
-    EAVL_FUNCTOR tuple<float,float, float,float,float> operator()( tuple<float,float,float,float,float,float,int> rayTuple){
-       
-        
-        int hitIndex=get<6>(rayTuple);//hack for now
-        if(hitIndex==-1) { return tuple<float,float, float,float,float>(0.0,0.0,0.0,0.0,0.0);}
-        
-        eavlVector3 intersect;
-
-
-        eavlVector3 eyePos(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));//change this name, only eye for the first pass
-
-        eavlVector3 ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
-        float alpha=0, beta=0;
-        eavlVector3* ptr=(eavlVector3*)(&verts[0]+hitIndex*9);
-        eavlVector3 a=ptr[0];
-        eavlVector3 b=ptr[1];
-        eavlVector3 c=ptr[2];
-        
-        //triangleIntersectionABG(const eavlVector3 ray,const eavlVector3 rayOrigin,const eavlVector3 a, const eavlVector3 b, const eavlVector3 c, int index, float &alpha,float &beta,float gamma)
-        intersect= triangleIntersectionABG(ray, eyePos, a,b,c,0.0f,alpha,beta);
-        //reflect the ray
-        ray.normalize();
-        intersect=intersect+(-ray*BARY_TOLE);
-
-        return tuple<float,float,float,float,float>(intersect.x, intersect.y,intersect.z,alpha,beta);
     }
 };
 
@@ -1485,16 +1332,16 @@ struct occIntersectFunctor{
          primitiveType(_primitveType)
     {
 
-        maxDistance=max;
+        maxDistance = max;
         
     }                                                   
     EAVL_FUNCTOR tuple<float> operator()( tuple<float,float,float,float,float,float,int, float> rayTuple){
         
-        int deadRay=get<6>(rayTuple);//hack for now leaving this in for CPU
-        bool alreadyOccluded= get<7>(rayTuple) > 0 ? true : false;
-        if(deadRay==-1)     return tuple<float>(0.0f);
-        if(alreadyOccluded) return tuple<float>(1.f);
-        int minHit=-1;   
+        int deadRay = get<6>(rayTuple);//hack for now leaving this in for CPU
+        bool alreadyOccluded = get<7>(rayTuple) > 0 ? true : false;
+        if(deadRay == -1)     return tuple<float>(0.0f);
+        if(alreadyOccluded)   return tuple<float>(1.f);
+        int minHit = -1;   
         float distance;
         eavlVector3 intersect(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
         eavlVector3 ray(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
@@ -1539,7 +1386,7 @@ struct ShadowRayFunctor
     {
         int hitIdx           = get<3>(input);
         bool alreadyOccluded = get<4>(input) == 0 ? false : true;
-        if( hitIdx ==-1 || alreadyOccluded ) return tuple<int>(1);// primary ray never hit anything.
+        if( hitIdx == -1 || alreadyOccluded ) return tuple<int>(1);// primary ray never hit anything.
 
         //float alpha,beta,gamma,d,tempDistance;
         eavlVector3 rayOrigin(get<0>(input),get<1>(input),get<2>(input));
@@ -1641,15 +1488,13 @@ struct ShaderFunctor
         eavlVector3 abg(get<5>(input),get<6>(input),1.f); //alpha beta gamma
         //return tuple<float,float,float>(1,0,0);
         abg.z = abg.z - abg.x - abg.y; // get gamma
-        eavlVector3 lightDir    = light-rayInt;
-        eavlVector3 viewDir     = eye-rayOrigin;
-        float dist = sqrt( lightDir.x*lightDir.x+lightDir.y*lightDir.y+lightDir.z*lightDir.z ); 
-        dist += sqrt( viewDir.x*viewDir.x+viewDir.y*viewDir.y+viewDir.z*viewDir.z );
+        eavlVector3 lightDir    = light - rayInt;
+        eavlVector3 viewDir     = eye - rayOrigin;
+        float dist = sqrt( lightDir.x*lightDir.x + lightDir.y*lightDir.y + lightDir.z*lightDir.z ); 
+        dist += sqrt( viewDir.x*viewDir.x + viewDir.y*viewDir.y + viewDir.z*viewDir.z );
         lightDir = lightDir/dist;
-        dist = lightIntensity/(lightCoConst+lightCoLinear*dist+lightCoExponent*dist*dist);
+        dist = lightIntensity/(lightCoConst + lightCoLinear*dist + lightCoExponent*dist*dist);
         float ambPct=get<7>(input);
-
-
         int id = 0;
 
         if(primitiveType == TRIANGLE)       id = matIds->getValue(tri_matIdx_tref, hitIdx);
@@ -1678,19 +1523,12 @@ struct ShaderFunctor
         float cosPhi = normal * halfVector;
         
         specConst = pow(max(cosPhi,0.0f),matShine);
-        //cosTheta=.5;
-        //cout<<specConst<<endl;
-        //ambPct=0;
+
         float shadowHit = (hit==1) ? 0.f : 1.f;
         //red  =ambPct;
         //green=ambPct;
         //blue =ambPct;
-        //red  =(ks.x*lightSpec.x*specConst)*shadowHit*dist;
-        //green=(ks.y*lightSpec.y*specConst)*shadowHit*dist;
-        //blue =(ks.z*lightSpec.z*specConst)*shadowHit*dist;
-
-
-
+    
         red   = ka.x * ambPct+ (kd.x * lightDiff.x * cosTheta + ks.x * lightSpec.x * specConst) * shadowHit*dist;
         green = ka.y * ambPct+ (kd.y * lightDiff.y * cosTheta + ks.y * lightSpec.y * specConst) * shadowHit*dist;
         blue  = ka.z * ambPct+ (kd.z * lightDiff.z * cosTheta + ks.z * lightSpec.z * specConst) * shadowHit*dist;
@@ -1704,18 +1542,6 @@ struct ShaderFunctor
         red   *= color.x;
         green *= color.y;
         blue  *= color.z;
-        
-        //cout<<kd<<ks<<id<<endl;
-        //cout<<cosTheta<<endl;
-        /* Diffuse + ambient light*/
-        //red  =ka.x*ambPct+ (ks.x*lightSpec.x*specConst)*shadowHit;
-        //green=ka.y*ambPct+ (ks.y*lightSpec.y*specConst)*shadowHit;
-        //blue =ka.z*ambPct+ (ks.z*lightSpec.z*specConst)*shadowHit;
-
-        //red  =ka.x*ambPct+ (kd.x*lightDiff.x*cosTheta)*shadowHit;
-        //green=ka.y*ambPct+ (kd.y*lightDiff.y*cosTheta)*shadowHit;
-        //blue =ka.z*ambPct+ (kd.z*lightDiff.z*cosTheta)*shadowHit;
-
 
         float reflectionCo=1;
         if(depth == 0) reflectionCo = 1;
@@ -1723,11 +1549,11 @@ struct ShaderFunctor
         red   = red  *reflectionCo;
         green = green*reflectionCo;
         blue  = blue *reflectionCo;
-        //if(specConst==0.0) pixel.z=1;
 
-        //}
+
+
         normal.normalize();
-        //return tuple<float,float,float>(normal.x,normal.y,normal.z);
+
         return tuple<float,float,float>(min(red,1.0f),min(green,1.0f),min(blue,1.0f));
 
     }
@@ -1738,8 +1564,6 @@ struct ShaderFunctor
 
 void eavlRayTracerMutator::allocateArrays()
 {
-
-    //cout<<"Deleting"<<rayDirX<<endl;
     deleteClassPtr(rayDirX);
     deleteClassPtr(rayDirY);
     deleteClassPtr(rayDirZ);
@@ -2007,17 +1831,32 @@ void eavlRayTracerMutator::extractGeometry()
         if(!cacheExists)
         {  
             cout<<"Building BVH....Triangles"<<endl;
-            SplitBVH *testSplit= new SplitBVH(tri_verts_raw, numTriangles, TRIANGLE); // 0=triangle
-            testSplit->getFlatArray(tri_bvh_in_size, tri_bvh_lf_size, tri_bvh_in_raw, tri_bvh_lf_raw);
+            if(fastBVHBuild)
+            {
+                MortonBVHBuilder *mortonBVH = new MortonBVHBuilder(tri_verts_raw, numTriangles, TRIANGLE);
+                mortonBVH->build();
+                tri_bvh_in_raw  = (float*)mortonBVH->getInnerNodes()->GetHostArray();
+                tri_bvh_in_size = mortonBVH->getInnerNodes()->GetNumberOfTuples();
+                tri_bvh_lf_raw  = (float*)mortonBVH->getLeafNodes()->GetHostArray();
+                tri_bvh_lf_size = mortonBVH->getLeafNodes()->GetNumberOfTuples();
+                delete mortonBVH;
+            }
+            else
+            {
+                SplitBVH *sbvh= new SplitBVH(tri_verts_raw, numTriangles, TRIANGLE); // 0=triangle
+                sbvh->getFlatArray(tri_bvh_in_size, tri_bvh_lf_size, tri_bvh_in_raw, tri_bvh_lf_raw);  
+                delete sbvh;
+            }
+            
+            
             if( writeCache) writeBVHCache(tri_bvh_in_raw, tri_bvh_in_size, tri_bvh_lf_raw, tri_bvh_lf_size, bvhCacheName.c_str());
-            delete testSplit;
         }
 
         tri_bvh_in_array   = new eavlConstTexArray<float4>( (float4*)tri_bvh_in_raw, tri_bvh_in_size/4, tri_bvh_in_tref, cpu);
         tri_bvh_lf_array   = new eavlConstTexArray<float>( tri_bvh_lf_raw, tri_bvh_lf_size, tri_bvh_lf_tref, cpu);
         tri_verts_array    = new eavlConstTexArray<float4>( (float4*)tri_verts_raw,numTriangles*3, tri_verts_tref, cpu);
         tri_matIdx_array   = new eavlConstTexArray<int>( tri_matIdx_raw, numTriangles, tri_matIdx_tref, cpu );
-
+        //TODO: make this a texture?
         INIT(eavlConstArray<float>,tri_norms,numTriangles*9);
         //INIT(eavlConstArray<int>, tri_matIdx,numTriangles);
     }
@@ -2025,12 +1864,22 @@ void eavlRayTracerMutator::extractGeometry()
     if(numSpheres > 0)
     {
 
-        if(true) //!cacheExists)
-        {  
-            cout<<"Building BVH....Spheres"<<endl;
-            SplitBVH *testSplit= new SplitBVH(sphr_verts_raw, numSpheres, SPHERE); 
-            testSplit->getFlatArray(sphr_bvh_in_size, sphr_bvh_lf_size, sphr_bvh_in_raw, sphr_bvh_lf_raw);
-            delete testSplit;
+        //TODO: caching
+        if(fastBVHBuild)
+        {
+            MortonBVHBuilder *mortonBVH = new MortonBVHBuilder(sphr_verts_raw, numSpheres, SPHERE);
+            mortonBVH->build();
+            sphr_bvh_in_raw  = (float*)mortonBVH->getInnerNodes()->GetHostArray();
+            sphr_bvh_in_size = mortonBVH->getInnerNodes()->GetNumberOfTuples();
+            sphr_bvh_lf_raw  = (float*)mortonBVH->getLeafNodes()->GetHostArray();
+            sphr_bvh_lf_size = mortonBVH->getLeafNodes()->GetNumberOfTuples();
+            delete mortonBVH;
+        }
+        else
+        {
+            SplitBVH *sbvh= new SplitBVH(sphr_verts_raw, numSpheres, SPHERE); 
+            sbvh->getFlatArray(sphr_bvh_in_size, sphr_bvh_lf_size, sphr_bvh_in_raw, sphr_bvh_lf_raw);
+            delete sbvh;
         }
 
         sphr_bvh_in_array   = new eavlConstTexArray<float4>( (float4*)sphr_bvh_in_raw, sphr_bvh_in_size/4, sphr_bvh_in_tref, cpu);
@@ -2043,13 +1892,22 @@ void eavlRayTracerMutator::extractGeometry()
     if(verbose) cout<<"Num lines "<<numCyls<<endl;
     if(numCyls > 0)
     {
-
-        if(true) //!cacheExists)
-        {  
-            cout<<"Building BVH....Cylinders"<<endl;
-            SplitBVH *testSplit= new SplitBVH(cyl_verts_raw, numCyls, CYLINDER); 
-            testSplit->getFlatArray(cyl_bvh_in_size, cyl_bvh_lf_size, cyl_bvh_in_raw, cyl_bvh_lf_raw);
-            delete testSplit;
+        //TODO: cache
+        if(fastBVHBuild)
+        {
+            MortonBVHBuilder *mortonBVH = new MortonBVHBuilder(cyl_verts_raw, numCyls, CYLINDER);
+            mortonBVH->build();
+            cyl_bvh_in_raw  = (float*)mortonBVH->getInnerNodes()->GetHostArray();
+            cyl_bvh_in_size = mortonBVH->getInnerNodes()->GetNumberOfTuples();
+            cyl_bvh_lf_raw  = (float*)mortonBVH->getLeafNodes()->GetHostArray();
+            cyl_bvh_lf_size = mortonBVH->getLeafNodes()->GetNumberOfTuples();
+            delete mortonBVH;
+        }
+        else
+        {
+            SplitBVH *sbvh= new SplitBVH(cyl_verts_raw, numCyls, CYLINDER); 
+            sbvh->getFlatArray(cyl_bvh_in_size, cyl_bvh_lf_size, cyl_bvh_in_raw, cyl_bvh_lf_raw);
+            delete sbvh;
         }
 
         cyl_bvh_in_array   = new eavlConstTexArray<float4>( (float4*)cyl_bvh_in_raw, cyl_bvh_in_size/4, cyl_bvh_in_tref, cpu);
@@ -2068,8 +1926,8 @@ void eavlRayTracerMutator::extractGeometry()
     INIT(eavlConstArray<float>, mats,numMats*12);
     
     
-    geomDirty=false;
-    defaultMatDirty=false;
+    geomDirty = false;
+    defaultMatDirty = false;
     
 }
 

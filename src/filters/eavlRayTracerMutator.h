@@ -65,17 +65,22 @@ class eavlRayTracerMutator : public eavlMutator
 
     void setDepth(const int d)
     {
-      depth=d;
+      depth = d;
     }
 
     void setFOVx(const float d)
     {
-      fovx=d; 
+      fovx = d; 
     }
 
     void setFOVy(const float d)
     {
-      fovy=d;
+      fovy = d;
+    }
+
+    void setBVHBuildFast(bool fast)
+    {
+      fastBVHBuild = true;
     }
 
     void setBVHCache(bool on)
@@ -86,63 +91,6 @@ class eavlRayTracerMutator : public eavlMutator
     void setShadowsOn(bool on)
     {
       shadowsOn=on;
-    }
-
-    void setRawData(float *v, float *n, int numTri, float* _materials, int * _matIndex, int _numMats)
-    {
-      //tri_verts_raw=v;
-      tri_norms_raw=n;
-      numTriangles=numTri;
-      mats_raw=_materials;
-      tri_matIdx_raw=_matIndex;
-      numMats=_numMats;
-      //convert the verts into aligned memory
-      
-      //if there are no normals add them
-      if(true)
-      {
-        cout<<"No norms: extracting"<<endl;
-        tri_norms_raw= new float [numTri*9];
-        tri_verts_raw= new float [numTri*12];
-        //eavlVector3* vec3Ptr=(eavlVector3*)&tri_verts_raw[0];
-        for (int i=0; i<numTri; i++)
-        {
-          eavlVector3 a(v[i*9  ],v[i*9+1],v[i*9+2]);
-          eavlVector3 b(v[i*9+3],v[i*9+4],v[i*9+5]);
-          eavlVector3 c(v[i*9+6],v[i*9+7],v[i*9+8]);
-
-          tri_verts_raw[i*12   ]=v[i*9];
-          tri_verts_raw[i*12+1 ]=v[i*9+1];
-          tri_verts_raw[i*12+2 ]=v[i*9+2];
-          tri_verts_raw[i*12+3 ]=v[i*9+3];
-          tri_verts_raw[i*12+4 ]=v[i*9+4];
-          tri_verts_raw[i*12+5 ]=v[i*9+5];
-          tri_verts_raw[i*12+6 ]=v[i*9+6];
-          tri_verts_raw[i*12+7 ]=v[i*9+7];
-
-          tri_verts_raw[i*12+8 ]=v[i*9+8];
-          tri_verts_raw[i*12+9 ]=0; 
-          tri_verts_raw[i*12+10]=0;
-          tri_verts_raw[i*12+11]=0;
-
-          eavlVector3 norm;
-          norm = (b-a)%(c-a);
-          //cout<<norm<<endl;
-          //if(i==2) cout<<a<<b<<c<<endl;
-          tri_norms_raw[i*9  ]=norm.x;
-          tri_norms_raw[i*9+1]=norm.y;
-          tri_norms_raw[i*9+2]=norm.z;
-          tri_norms_raw[i*9+3]=norm.x;
-          tri_norms_raw[i*9+4]=norm.y;
-          tri_norms_raw[i*9+5]=norm.z;
-          tri_norms_raw[i*9+6]=norm.x;
-          tri_norms_raw[i*9+7]=norm.y;
-          tri_norms_raw[i*9+8]=norm.z;
-        }
-      }
-      //exit(0);
-      delete v;
-      //debugPtr=v;
     }
 
     void rotateLight(float xRadians)
@@ -388,6 +336,7 @@ class eavlRayTracerMutator : public eavlMutator
     bool      verbose;        /*Turn on print statements*/
     bool      useBVHCache;    /*Turn on print statements*/
     bool      shadowsOn;      /*use shadows*/
+    bool      fastBVHBuild;
 
     float     aoMax;          /* Maximum ambient occulsion ray length*/
     int       sampleCount;    /* keeps a running total of the number of re-usable ambient occlusion samples ie., the camera is unchanged */

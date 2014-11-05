@@ -979,14 +979,14 @@ void SplitBVHBuilder::bvhToFlatArray(BVHNode * root, int &innerSize, int &leafSi
     float *leafraw = new float[-currentLeafIndex];
     int numLeafVals=-currentLeafIndex;
 
-    for (int i=0; i < currentIndex;i++)
+    for (int i = 0; i < currentIndex;i++)
     {
         innerraw[i] = flat_inner_array->at(i);
     }
     cout<<endl;
-    for (int i=0; i < numLeafVals;i++)
+    for (int i = 1; i < numLeafVals;i++)
     {
-        leafraw[i] = flat_leaf_array->at(i);
+        leafraw[i - 1] = flat_leaf_array->at(i);
     }
     cout<<endl;
     innerNodes = innerraw;

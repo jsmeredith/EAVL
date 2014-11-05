@@ -1,6 +1,7 @@
 #ifndef EAVL_RT_UTIL_H
 #define EAVL_RT_UTIL_H
 #include "eavlExecutor.h"
+#include "eavlVector3.h"
 
 #define PI          3.14159265359f
 
@@ -312,6 +313,7 @@ struct ConvertFrameBufferFunctor
 
 };
 
+    
 inline void writeBMP(int _height, int _width, eavlFloatArray *r, eavlFloatArray *g, eavlFloatArray *b,const char*fname)
 {
     FILE *f;
@@ -362,7 +364,7 @@ inline void writeBMP(int _height, int _width, eavlFloatArray *r, eavlFloatArray 
 }
 
 
-inline unsigned int expandBits(unsigned int v)
+EAVL_HOSTDEVICE unsigned int expandBits(unsigned int v)
 {
     v = (v * 0x00010001u) & 0xFF0000FFu;
     v = (v * 0x00000101u) & 0x0F00F00Fu;
@@ -371,9 +373,25 @@ inline unsigned int expandBits(unsigned int v)
     return v;
 }
 
+/**
+ * Count Leading Zeros
+ * @param  value
+ * @return int - number of leading zeros
+ */
+EAVL_HOSTDEVICE int clz(unsigned int value)
+{
+#ifdef __CUDA_ARCH__
+    return __clz((int)value);
+#else
+    float fvalue = value;
+    float result = 31 - floor(log2(fvalue));
+    return (int) result;
+#endif
+}
+
 // Calculates a 30-bit Morton code for the
 // given 3D point located within the unit cube [0,1].
-inline unsigned int morton3D(float x, float y, float z)
+EAVL_HOSTDEVICE unsigned int morton3D(float x, float y, float z)
 {
     x = min(max(x * 1024.0f, 0.0f), 1023.0f);
     y = min(max(y * 1024.0f, 0.0f), 1023.0f);
@@ -456,9 +474,9 @@ inline bool readBVHCache(float *&innerNodes, int &innerSize, float *&leafNodes, 
 inline void writeBVHCache(const float *innerNodes, const int innerSize, const float * leafNodes, const int leafSize, const char* filename )
 {
     cout<<"Writing BVH to cache"<<endl;
-    ofstream bvhcache(filename, ios::out |ios::binary);
+    ofstream bvhcache(filename, ios::out | ios::binary);
     
-    if(bvhcache.is_open())
+    if(bvhcache.is_open()) 
     {
         bvhcache.write((char*)&innerSize, sizeof(innerSize));
         bvhcache.write((const char*)innerNodes, sizeof(float)*innerSize);

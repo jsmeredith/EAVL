@@ -68,6 +68,7 @@ OBJ=\
  math/eavlMatrix4x4.o \
  math/eavlPoint3.o \
  math/eavlVector3.o \
+ raytracing/MortonBVHBuilder.o \
  rendering/eavlColor.o
 
 ifneq (@VTK@, no)
