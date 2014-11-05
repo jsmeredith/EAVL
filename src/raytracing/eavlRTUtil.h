@@ -2,7 +2,8 @@
 #define EAVL_RT_UTIL_H
 #include "eavlExecutor.h"
 #include "eavlVector3.h"
-
+#include <algorithm>    
+using namespace std;
 #define PI          3.14159265359f
 
 
