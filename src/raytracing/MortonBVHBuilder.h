@@ -137,41 +137,8 @@ class MortonBVHBuilder
     primitive_t    primitveType;
     int            numPrimitives;
 
-    MortonBVHBuilder(float * _verts, int _numPrimitives, primitive_t _primitveType)
-      : verts(_verts), numPrimitives(_numPrimitives), primitveType(_primitveType)
-    {
-
-      verbose = 0;
-      if(eavlExecutor::GetExecutionMode() == eavlExecutor::ForceCPU ) forceCpu = true;
-      else forceCpu = false;
-
-      if(numPrimitives < 1) THROW(eavlException, "Number of primitives must be greater that zero.");
-      if(verts == NULL)     THROW(eavlException, "Verticies can't be NULL");
-      //Insert preprocess that splits triangles before any of the memory is allocated
-      bvh     = new BVHSOA(numPrimitives);
-      indexes = new eavlIntArray("idx",1,numPrimitives);
-      tmpInt  = new eavlIntArray("tmp",1,numPrimitives);
-      //innerNodes  = new BVHInnerNodeSOA(numPrimitives - 1);
-      //TODO: create indexing operation
-      for(int i = 0; i < numPrimitives; i++) indexes->SetValue(i,i);
-
-      mortonCodes = new eavlIntArray("mortonCodes",1,numPrimitives);
-
-      tmpFloat   = new eavlFloatArray("tmpSpace",1, 2 * numPrimitives -1);
-      //hand these arrays off to the consumer and let them deaL with deleting them.
-      innerNodes = new eavlFloatArray("inner",1, (numPrimitives -1) * 16);  //16 flat values per node
-      leafNodes  = new eavlFloatArray("leafs",1, numPrimitives * 2);
-    }
-
-    ~MortonBVHBuilder()
-    {
-      delete mortonCodes;
-      delete bvh;
-      delete indexes;
-      delete tmpFloat;
-      delete tmpInt;
-    }
-
+    MortonBVHBuilder(float * _verts, int _numPrimitives, primitive_t _primitveType);
+    ~MortonBVHBuilder();
     void build();
     void setVerbose(const int &level);
     eavlFloatArray * getInnerNodes(){ return innerNodes; }

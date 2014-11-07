@@ -88,6 +88,60 @@ void validate(BVHSOA *bvh, int numLeafs, int currentNode, int &count)
 
 }
 
+
+MortonBVHBuilder::MortonBVHBuilder(float * _verts, int _numPrimitives, primitive_t _primitveType)
+  : verts(_verts), numPrimitives(_numPrimitives), primitveType(_primitveType)
+{
+
+      verbose = 0;
+
+      if(numPrimitives < 1) THROW(eavlException, "Number of primitives must be greater that zero.");
+      if(verts == NULL)     THROW(eavlException, "Verticies can't be NULL");
+      //Insert preprocess that splits triangles before any of the memory is allocated
+      bvh     = new BVHSOA(numPrimitives);
+      indexes = new eavlIntArray("idx",1,numPrimitives);
+      tmpInt  = new eavlIntArray("tmp",1,numPrimitives);
+      //innerNodes  = new BVHInnerNodeSOA(numPrimitives - 1);
+      //TODO: create indexing operation
+      for(int i = 0; i < numPrimitives; i++) indexes->SetValue(i,i);
+
+      mortonCodes = new eavlIntArray("mortonCodes",1,numPrimitives);
+
+      tmpFloat   = new eavlFloatArray("tmpSpace",1, 2 * numPrimitives -1);
+      //hand these arrays off to the consumer and let them deaL with deleting them.
+      innerNodes = new eavlFloatArray("inner",1, (numPrimitives -1) * 16);  //16 flat values per node
+      leafNodes  = new eavlFloatArray("leafs",1, numPrimitives * 2);
+
+      //determine execution mode
+#ifdef HAVE_CUDA
+      if(eavlExecutor::GetExecutionMode() == eavlExecutor::PreferGPU)
+      {
+        //test if cuda works: cuda may be installed but
+        //no GPU is present
+        try
+        {
+            indexes->GetCUDAArray();
+        }
+        catch(eavlException &e)
+        {
+            forceCpu = true;
+        }
+      }
+      else if(eavlExecutor::GetExecutionMode() == eavlExecutor::ForceGPU) forceCpu = false;
+      else forceCpu = true;
+#else 
+      forceCpu = true;
+#endif
+}
+
+MortonBVHBuilder::~MortonBVHBuilder()
+{
+    delete mortonCodes;
+    delete bvh;
+    delete indexes;
+    delete tmpFloat;
+    delete tmpInt;
+}
 //TODO: this might work better with Global mem since only a few values are accessed
 template<primitive_t primType>
 struct AABBFunctor

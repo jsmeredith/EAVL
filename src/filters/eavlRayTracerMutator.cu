@@ -2825,7 +2825,7 @@ eavlFloatArray* eavlRayTracerMutator::getDepthBuffer(float proj22, float proj23,
 
 void eavlRayTracerMutator::freeTextures()
 {
-    cout<<"Free textures"<<endl;
+   if(verbose) cout<<"Free textures"<<endl;
    if (tri_bvh_in_array != NULL) 
     {
         tri_bvh_in_array->unbind(tri_bvh_in_tref);
@@ -2882,6 +2882,6 @@ void eavlRayTracerMutator::freeTextures()
         delete sphr_matIdx_array;
         sphr_matIdx_array = NULL;
     }
-    cout<<"Done free"<<endl;
+    if(verbose) cout<<"Done free"<<endl;
 }
 
