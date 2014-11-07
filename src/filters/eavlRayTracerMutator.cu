@@ -2638,7 +2638,7 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
     eavlExecutor::Go();
 
     float maxDepth = 0;
-    float minDepth =I NFINITE;
+    float minDepth =INFINITE;
 
     for(int i=0; i< size; i++)
     {
