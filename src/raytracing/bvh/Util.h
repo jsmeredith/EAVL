@@ -30,6 +30,20 @@
 #include <limits>
 using namespace std;
 
+#ifndef HAVE_CUDA
+struct int3
+{
+    int x;
+    int y;
+    int z;
+};
+struct float3
+{
+    float x;
+    float y;
+    float z;
+};
+#endif
 namespace FW
 {
 #define FW_SPECIALIZE_MINMAX(TEMPLATE, T, MIN, MAX) \
