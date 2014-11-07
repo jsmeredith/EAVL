@@ -28,7 +28,7 @@
 #pragma once
 #include "Platform.h"
 #include "Util.h"
-
+using FW::AABB;
 
 // TODO: remove m_probability. Node needed after all?
 

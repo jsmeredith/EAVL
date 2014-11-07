@@ -66,11 +66,11 @@ public:
     { os << v.x << ", " << v.y << ", " << v.z; return os; }
 };
 
-typedef Vec3<float> Vec3f;
-typedef Vec3<int> Vec3i;
-typedef Vec2<float> Vec2f;
+ typedef Vec3<float> Vec3fobj;
+ typedef Vec3<int>   Vec3iobj;
+ typedef Vec2<float> Vec2fobj;
 
-inline Vec3f getVec3(std::ifstream &ifs) { float x, y, z; ifs >> x >> y >> z; return Vec3f(x, y, z); }
+inline Vec3fobj getVec3(std::ifstream &ifs) { float x, y, z; ifs >> x >> y >> z; return Vec3fobj(x, y, z); }
 
 /*! returns the path of a file */
 inline std::string getFilePath(const std::string &filename)
@@ -85,7 +85,7 @@ inline std::string getFilePath(const std::string &filename)
  */
 struct Material
 {
-    Vec3f Ka, Kd, Ks;   /*! ambient, diffuse and specular rgb coefficients */
+    Vec3fobj Ka, Kd, Ks;   /*! ambient, diffuse and specular rgb coefficients */
     float d;            /*! transparency */
     float Ns, Ni;       /*! specular exponent and index of refraction */
     Material()
@@ -103,7 +103,7 @@ struct Material
         Ks.z=.5;
 
     }
-    Material(Vec3f _Ka, Vec3f _Kd, Vec3f _Ks, float _d, float _Ns, float _Ni)
+    Material(Vec3fobj _Ka, Vec3fobj _Kd, Vec3fobj _Ks, float _d, float _Ns, float _Ni)
       : Ka(_Ka), Kd(_Kd), Ks(_Ks), d(_d), Ns(_Ns), Ni(_Ni) {}
 };
 
@@ -113,9 +113,9 @@ struct Material
 class TriangleMesh
 {
 public:
-    Vec3f *positions;   /*! position/vertex array */
-    Vec3f *normals;     /*! normal array (can be null) */
-    Vec2f *texcoords;   /*! texture coordinates (can be null) */
+    Vec3fobj *positions;   /*! position/vertex array */
+    Vec3fobj *normals;     /*! normal array (can be null) */
+    Vec2fobj *texcoords;   /*! texture coordinates (can be null) */
     int numTriangles;   /*! number of triangles */
     int *triangles;     /*! triangle index list */
     TriangleMesh() : positions(NULL), normals(NULL), texcoords(NULL), triangles(NULL) {}
@@ -187,19 +187,19 @@ static inline float getFloat(const char*& token) {
     return n;
 }
 
-/*! Read Vec2f from a string. */
-static inline Vec2f getVec2f(const char*& token) {
+/*! Read Vec2fobj from a string. */
+static inline Vec2fobj getVec2fobj(const char*& token) {
     float x = getFloat(token);
     float y = getFloat(token);
-    return Vec2f(x,y);
+    return Vec2fobj(x,y);
 }
 
-/*! Read Vec3f from a string. */
-static inline Vec3f getVec3f(const char*& token) {
+/*! Read Vec3fobj from a string. */
+static inline Vec3fobj getVec3fobj(const char*& token) {
     float x = getFloat(token);
     float y = getFloat(token);
     float z = getFloat(token);
-    return Vec3f(x, y, z);
+    return Vec3fobj(x, y, z);
 }
 
 /*! Parse optional separator. */
@@ -220,14 +220,14 @@ public:
     inline int fix_v(int index)  { return(index > 0 ? index - 1 : (index == 0 ? 0 : (int)v .size() + index)); }
     inline int fix_vt(int index) { return(index > 0 ? index - 1 : (index == 0 ? 0 : (int)vt.size() + index)); }
     inline int fix_vn(int index) { return(index > 0 ? index - 1 : (index == 0 ? 0 : (int)vn.size() + index)); }
-    std::vector<Vec3f> v, vn;
-    std::vector<Vec2f> vt;
+    std::vector<Vec3fobj> v, vn;
+    std::vector<Vec2fobj> vt;
     std::vector<std::vector<Vertex> > curGroup;
     std::map<std::string, Material*> materials;
     Material* curMaterial;
     inline void loadMTL(const std::string &mtlFilename);
     inline void flushFaceGroup();
-    inline unsigned int getVertex(std::map<Vertex, unsigned int>&, std::vector<Vec3f>&, std::vector<Vec3f>&, std::vector<Vec2f>&, const Vertex&);
+    inline unsigned int getVertex(std::map<Vertex, unsigned int>&, std::vector<Vec3fobj>&, std::vector<Vec3fobj>&, std::vector<Vec2fobj>&, const Vertex&);
     std::vector<OBJPrimitive* > model;
     inline void printStats();
     inline void extractNormals();
@@ -305,9 +305,9 @@ inline void ObjReader::loadMTL(const std::string &mtlFilename)
         if (!strncmp(token, "d", 1))  { parseSep(token += 1); mat->d  = getFloat(token); continue; }
         if (!strncmp(token, "Ns", 1)) { parseSep(token += 2); mat->Ns = getFloat(token); continue; }
         if (!strncmp(token, "Ns", 1)) { parseSep(token += 2); mat->Ni = getFloat(token); continue; }
-        if (!strncmp(token, "Ka", 2)) { parseSep(token += 2); mat->Ka = getVec3f(token); continue; }
-        if (!strncmp(token, "Kd", 2)) { parseSep(token += 2); mat->Kd = getVec3f(token); continue; }
-        if (!strncmp(token, "Ks", 2)) { parseSep(token += 2); mat->Ks = getVec3f(token); continue; }
+        if (!strncmp(token, "Ka", 2)) { parseSep(token += 2); mat->Ka = getVec3fobj(token); continue; }
+        if (!strncmp(token, "Kd", 2)) { parseSep(token += 2); mat->Kd = getVec3fobj(token); continue; }
+        if (!strncmp(token, "Ks", 2)) { parseSep(token += 2); mat->Ks = getVec3fobj(token); continue; }
     }
     ifs.close();
 }
@@ -337,11 +337,11 @@ inline ObjReader::ObjReader(const char *filename)
 
             if (token[0] == 0) continue; // line is empty, ignore
             // read a vertex
-            if (token[0] == 'v' && isSep(token[1])) { v.push_back(getVec3f(token += 2)); continue; }
+            if (token[0] == 'v' && isSep(token[1])) { v.push_back(getVec3fobj(token += 2)); continue; }
             // read a normal
-            if (!strncmp(token, "vn",  2) && isSep(token[2])) { vn.push_back(getVec3f(token += 3)); continue; }
+            if (!strncmp(token, "vn",  2) && isSep(token[2])) { vn.push_back(getVec3fobj(token += 3)); continue; }
             // read a texture coordinates
-            if (!strncmp(token, "vt",  2) && isSep(token[2])) { vt.push_back(getVec2f(token += 3)); continue; }
+            if (!strncmp(token, "vt",  2) && isSep(token[2])) { vt.push_back(getVec2fobj(token += 3)); continue; }
             // read a face
             if (token[0] == 'f' && isSep(token[1])) {
                 //cerr<<"f!!"<<endl;
@@ -398,9 +398,9 @@ inline ObjReader::ObjReader(const char *filename)
  */
 inline unsigned int ObjReader::getVertex(
     std::map<Vertex, unsigned int> &vertexMap, 
-    std::vector<Vec3f> &positions, 
-    std::vector<Vec3f> &normals,
-    std::vector<Vec2f> &texcoords,
+    std::vector<Vec3fobj> &positions, 
+    std::vector<Vec3fobj> &normals,
+    std::vector<Vec2fobj> &texcoords,
     const Vertex &i)
 {
     const std::map<Vertex, unsigned int>::iterator& entry = vertexMap.find(i);
@@ -419,10 +419,10 @@ inline void ObjReader::flushFaceGroup()
     if (curGroup.empty()) return;
     
     // temporary data arrays
-    std::vector<Vec3f> positions;
-    std::vector<Vec3f> normals;
-    std::vector<Vec2f> texcoords;
-    std::vector<Vec3i> triangles;
+    std::vector<Vec3fobj> positions;
+    std::vector<Vec3fobj> normals;
+    std::vector<Vec2fobj> texcoords;
+    std::vector<Vec3iobj> triangles;
     std::map<Vertex, unsigned int> vertexMap;
     
     // merge three indices into one
@@ -438,7 +438,7 @@ inline void ObjReader::flushFaceGroup()
             unsigned int v0 = getVertex(vertexMap, positions, normals, texcoords, i0);
             unsigned int v1 = getVertex(vertexMap, positions, normals, texcoords, i1);
             unsigned int v2 = getVertex(vertexMap, positions, normals, texcoords, i2);
-            triangles.push_back(Vec3i(v0, v1, v2));
+            triangles.push_back(Vec3iobj(v0, v1, v2));
         }
     }
     curGroup.clear();
@@ -447,16 +447,16 @@ inline void ObjReader::flushFaceGroup()
     TriangleMesh* mesh = new TriangleMesh;
     mesh->numTriangles = triangles.size();
     mesh->triangles = new int[mesh->numTriangles * 3];
-    memcpy(mesh->triangles, &triangles[0], sizeof(Vec3i) * mesh->numTriangles);
-    mesh->positions = new Vec3f[positions.size()];
-    memcpy(mesh->positions, &positions[0], sizeof(Vec3f) * positions.size());
+    memcpy(mesh->triangles, &triangles[0], sizeof(Vec3iobj) * mesh->numTriangles);
+    mesh->positions = new Vec3fobj[positions.size()];
+    memcpy(mesh->positions, &positions[0], sizeof(Vec3fobj) * positions.size());
     if (normals.size()) {
-        mesh->normals = new Vec3f[normals.size()];
-        memcpy(mesh->normals, &normals[0], sizeof(Vec3f) * normals.size());
+        mesh->normals = new Vec3fobj[normals.size()];
+        memcpy(mesh->normals, &normals[0], sizeof(Vec3fobj) * normals.size());
     }
     if (texcoords.size()) {
-        mesh->texcoords = new Vec2f[texcoords.size()];
-        memcpy(mesh->texcoords, &texcoords[0], sizeof(Vec2f) * texcoords.size());
+        mesh->texcoords = new Vec2fobj[texcoords.size()];
+        memcpy(mesh->texcoords, &texcoords[0], sizeof(Vec2fobj) * texcoords.size());
     }
     model.push_back(new OBJPrimitive(mesh, curMaterial));
 }
@@ -517,13 +517,13 @@ inline void ObjReader::extractNormals()
             //cerr<<"Extracting "<<count<<endl;
             //cerr<<model[i]->mesh->normals<<endl;
             count++;//????
-            Vec3f* norms= new Vec3f[count];
+            Vec3fobj* norms= new Vec3fobj[count];
             model[i]->mesh->normals = &norms[0];
             //cerr<<" "<<model[i]->mesh->normals<<endl;
             //cerr<<"after Countaa "<<count<<endl;
             int* sharedVertexCount  = new int[count]; //TODO DELETE
             memset(sharedVertexCount,0,count*sizeof(int));
-            Vec3f *norm;
+            Vec3fobj *norm;
             if(model[i]->mesh==NULL) cerr<<" mesh"<<model[i]->mesh<<endl;
             for(int j=0;j<s;j++)
             {
@@ -537,9 +537,9 @@ inline void ObjReader::extractNormals()
                 sharedVertexCount[v1]++;
                 sharedVertexCount[v2]++;
 
-                Vec3f a;
-                Vec3f b;
-                Vec3f n;
+                Vec3fobj a;
+                Vec3fobj b;
+                Vec3fobj n;
                 //a=v1-v0
                 a.x=model[i]->mesh->positions[v1].x-model[i]->mesh->positions[v0].x;
                 a.y=model[i]->mesh->positions[v1].y-model[i]->mesh->positions[v0].y;

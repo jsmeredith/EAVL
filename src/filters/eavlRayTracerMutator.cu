@@ -77,7 +77,7 @@ eavlConstTexArray<float4>* cmap_array;
 
 eavlRayTracerMutator::eavlRayTracerMutator()
 {
-
+    
     //eavlExecutor::SetExecutionMode(eavlExecutor::ForceCPU);
     if(eavlExecutor::GetExecutionMode() == eavlExecutor::ForceCPU ) cpu = true;
     else cpu = false;
@@ -1623,7 +1623,7 @@ void eavlRayTracerMutator::allocateArrays()
          deleteClassPtr(occZ);
          deleteClassPtr(localHits);
          deleteClassPtr(tempAmbPct);
-         deleteClassPtr(occIndexer);
+         //deleteClassPtr(occIndexer);
     }
     if (compactOp)
     {
@@ -2528,9 +2528,9 @@ void eavlRayTracerMutator::compactIntArray(eavlIntArray*& input, eavlIntArray* r
     eavlExecutor::Go();
     cout<<"after"<<endl;
 
-    tempPtr=input;
-    input=compactTempInt;
-    compactTempInt=tempPtr;
+    tempPtr = input;
+    input = compactTempInt;
+    compactTempInt = tempPtr;
 }
 
 void eavlRayTracerMutator::clearFrameBuffer(eavlFloatArray *r,eavlFloatArray *g,eavlFloatArray *b)
@@ -2541,11 +2541,6 @@ void eavlRayTracerMutator::clearFrameBuffer(eavlFloatArray *r,eavlFloatArray *g,
                                             "memset");
     eavlExecutor::Go();
 }
-
-
-
-  
-
 
 //creates the morton indexes that is used to create the ray directions per frame.
 //only needs to be done once everytime a resolution is specified. Every other frame
@@ -2574,11 +2569,11 @@ void eavlRayTracerMutator::createRays()
         mortonIndexes->SetValue(i, rayArray[i].id);
     }
     delete[] rayArray; 
-} 
+}  
 
 void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
 {
-    
+    //cudaSetDevice(0);
     Init();
     eavlIntArray    *dummy= new eavlIntArray("",1,size);
     eavlFloatArray  *dummyFloat= new eavlFloatArray("",1,size);
@@ -2642,13 +2637,8 @@ void eavlRayTracerMutator::traversalTest(int warmupRounds, int testRounds)
                                                                                                     "intersect");
     eavlExecutor::Go();
 
-    //eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx,primitiveTypeHit,minDistances),
-    //                                         eavlOpArgs(dummy, depthBuffer, primitiveTypeHit),
-    //                                         RayIntersectFunctor(sphr_verts_array,sphr_bvh_in_array,sphr_bvh_lf_array,SPHERE)),
-    //                                                                                                "intersect");
-    //eavlExecutor::Go();
-    float maxDepth=0;
-    float minDepth=INFINITE;
+    float maxDepth = 0;
+    float minDepth =I NFINITE;
 
     for(int i=0; i< size; i++)
     {

@@ -24,67 +24,221 @@
  *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-//Adapted
-
-
-
 #ifndef UTIL_H
 #define UTIL_H
-EAVL_HOSTDEVICE eavlVector3  vector3min(const eavlVector3 &r,const eavlVector3 &u)
-{
-    eavlVector3 result;
-    result.x = (u.x > r.x) ? r.x : u.x ;
-    result.y = (u.y > r.y) ? r.y : u.y ;
-    result.z = (u.z > r.z) ? r.z : u.z ;
-    
-    return result;
-}
 
-EAVL_HOSTDEVICE eavlVector3  vector3max(const eavlVector3 &r,const eavlVector3 &u)
-{
-    eavlVector3 result;
-    result.x = (u.x < r.x) ? r.x : u.x ;
-    result.y = (u.y < r.y) ? r.y : u.y ;
-    result.z = (u.z < r.z) ? r.z : u.z ;
-    
-    return result;
-}
 #include <limits>
 using namespace std;
+
+namespace FW
+{
+#define FW_SPECIALIZE_MINMAX(TEMPLATE, T, MIN, MAX) \
+    TEMPLATE EAVL_HOSTDEVICE T min(T a, T b) { return MIN; } \
+    TEMPLATE EAVL_HOSTDEVICE T max(T a, T b) { return MAX; } \
+    TEMPLATE EAVL_HOSTDEVICE T min(T a, T b, T c) { return min(min(a, b), c); } \
+    TEMPLATE EAVL_HOSTDEVICE T max(T a, T b, T c) { return max(max(a, b), c); } \
+    TEMPLATE EAVL_HOSTDEVICE T min(T a, T b, T c, T d) { return min(min(min(a, b), c), d); } \
+    TEMPLATE EAVL_HOSTDEVICE T max(T a, T b, T c, T d) { return max(max(max(a, b), c), d); } \
+    TEMPLATE EAVL_HOSTDEVICE T min(T a, T b, T c, T d, T e) { return min(min(min(min(a, b), c), d), e); } \
+    TEMPLATE EAVL_HOSTDEVICE T max(T a, T b, T c, T d, T e) { return max(max(max(max(a, b), c), d), e); } \
+    TEMPLATE EAVL_HOSTDEVICE T min(T a, T b, T c, T d, T e, T f) { return min(min(min(min(min(a, b), c), d), e), f); } \
+    TEMPLATE EAVL_HOSTDEVICE T max(T a, T b, T c, T d, T e, T f) { return max(max(max(max(max(a, b), c), d), e), f); } \
+    TEMPLATE EAVL_HOSTDEVICE T min(T a, T b, T c, T d, T e, T f, T g) { return min(min(min(min(min(min(a, b), c), d), e), f), g); } \
+    TEMPLATE EAVL_HOSTDEVICE T max(T a, T b, T c, T d, T e, T f, T g) { return max(max(max(max(max(max(a, b), c), d), e), f), g); } \
+    TEMPLATE EAVL_HOSTDEVICE T min(T a, T b, T c, T d, T e, T f, T g, T h) { return min(min(min(min(min(min(min(a, b), c), d), e), f), g), h); } \
+    TEMPLATE EAVL_HOSTDEVICE T max(T a, T b, T c, T d, T e, T f, T g, T h) { return max(max(max(max(max(max(max(a, b), c), d), e), f), g), h); } \
+    TEMPLATE EAVL_HOSTDEVICE T clamp(T v, T lo, T hi) { return min(max(v, lo), hi); }
+
+FW_SPECIALIZE_MINMAX(template <class T>, T&, (a < b) ? a : b, (a > b) ? a : b)
+FW_SPECIALIZE_MINMAX(template <class T>, const T&, (a < b) ? a : b, (a > b) ? a : b)
+
+EAVL_HOSTDEVICE int      abs   (int a)         { return (a >= 0) ? a : -a; }
+EAVL_HOSTDEVICE float    abs   (float a)       { return ::fabsf(a); }
+
+
+template <class T, int L> class Vector;
+
+template <class T, int L, class S> class VectorBase
+{
+public:
+    EAVL_HOSTDEVICE                    VectorBase  (void)                      {}
+
+    EAVL_HOSTDEVICE    const T*        getPtr      (void) const                { return ((S*)this)->getPtr(); }
+    EAVL_HOSTDEVICE    T*              getPtr      (void)                      { return ((S*)this)->getPtr(); }
+    EAVL_HOSTDEVICE    const T&        get         (int idx) const             {  return getPtr()[idx]; }
+    EAVL_HOSTDEVICE    T&              get         (int idx)                   {  return getPtr()[idx]; }
+    EAVL_HOSTDEVICE    T               set         (int idx, const T& a)       { T& slot = get(idx); T old = slot; slot = a; return old; }
+
+    EAVL_HOSTDEVICE    void            set         (const T& a)                { T* tp = getPtr(); for (int i = 0; i < L; i++) tp[i] = a; }
+    EAVL_HOSTDEVICE    void            set         (const T* ptr)              { T* tp = getPtr(); for (int i = 0; i < L; i++) tp[i] = ptr[i]; }
+    EAVL_HOSTDEVICE    void            setZero     (void)                      { set((T)0); }
+    EAVL_HOSTDEVICE    bool            isZero      (void) const                { const T* tp = getPtr(); for (int i = 0; i < L; i++) if (tp[i] != (T)0) return false; return true; }
+    EAVL_HOSTDEVICE    T               lenSqr      (void) const                { const T* tp = getPtr(); T r = (T)0; for (int i = 0; i < L; i++) r += sqr(tp[i]); return r; }
+    EAVL_HOSTDEVICE    T               length      (void) const                { return sqrt(lenSqr()); }
+    EAVL_HOSTDEVICE    S               normalized  (T len = (T)1) const        { return operator*(len * rcp(length())); }
+    EAVL_HOSTDEVICE    void            normalize   (T len = (T)1)              { set(normalized(len)); }
+    EAVL_HOSTDEVICE    T               min         (void) const                { const T* tp = getPtr(); T r = tp[0]; for (int i = 1; i < L; i++) r = FW::min(r, tp[i]); return r; }
+    EAVL_HOSTDEVICE    T               max         (void) const                { const T* tp = getPtr(); T r = tp[0]; for (int i = 1; i < L; i++) r = FW::max(r, tp[i]); return r; }
+    EAVL_HOSTDEVICE    T               sum         (void) const                { const T* tp = getPtr(); T r = tp[0]; for (int i = 1; i < L; i++) r += tp[i]; return r; }
+    EAVL_HOSTDEVICE    S               abs         (void) const                { const T* tp = getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = FW::abs(tp[i]); return r; }
+
+    EAVL_HOSTDEVICE    Vector<T, L + 1> toHomogeneous(void) const              { const T* tp = getPtr(); Vector<T, L + 1> r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = tp[i]; rp[L] = (T)1; return r; }
+    EAVL_HOSTDEVICE    Vector<T, L - 1> toCartesian(void) const                { const T* tp = getPtr(); Vector<T, L - 1> r; T* rp = r.getPtr(); T c = rcp(tp[L - 1]); for (int i = 0; i < L - 1; i++) rp[i] = tp[i] * c; return r; }
+
+    EAVL_HOSTDEVICE    const T&        operator[]  (int idx) const             { return get(idx); }
+    EAVL_HOSTDEVICE    T&              operator[]  (int idx)                   { return get(idx); }
+    EAVL_HOSTDEVICE    S&              operator=   (const T& a)                { set(a); return *(S*)this; }
+    EAVL_HOSTDEVICE    S               operator+   (void) const                { return *this; }
+    EAVL_HOSTDEVICE    S               operator-   (void) const                { const T* tp = getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = -tp[i]; return r; }
+
+    EAVL_HOSTDEVICE    S               operator+   (const T& a) const          { const T* tp = getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = tp[i] + a; return r; }
+    EAVL_HOSTDEVICE    S               operator-   (const T& a) const          { const T* tp = getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = tp[i] - a; return r; }
+    EAVL_HOSTDEVICE    S               operator*   (const T& a) const          { const T* tp = getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = tp[i] * a; return r; }
+    EAVL_HOSTDEVICE    S               operator/   (const T& a) const          { const T* tp = getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = tp[i] / a; return r; }
+    EAVL_HOSTDEVICE    S               operator%   (const T& a) const          { const T* tp = getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = tp[i] % a; return r; }
+
+    template <class V> EAVL_HOSTDEVICE void    set         (const VectorBase<T, L, V>& v)          { set(v.getPtr()); }
+    template <class V> EAVL_HOSTDEVICE T       dot         (const VectorBase<T, L, V>& v) const    { const T* tp = getPtr(); const T* vp = v.getPtr(); T r = (T)0; for (int i = 0; i < L; i++) r += tp[i] * vp[i]; return r; }
+    template <class V> EAVL_HOSTDEVICE S       min         (const VectorBase<T, L, V>& v) const    { const T* tp = getPtr(); const T* vp = v.getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = FW::min(tp[i], vp[i]); return r; }
+    template <class V> EAVL_HOSTDEVICE S       max         (const VectorBase<T, L, V>& v) const    { const T* tp = getPtr(); const T* vp = v.getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = FW::max(tp[i], vp[i]); return r; }
+    template <class V, class W> EAVL_HOSTDEVICE S clamp    (const VectorBase<T, L, V>& lo, const VectorBase<T, L, W>& hi) const { const T* tp = getPtr(); const T* lop = lo.getPtr(); const T* hip = hi.getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = FW::clamp(tp[i], lop[i], hip[i]); return r; }
+
+    template <class V> EAVL_HOSTDEVICE S&      operator=   (const VectorBase<T, L, V>& v)          { set(v); return *(S*)this; }
+
+
+    template <class V> EAVL_HOSTDEVICE S       operator+   (const VectorBase<T, L, V>& v) const    { const T* tp = getPtr(); const T* vp = v.getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = tp[i] +  vp[i]; return r; }
+    template <class V> EAVL_HOSTDEVICE S       operator-   (const VectorBase<T, L, V>& v) const    { const T* tp = getPtr(); const T* vp = v.getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = tp[i] -  vp[i]; return r; }
+    template <class V> EAVL_HOSTDEVICE S       operator*   (const VectorBase<T, L, V>& v) const    { const T* tp = getPtr(); const T* vp = v.getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = tp[i] *  vp[i]; return r; }
+    template <class V> EAVL_HOSTDEVICE S       operator/   (const VectorBase<T, L, V>& v) const    { const T* tp = getPtr(); const T* vp = v.getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = tp[i] /  vp[i]; return r; }
+    template <class V> EAVL_HOSTDEVICE S       operator%   (const VectorBase<T, L, V>& v) const    { const T* tp = getPtr(); const T* vp = v.getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = tp[i] %  vp[i]; return r; }
+
+    template <class V> EAVL_HOSTDEVICE bool    operator==  (const VectorBase<T, L, V>& v) const    { const T* tp = getPtr(); const T* vp = v.getPtr(); for (int i = 0; i < L; i++) if (tp[i] != vp[i]) return false; return true; }
+    template <class V> EAVL_HOSTDEVICE bool    operator!=  (const VectorBase<T, L, V>& v) const    { return (!operator==(v)); }
+};
+
+//------------------------------------------------------------------------
+
+template <class T, int L> class Vector : public VectorBase<T, L, Vector<T, L> >
+{
+public:
+    EAVL_HOSTDEVICE                    Vector      (void)                      {  this->setZero(); }
+    EAVL_HOSTDEVICE                    Vector      (T a)                       {  this->set(a); }
+
+    EAVL_HOSTDEVICE    const T*        getPtr      (void) const                { return m_values; }
+    EAVL_HOSTDEVICE    T*              getPtr      (void)                      { return m_values; }
+    static EAVL_HOSTDEVICE Vector      fromPtr     (const T* ptr)              { Vector v; v.set(ptr); return v; }
+
+    template <class V> EAVL_HOSTDEVICE Vector(const VectorBase<T, L, V>& v) { this->set(v); }
+    template <class V> EAVL_HOSTDEVICE Vector& operator=(const VectorBase<T, L, V>& v) { this->set(v); return *this; }
+
+private:
+    T               m_values[L];
+};
+
+
+//------------------------------------------------------------------------
+
+class Vec3i : public VectorBase<int, 3, Vec3i>, public int3
+{
+public:
+    EAVL_HOSTDEVICE                    Vec3i       (void)                      { setZero(); }
+    EAVL_HOSTDEVICE                    Vec3i       (int a)                     { set(a); }
+    EAVL_HOSTDEVICE                    Vec3i       (int xx, int yy, int zz)    { x = xx; y = yy; z = zz; }
+    EAVL_HOSTDEVICE    const int*      getPtr      (void) const                { return &x; }
+    EAVL_HOSTDEVICE    int*            getPtr      (void)                      { return &x; }
+    static EAVL_HOSTDEVICE Vec3i       fromPtr     (const int* ptr)            { return Vec3i(ptr[0], ptr[1], ptr[2]); }
+    template <class V> EAVL_HOSTDEVICE Vec3i(const VectorBase<int, 3, V>& v) { set(v); }
+    template <class V> EAVL_HOSTDEVICE Vec3i& operator=(const VectorBase<int, 3, V>& v) { set(v); return *this; }
+};
+//------------------------------------------------------------------------
+
+class Vec3f : public VectorBase<float, 3, Vec3f>, public float3
+{
+public:
+    EAVL_HOSTDEVICE                    Vec3f       (void)                      { setZero(); }
+    EAVL_HOSTDEVICE                    Vec3f       (float a)                     { set(a); }
+    EAVL_HOSTDEVICE                    Vec3f       (float xx, float yy, float zz)    { x = xx; y = yy; z = zz; }
+    EAVL_HOSTDEVICE                    Vec3f       (const Vec3i& v)            { x = (float)v.x; y = (float)v.y; z = (float)v.z; }
+
+    EAVL_HOSTDEVICE    const float*      getPtr      (void) const                { return &x; }
+    EAVL_HOSTDEVICE    float*            getPtr      (void)                      { return &x; }
+    static EAVL_HOSTDEVICE Vec3f       fromPtr     (const float* ptr)            { return Vec3f(ptr[0], ptr[1], ptr[2]); }
+
+    EAVL_HOSTDEVICE    operator        Vec3i       (void) const                { return Vec3i((int)x, (int)y, (int)z); }
+   
+
+    EAVL_HOSTDEVICE    Vec3f           cross       (const Vec3f& v) const      { return Vec3f(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x); }
+
+    template <class V> EAVL_HOSTDEVICE Vec3f(const VectorBase<float, 3, V>& v) { set(v); }
+    template <class V> EAVL_HOSTDEVICE Vec3f& operator=(const VectorBase<float, 3, V>& v) { set(v); return *this; }
+};
+
+//------------------------------------------------------------------------
+
+template <class T, int L, class S> EAVL_HOSTDEVICE T lenSqr    (const VectorBase<T, L, S>& v)                  { return v.lenSqr(); }
+template <class T, int L, class S> EAVL_HOSTDEVICE T length    (const VectorBase<T, L, S>& v)                  { return v.length(); }
+template <class T, int L, class S> EAVL_HOSTDEVICE S normalize (const VectorBase<T, L, S>& v, T len = (T)1)    { return v.normalized(len); }
+template <class T, int L, class S> EAVL_HOSTDEVICE T min       (const VectorBase<T, L, S>& v)                  { return v.min(); }
+template <class T, int L, class S> EAVL_HOSTDEVICE T max       (const VectorBase<T, L, S>& v)                  { return v.max(); }
+template <class T, int L, class S> EAVL_HOSTDEVICE T sum       (const VectorBase<T, L, S>& v)                  { return v.sum(); }
+template <class T, int L, class S> EAVL_HOSTDEVICE S abs       (const VectorBase<T, L, S>& v)                  { return v.abs(); }
+
+template <class T, int L, class S> EAVL_HOSTDEVICE S operator+     (const T& a, const VectorBase<T, L, S>& b)  { return b + a; }
+template <class T, int L, class S> EAVL_HOSTDEVICE S operator-     (const T& a, const VectorBase<T, L, S>& b)  { return -b + a; }
+template <class T, int L, class S> EAVL_HOSTDEVICE S operator*     (const T& a, const VectorBase<T, L, S>& b)  { return b * a; }
+template <class T, int L, class S> EAVL_HOSTDEVICE S operator/     (const T& a, const VectorBase<T, L, S>& b)  { const T* bp = b.getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = a / bp[i]; return r; }
+template <class T, int L, class S> EAVL_HOSTDEVICE S operator%     (const T& a, const VectorBase<T, L, S>& b)  { const T* bp = b.getPtr(); S r; T* rp = r.getPtr(); for (int i = 0; i < L; i++) rp[i] = a % bp[i]; return r; }
+
+template <class T, int L, class S, class V> EAVL_HOSTDEVICE T dot(const VectorBase<T, L, S>& a, const VectorBase<T, L, V>& b) { return a.dot(b); }
+
+EAVL_HOSTDEVICE Vec3f  cross           (const Vec3f& a, const Vec3f& b)    { return a.cross(b); }
+
+#define MINMAX(T) \
+    EAVL_HOSTDEVICE T min(const T& a, const T& b)                          { return a.min(b); } \
+    EAVL_HOSTDEVICE T min(T& a, T& b)                                      { return a.min(b); } \
+    EAVL_HOSTDEVICE T max(const T& a, const T& b)                          { return a.max(b); } \
+    EAVL_HOSTDEVICE T max(T& a, T& b)                                      { return a.max(b); } \
+    EAVL_HOSTDEVICE T min(const T& a, const T& b, const T& c)              { return a.min(b).min(c); } \
+    EAVL_HOSTDEVICE T min(T& a, T& b, T& c)                                { return a.min(b).min(c); } \
+    EAVL_HOSTDEVICE T max(const T& a, const T& b, const T& c)              { return a.max(b).max(c); } \
+    EAVL_HOSTDEVICE T max(T& a, T& b, T& c)                                { return a.max(b).max(c); } \
+    EAVL_HOSTDEVICE T min(const T& a, const T& b, const T& c, const T& d)  { return a.min(b).min(c).min(d); } \
+    EAVL_HOSTDEVICE T min(T& a, T& b, T& c, T& d)                          { return a.min(b).min(c).min(d); } \
+    EAVL_HOSTDEVICE T max(const T& a, const T& b, const T& c, const T& d)  { return a.max(b).max(c).max(d); } \
+    EAVL_HOSTDEVICE T max(T& a, T& b, T& c, T& d)                          { return a.max(b).max(c).max(d); } \
+    EAVL_HOSTDEVICE T clamp(const T& v, const T& lo, const T& hi)          { return v.clamp(lo, hi); } \
+    EAVL_HOSTDEVICE T clamp(T& v, T& lo, T& hi)                            { return v.clamp(lo, hi); }
+
+MINMAX(Vec3i)
+MINMAX(Vec3f) 
+#undef MINMAX
+
 class AABB
 {
 public:
-    EAVL_HOSTDEVICE                    		 AABB        (void) : m_mn(10000000, 10000000, 10000000), m_mx(-10000000, -10000000, -10000000) {}
-    EAVL_HOSTDEVICE                    		 AABB        (const eavlVector3& mn, const eavlVector3& mx) : m_mn(mn), m_mx(mx) {}
+    EAVL_HOSTDEVICE                    AABB        (void) : m_mn(10000000, 10000000, 10000000), m_mx(-10000000, -10000000, -10000000) {}
+    EAVL_HOSTDEVICE                    AABB        (const Vec3f& mn, const Vec3f& mx) : m_mn(mn), m_mx(mx) {}
 
-    EAVL_HOSTDEVICE    void            		 grow        (const eavlVector3& pt)   { m_mn = vector3min(m_mn,pt); m_mx = vector3max(m_mx,pt); }
-    EAVL_HOSTDEVICE    void            		 grow        (const AABB& aabb)  
-    { 
-        m_mn.x=(aabb.min().x< m_mn.x) ? aabb.min().x : m_mn.x;
-        m_mn.y=(aabb.min().y< m_mn.y) ? aabb.min().y : m_mn.y;
-        m_mn.z=(aabb.min().z< m_mn.z) ? aabb.min().z : m_mn.z;
-
-        m_mx.x=(aabb.max().x> m_mx.x) ? aabb.max().x : m_mx.x;
-        m_mx.y=(aabb.max().y> m_mx.y) ? aabb.max().y : m_mx.y;
-        m_mx.z=(aabb.max().z> m_mx.z) ? aabb.max().z : m_mx.z;
-
-    }
-    EAVL_HOSTDEVICE    void            		 intersect   (const AABB& aabb)  { m_mn = vector3max(m_mn,aabb.m_mn); m_mx = vector3min(m_mx,aabb.m_mx); }
-    EAVL_HOSTDEVICE    float           		 volume      (void) const        { if(!valid()) return 0.0f; return (m_mx.x-m_mn.x) * (m_mx.y-m_mn.y) * (m_mx.z-m_mn.z); }
-    EAVL_HOSTDEVICE    float           		 area        (void) const        { if(!valid()) return 0.0f; eavlVector3 d = m_mx - m_mn; return (d.x*d.y + d.y*d.z + d.z*d.x)*2.0f; }
-    EAVL_HOSTDEVICE    bool            		 valid       (void) const        { return m_mn.x<=m_mx.x && m_mn.y<=m_mx.y && m_mn.z<=m_mx.z; }
-    EAVL_HOSTDEVICE    eavlVector3           midPoint    (void) const        { return (m_mn+m_mx)*0.5f; }
-    EAVL_HOSTDEVICE    const eavlVector3&    min         (void) const        { return m_mn; }
-    EAVL_HOSTDEVICE    const eavlVector3&    max         (void) const        { return m_mx; }
-    EAVL_HOSTDEVICE    eavlVector3&          min         (void)              { return m_mn; }
-    EAVL_HOSTDEVICE    eavlVector3&          max         (void)              { return m_mx; }
+    EAVL_HOSTDEVICE    void            grow        (const Vec3f& pt)   { m_mn = m_mn.min(pt); m_mx = m_mx.max(pt); }
+    EAVL_HOSTDEVICE    void            grow        (const AABB& aabb)  { grow(aabb.m_mn); grow(aabb.m_mx); }
+    EAVL_HOSTDEVICE    void            intersect   (const AABB& aabb)  { m_mn = m_mn.max(aabb.m_mn); m_mx = m_mx.min(aabb.m_mx); }
+    EAVL_HOSTDEVICE    float           volume      (void) const        { if(!valid()) return 0.0f; return (m_mx.x-m_mn.x) * (m_mx.y-m_mn.y) * (m_mx.z-m_mn.z); }
+    EAVL_HOSTDEVICE    float           area        (void) const        { if(!valid()) return 0.0f; Vec3f d = m_mx - m_mn; return (d.x*d.y + d.y*d.z + d.z*d.x)*2.0f; }
+    EAVL_HOSTDEVICE    bool            valid       (void) const        { return m_mn.x<=m_mx.x && m_mn.y<=m_mx.y && m_mn.z<=m_mx.z; }
+    EAVL_HOSTDEVICE    Vec3f           midPoint    (void) const        { return (m_mn+m_mx)*0.5f; }
+    EAVL_HOSTDEVICE    const Vec3f&    min         (void) const        { return m_mn; }
+    EAVL_HOSTDEVICE    const Vec3f&    max         (void) const        { return m_mx; }
+    EAVL_HOSTDEVICE    Vec3f&          min         (void)              { return m_mn; }
+    EAVL_HOSTDEVICE    Vec3f&          max         (void)              { return m_mx; }
 
     EAVL_HOSTDEVICE    AABB            operator+   (const AABB& aabb) const { AABB u(*this); u.grow(aabb); return u; }
 
 private:
-    eavlVector3           m_mn;
-    eavlVector3           m_mx;
+    Vec3f           m_mn;
+    Vec3f           m_mx;
 };
+
+}//namespace FW
 
 struct Stats
 {
@@ -112,17 +266,10 @@ struct BuildParams
         enablePrints    = true;
         splitAlpha      = 1.0e-5f;
     }
-
-    //U32 computeHash(void) const
-    //{
-    //    return hashBits(floatToBits(splitAlpha));
-    //}
 };
 
 
 template <class A, class B> EAVL_HOSTDEVICE A lerp(const A& a, const A& b, const B& t) { return (A)(a * ((B)1 - t) + b * t); }
-
-//template <class T> EAVL_HOSTDEVICE void swap(T& a, T& b) { T t = a; a = b; b = t; }
 template <class T> EAVL_HOSTDEVICE T clamp(T v, T lo, T hi) { return min(max(v, lo), hi); }
 
 
@@ -225,9 +372,7 @@ void qsort(int low, int high, void* data, SortCompareFunc compareFunc, SortSwapF
 
 void sort(void* data, int start, int end, SortCompareFunc compareFunc, SortSwapFunc swapFunc)
 {
-
     // Nothing to do => skip.
-
     if (end - start < 2)
         return;
 

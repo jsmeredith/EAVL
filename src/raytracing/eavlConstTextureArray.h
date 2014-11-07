@@ -67,8 +67,12 @@ class eavlConstTexArray
     ~eavlConstTexArray()
     {
 #ifdef HAVE_CUDA
-        cudaFree(device);
-        CUDA_CHECK_ERROR();
+        if(!cpu)
+        {
+            cudaFree(device);
+            CUDA_CHECK_ERROR();    
+        }
+        
 #endif
     }
 #ifdef __CUDA_ARCH__
