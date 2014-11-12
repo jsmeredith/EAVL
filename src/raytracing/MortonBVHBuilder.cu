@@ -94,7 +94,7 @@ MortonBVHBuilder::MortonBVHBuilder(float * _verts, int _numPrimitives, primitive
 {
 
       verbose = 0;
-
+      forceCpu = false;
       if(numPrimitives < 1) THROW(eavlException, "Number of primitives must be greater that zero.");
       if(verts == NULL)     THROW(eavlException, "Verticies can't be NULL");
       //Insert preprocess that splits triangles before any of the memory is allocated
