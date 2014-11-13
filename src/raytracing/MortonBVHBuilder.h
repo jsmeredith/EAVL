@@ -141,9 +141,7 @@ class MortonBVHBuilder
     ~MortonBVHBuilder();
     void build();
     void setVerbose(const int &level);
-    eavlFloatArray * getInnerNodes(){ return innerNodes; }
-    eavlFloatArray * getLeafNodes(){ return leafNodes; }
-
-
+    float * getInnerNodes(int &_size);
+    float * getLeafNodes(int &_size);
 };
 #endif

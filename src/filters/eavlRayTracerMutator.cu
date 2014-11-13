@@ -37,6 +37,7 @@
 texture<float4> tri_bvh_in_tref;            /* BVH inner nodes */
 texture<float4> tri_verts_tref;             /* vert+ scalar data */
 texture<float>  tri_bvh_lf_tref;            /* BVH leaf nodes */
+texture<float>  tri_norms_tref;
 /*Sphere Textures */
 texture<float4> sphr_verts_tref;
 texture<float4> sphr_bvh_in_tref;
@@ -59,6 +60,7 @@ texture<float4> color_map_tref;
 eavlConstTexArray<float4>* tri_bvh_in_array;
 eavlConstTexArray<float4>* tri_verts_array;
 eavlConstTexArray<float>*  tri_bvh_lf_array;
+eavlConstTexArray<float>*  tri_norms_array;
 eavlConstTexArray<int>*    tri_matIdx_array;    
 
 eavlConstTexArray<float4>* sphr_bvh_in_array;
@@ -141,6 +143,7 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     tri_verts_array     = NULL;
     tri_bvh_lf_array    = NULL;
     tri_matIdx_array    = NULL;
+    tri_norms_array     = NULL;
 
     sphr_bvh_in_array   = NULL;
     sphr_verts_array    = NULL;
@@ -153,11 +156,6 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     cyl_bvh_lf_array   = NULL;
     cyl_scalars_array  = NULL;
     cyl_matIdx_array   = NULL;
-
-   
-
-    cmap_array     = NULL;
-
 
     /* Raw arrays */
     tri_verts_raw    = NULL;
@@ -180,9 +178,6 @@ eavlRayTracerMutator::eavlRayTracerMutator()
 
     mats_raw         = NULL;
 
-    cyl_bvh_in_raw  = NULL;
-    cyl_bvh_lf_raw  = NULL;
-    cyl_scalars_raw = NULL;
 
 
 
@@ -208,7 +203,7 @@ eavlRayTracerMutator::eavlRayTracerMutator()
     normX = NULL;
     normY = NULL;
     normZ = NULL;
-
+ 
     hitIdx = NULL;
     indexes = NULL;
     mortonIndexes = NULL;
@@ -1132,12 +1127,12 @@ struct RayIntersectFunctor{
 struct ReflectTriFunctor{
 
     const eavlConstTexArray<float4> *verts;
-    eavlConstArray<float>     norms;
+    const eavlConstTexArray<float>  *norms;
 
 
-    ReflectTriFunctor(const eavlConstTexArray<float4> *_verts, const eavlConstArray<float> *xnorm)
+    ReflectTriFunctor(const eavlConstTexArray<float4> *_verts,const eavlConstTexArray<float>  *_norms)
         :verts(_verts),
-         norms(*xnorm)
+         norms(_norms)
     {
         
     }                                                    //order a b c clockwise
@@ -1166,10 +1161,17 @@ struct ReflectTriFunctor{
         gamma = 1 - alpha - beta;
         eavlVector3 normal(999999.f,0,0);
 
-        eavlVector3* normalPtr = (eavlVector3*)(&norms[0] + hitIndex * 9);
-        eavlVector3 aNorm = normalPtr[0];
-        eavlVector3 bNorm = normalPtr[1];
-        eavlVector3 cNorm = normalPtr[2];
+        eavlVector3 aNorm, bNorm, cNorm;
+        aNorm.x = norms->getValue(tri_norms_tref, hitIndex * 9 + 0);
+        aNorm.y = norms->getValue(tri_norms_tref, hitIndex * 9 + 1);
+        aNorm.z = norms->getValue(tri_norms_tref, hitIndex * 9 + 2);
+        bNorm.x = norms->getValue(tri_norms_tref, hitIndex * 9 + 3);
+        bNorm.y = norms->getValue(tri_norms_tref, hitIndex * 9 + 4);
+        bNorm.z = norms->getValue(tri_norms_tref, hitIndex * 9 + 5);
+        aNorm.x = norms->getValue(tri_norms_tref, hitIndex * 9 + 6);
+        aNorm.y = norms->getValue(tri_norms_tref, hitIndex * 9 + 7);
+        aNorm.z = norms->getValue(tri_norms_tref, hitIndex * 9 + 8);
+
         normal = aNorm*alpha + bNorm*beta + cNorm*gamma;
         float lerpedScalar = c4.y*alpha + c4.z*beta + c4.w*gamma;
         //reflect the ray
@@ -1835,10 +1837,8 @@ void eavlRayTracerMutator::extractGeometry()
             {
                 MortonBVHBuilder *mortonBVH = new MortonBVHBuilder(tri_verts_raw, numTriangles, TRIANGLE);
                 mortonBVH->build();
-                tri_bvh_in_raw  = (float*)mortonBVH->getInnerNodes()->GetHostArray();
-                tri_bvh_in_size = mortonBVH->getInnerNodes()->GetNumberOfTuples();
-                tri_bvh_lf_raw  = (float*)mortonBVH->getLeafNodes()->GetHostArray();
-                tri_bvh_lf_size = mortonBVH->getLeafNodes()->GetNumberOfTuples();
+                tri_bvh_in_raw  = mortonBVH->getInnerNodes(tri_bvh_in_size);
+                tri_bvh_lf_raw  = mortonBVH->getLeafNodes(tri_bvh_lf_size);
                 delete mortonBVH;
             }
             else
@@ -1855,10 +1855,9 @@ void eavlRayTracerMutator::extractGeometry()
         tri_bvh_in_array   = new eavlConstTexArray<float4>( (float4*)tri_bvh_in_raw, tri_bvh_in_size/4, tri_bvh_in_tref, cpu);
         tri_bvh_lf_array   = new eavlConstTexArray<float>( tri_bvh_lf_raw, tri_bvh_lf_size, tri_bvh_lf_tref, cpu);
         tri_verts_array    = new eavlConstTexArray<float4>( (float4*)tri_verts_raw,numTriangles*3, tri_verts_tref, cpu);
-        tri_matIdx_array   = new eavlConstTexArray<int>( tri_matIdx_raw, numTriangles, tri_matIdx_tref, cpu );
-        //TODO: make this a texture?
-        INIT(eavlConstArray<float>,tri_norms,numTriangles*9);
-        //INIT(eavlConstArray<int>, tri_matIdx,numTriangles);
+        tri_matIdx_array   = new eavlConstTexArray<int>( tri_matIdx_raw, numTriangles, tri_matIdx_tref, cpu );       
+        tri_norms_array = new eavlConstTexArray<float>(tri_norms_raw, numTriangles * 9, tri_norms_tref, cpu);
+
     }
     if(verbose) cout<<"NUM SPHERES "<<numSpheres<<endl;
     if(numSpheres > 0)
@@ -1869,10 +1868,8 @@ void eavlRayTracerMutator::extractGeometry()
         {
             MortonBVHBuilder *mortonBVH = new MortonBVHBuilder(sphr_verts_raw, numSpheres, SPHERE);
             mortonBVH->build();
-            sphr_bvh_in_raw  = (float*)mortonBVH->getInnerNodes()->GetHostArray();
-            sphr_bvh_in_size = mortonBVH->getInnerNodes()->GetNumberOfTuples();
-            sphr_bvh_lf_raw  = (float*)mortonBVH->getLeafNodes()->GetHostArray();
-            sphr_bvh_lf_size = mortonBVH->getLeafNodes()->GetNumberOfTuples();
+            sphr_bvh_in_raw  = mortonBVH->getInnerNodes(sphr_bvh_in_size);
+            sphr_bvh_lf_raw  = mortonBVH->getLeafNodes(sphr_bvh_lf_size);
             delete mortonBVH;
         }
         else
@@ -1897,10 +1894,8 @@ void eavlRayTracerMutator::extractGeometry()
         {
             MortonBVHBuilder *mortonBVH = new MortonBVHBuilder(cyl_verts_raw, numCyls, CYLINDER);
             mortonBVH->build();
-            cyl_bvh_in_raw  = (float*)mortonBVH->getInnerNodes()->GetHostArray();
-            cyl_bvh_in_size = mortonBVH->getInnerNodes()->GetNumberOfTuples();
-            cyl_bvh_lf_raw  = (float*)mortonBVH->getLeafNodes()->GetHostArray();
-            cyl_bvh_lf_size = mortonBVH->getLeafNodes()->GetNumberOfTuples();
+            cyl_bvh_in_raw  = mortonBVH->getInnerNodes(cyl_bvh_in_size);
+            cyl_bvh_lf_raw  = mortonBVH->getLeafNodes(cyl_bvh_lf_size);
             delete mortonBVH;
         }
         else
@@ -1920,12 +1915,7 @@ void eavlRayTracerMutator::extractGeometry()
     
     if(numMats == 0) { cerr<<"NO MATS bailing"<<endl; exit(0); }
 
-    
-
-
     INIT(eavlConstArray<float>, mats,numMats*12);
-    
-    
     geomDirty = false;
     defaultMatDirty = false;
     
@@ -2045,7 +2035,7 @@ void eavlRayTracerMutator::reflect()
     {
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ,hitIdx, primitiveTypeHit),
                                                  eavlOpArgs(interX, interY,interZ,rayDirX,rayDirY,rayDirZ,normX,normY,normZ,alphas,betas,scalars),
-                                                 ReflectTriFunctor(tri_verts_array,tri_norms)),
+                                                 ReflectTriFunctor(tri_verts_array,tri_norms_array)),
                                                  "reflect");
         eavlExecutor::Go(); 
     }
@@ -2109,6 +2099,7 @@ void eavlRayTracerMutator::shadowIntersect()
 
 void eavlRayTracerMutator::Execute()
 {
+    //cudaSetDevice(0);
     int th ;
     int tinit;
     if(verbose) tinit = eavlTimer::Start();
@@ -2792,32 +2783,25 @@ void eavlRayTracerMutator::freeRaw()
     deleteArrayPtr(tri_matIdx_raw);
     deleteArrayPtr(tri_bvh_in_raw);
     deleteArrayPtr(tri_bvh_lf_raw);
-    deleteArrayPtr(tri_matIdx_raw);
-    deleteArrayPtr(sphr_verts_raw);
-    deleteArrayPtr(sphr_matIdx_raw);
+    
     deleteArrayPtr(mats_raw);
+
     deleteArrayPtr(sphr_scalars_raw);
+    deleteArrayPtr(sphr_matIdx_raw);
+    deleteArrayPtr(sphr_verts_raw);
+    deleteArrayPtr(sphr_bvh_in_raw);
+    deleteArrayPtr(sphr_bvh_lf_raw);
+    
+    deleteArrayPtr(cyl_verts_raw);
+    deleteArrayPtr(cyl_matIdx_raw);
+    deleteArrayPtr(cyl_bvh_in_raw);
+    deleteArrayPtr(cyl_bvh_lf_raw);
+    deleteArrayPtr(cyl_scalars_raw);
 
 }
 
 eavlFloatArray* eavlRayTracerMutator::getDepthBuffer(float proj22, float proj23, float proj32)
 { 
-
-    /*float maxDepth=0;
-    float minDepth=INFINITE;
-
-    for(int i=0; i< size; i++)
-    {
-        if( zBuffer->GetValue(i) == INFINITE) zBuffer->SetValue(i,0);
-        maxDepth= max(zBuffer->GetValue(i), maxDepth);  
-        minDepth= max(0.f,min(minDepth,zBuffer->GetValue(i)));//??
-    } 
-    //for(int i=0; i< size; i++) cout<<depthBuffer->GetValue(i)<<" ";
-    maxDepth=maxDepth-minDepth;
-    for(int i=0; i< size; i++) zBuffer->SetValue(i, (zBuffer->GetValue(i)-minDepth)/maxDepth);
-    writeBMP(height,width,zBuffer,zBuffer,zBuffer,"depth.bmp");
-    */
-
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(zBuffer), eavlOpArgs(zBuffer), ScreenDepthFunctor(proj22, proj23, proj32)),"convertDepth");
     eavlExecutor::Go();
     return zBuffer;
@@ -2851,6 +2835,12 @@ void eavlRayTracerMutator::freeTextures()
         delete tri_matIdx_array;
         tri_matIdx_array = NULL;
     }
+    if (tri_norms_array != NULL) 
+    {
+        tri_norms_array->unbind(tri_norms_tref);
+        delete tri_norms_array;
+        tri_norms_array = NULL;
+    }
 
     if (sphr_bvh_in_array != NULL) 
     {
@@ -2882,6 +2872,38 @@ void eavlRayTracerMutator::freeTextures()
         delete sphr_matIdx_array;
         sphr_matIdx_array = NULL;
     }
+    if (cyl_bvh_in_array != NULL) 
+    {
+        cyl_bvh_in_array->unbind(cyl_bvh_in_tref);
+        delete cyl_bvh_in_array;
+        cyl_bvh_in_array = NULL;
+    }
+    if (cyl_verts_array != NULL) 
+    {
+        cyl_verts_array->unbind(cyl_verts_tref);
+        delete cyl_verts_array;
+        cyl_verts_array = NULL;
+    }
+    if (cyl_bvh_lf_array != NULL) 
+    {
+        cyl_bvh_lf_array->unbind(cyl_bvh_lf_tref);
+        delete cyl_bvh_lf_array;
+        cyl_bvh_lf_array = NULL;
+    }
+    if (cyl_scalars_array != NULL) 
+    {
+        cyl_scalars_array->unbind(cyl_scalars_tref);
+        delete cyl_scalars_array;
+        cyl_scalars_array = NULL;
+    }
+    if (cyl_matIdx_array != NULL) 
+    {
+        cyl_matIdx_array->unbind(cyl_matIdx_tref);
+        delete cyl_matIdx_array;
+        cyl_matIdx_array = NULL;
+    }
+
+//eavlConstTexArray<float4>* cmap_array;
     if(verbose) cout<<"Done free"<<endl;
 }
 

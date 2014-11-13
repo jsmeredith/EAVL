@@ -141,6 +141,8 @@ MortonBVHBuilder::~MortonBVHBuilder()
     delete indexes;
     delete tmpFloat;
     delete tmpInt;
+    delete leafNodes;
+    delete innerNodes;
 }
 //TODO: this might work better with Global mem since only a few values are accessed
 template<primitive_t primType>
@@ -919,6 +921,7 @@ void MortonBVHBuilder::build()
 	//load verts into texture for bbox calculation
     //TODO:Does this make sense to have this as texture? 
     //3 reads per thread not really streaming many addresses
+    printf("Num Prim %d ", numPrimitives);
 	m_verts_array  = new eavlConstTexArray<float4>( (float4*)verts,numPrimitives*3, m_verts_tref, forceCpu);
 
 	//forcing the transfer so we get accurate GPU timings
@@ -966,7 +969,7 @@ void MortonBVHBuilder::build()
     }
 
     //Build the tree in place. TODO: figure out a better way to set parent pointers
-    // Current method could fail if the GPU falls back to the CPU
+    // Current method will fail if the GPU falls back to the CPU
     int ttree;
     if(verbose > 0) ttree = eavlTimer::Start();
     eavlExecutor::AddOperation(
@@ -981,5 +984,23 @@ void MortonBVHBuilder::build()
     propagateAABBs();
     if(verbose > 0) cout<<"PROP     RUNTIME: "<<eavlTimer::Stop(tprop,"rf")<<endl;
     
+    delete morton_array;
+    delete m_verts_array;
+}
 
+float * MortonBVHBuilder::getInnerNodes(int &_size)
+{ 
+    int size = (numPrimitives -1) * 16;
+    float * array =  new float[size];
+    memcpy((void*)array, innerNodes->GetHostArray(), sizeof(float) * size);
+    _size = size;
+    return array; 
+}
+float * MortonBVHBuilder::getLeafNodes(int &_size)
+{ 
+    int size = numPrimitives * 2;
+    float * array =  new float[size];
+    memcpy((void*)array, leafNodes->GetHostArray(), sizeof(float) * size);
+    _size = size;
+    return array; 
 }
