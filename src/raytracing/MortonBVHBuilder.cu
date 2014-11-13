@@ -921,7 +921,6 @@ void MortonBVHBuilder::build()
 	//load verts into texture for bbox calculation
     //TODO:Does this make sense to have this as texture? 
     //3 reads per thread not really streaming many addresses
-    printf("Num Prim %d ", numPrimitives);
 	m_verts_array  = new eavlConstTexArray<float4>( (float4*)verts,numPrimitives*3, m_verts_tref, forceCpu);
 
 	//forcing the transfer so we get accurate GPU timings
