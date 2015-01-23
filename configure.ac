@@ -605,11 +605,16 @@ AC_SUBST(CUDA_LIBS)
 ## ---------------------------------------------------------------------------
 
 # don't use everything -- we only need enough to do data set conversion.
+# also, we'll test each individually, so it's safe to have both 6.0 and 6.1 here
 VTK_ALL_LIBS="
     vtkIOLegacy-6.0
     vtkIOCore-6.0
     vtkCommonDataModel-6.0
     vtkCommonCore-6.0
+    vtkIOLegacy-6.1
+    vtkIOCore-6.1
+    vtkCommonDataModel-6.1
+    vtkCommonCore-6.1
     "
 
 VTK_CPPFLAGS=""
@@ -624,7 +629,20 @@ VTK Options:
         if test -z "$VTK"; then VTK="no"; fi)
 if test "$VTK" != "yes" -a "$VTK" != "no"; then
    # specified path
-   VTK_CPPFLAGS="-I""$VTK""/include/vtk-6.0 -I""$VTK""/include"
+
+   # figure out if they're on 6.0 or 6.1
+   AC_MSG_CHECKING(for attempted VTK version via include path)
+   if test -d "$VTK""/include/vtk-6.0"; then 
+      VTK_CPPFLAGS="-I""$VTK""/include/vtk-6.0 -I""$VTK""/include"
+      AC_MSG_RESULT(6.0)
+   elif test -d "$VTK""/include/vtk-6.1"; then 
+      VTK_CPPFLAGS="-I""$VTK""/include/vtk-6.1 -I""$VTK""/include"
+      AC_MSG_RESULT(6.1)
+   else
+      VTK_CPPFLAGS="-I""$VTK""/include"
+      AC_MSG_RESULT(Unknown. This will probably fail to get a working VTK.)
+   fi
+
    VTK_LDFLAGS="-L""$VTK""/lib"
    rpathize(VTK_LDFLAGS, $VTK/lib)
    VTK_LIBS=""
