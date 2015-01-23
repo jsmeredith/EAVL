@@ -32,6 +32,9 @@ vtkDataSet *ConvertEAVLToVTK(eavlDataSet *in)
     //reader->SetInputArray(charArray);
 
     vtkDataSetReader *rdr = vtkDataSetReader::New();
+    rdr->ReadAllScalarsOn();
+    rdr->ReadAllVectorsOn();
+    rdr->ReadAllTensorsOn();
     rdr->SetReadFromInputString(1);
     rdr->SetInputString(str.c_str());
 
