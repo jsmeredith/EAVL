@@ -4452,7 +4452,7 @@ $as_echo_n "checking for attempted VTK version via include path... " >&6; }
       VTK_CPPFLAGS="-I""$VTK""/include/vtk-6.0 -I""$VTK""/include"
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: 6.0" >&5
 $as_echo "6.0" >&6; }
-   elif test -d "$VTK""/include/vtk-6.1a"; then
+   elif test -d "$VTK""/include/vtk-6.1"; then
       VTK_CPPFLAGS="-I""$VTK""/include/vtk-6.1 -I""$VTK""/include"
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: 6.1" >&5
 $as_echo "6.1" >&6; }
