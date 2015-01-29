@@ -104,7 +104,7 @@ public:
 
 
 
-int BVHNode::getSubtreeSize(BVH_STAT stat) const
+inline int BVHNode::getSubtreeSize(BVH_STAT stat) const
 {
     int cnt;
     switch(stat)
@@ -127,7 +127,7 @@ int BVHNode::getSubtreeSize(BVH_STAT stat) const
 }
 
 
-void BVHNode::deleteSubtree()
+inline void BVHNode::deleteSubtree()
 {
     for(int i=0;i<getNumChildNodes();i++)
         getChildNode(i)->deleteSubtree();
@@ -136,7 +136,7 @@ void BVHNode::deleteSubtree()
 }
 
 
-void BVHNode::computeSubtreeProbabilities(const Platform& p,float probability, float& sah)
+inline void BVHNode::computeSubtreeProbabilities(const Platform& p,float probability, float& sah)
 {
     //cerr<<this->m_index<<endl;
     //cerr<<"Num Child nodes : "<<this->getNumChildNodes()<<endl;
@@ -158,7 +158,7 @@ void BVHNode::computeSubtreeProbabilities(const Platform& p,float probability, f
 
 
 // TODO: requires valid probabilities...
-float BVHNode::computeSubtreeSAHCost(const Platform& p) const
+inline float BVHNode::computeSubtreeSAHCost(const Platform& p) const
 {
     float SAH = m_probability * p.getCost( getNumChildNodes(),getNumTriangles());
 
@@ -170,7 +170,7 @@ float BVHNode::computeSubtreeSAHCost(const Platform& p) const
 
 //-------------------------------------------------------------
 
-void assignIndicesDepthFirstRecursive( BVHNode* node, int& index, bool includeLeafNodes )
+inline void assignIndicesDepthFirstRecursive( BVHNode* node, int& index, bool includeLeafNodes )
 {
     if(node->isLeaf() && !includeLeafNodes)
         return;
@@ -180,7 +180,7 @@ void assignIndicesDepthFirstRecursive( BVHNode* node, int& index, bool includeLe
         assignIndicesDepthFirstRecursive(node->getChildNode(i), index, includeLeafNodes);
 }
 
-void BVHNode::assignIndicesDepthFirst( int index, bool includeLeafNodes )
+inline void BVHNode::assignIndicesDepthFirst( int index, bool includeLeafNodes )
 {
     assignIndicesDepthFirstRecursive( this, index, includeLeafNodes );
 }

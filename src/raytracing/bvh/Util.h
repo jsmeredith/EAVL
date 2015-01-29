@@ -293,7 +293,7 @@ typedef void    (*SortSwapFunc)    (void* data, int idxA, int idxB);    // Swaps
 #define QSORT_STACK_SIZE    32
 #define QSORT_MIN_SIZE      16
 
-void insertionSort(int start, int size, void* data, SortCompareFunc compareFunc, SortSwapFunc swapFunc)
+inline void insertionSort(int start, int size, void* data, SortCompareFunc compareFunc, SortSwapFunc swapFunc)
 {
     //FW_ASSERT(compareFunc && swapFunc);
     //FW_ASSERT(size >= 0);
@@ -308,7 +308,7 @@ void insertionSort(int start, int size, void* data, SortCompareFunc compareFunc,
         }
     }
 }
-int median3(int low, int high, void* data, SortCompareFunc compareFunc)
+inline int median3(int low, int high, void* data, SortCompareFunc compareFunc)
 {
     //FW_ASSERT(compareFunc);
     //FW_ASSERT(low >= 0 && high >= 2);
@@ -321,7 +321,7 @@ int median3(int low, int high, void* data, SortCompareFunc compareFunc)
     if (compareFunc(data, c, l)) c = l;
     return (compareFunc(data, h, c)) ? h : c;
 }
-int partition(int low, int high, void* data, SortCompareFunc compareFunc, SortSwapFunc swapFunc)
+inline int partition(int low, int high, void* data, SortCompareFunc compareFunc, SortSwapFunc swapFunc)
 {
     // Select pivot using median-3, and hide it in the highest entry.
 
@@ -352,7 +352,7 @@ int partition(int low, int high, void* data, SortCompareFunc compareFunc, SortSw
     swapFunc(data, i, high - 1);
     return i;
 }
-void qsort(int low, int high, void* data, SortCompareFunc compareFunc, SortSwapFunc swapFunc)
+inline void qsort(int low, int high, void* data, SortCompareFunc compareFunc, SortSwapFunc swapFunc)
 {
 
     int stack[QSORT_STACK_SIZE];
@@ -384,7 +384,7 @@ void qsort(int low, int high, void* data, SortCompareFunc compareFunc, SortSwapF
     }
 }
 
-void sort(void* data, int start, int end, SortCompareFunc compareFunc, SortSwapFunc swapFunc)
+inline void sort(void* data, int start, int end, SortCompareFunc compareFunc, SortSwapFunc swapFunc)
 {
     // Nothing to do => skip.
     if (end - start < 2)

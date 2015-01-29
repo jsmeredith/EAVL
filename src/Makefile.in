@@ -12,6 +12,7 @@
 @VARIABLES@
 
 ARCHIVE=../lib/libeavl.a
+LIBRARY=../lib/libeavl.so
 
 OBJ=\
  common/eavlArray.o \
@@ -99,6 +100,6 @@ LIBS=-lm
 LDFLAGS+=$(CUDA_LDFLAGS)
 LIBS+=$(CUDA_LIBS)
 
-all: $(PROGRAM) $(LIBRARY) $(ARCHIVE)
+all: $(PROGRAM) @LIBRARY_OR_ARCHIVE@
 
 @TARGETS@

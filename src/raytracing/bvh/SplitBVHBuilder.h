@@ -39,8 +39,6 @@
 using namespace std;
 #define NON_LEAF_SIZE 16
 #define LEAF_FLAG 0xFF800000
-int numSpacialSplits=0;
-int tcounter=0;
 
 using FW::Vec3f;
 using FW::Vec3i;
@@ -161,7 +159,7 @@ private:
                         0 = triangle
                         1 = sphere
 */
-SplitBVHBuilder::SplitBVHBuilder(float *verts, int numPrimitives, const BuildParams& params, int primitveType)
+inline SplitBVHBuilder::SplitBVHBuilder(float *verts, int numPrimitives, const BuildParams& params, int primitveType)
 :   //m_bvh           (bvh),
     m_primitiveType(primitveType),
     m_params        (params),
@@ -190,19 +188,19 @@ SplitBVHBuilder::SplitBVHBuilder(float *verts, int numPrimitives, const BuildPar
 }
 //------------------------------------------------------------------------
 
-SplitBVHBuilder::~SplitBVHBuilder(void)
+inline SplitBVHBuilder::~SplitBVHBuilder(void)
 {
     //delete m_platform;
 }
 
-int SplitBVHBuilder::getSAH(BVHNode *root)
+inline int SplitBVHBuilder::getSAH(BVHNode *root)
 {
     float sah=0;
     root->computeSubtreeProbabilities(m_platform,1.f,sah);
     return sah;
 }
 //------------------------------------------------------------------------
-bool SplitBVHBuilder::hasReference(int index)
+inline bool SplitBVHBuilder::hasReference(int index)
 {
     for(int i=0; i<m_refStack.getSize();i++)
     {
@@ -210,7 +208,7 @@ bool SplitBVHBuilder::hasReference(int index)
     }
     return false;
 }
-BVHNode* SplitBVHBuilder::run(void)
+inline BVHNode* SplitBVHBuilder::run(void)
 {
     // Initialize reference stack and determine root bounds.
 
@@ -338,7 +336,7 @@ BVHNode* SplitBVHBuilder::run(void)
 
 //------------------------------------------------------------------------
 
-bool SplitBVHBuilder::sortCompare(void* data, int idxA, int idxB)
+inline bool SplitBVHBuilder::sortCompare(void* data, int idxA, int idxB)
 {
     const SplitBVHBuilder* ptr = (const SplitBVHBuilder*)data;
     int dim = ptr->m_sortDim;
@@ -351,7 +349,7 @@ bool SplitBVHBuilder::sortCompare(void* data, int idxA, int idxB)
 
 //------------------------------------------------------------------------
 
-void SplitBVHBuilder::sortSwap(void* data, int idxA, int idxB)
+inline void SplitBVHBuilder::sortSwap(void* data, int idxA, int idxB)
 {
     SplitBVHBuilder* ptr = (SplitBVHBuilder*)data;
     swap(ptr->m_refStack[idxA], ptr->m_refStack[idxB]);
@@ -359,7 +357,7 @@ void SplitBVHBuilder::sortSwap(void* data, int idxA, int idxB)
 
 //------------------------------------------------------------------------
 
-BVHNode* SplitBVHBuilder::buildNode(NodeSpec spec, int level, float progressStart, float progressEnd)
+inline BVHNode* SplitBVHBuilder::buildNode(NodeSpec spec, int level, float progressStart, float progressEnd)
 {
     m_maxDepth=max(level,m_maxDepth);
     // Remove degenerates.
@@ -411,7 +409,6 @@ BVHNode* SplitBVHBuilder::buildNode(NodeSpec spec, int level, float progressStar
     {   performSpatialSplit(left, right, spec, spatial);   }
     if (!left.numRef || !right.numRef)
     {   performObjectSplit(left, right, spec, object);    }
-    tcounter++;
     // Create inner node.
     m_numDuplicates += left.numRef + right.numRef - spec.numRef;
     float progressMid = lerp(progressStart, progressEnd, (float)right.numRef / (float)(left.numRef + right.numRef));
@@ -423,7 +420,7 @@ BVHNode* SplitBVHBuilder::buildNode(NodeSpec spec, int level, float progressStar
 
 //------------------------------------------------------------------------
 
-BVHNode* SplitBVHBuilder::createLeaf(const NodeSpec& spec)
+inline BVHNode* SplitBVHBuilder::createLeaf(const NodeSpec& spec)
 {
     m_leafNodeCount++;
 
@@ -436,7 +433,7 @@ BVHNode* SplitBVHBuilder::createLeaf(const NodeSpec& spec)
 
 //------------------------------------------------------------------------
 
-SplitBVHBuilder::ObjectSplit SplitBVHBuilder::findObjectSplit(const NodeSpec& spec, float nodeSAH)
+inline SplitBVHBuilder::ObjectSplit SplitBVHBuilder::findObjectSplit(const NodeSpec& spec, float nodeSAH)
 {
     ObjectSplit split;
     const Reference* refPtr = m_refStack.getPtr(m_refStack.getSize() - spec.numRef);
@@ -481,7 +478,7 @@ SplitBVHBuilder::ObjectSplit SplitBVHBuilder::findObjectSplit(const NodeSpec& sp
 
 //------------------------------------------------------------------------
 
-void SplitBVHBuilder::performObjectSplit(NodeSpec& left, NodeSpec& right, const NodeSpec& spec, const ObjectSplit& split)
+inline void SplitBVHBuilder::performObjectSplit(NodeSpec& left, NodeSpec& right, const NodeSpec& spec, const ObjectSplit& split)
 {
     m_sortDim = split.sortDim;
     sort(this, m_refStack.getSize() - spec.numRef, m_refStack.getSize(), sortCompare, sortSwap);
@@ -494,7 +491,7 @@ void SplitBVHBuilder::performObjectSplit(NodeSpec& left, NodeSpec& right, const 
 
 //------------------------------------------------------------------------
 
-SplitBVHBuilder::SpatialSplit SplitBVHBuilder::findSpatialSplit(const NodeSpec& spec, float nodeSAH)
+inline SplitBVHBuilder::SpatialSplit SplitBVHBuilder::findSpatialSplit(const NodeSpec& spec, float nodeSAH)
 {
     // Initialize bins.
 
@@ -577,14 +574,13 @@ SplitBVHBuilder::SpatialSplit SplitBVHBuilder::findSpatialSplit(const NodeSpec& 
 
 //------------------------------------------------------------------------
 
-void SplitBVHBuilder::performSpatialSplit(NodeSpec& left, NodeSpec& right, const NodeSpec& spec, const SpatialSplit& split)
+inline void SplitBVHBuilder::performSpatialSplit(NodeSpec& left, NodeSpec& right, const NodeSpec& spec, const SpatialSplit& split)
 {
     // Categorize references and compute bounds.
     //
     // Left-hand side:      [leftStart, leftEnd[
     // Uncategorized/split: [leftEnd, rightStart[
     // Right-hand side:     [rightStart, refs.getSize()[
-    numSpacialSplits++;
     Array<Reference>& refs = m_refStack;
     int leftStart = refs.getSize() - spec.numRef;
     int leftEnd = leftStart;
@@ -675,7 +671,7 @@ void SplitBVHBuilder::performSpatialSplit(NodeSpec& left, NodeSpec& right, const
 
 //------------------------------------------------------------------------
 
-void SplitBVHBuilder::splitReference(Reference& left, Reference& right, const Reference& ref, int dim, float pos)
+inline void SplitBVHBuilder::splitReference(Reference& left, Reference& right, const Reference& ref, int dim, float pos)
 {
     // Initialize references.
 
@@ -721,7 +717,7 @@ void SplitBVHBuilder::splitReference(Reference& left, Reference& right, const Re
     right.bounds.intersect(ref.bounds);
 }
 
-void SplitBVHBuilder::traverseRecursive(BVHNode* node, BVHNode* parent)
+inline void SplitBVHBuilder::traverseRecursive(BVHNode* node, BVHNode* parent)
 {
     node->m_parent=parent;
     if(node->isLeaf())
@@ -731,7 +727,7 @@ void SplitBVHBuilder::traverseRecursive(BVHNode* node, BVHNode* parent)
     for(int i=0;i<node->getNumChildNodes();i++)
         traverseRecursive(node->getChildNode(i), node);
 }
-void SplitBVHBuilder::assignParentPointers(BVHNode* root)
+inline void SplitBVHBuilder::assignParentPointers(BVHNode* root)
 {
     if(root!=NULL)
     {
@@ -745,7 +741,7 @@ void SplitBVHBuilder::assignParentPointers(BVHNode* root)
     }
 }
 
-void SplitBVHBuilder::bvhToFlatArray(BVHNode * root, int &innerSize, int &leafSize, float*& innerNodes, float*& leafNodes)
+inline void SplitBVHBuilder::bvhToFlatArray(BVHNode * root, int &innerSize, int &leafSize, float*& innerNodes, float*& leafNodes)
 {
     vector<float> *flat_inner_array = new vector<float>(m_innerNodeCount*16+16);// allocate some space.
     //cout<<"Inner node array size "<<m_innerNodeCount*16+1<<endl;

@@ -1,3 +1,4 @@
+// Copyright 2010-2015 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #ifndef EAVL_RAY_QUERY_MUTATOR_H
 #define EAVL_RAY_QUERY_MUTATOR_H
 #include "eavlFilter.h"

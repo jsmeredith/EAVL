@@ -111,6 +111,34 @@ AC_LANG(C++)
 
 
 ## ---------------------------------------------------------------------------
+## Static or dynamic build.
+## ---------------------------------------------------------------------------
+AC_MSG_CHECKING(for static or dynamic library build)
+AC_ARG_ENABLE(dynamic,[
+Library Build Options:
+  --enable-dynamic        enable dynamic library build, not static
+  --disable-dynamic       enable static library build, not dynamic (DEFAULT)],
+        DYNAMIC="$enableval",
+        DYNAMIC="no")
+if test "$DYNAMIC" = "no"; then
+   AC_MSG_RESULT(static)
+   LIBRARY_OR_ARCHIVE="$""(ARCHIVE)"
+   LIB_NAME="libeavl.a"
+elif test "$DYNAMIC" = "yes"; then
+   AC_MSG_RESULT(dynamic)
+   LIBRARY_OR_ARCHIVE="$""(LIBRARY)"
+   LIB_NAME="libeavl.so"
+else
+   AC_MSG_RESULT(unknown value; assuming static)
+   LIBRARY_OR_ARCHIVE="$""(ARCHIVE)"
+   LIB_NAME="libeavl.a"
+   #DYNAMIC="no"
+fi
+AC_SUBST(LIBRARY_OR_ARCHIVE)
+AC_SUBST(LIB_NAME)
+
+
+## ---------------------------------------------------------------------------
 ## Determine a dependency mode.
 ## ---------------------------------------------------------------------------
 AC_MSG_CHECKING(for dependency mode)

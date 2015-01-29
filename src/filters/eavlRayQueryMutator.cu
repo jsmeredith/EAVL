@@ -1,3 +1,4 @@
+// Copyright 2010-2015 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #include "eavlRayQueryMutator.h"
 #include "eavlException.h"
 #include "eavlExecutor.h"
@@ -14,13 +15,13 @@
 
 
 /* Triangle textures */
-texture<float4> tri_bvh_in_tref;            /* BVH inner nodes */
-texture<float4> tri_verts_tref;              /* vert+ scalar data */
-texture<float>  tri_bvh_lf_tref;            /* BVH leaf nodes */
+texture<float4> RQM_tri_bvh_in_tref;            /* BVH inner nodes */
+texture<float4> RQM_tri_verts_tref;              /* vert+ scalar data */
+texture<float>  RQM_tri_bvh_lf_tref;            /* BVH leaf nodes */
 
-eavlConstTexArray<float4>* tri_bvh_in_array;
-eavlConstTexArray<float4>* tri_verts_array;
-eavlConstTexArray<float>*  tri_bvh_lf_array;
+eavlConstTexArray<float4>* RQM_tri_bvh_in_array;
+eavlConstTexArray<float4>* RQM_tri_verts_array;
+eavlConstTexArray<float>*  RQM_tri_bvh_lf_array;
 
 eavlRayQueryMutator::eavlRayQueryMutator()
 {
@@ -50,9 +51,9 @@ eavlRayQueryMutator::eavlRayQueryMutator()
     tri_bvh_in_raw  = NULL;     
     tri_bvh_lf_raw  = NULL;
 
-    tri_bvh_in_array = NULL;
-    tri_verts_array  = NULL;
-    tri_bvh_lf_array = NULL;
+    RQM_tri_bvh_in_array = NULL;
+    RQM_tri_verts_array  = NULL;
+    RQM_tri_bvh_lf_array = NULL;
     
     numTris = 0;
 
@@ -99,9 +100,9 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
         if(currentNode>-1)
         {
 
-            float4 n1 = bvh->getValue(tri_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
-            float4 n2 = bvh->getValue(tri_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
-            float4 n3 = bvh->getValue(tri_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
+            float4 n1 = bvh->getValue(RQM_tri_bvh_in_tref, currentNode  ); //(txmin0, tymin0, tzmin0, txmax0)
+            float4 n2 = bvh->getValue(RQM_tri_bvh_in_tref, currentNode+1); //(tymax0, tzmax0, txmin1, tymin1)
+            float4 n3 = bvh->getValue(RQM_tri_bvh_in_tref, currentNode+2); //(tzmin1, txmax1, tymax1, tzmax1)
             
             float txmin0 = n1.x * invDirx - odirx;       
             float tymin0 = n1.y * invDiry - odiry;         
@@ -135,7 +136,7 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
         }
         else
         {
-            float4 n4 = bvh->getValue(tri_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
+            float4 n4 = bvh->getValue(RQM_tri_bvh_in_tref, currentNode+3); //(leftChild, rightChild, pad,pad)
             int leftChild = (int)n4.x;
             int rightChild = (int)n4.y;
 
@@ -164,15 +165,15 @@ EAVL_HOSTDEVICE int getIntersectionTri(const eavlVector3 rayDir, const eavlVecto
             
 
             currentNode = -currentNode; //swap the neg address 
-            int numTri = (int)tri_bvh_lf_raw->getValue(tri_bvh_lf_tref,currentNode)+1;
+            int numTri = (int)tri_bvh_lf_raw->getValue(RQM_tri_bvh_lf_tref,currentNode)+1;
 
             for(int i = 1; i < numTri; i++)
             {        
-                    int triIndex = (int)tri_bvh_lf_raw->getValue(tri_bvh_lf_tref,currentNode+i);
+                    int triIndex = (int)tri_bvh_lf_raw->getValue(RQM_tri_bvh_lf_tref,currentNode+i);
                    
-                    float4 a4 = verts->getValue(tri_verts_tref, triIndex*3);
-                    float4 b4 = verts->getValue(tri_verts_tref, triIndex*3+1);
-                    float4 c4 = verts->getValue(tri_verts_tref, triIndex*3+2);
+                    float4 a4 = verts->getValue(RQM_tri_verts_tref, triIndex*3);
+                    float4 b4 = verts->getValue(RQM_tri_verts_tref, triIndex*3+1);
+                    float4 c4 = verts->getValue(RQM_tri_verts_tref, triIndex*3+2);
                     eavlVector3 e1( a4.w - a4.x , b4.x - a4.y, b4.y - a4.z ); 
                     eavlVector3 e2( b4.z - a4.x , b4.w - a4.y, c4.x - a4.z );
 
@@ -361,9 +362,9 @@ void eavlRayQueryMutator::extractGeometry()
 
     
 
-    tri_bvh_in_array   = new eavlConstTexArray<float4>( (float4*)tri_bvh_in_raw, tri_bvh_in_size/4, tri_bvh_in_tref, cpu);
-    tri_bvh_lf_array   = new eavlConstTexArray<float>( tri_bvh_lf_raw, tri_bvh_lf_size, tri_bvh_lf_tref, cpu);
-    tri_verts_array    = new eavlConstTexArray<float4>( (float4*) tri_verts_raw, numTris*3, tri_verts_tref, cpu);
+    RQM_tri_bvh_in_array   = new eavlConstTexArray<float4>( (float4*)tri_bvh_in_raw, tri_bvh_in_size/4, RQM_tri_bvh_in_tref, cpu);
+    RQM_tri_bvh_lf_array   = new eavlConstTexArray<float>( tri_bvh_lf_raw, tri_bvh_lf_size, RQM_tri_bvh_lf_tref, cpu);
+    RQM_tri_verts_array    = new eavlConstTexArray<float4>( (float4*) tri_verts_raw, numTris*3, RQM_tri_verts_tref, cpu);
 
     geomDirty=false;
 }
@@ -386,7 +387,7 @@ void eavlRayQueryMutator::Execute()
 
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rayDirX,rayDirY,rayDirZ,rayOriginX,rayOriginY,rayOriginZ),
                                              eavlOpArgs(indexes, zBuffer, u,v),
-                                             RayIntersectFunctor(tri_verts_array,tri_bvh_in_array,tri_bvh_lf_array)),
+                                             RayIntersectFunctor(RQM_tri_verts_array,RQM_tri_bvh_in_array,RQM_tri_bvh_lf_array)),
                                                                                                         "intersect");
     eavlExecutor::Go();
     
@@ -411,23 +412,23 @@ void eavlRayQueryMutator::freeRaw()
 void eavlRayQueryMutator::freeTextures()
 {
     // /cout<<"Free textures"<<endl;
-   if (tri_bvh_in_array != NULL) 
+   if (RQM_tri_bvh_in_array != NULL) 
     {
-        tri_bvh_in_array->unbind(tri_bvh_in_tref);
-        delete tri_bvh_in_array;
-        tri_bvh_in_array = NULL;
+        RQM_tri_bvh_in_array->unbind(RQM_tri_bvh_in_tref);
+        delete RQM_tri_bvh_in_array;
+        RQM_tri_bvh_in_array = NULL;
     }
-    if (tri_bvh_lf_array != NULL) 
+    if (RQM_tri_bvh_lf_array != NULL) 
     {
-        tri_bvh_lf_array->unbind(tri_bvh_lf_tref);
-        delete tri_bvh_lf_array;
-        tri_bvh_lf_array = NULL;
+        RQM_tri_bvh_lf_array->unbind(RQM_tri_bvh_lf_tref);
+        delete RQM_tri_bvh_lf_array;
+        RQM_tri_bvh_lf_array = NULL;
     }
-    if (tri_verts_array != NULL) 
+    if (RQM_tri_verts_array != NULL) 
     {
-        tri_verts_array ->unbind(tri_verts_tref);
-        delete tri_verts_array;
-        tri_verts_array = NULL;
+        RQM_tri_verts_array ->unbind(RQM_tri_verts_tref);
+        delete RQM_tri_verts_array;
+        RQM_tri_verts_array = NULL;
     }
 }
 

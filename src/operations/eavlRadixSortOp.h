@@ -1,4 +1,4 @@
-// Copyright 2010-2013 UT-Battelle, LLC.  See LICENSE.txt for more information.
+// Copyright 2010-2015 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #ifndef EAVL_RADIX_SORT_OP_H
 #define EAVL_RADIX_SORT_OP_H
 
@@ -64,7 +64,7 @@ void merge(T A[], T B[], T Av[], T Bv[], int m, int n)
     free(Cv);
 }
 
-void insertion_sort(uint *keys, uint *values, int offset, int end) {
+static void insertion_sort(uint *keys, uint *values, int offset, int end) {
     int x, y;
     uint temp, tempv;
     for (x=offset; x<end; ++x) 
@@ -81,7 +81,7 @@ void insertion_sort(uint *keys, uint *values, int offset, int end) {
     }
 }
 
-void radix_sort(uint *keys, uint *values, int offset, int end, int shift) {
+static void radix_sort(uint *keys, uint *values, int offset, int end, int shift) {
     int x, y;
     uint value, valuev, temp, tempv;
     int last[256] = { 0 }, pointer[256];
@@ -140,7 +140,7 @@ void radix_sort(uint *keys, uint *values, int offset, int end, int shift) {
 }
 
 /* Merges N sorted sub-sections of keys a into final, fully sorted keys a */
-void keysmerge(uint *keys, uint *values, int size, int *index, int N)
+static void keysmerge(uint *keys, uint *values, int size, int *index, int N)
 {
     int i;
     while (N > 1) 
