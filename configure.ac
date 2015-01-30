@@ -718,6 +718,38 @@ AC_SUBST(VTK_LIBS)
 
 
 ## ---------------------------------------------------------------------------
+## Static or dynamic build.
+## ---------------------------------------------------------------------------
+AC_MSG_CHECKING(for I/O library support)
+AC_ARG_ENABLE(io,[
+Library Build Options:
+  --enable-io             enable found I/O libraries (DEFAULT)
+  --disable-io            disable all I/O library support, typically
+                          useful for embedding in situ or within a tool
+                          which has its own file I/O support],
+        ALLOWIO="$enableval",
+        ALLOWIO="yes")
+
+if test "$ALLOWIO" = "no"; then
+   AC_MSG_RESULT(no)
+elif test "$ALLOWIO" = "yes"; then
+   AC_MSG_RESULT(yes)
+else
+   AC_MSG_RESULT(unknown value; assuming yes)
+   ALLOWIO="no"
+fi
+
+if test "$ALLOWIO" = "no"; then
+  SZIP="no"
+  ZLIB="no"
+  HDF5="no"
+  NETCDF="no"
+  SILO="no"
+  ADIOS="no"
+fi
+
+
+## ---------------------------------------------------------------------------
 ## SZIP check
 ## ---------------------------------------------------------------------------
 SZIP_CPPFLAGS=""

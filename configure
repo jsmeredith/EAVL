@@ -717,6 +717,7 @@ with_openmp
 with_boost
 with_cuda
 with_vtk
+enable_io
 with_szip
 with_zlib
 with_hdf5
@@ -1351,6 +1352,12 @@ Optional Features:
 Library Build Options:
   --enable-dynamic        enable dynamic library build, not static
   --disable-dynamic       enable static library build, not dynamic (DEFAULT)
+
+Library Build Options:
+  --enable-io             enable found I/O libraries (DEFAULT)
+  --disable-io            disable all I/O library support, typically
+                          useful for embedding in situ or within a tool
+                          which has its own file I/O support
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -4576,6 +4583,41 @@ $as_echo "$VTK" >&6; }
 
 
 
+
+
+## ---------------------------------------------------------------------------
+## Static or dynamic build.
+## ---------------------------------------------------------------------------
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for I/O library support" >&5
+$as_echo_n "checking for I/O library support... " >&6; }
+# Check whether --enable-io was given.
+if test "${enable_io+set}" = set; then :
+  enableval=$enable_io; ALLOWIO="$enableval"
+else
+  ALLOWIO="yes"
+fi
+
+
+if test "$ALLOWIO" = "no"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+elif test "$ALLOWIO" = "yes"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+else
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: unknown value; assuming yes" >&5
+$as_echo "unknown value; assuming yes" >&6; }
+   ALLOWIO="no"
+fi
+
+if test "$ALLOWIO" = "no"; then
+  SZIP="no"
+  ZLIB="no"
+  HDF5="no"
+  NETCDF="no"
+  SILO="no"
+  ADIOS="no"
+fi
 
 
 ## ---------------------------------------------------------------------------
