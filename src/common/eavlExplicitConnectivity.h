@@ -100,6 +100,13 @@ struct eavlExplicitConnectivity
             connectivity.push_back(conn[i]);
         shapetype.push_back(int(shape));
     }
+    void AddElement(eavlCellShape shape, int npts, long long *conn)
+    {
+        connectivity.push_back(npts);
+        for (int i=0; i<npts; i++)
+            connectivity.push_back(conn[i]);
+        shapetype.push_back(int(shape));
+    }
     void AddElement(const eavlCell &cell)
     {
         connectivity.push_back(cell.numIndices);
