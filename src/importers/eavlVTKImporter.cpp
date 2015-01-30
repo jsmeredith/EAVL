@@ -911,8 +911,6 @@ eavlVTKImporter::Parse_Structured_Grid()
     int ndims[3];
     sin >> ndims[0] >> ndims[1] >> ndims[2];
 
-    ///\todo: this "3" is redundant and actually conflicts with the next lines
-    ///       (i.e. we overwrite it with the real logical dimension)
     int dim = 0;
     int dims[3];
     if (ndims[0] > 1)
@@ -929,13 +927,6 @@ eavlVTKImporter::Parse_Structured_Grid()
 
     GetNextLine();
     ParsePoints(log);
-
-    int zi = ndims[0]-1;
-    int zj = ndims[1]-1;
-    int zk = ndims[2]-1;
-    if (zi<1) zi=1;
-    if (zj<1) zj=1;
-    if (zk<1) zk=1;
 
     eavlCellSetAllStructured *cells =
         new eavlCellSetAllStructured("StructuredGridCells", reg);

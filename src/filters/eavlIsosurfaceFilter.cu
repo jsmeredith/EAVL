@@ -396,6 +396,8 @@ eavlIsosurfaceFilter::~eavlIsosurfaceFilter()
 void
 eavlIsosurfaceFilter::Execute()
 {
+    int th_total = eavlTimer::Start();
+
     eavlTimer::Suspend();
 
     int th_init = eavlTimer::Start();
@@ -949,4 +951,6 @@ eavlIsosurfaceFilter::Execute()
     }
 
     eavlTimer::Resume();
+
+    eavlTimer::Stop(th_total, "isosurface total");
 }
