@@ -59,7 +59,7 @@ struct DeviceSort
 #endif
 
 
-void eavlInitializeGPU()
+void eavlInitializeGPU(int devid)
 {
 #ifdef HAVE_CUDA
     // Get a list of devices
@@ -83,7 +83,7 @@ void eavlInitializeGPU()
     }
 
     // See if user requested a device explicitly
-    int requestedDevice = -1;
+    int requestedDevice = devid;
     const char *eavlgpu = getenv("EAVLGPU");
     if (eavlgpu)
     {

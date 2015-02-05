@@ -9,6 +9,6 @@
         THROW(eavlException,cudaGetErrorString(err));   \
 }
 
-extern void eavlInitializeGPU();
+void eavlInitializeGPU(int devid=-1);
 
 #endif
