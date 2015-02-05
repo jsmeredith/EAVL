@@ -23,6 +23,8 @@
 #include <vtkCellTypes.h>
 #include <vtkCellData.h>
 #include <vtkPointData.h>
+#include <vtkFloatArray.h>
+#include <vtkDoubleArray.h>
 
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
@@ -202,7 +204,54 @@ static eavlDataSet *V2E_Rectilinear(vtkRectilinearGrid *rg)
     return ds;
 }
 
-static void V2E_AddPoints(eavlDataSet *ds, vtkDataSet *in)
+static void V2E_AddPoints_ZeroCopy(eavlDataSet *ds, vtkPointSet *in)
+{
+    int npts = in->GetNumberOfPoints();
+
+    vtkPoints *pts = in->GetPoints();
+    vtkDataArray *data = pts->GetData();
+    float *fptr = dynamic_cast<vtkFloatArray*>(data) ? dynamic_cast<vtkFloatArray*>(data)->GetPointer(0) : NULL;
+    double *dptr = dynamic_cast<vtkDoubleArray*>(data) ? dynamic_cast<vtkDoubleArray*>(data)->GetPointer(0) : NULL;
+    eavlArray *axisValues = NULL;
+    if (fptr)
+    {
+        axisValues = new eavlFloatArray(eavlArray::HOST, fptr, "coords", 3, npts);
+    }
+    else if (dptr)
+    {
+        //cerr << "Error: no double array support yet.....\n";
+        // Fall back to copy
+        V2E_AddPoints_Copy(ds,in);
+        return;
+    }
+    else
+    {
+        //cerr << "Error: expected float or double coords....\n";
+        // Fall back to copy
+        V2E_AddPoints_Copy(ds,in);
+        return;
+    }
+
+    ds->SetNumPoints(npts);
+
+    eavlCoordinatesCartesian *coords = new eavlCoordinatesCartesian(
+                                              ds->GetLogicalStructure(),
+                                              eavlCoordinatesCartesian::X,
+                                              eavlCoordinatesCartesian::Y,
+                                              eavlCoordinatesCartesian::Z);
+
+    ds->AddCoordinateSystem(coords);
+    coords->SetAxis(0,new eavlCoordinateAxisField("coords",0));
+    coords->SetAxis(1,new eavlCoordinateAxisField("coords",1));
+    coords->SetAxis(2,new eavlCoordinateAxisField("coords",2));
+
+    eavlField *field = new eavlField(1, axisValues, eavlField::ASSOC_POINTS);
+    ds->AddField(field);
+}
+
+
+
+static void V2E_AddPoints_Copy(eavlDataSet *ds, vtkPointSet *in)
 {
     int npts = in->GetNumberOfPoints();
 
@@ -220,7 +269,7 @@ static void V2E_AddPoints(eavlDataSet *ds, vtkDataSet *in)
     coords->SetAxis(2,new eavlCoordinateAxisField("zcoord",0));
 
     eavlArray *axisValues[3] = {
-        new eavlFloatArray("xcoord",1, npts),
+        new eavlFloatArray("xcoord", 1, npts),
         new eavlFloatArray("ycoord",1, npts),
         new eavlFloatArray("zcoord",1, npts)
     };
@@ -240,7 +289,44 @@ static void V2E_AddPoints(eavlDataSet *ds, vtkDataSet *in)
 }
 
 
-static void V2E_AddAllPointFields(eavlDataSet *ds, vtkDataSet *in)
+static void V2E_AddAllPointFields_ZeroCopy(eavlDataSet *ds, vtkDataSet *in)
+{
+    vtkPointData *pd = in->GetPointData();
+    if (pd)
+    {
+        int narrays = pd->GetNumberOfArrays();
+        for (int i=0; i<narrays; ++i)
+        {
+            vtkDataArray *vtkarray = pd->GetArray(i);
+            string name = vtkarray->GetName();
+            int nc = vtkarray->GetNumberOfComponents();
+            int nt = vtkarray->GetNumberOfTuples();
+            if (dynamic_cast<vtkFloatArray*>(vtkarray))
+            {
+                float *fptr = dynamic_cast<vtkFloatArray*>(vtkarray)->GetPointer(0);
+                eavlFloatArray *eavlarray = new eavlFloatArray(eavlArray::HOST,
+                                                               fptr, name, nc, nt);
+                ds->AddField(new eavlField(1, eavlarray, eavlField::ASSOC_POINTS));
+            }
+            else
+            {
+                eavlFloatArray *eavlarray = new eavlFloatArray(name, nc, nt);
+                for (int j=0; j<nc; j++)
+                {
+                    for (int k=0; k<nt; k++)
+                    {
+                        eavlarray->
+                            SetComponentFromDouble(k,j,
+                                                   vtkarray->GetComponent(k,j));
+                    }
+                }
+                ds->AddField(new eavlField(1, eavlarray, eavlField::ASSOC_POINTS));
+            }
+        }
+    }
+}
+
+static void V2E_AddAllPointFields_Copy(eavlDataSet *ds, vtkDataSet *in)
 {
     vtkPointData *pd = in->GetPointData();
     if (pd)
@@ -294,7 +380,45 @@ static void V2E_AddWholeMeshFields(eavlDataSet *ds, vtkDataSet *in)
     }
 }
 
-static void V2E_AddAllCellFields(eavlDataSet *ds, vtkDataSet *in)
+static void V2E_AddAllCellFields_ZeroCopy(eavlDataSet *ds, vtkDataSet *in)
+{
+    vtkCellData *cd = in->GetCellData();
+    if (cd)
+    {
+        int narrays = cd->GetNumberOfArrays();
+        for (int i=0; i<narrays; ++i)
+        {
+            vtkDataArray *vtkarray = cd->GetArray(i);
+            string name = vtkarray->GetName();
+            int ncomp = vtkarray->GetNumberOfComponents();
+            int ntuples = vtkarray->GetNumberOfTuples();
+            int cellset = 0;
+            string csname = ds->GetCellSet(cellset)->GetName();
+            if (dynamic_cast<vtkFloatArray*>(vtkarray))
+            {
+                float *fptr = dynamic_cast<vtkFloatArray*>(vtkarray)->GetPointer(0);
+                eavlFloatArray *eavlarray = new eavlFloatArray(eavlArray::HOST,
+                                                               fptr, name, ncomp, ntuples);
+                ds->AddField(new eavlField(0, eavlarray, eavlField::ASSOC_CELL_SET, csname));
+            }
+            else
+            {
+                eavlFloatArray *eavlarray = new eavlFloatArray(name, ncomp, ntuples);
+                for (int j=0; j<ncomp; j++)
+                {
+                    for (int k=0; k<ntuples; k++)
+                    {
+                        double val = vtkarray->GetComponent(k,j);
+                        eavlarray->SetComponentFromDouble(k,j,val);
+                    }
+                }
+                ds->AddField(new eavlField(0, eavlarray, eavlField::ASSOC_CELL_SET, csname));
+            }
+        }
+    }
+}
+
+static void V2E_AddAllCellFields_Copy(eavlDataSet *ds, vtkDataSet *in)
 {
     vtkCellData *cd = in->GetCellData();
     if (cd)
@@ -322,7 +446,7 @@ static void V2E_AddAllCellFields(eavlDataSet *ds, vtkDataSet *in)
     }
 }
 
-static void V2E_AddCellFields(eavlDataSet *ds, vtkDataSet *in,
+static void V2E_AddCellFields_splitmap(eavlDataSet *ds, vtkDataSet *in,
                               vector<int> &cell_to_cell_splitmap)
 {
     vtkCellData *cd = in->GetCellData();
@@ -376,9 +500,9 @@ eavlDataSet *ConvertVTKToEAVL(vtkDataSet *in)
 
         vector<int> cell_to_cell_splitmap;
         result = V2E_Explicit(ug, cell_to_cell_splitmap);
-        V2E_AddPoints(result, in);
-        V2E_AddAllPointFields(result, in);
-        V2E_AddCellFields(result, in, cell_to_cell_splitmap);
+        V2E_AddPoints_ZeroCopy(result, ug);
+        V2E_AddAllPointFields_ZeroCopy(result, in);
+        V2E_AddCellFields_splitmap(result, in, cell_to_cell_splitmap);
         V2E_AddWholeMeshFields(result, in);
     }
     else if (in->GetDataObjectType() == VTK_STRUCTURED_GRID)
@@ -391,9 +515,9 @@ eavlDataSet *ConvertVTKToEAVL(vtkDataSet *in)
         }
 
         result = V2E_Structured(sg->GetDimensions());
-        V2E_AddPoints(result, in);
-        V2E_AddAllPointFields(result, in);
-        V2E_AddAllCellFields(result, in);
+        V2E_AddPoints_ZeroCopy(result, sg);
+        V2E_AddAllPointFields_ZeroCopy(result, in);
+        V2E_AddAllCellFields_ZeroCopy(result, in);
         V2E_AddWholeMeshFields(result, in);
     }
     else if (in->GetDataObjectType() == VTK_RECTILINEAR_GRID)
@@ -406,8 +530,8 @@ eavlDataSet *ConvertVTKToEAVL(vtkDataSet *in)
         }
 
         result = V2E_Rectilinear(rg);
-        V2E_AddAllPointFields(result, in);
-        V2E_AddAllCellFields(result, in);
+        V2E_AddAllPointFields_ZeroCopy(result, in);
+        V2E_AddAllCellFields_ZeroCopy(result, in);
         V2E_AddWholeMeshFields(result, in);
     }
     else
@@ -415,7 +539,7 @@ eavlDataSet *ConvertVTKToEAVL(vtkDataSet *in)
         // slower string fallback mostly just for polydata now....
         result = ConvertVTKToEAVL_Fallback(in);
     }
-    result->PrintSummary(cerr);
+    //result->PrintSummary(cerr);
     eavlTimer::Stop(th, "VTK -> EAVL");
     return result;
 }
