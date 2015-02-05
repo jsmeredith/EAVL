@@ -204,6 +204,45 @@ static eavlDataSet *V2E_Rectilinear(vtkRectilinearGrid *rg)
     return ds;
 }
 
+
+static void V2E_AddPoints_Copy(eavlDataSet *ds, vtkPointSet *in)
+{
+    int npts = in->GetNumberOfPoints();
+
+    ds->SetNumPoints(npts);
+
+    eavlCoordinatesCartesian *coords = new eavlCoordinatesCartesian(
+                                              ds->GetLogicalStructure(),
+                                              eavlCoordinatesCartesian::X,
+                                              eavlCoordinatesCartesian::Y,
+                                              eavlCoordinatesCartesian::Z);
+
+    ds->AddCoordinateSystem(coords);
+    coords->SetAxis(0,new eavlCoordinateAxisField("xcoord",0));
+    coords->SetAxis(1,new eavlCoordinateAxisField("ycoord",0));
+    coords->SetAxis(2,new eavlCoordinateAxisField("zcoord",0));
+
+    eavlArray *axisValues[3] = {
+        new eavlFloatArray("xcoord", 1, npts),
+        new eavlFloatArray("ycoord",1, npts),
+        new eavlFloatArray("zcoord",1, npts)
+    };
+    for (int i=0; i<npts; i++)
+    {
+        double *p = in->GetPoint(i);
+        axisValues[0]->SetComponentFromDouble(i, 0, p[0]);
+        axisValues[1]->SetComponentFromDouble(i, 0, p[1]);
+        axisValues[2]->SetComponentFromDouble(i, 0, p[2]);
+    }
+
+    for (int d=0; d<3; d++)
+    {
+        eavlField *field = new eavlField(1, axisValues[d], eavlField::ASSOC_POINTS);
+        ds->AddField(field);
+    }
+}
+
+
 static void V2E_AddPoints_ZeroCopy(eavlDataSet *ds, vtkPointSet *in)
 {
     int npts = in->GetNumberOfPoints();
@@ -249,44 +288,6 @@ static void V2E_AddPoints_ZeroCopy(eavlDataSet *ds, vtkPointSet *in)
     ds->AddField(field);
 }
 
-
-
-static void V2E_AddPoints_Copy(eavlDataSet *ds, vtkPointSet *in)
-{
-    int npts = in->GetNumberOfPoints();
-
-    ds->SetNumPoints(npts);
-
-    eavlCoordinatesCartesian *coords = new eavlCoordinatesCartesian(
-                                              ds->GetLogicalStructure(),
-                                              eavlCoordinatesCartesian::X,
-                                              eavlCoordinatesCartesian::Y,
-                                              eavlCoordinatesCartesian::Z);
-
-    ds->AddCoordinateSystem(coords);
-    coords->SetAxis(0,new eavlCoordinateAxisField("xcoord",0));
-    coords->SetAxis(1,new eavlCoordinateAxisField("ycoord",0));
-    coords->SetAxis(2,new eavlCoordinateAxisField("zcoord",0));
-
-    eavlArray *axisValues[3] = {
-        new eavlFloatArray("xcoord", 1, npts),
-        new eavlFloatArray("ycoord",1, npts),
-        new eavlFloatArray("zcoord",1, npts)
-    };
-    for (int i=0; i<npts; i++)
-    {
-        double *p = in->GetPoint(i);
-        axisValues[0]->SetComponentFromDouble(i, 0, p[0]);
-        axisValues[1]->SetComponentFromDouble(i, 0, p[1]);
-        axisValues[2]->SetComponentFromDouble(i, 0, p[2]);
-    }
-
-    for (int d=0; d<3; d++)
-    {
-        eavlField *field = new eavlField(1, axisValues[d], eavlField::ASSOC_POINTS);
-        ds->AddField(field);
-    }
-}
 
 
 static void V2E_AddAllPointFields_ZeroCopy(eavlDataSet *ds, vtkDataSet *in)
