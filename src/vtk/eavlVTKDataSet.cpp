@@ -57,12 +57,323 @@ static vtkDataSet *ConvertEAVLToVTK_Fallback(eavlDataSet *in)
     return out;
 }
 
+vtkDataSet *E2V_Structured(eavlDataSet *in)
+{
+    //
+    // First, see if this counts as rectilinear
+    //
+    eavlCoordinates *coords = in->GetCoordinateSystem(0);
+    int ndims = coords->GetDimension();
+    if (ndims != 3)
+    {
+        THROW(eavlException, "Unimplemented: ndims != 3");
+    }
+    bool rectilinear = true;
+    for (int axis=0; axis<ndims; ++axis)
+    {
+        eavlCoordinateAxis *ax = coords->GetAxis(axis);
+        eavlCoordinateAxisField *axf = dynamic_cast<eavlCoordinateAxisField*>(ax);
+        if (!axf)
+        {
+            ///\todo: not quite true, this would be rectilinear, but 
+            /// instead of implementing this, we're going to
+            /// be removing the rectilinear axis class soon
+            /// (instead using implicit arrays with normal field axes)
+            rectilinear = false;
+            break;
+        }
+        string fn = axf->GetFieldName();
+        eavlField *f = in->GetField(fn);
+        if (f->GetAssociation() == eavlField::ASSOC_WHOLEMESH)
+        {
+            continue;
+        }
+
+        ///\todo: this check is probably too strict:
+        if (f->GetAssociation() == eavlField::ASSOC_LOGICALDIM &&
+            f->GetAssocLogicalDim() == axis)
+            continue;
+
+        // nope, not easily convertable to vtk rectilinear
+        rectilinear = false;
+        break;
+    }
+
+
+    //
+    // Get the dimensions
+    //
+    eavlLogicalStructureRegular *log =
+        dynamic_cast<eavlLogicalStructureRegular*>(in->GetLogicalStructure());
+    eavlRegularStructure &reg = log->GetRegularStructure();
+    if (!log)
+    {
+        THROW(eavlException, "Expected eavlLogicalStructureRegular");
+    }
+    int dims[3] = {reg.nodeDims[0],
+                   reg.dimension < 2 ? 1 : reg.nodeDims[1],
+                   reg.dimension < 3 ? 1 : reg.nodeDims[2]};
+
+    //
+    // Convert
+    //
+    if (rectilinear)
+    {
+        vtkRectilinearGrid *rg = vtkRectilinearGrid::New();
+        rg->SetDimensions(dims);
+        for (int i=0; i<ndims; ++i)
+        {
+            vtkFloatArray *val = vtkFloatArray::New();
+
+            eavlCoordinateAxis *ax = coords->GetAxis(i);
+            eavlCoordinateAxisField *axf = dynamic_cast<eavlCoordinateAxisField*>(ax);
+            string fn = axf->GetFieldName();
+            eavlField *f = in->GetField(fn);
+            eavlArray *a = f->GetArray();
+
+            int n = a->GetNumberOfTuples();
+            val->SetNumberOfTuples(n);
+            for (int j=0; j<n; ++j)
+                val->SetComponent(j, 0, a->GetComponentAsDouble(j, 0));
+            if (i==0)
+                rg->SetXCoordinates(val);
+            else if (i==1)
+                rg->SetYCoordinates(val);
+            else
+                rg->SetZCoordinates(val);
+            val->Delete();
+        }
+        return rg;
+    }
+    else
+    {
+        vtkStructuredGrid *sg = vtkStructuredGrid::New();
+        sg->SetDimensions(dims);
+        return sg;
+    }
+}
+
+vtkDataSet *E2V_Explicit(eavlDataSet *in, eavlCellSetExplicit *cs)
+{
+    vtkUnstructuredGrid *ug = vtkUnstructuredGrid::New();
+
+    int ncells = cs->GetNumCells();
+    ug->Allocate(ncells);
+    for (int i=0; i<ncells; ++i)
+    {
+        eavlCell c = cs->GetCellNodes(i);
+        int st;
+        switch (c.type)
+        {
+          case EAVL_POINT:   st = VTK_VERTEX;     break;
+          case EAVL_BEAM:    st = VTK_LINE;       break;
+          case EAVL_TRI:     st = VTK_TRIANGLE;   break;
+          case EAVL_POLYGON: st = VTK_POLYGON;    break;
+          case EAVL_PIXEL:   st = VTK_PIXEL;      break;
+          case EAVL_QUAD:    st = VTK_QUAD;       break;
+          case EAVL_TET:     st = VTK_TETRA;      break;
+          case EAVL_VOXEL:   st = VTK_VOXEL;      break;
+          case EAVL_HEX:     st = VTK_HEXAHEDRON; break;
+          case EAVL_WEDGE:   st = VTK_WEDGE;      break;
+          case EAVL_PYRAMID: st = VTK_PYRAMID;    break;
+          default:           st = VTK_EMPTY_CELL; break;
+        }
+        vtkIdType ptIds[12];
+        for (int j=0; j<c.numIndices; ++j)
+            ptIds[j] = c.indices[j];
+        ug->InsertNextCell(st, c.numIndices, ptIds);
+    }
+
+    return ug;
+}
+
+static void E2V_AddPoints_Copy(vtkPointSet *ds, eavlDataSet *in)
+{
+    int npts = in->GetNumPoints();
+
+    vtkPoints *pts = vtkPoints::New();
+    ds->SetPoints(pts);
+
+    pts->SetNumberOfPoints(npts);
+    for (int i=0; i<npts; ++i)
+    {
+        float x = in->GetPoint(i,0);
+        float y = in->GetPoint(i,1);
+        float z = in->GetPoint(i,2);
+        pts->SetPoint(i, x, y, z);
+    }
+}
+
+
+static void E2V_AddPoints_ZeroCopy(vtkPointSet *ds, eavlDataSet *in)
+{
+    int npts = in->GetNumPoints();
+    eavlCoordinates *coords = in->GetCoordinateSystem(0);
+    int ndims = coords->GetDimension();
+    if (ndims != 3)
+    {
+        // assuming 3 dimensional for zerocopy
+        E2V_AddPoints_Copy(ds,in);
+        return;
+    }
+    string name = "";
+    for (int axis=0; axis<ndims; ++axis)
+    {
+        eavlCoordinateAxis *ax = coords->GetAxis(axis);
+        eavlCoordinateAxisField *axf = dynamic_cast<eavlCoordinateAxisField*>(ax);
+        if (!axf || axf->GetComponent() != axis)
+        {
+            // expected axis fields to be components 0,1,2 of the field, in that order
+            E2V_AddPoints_Copy(ds,in);
+            return;
+        }
+        if (name == "")
+        {
+            name = axf->GetFieldName();
+        }
+        else
+        {
+            if (name != axf->GetFieldName())
+            {
+                // and they'd better all be the same name
+                E2V_AddPoints_Copy(ds,in);
+                return;
+            }
+        }
+    }
+    if (name == "")
+    {
+        // something went wrong; didn't get an actual field name
+        E2V_AddPoints_Copy(ds,in);
+        return;
+    }
+
+    // Okay, we're safe to use zerocopy now
+    eavlField *field = in->GetField(name);
+    eavlArray *array = field->GetArray();
+    vtkFloatArray *f = vtkFloatArray::New();
+    f->SetNumberOfComponents(ndims);
+    f->SetArray((float*)dynamic_cast<eavlFloatArray*>(array)->GetHostArray(), 3*npts, 1);
+
+    vtkPoints *pts = vtkPoints::New();
+    ds->SetPoints(pts);
+    pts->SetData(f);
+}
+
+static void E2V_AddAllFields_ZeroCopy(vtkDataSet *ds, eavlDataSet *in, eavlCellSet *cs)
+{
+    for (int f=0; f<in->GetNumFields(); ++f)
+    {
+        eavlField *field = in->GetField(f);
+        eavlArray *array = field->GetArray();
+        if (field->GetAssociation() == eavlField::ASSOC_POINTS || 
+            (field->GetAssociation() == eavlField::ASSOC_CELL_SET &&
+             field->GetAssocCellSet() == cs->GetName()))
+        {   
+            eavlFloatArray *farray = dynamic_cast<eavlFloatArray*>(array);
+            if (farray)
+            {
+                vtkFloatArray *v = vtkFloatArray::New();
+                int nc = array->GetNumberOfComponents();
+                int nt = array->GetNumberOfTuples();
+                v->SetNumberOfComponents(nc);
+                //v->SetNumberOfTuples(nt); //<- no, this allocates it
+                v->SetName(array->GetName().c_str());
+                v->SetArray((float*)farray->GetHostArray(), nc*nt, 1);
+                if (field->GetAssociation() == eavlField::ASSOC_POINTS)
+                    ds->GetPointData()->AddArray(v);
+                else
+                    ds->GetCellData()->AddArray(v);
+            }
+        }
+    }
+}
+
+static void E2V_AddAllFields_Copy(vtkDataSet *ds, eavlDataSet *in, eavlCellSet *cs)
+{
+    for (int f=0; f<in->GetNumFields(); ++f)
+    {
+        eavlField *field = in->GetField(f);
+        eavlArray *array = field->GetArray();
+        if (field->GetAssociation() == eavlField::ASSOC_POINTS || 
+            (field->GetAssociation() == eavlField::ASSOC_CELL_SET &&
+             field->GetAssocCellSet() == cs->GetName()))
+        {   
+            eavlFloatArray *farray = dynamic_cast<eavlFloatArray*>(array);
+            if (farray)
+            {
+                vtkFloatArray *v = vtkFloatArray::New();
+                int nc = array->GetNumberOfComponents();
+                int nt = array->GetNumberOfTuples();
+                v->SetNumberOfComponents(nc);
+                v->SetNumberOfTuples(nt);
+                v->SetName(array->GetName().c_str());
+                float *ptr = (float*)v->GetVoidPointer(0);
+                for (int k=0; k<nt; k++)
+                {
+                    for (int j=0; j<nc; j++)
+                    {
+                        ptr[k*nc+j] = farray->GetComponentAsDouble(k,j);
+                    }
+                }
+                if (field->GetAssociation() == eavlField::ASSOC_POINTS)
+                    ds->GetPointData()->AddArray(v);
+                else
+                    ds->GetCellData()->AddArray(v);
+            }
+        }
+    }
+}
+
 vtkDataSet *ConvertEAVLToVTK(eavlDataSet *in)
 {
     int th = eavlTimer::Start();
     vtkDataSet *result = NULL;
-    result = ConvertEAVLToVTK_Fallback(in);
+
+    int cellsetindex = 0;
+
+    if (cellsetindex < 0 || cellsetindex > in->GetNumCellSets())
+        THROW(eavlException, "Logic error: cell set index out of range");
+
+    eavlCellSet *cs = in->GetCellSet(cellsetindex);
+    if (dynamic_cast<eavlCellSetAllStructured*>(cs))
+    {
+        result = E2V_Structured(in);
+
+        // for non-rectilinear, still need to add points
+        if (dynamic_cast<vtkPointSet*>(result))
+            E2V_AddPoints_Copy(dynamic_cast<vtkPointSet*>(result), in);
+
+        E2V_AddAllFields_Copy(result, in, cs);
+    }
+    else if (dynamic_cast<eavlCellSetExplicit*>(cs))
+    {
+        result = E2V_Explicit(in, dynamic_cast<eavlCellSetExplicit*>(cs));
+
+        E2V_AddPoints_Copy(dynamic_cast<vtkPointSet*>(result), in);
+
+        E2V_AddAllFields_Copy(result, in, cs);
+    }
+    else
+    {
+        // slower string fallback -- mostly to compare performance,
+        // but used in some unusual cases as well
+        result = ConvertEAVLToVTK_Fallback(in);
+    }
+
     eavlTimer::Stop(th, "EAVL -> VTK");
+
+    // debug -- double check the output
+    if (false)
+    {
+        vtkDataSetWriter *wrtr = vtkDataSetWriter::New();
+        wrtr->SetFileName("output.vtk");
+        wrtr->SetFileTypeToASCII();
+        wrtr->SetInputData(result);
+        wrtr->Write();
+        cout << wrtr->GetOutputString() << endl;
+    }
+
     return result;
 }
 
@@ -501,8 +812,8 @@ eavlDataSet *ConvertVTKToEAVL(vtkDataSet *in)
 
         vector<int> cell_to_cell_splitmap;
         result = V2E_Explicit(ug, cell_to_cell_splitmap);
-        V2E_AddPoints_ZeroCopy(result, ug);
-        V2E_AddAllPointFields_ZeroCopy(result, in);
+        V2E_AddPoints_Copy(result, ug);
+        V2E_AddAllPointFields_Copy(result, in);
         V2E_AddCellFields_splitmap(result, in, cell_to_cell_splitmap);
         V2E_AddWholeMeshFields(result, in);
     }
@@ -516,9 +827,9 @@ eavlDataSet *ConvertVTKToEAVL(vtkDataSet *in)
         }
 
         result = V2E_Structured(sg->GetDimensions());
-        V2E_AddPoints_ZeroCopy(result, sg);
-        V2E_AddAllPointFields_ZeroCopy(result, in);
-        V2E_AddAllCellFields_ZeroCopy(result, in);
+        V2E_AddPoints_Copy(result, sg);
+        V2E_AddAllPointFields_Copy(result, in);
+        V2E_AddAllCellFields_Copy(result, in);
         V2E_AddWholeMeshFields(result, in);
     }
     else if (in->GetDataObjectType() == VTK_RECTILINEAR_GRID)
@@ -531,8 +842,8 @@ eavlDataSet *ConvertVTKToEAVL(vtkDataSet *in)
         }
 
         result = V2E_Rectilinear(rg);
-        V2E_AddAllPointFields_ZeroCopy(result, in);
-        V2E_AddAllCellFields_ZeroCopy(result, in);
+        V2E_AddAllPointFields_Copy(result, in);
+        V2E_AddAllCellFields_Copy(result, in);
         V2E_AddWholeMeshFields(result, in);
     }
     else
@@ -540,7 +851,10 @@ eavlDataSet *ConvertVTKToEAVL(vtkDataSet *in)
         // slower string fallback mostly just for polydata now....
         result = ConvertVTKToEAVL_Fallback(in);
     }
+
+    // debug -- double check the output
     //result->PrintSummary(cerr);
+
     eavlTimer::Stop(th, "VTK -> EAVL");
     return result;
 }
