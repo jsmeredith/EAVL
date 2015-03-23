@@ -1,4 +1,4 @@
-// Copyright 2010-2014 UT-Battelle, LLC.  See LICENSE.txt for more information.
+// Copyright 2010-2015 UT-Battelle, LLC.  See LICENSE.txt for more information.
 #include "eavlVTKDataSet.h"
 
 #include "eavl.h"
@@ -14,6 +14,7 @@
 #include "eavlCellSetAllStructured.h"
 
 #include <vtkUnstructuredGrid.h>
+#include <vtkPolyData.h>
 #include <vtkStructuredGrid.h>
 #include <vtkRectilinearGrid.h>
 #include <vtkDataSet.h>
@@ -400,8 +401,8 @@ static eavlDataSet *ConvertVTKToEAVL_Fallback(vtkDataSet *in)
     return out;
 }
 
-static eavlDataSet *V2E_Explicit(vtkUnstructuredGrid *ug,
-                                 vector<int> &cell_to_cell_splitmap)
+static eavlDataSet *V2E_Unstructured(vtkUnstructuredGrid *ug,
+                                     vector<int> &cell_to_cell_splitmap)
 {
     eavlDataSet *ds = new eavlDataSet;
 
@@ -447,6 +448,57 @@ static eavlDataSet *V2E_Explicit(vtkUnstructuredGrid *ug,
 
         // we need to split fields by dimensionality
         cell_to_cell_splitmap.push_back(d);
+    }
+    for (int e=0; e<4; e++)
+    {
+        if (newconn[e].GetNumElements() > 0)
+        {
+            cells[e]->SetCellNodeConnectivity(newconn[e]);
+            ds->AddCellSet(cells[e]);
+        }
+        else
+        {
+            delete cells[e];
+        }
+    }
+
+    return ds;
+}
+
+static eavlDataSet *V2E_PolyData(vtkPolyData *pd,
+                                 vector<int> &cell_to_cell_splitmap)
+{
+    eavlDataSet *ds = new eavlDataSet;
+
+    eavlCellSetExplicit *cells[4] = {
+        new eavlCellSetExplicit("PolyDataVertices", 0),
+        new eavlCellSetExplicit("PolyDataLines", 1),
+        new eavlCellSetExplicit("PolyDataPolygons", 2),
+        new eavlCellSetExplicit("PolyDataTriStrips", 2)
+    };
+    eavlExplicitConnectivity newconn[4];
+
+    for (int pass = 0 ; pass < 3 ; ++pass)
+    {
+        eavlCellShape st = EAVL_OTHER;
+        vtkCellArray *pd_cells = NULL;
+        int index = -1;
+        switch (pass)
+        {
+          case 0: index = 0; pd_cells = pd->GetVerts(); st = EAVL_POINT; break;
+          case 1: index = 1; pd_cells = pd->GetLines(); st = EAVL_BEAM;  break;
+          case 2: index = 2; pd_cells = pd->GetPolys(); st = EAVL_POLYGON; break;
+        }
+        vtkIdType npts, *pts, cellId;
+        for (cellId=0, pd_cells->InitTraversal();
+             pd_cells->GetNextCell(npts,pts);
+             cellId++)
+        {
+            newconn[index].AddElement(st,  npts, pts);
+            
+            // we need to split fields by dimensionality
+            cell_to_cell_splitmap.push_back(index);
+        }
     }
     for (int e=0; e<4; e++)
     {
@@ -811,8 +863,24 @@ eavlDataSet *ConvertVTKToEAVL(vtkDataSet *in)
         }
 
         vector<int> cell_to_cell_splitmap;
-        result = V2E_Explicit(ug, cell_to_cell_splitmap);
+        result = V2E_Unstructured(ug, cell_to_cell_splitmap);
         V2E_AddPoints_Copy(result, ug);
+        V2E_AddAllPointFields_Copy(result, in);
+        V2E_AddCellFields_splitmap(result, in, cell_to_cell_splitmap);
+        V2E_AddWholeMeshFields(result, in);
+    }
+    else if (in->GetDataObjectType() == VTK_POLY_DATA)
+    {
+        vtkPolyData *pd = dynamic_cast<vtkPolyData*>(in);
+        if (!pd)
+        {
+            THROW(eavlException, "Logic error: failed to cast VTK "
+                  "unstructured grid");
+        }
+
+        vector<int> cell_to_cell_splitmap;
+        result = V2E_PolyData(pd, cell_to_cell_splitmap);
+        V2E_AddPoints_Copy(result, pd);
         V2E_AddAllPointFields_Copy(result, in);
         V2E_AddCellFields_splitmap(result, in, cell_to_cell_splitmap);
         V2E_AddWholeMeshFields(result, in);
@@ -854,6 +922,7 @@ eavlDataSet *ConvertVTKToEAVL(vtkDataSet *in)
 
     // debug -- double check the output
     //result->PrintSummary(cerr);
+    //WriteToVTKFile(result, "output_eavl.vtk", 0);
 
     eavlTimer::Stop(th, "VTK -> EAVL");
     return result;
