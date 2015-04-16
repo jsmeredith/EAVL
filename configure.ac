@@ -510,7 +510,7 @@ CUDA Options:
 if test "$CUDA" = "yes"; then
    # gotta search
    AC_PATH_PROG([NVCC], [nvcc], [],
-                [PATH="$PATH:/usr/local/cuda/bin:/opt/cuda/bin:/usr/local/cuda40/cuda/bin:/usr/local/cuda41/cuda/bin:/usr/local/cuda42/cuda/bin"])
+                [PATH="$PATH:/usr/local/cuda/bin:/opt/cuda/bin:/usr/local/cuda40/cuda/bin:/usr/local/cuda41/cuda/bin:/usr/local/cuda42/cuda/bin::/usr/local/cuda50/cuda/bin::/usr/local/cuda60/cuda/bin::/usr/local/cuda65/cuda/bin::/usr/local/cuda70/cuda/bin"])
    if test -z "$NVCC"; then
       AC_MSG_WARN(disabling CUDA)
       CUDA="no"

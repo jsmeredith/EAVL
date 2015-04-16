@@ -4221,7 +4221,7 @@ else
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-as_dummy="PATH="$PATH:/usr/local/cuda/bin:/opt/cuda/bin:/usr/local/cuda40/cuda/bin:/usr/local/cuda41/cuda/bin:/usr/local/cuda42/cuda/bin""
+as_dummy="PATH="$PATH:/usr/local/cuda/bin:/opt/cuda/bin:/usr/local/cuda40/cuda/bin:/usr/local/cuda41/cuda/bin:/usr/local/cuda42/cuda/bin::/usr/local/cuda50/cuda/bin::/usr/local/cuda60/cuda/bin::/usr/local/cuda65/cuda/bin::/usr/local/cuda70/cuda/bin""
 for as_dir in $as_dummy
 do
   IFS=$as_save_IFS
