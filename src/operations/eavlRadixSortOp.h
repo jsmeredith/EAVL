@@ -21,7 +21,7 @@
 #define SCAN_BLOCK_SIZE 256
 typedef unsigned int uint;
 
-bool useValues;
+
 
 /* Merge sorted lists A and B into list A. Av and Bv are then values  A must have dim >= m+n */
 template<class T>
@@ -164,29 +164,28 @@ struct eavlRadixSortOp_CPU
 {
     static inline eavlArray::Location location() { return eavlArray::HOST; }
     template <class F, class IN, class OUT>
-    static void call(int nitems, int,
+    static void call(int nitems, int useValues,
                      const IN inputs, OUT outputs,
                       F&)
     {
         uint *keys = (uint*)inputs.first.array;
         uint *values = (uint*)outputs.first.array;
-
-#ifdef HAVE_OPENMP
-        int threads = omp_get_max_threads();
-        threads = pow(2, floor(log(threads)/log(2))); // needs to be power of 2
-        int *index = (int *)malloc((threads+1)*sizeof(int));
         if(!useValues)
         {   
-
-#pragma omp parallel for
+            #pragma omp parallel for
             for(int i = 0; i < nitems; i++)
             {
                 values[i] = i;
             }
         }
+#ifdef HAVE_OPENMP
+        int threads = omp_get_max_threads();
+        threads = pow(2, floor(log(threads)/log(2))); // needs to be power of 2
+        int *index = (int *)malloc((threads+1)*sizeof(int));
+       
         for(int i = 0; i < threads; i++) index[i] = i*nitems/threads; 
         index[threads] = nitems;
-#pragma omp parallel for
+        #pragma omp parallel for
         for(int i = 0; i < threads; i++) radix_sort(keys,values,index[i], index[i+1],24);
         /* Merge sorted keys pieces */
         if( threads > 1 ) keysmerge(keys,values,nitems,index,threads);
@@ -227,8 +226,8 @@ __device__ T scanwarp(T val, volatile T* sData)
 
     return sData[idx] - val;  // convert inclusive -> exclusive
 }
-
-__device__ uint4 scan4(uint4 idata, uint* ptr)
+template<class T>
+__device__ uint4 scan4(T idata, uint* ptr)
 {    
     //extern  __shared__  uint ptr[];
     
@@ -270,7 +269,7 @@ __device__ uint4 scan4(uint4 idata, uint* ptr)
 template <int ctasize>
 __device__ uint4 rank4(uint4 preds,uint* s_data)
 {
-    uint4 address = scan4(preds,s_data);  
+    uint4 address = scan4<uint4>(preds,s_data);  
 
     __shared__ uint numtrue;
     if (threadIdx.x == ctasize-1)
@@ -594,8 +593,8 @@ __device__ void storeSharedChunkToMem4(T   *d_out,
 
 }
 
-
-void radixSortStep(uint nbits, uint startbit, uint4* keys, uint4* values,
+template<class T>
+void radixSortStep(T nbits, uint startbit, uint4* keys, uint4* values,
         uint4* tempKeys, uint4* tempValues, uint* counters,
         uint* countersSum, uint* blockOffsets,
         uint numElements)
@@ -669,8 +668,8 @@ void radixSortStep(uint nbits, uint startbit, uint4* keys, uint4* values,
 }
 
 
-
-__global__ void interatorKernel(int nitems, volatile uint * ids)
+template<class T>
+__global__ void interatorKernel(T nitems, volatile uint * ids)
 {
     int blockId   = blockIdx.y * gridDim.x + blockIdx.x;
     const int threadID = blockId * blockDim.x + threadIdx.x;
@@ -683,7 +682,7 @@ struct eavlRadixSortOp_GPU
 {
     static inline eavlArray::Location location() { return eavlArray::DEVICE; }
     template <class F, class IN, class OUT>
-    static void call(int nitems, int,
+    static void call(int nitems, int useValues,
                      IN inputs, OUT outputs, F&)
     {
                  
@@ -750,7 +749,7 @@ struct eavlRadixSortOp_GPU
         // Generate keys with values 0 ..numElements to find scatter positions
         if(!useValues)
         {
-            interatorKernel<<< blocks, threads >>>(newSize, _values);
+            interatorKernel<int><<< blocks, threads >>>(newSize, _values);
             CUDA_CHECK_ERROR();    
         }
         
@@ -775,7 +774,7 @@ struct eavlRadixSortOp_GPU
 
         for (int i = 0; i < 32; i += 4)
         {
-            radixSortStep(4, i, (uint4*)_keys, (uint4*)_values,
+            radixSortStep<uint>(4, i, (uint4*)_keys, (uint4*)_values,
                     (uint4*)dTempKeys, (uint4*)dTempVals, dCounters,
                     dCounterSums, dBlockOffsets, newSize);
         }
@@ -832,33 +831,34 @@ class eavlRadixSortOp : public eavlOperation
     I            inputs;
     O            outputs;
     int          nitems;
+    int          usevals;
   public:
     eavlRadixSortOp(I i, O o, bool genIndexes)
         : inputs(i), outputs(o), nitems(-1)
     {
-        useValues = !genIndexes;
+        usevals = !genIndexes;
     }
     eavlRadixSortOp(I i, O o, bool genIndexes, int itemsToProcess)
         : inputs(i), outputs(o), nitems(itemsToProcess)
     {
-        useValues = !genIndexes;
+        usevals = !genIndexes;
     }
     virtual void GoCPU()
     {
-        int dummy;
+        
         int n = 0;
         if(nitems > 0) n = nitems;
         else n = inputs.first.length();
-        eavlOpDispatch<eavlRadixSortOp_CPU>(n, dummy, inputs, outputs, functor);
+        eavlOpDispatch<eavlRadixSortOp_CPU>(n, usevals, inputs, outputs, functor);
     }
     virtual void GoGPU()
     {
 #ifdef HAVE_CUDA
-        int dummy;
+        
         int n=0;
         if(nitems > 0) n = nitems;
         else n = inputs.first.length();
-        eavlOpDispatch<eavlRadixSortOp_GPU>(n, dummy, inputs, outputs, functor);
+        eavlOpDispatch<eavlRadixSortOp_GPU>(n, usevals, inputs, outputs, functor);
 #else
         THROW(eavlException,"Executing GPU code without compiling under CUDA compiler.");
 #endif
