@@ -114,16 +114,16 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
         glColor3fv(c.c);
         glDisable(GL_TEXTURE_1D);
     }
-    virtual void SetActiveColorTable(string ctname)
+    virtual void SetActiveColorTable(eavlColorTable ct)
     {
         glColor3fv(eavlColor::white.c);
 
-        eavlGLTexture *tex = GetTexture(ctname);
+        eavlGLTexture *tex = GetTexture(ct.GetName());
         if (!tex)
         {
             tex = new eavlGLTexture;
-            tex->CreateFromColorTable(eavlColorTable(ctname));
-            SetTexture(ctname, tex);
+            tex->CreateFromColorTable(ct);
+            SetTexture(ct.GetName(), tex);
         }
         tex->Enable();
     }

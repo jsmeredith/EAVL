@@ -5,6 +5,7 @@
 #include "eavlView.h"
 
 #include "eavl2DAxisAnnotation.h"
+#include "eavlColorTable.h"
 
 // ****************************************************************************
 // Class:  eavlColorBarAnnotation
@@ -20,7 +21,7 @@
 class eavlColorBarAnnotation : public eavlAnnotation
 {
   protected:
-    string ctname;
+    eavlColorTable colortable;
     eavl2DAxisAnnotation *axis;
   public:
     eavlColorBarAnnotation(eavlWindow *win) : eavlAnnotation(win)
@@ -30,11 +31,9 @@ class eavlColorBarAnnotation : public eavlAnnotation
     virtual ~eavlColorBarAnnotation()
     {
     }
-    void SetColorTable(const string &colortablename)
+    void SetColorTable(const eavlColorTable &ct)
     {
-        if (ctname == colortablename)
-            return;
-        ctname = colortablename;
+        colortable = ct;
     }
     void SetRange(double l, double h, int nticks)
     {
@@ -61,7 +60,7 @@ class eavlColorBarAnnotation : public eavlAnnotation
         float b = +0.87, t = +0.92;
 
         win->surface->AddColorBar(l,t, r-l, b-t,
-                                  ctname, true);
+                                  colortable, true);
 
         axis->SetLineWidth(0);
         axis->SetScreenPosition(l,b, r,b);

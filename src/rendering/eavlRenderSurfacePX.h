@@ -63,7 +63,7 @@ class eavlRenderSurfacePX : public eavlRenderSurface
     }
     virtual void AddColorBar(float x, float y, 
                              float w, float h,
-                             string ctname,
+                             const eavlColorTable &ct,
                              bool horizontal)
     {
     }

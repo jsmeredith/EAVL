@@ -56,13 +56,13 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
 
     }
 
-    virtual void SetActiveColorTable(string ct)
+    virtual void SetActiveColorTable(eavlColorTable ct)
     {
 
         eavlSceneRenderer::SetActiveColorTable(ct);
-        if(ct!=ctName)
+        if(ct.GetName()!=ctName)
         {
-            ctName=ct;
+            ctName=ct.GetName();
             vr->setColorMap3f(colors,ncolors);
             //cout<<"Setting Active Color Table"<<endl;
         }

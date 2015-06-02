@@ -156,18 +156,18 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
     }
     virtual void AddColorBar(float x, float y, 
                              float w, float h,
-                             string ctname,
+                             const eavlColorTable &ct,
                              bool horizontal)
     {
         glDisable(GL_DEPTH_TEST);
 
-        eavlGLTexture *tex = GetTexture(ctname);
+        eavlGLTexture *tex = GetTexture(ct.GetName());
         if (!tex )
         {
             if (!tex)
                 tex = new eavlGLTexture;
-            tex->CreateFromColorTable(eavlColorTable(ctname));
-            SetTexture(ctname, tex);
+            tex->CreateFromColorTable(ct);
+            SetTexture(ct.GetName(), tex);
         }
 
         tex->Enable();

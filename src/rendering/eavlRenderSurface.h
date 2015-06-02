@@ -38,7 +38,7 @@ class eavlRenderSurface
                               eavlColor c) = 0;
     virtual void AddColorBar(float x, float y, 
                              float w, float h,
-                             string ctname,
+                             const eavlColorTable &ct,
                              bool horizontal) = 0;
     virtual void AddText(float x, float y,
                          float scale,

@@ -36,8 +36,7 @@ struct ColorByOptions
     eavlColor color;  ///< color to use when singleColor==true
     eavlField *field; ///< field to color by when singleColor==false
     double vmin, vmax; ///< field min and max
-    string ct; ///< colortable to color by when singleColor==false
-    //eavlColorTable *ct; ///< colortable to color by when singleColor==false
+    eavlColorTable ct; ///< colortable to color by when singleColor==false
 };
 
 // ****************************************************************************
@@ -169,10 +168,9 @@ class eavlSceneRenderer
         colors[1] = c.c[1];
         colors[2] = c.c[2];
     }
-    virtual void SetActiveColorTable(string ct)
+    virtual void SetActiveColorTable(eavlColorTable colortable)
     {
         ncolors = 1024;
-        eavlColorTable colortable(ct);
         colortable.Sample(ncolors, colors);
     }
     //virtual void SetActiveMaterial() { } // diffuse, specular, ambient

@@ -136,7 +136,7 @@ class eavl3DWindow : public eavlWindow
             double vmax = scene->plots[0]->GetMaxDataExtent();
             colorbar->SetAxisColor(eavlColor::white);
             colorbar->SetRange(vmin, vmax, 5);
-            colorbar->SetColorTable(scene->plots[0]->GetColorTableName());
+            colorbar->SetColorTable(scene->plots[0]->GetColorTable());
             colorbar->Render(view);
         }
     }

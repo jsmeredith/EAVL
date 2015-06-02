@@ -55,13 +55,12 @@ class eavlSceneRendererTestVR : public eavlSceneRenderer
 
     }
 
-    virtual void SetActiveColorTable(string ct)
+    virtual void SetActiveColorTable(eavlColorTable ct)
     {
-
         eavlSceneRenderer::SetActiveColorTable(ct);
-        if(ct!=ctName)
+        if(ct.GetName(0!=ctName)
         {
-            ctName=ct;
+            ctName=ct.GetName();
             caster->setColorMap3f(colors,ncolors);
             //cout<<"Setting Active Color Table"<<endl;
         }

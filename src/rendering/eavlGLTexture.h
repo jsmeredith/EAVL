@@ -97,7 +97,7 @@ class eavlGLTexture
 
         glBindTexture(GL_TEXTURE_1D, id);
       
-        linear2D = (ct.smooth);
+        linear2D = (ct.GetSmooth());
         // note: 2048 was NOT supported on Jeremy's Intel IGP laptop
         //       but 1024 IS.  Real NVIDIA cards can go up to 8192.
         //       Sticking with 1024; that should be plenty for good results.

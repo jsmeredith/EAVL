@@ -35,8 +35,7 @@ class eavlPlot
   protected:
     ///\todo:
     /// some of this is common, some is dimensionality-specific
-    string         colortablename;
-    eavlColorTable *colortable;
+    eavlColorTable colortable;
     bool           wireframe;
     eavlColor      color;
 
@@ -53,7 +52,6 @@ class eavlPlot
         /// initializer for other stuff
         field = NULL;
         wireframe = false;
-        colortable = NULL;
         color = eavlColor(.5,.5,.5);
         min_data_extents = max_data_extents = 0;
         if (csname != "")
@@ -237,16 +235,15 @@ class eavlPlot
         min_data_extents = minval;
         max_data_extents = maxval;
     }
-    void SetColorTableName(string ct)
+    void SetColorTableByName(string colortablename, bool reverse = false)
     {
-        if (colortable)
-            delete colortable;
-        colortablename = ct;
-        colortable = new eavlColorTable(colortablename);
+        colortable = eavlColorTable(colortablename);
+        if (reverse)
+            colortable.Reverse();
     }
-    string GetColorTableName()
+    eavlColorTable GetColorTable()
     {
-        return colortablename;
+        return colortable;
     }
     eavlColor GetColor()
     {
@@ -275,7 +272,7 @@ class eavlPlot
         opts.field = field;
         opts.vmin = min_data_extents;
         opts.vmax = max_data_extents;
-        opts.ct = colortablename;
+        opts.ct = colortable;
 
         try
         {

@@ -137,10 +137,9 @@ class eavlRenderSurfacePS : public eavlRenderSurface
     }
     virtual void AddColorBar(float x, float y, 
                              float w, float h,
-                             string ctname,
+                             const eavlColorTable &ct,
                              bool horizontal)
     {
-        eavlColorTable ct(ctname);
         int n = 1024;
         x = (.5 + x*.5) * width;
         y = (.5 + y*.5) * height;
