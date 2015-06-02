@@ -1,4 +1,4 @@
-Copyright (c) 2010-2012, UT-Battelle, LLC.
+Copyright (c) 2010-2015, UT-Battelle, LLC.
 
 EAVL is made available under the "BSD 2-Clause" license:
 

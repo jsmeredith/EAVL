@@ -66,6 +66,7 @@ OBJ=\
  importers/eavlPDBImporter.o \
  importers/eavlPNGImporter.o \
  importers/eavlVTKImporter.o \
+ importers/lodepng.o \
  math/eavlMatrix4x4.o \
  math/eavlPoint3.o \
  math/eavlVector3.o \

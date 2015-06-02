@@ -2,7 +2,7 @@
                                     EAVL
 ------------------------------------------------------------------------------
 
-All EAVL code is copyright (c) 2010-2014, UT-Battelle, LLC.
+All EAVL code is copyright (c) 2010-2015, UT-Battelle, LLC.
 
 EAVL is made available under the "BSD 2-Clause" license.
 
@@ -100,7 +100,7 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
- -   -   -   -   -   -   -   -   -  Radix CPU Code  -   -   -   -   -   -   -   -   -
+ -   -   -   -   -   -   -   -  Radix CPU Code  -   -   -   -   -   -   -   - 
 
 Copyright 2011 Erik Gorset. All rights reserved.
 
@@ -127,3 +127,7 @@ permitted provided that the following conditions are met:
       The views and conclusions contained in the software and documentation are those of the
       authors and should not be interpreted as representing official policies, either expressed
       or implied, of Erik Gorset.
+
+ -   -   -   -   -   -   -   -   -  LodePNG  -   -   -   -   -   -   -   -   -
+
+See copyright and license information in "lodepng.h" and "lodepng.cpp".

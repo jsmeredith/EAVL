@@ -31,7 +31,7 @@ class eavlPNGImporter : public eavlImporter
     eavlField     *GetField(const string &name, const string &mesh, int chunk);
 
   protected:
-    unsigned long width, height;
+    unsigned int width, height;
     std::vector<unsigned char> rgba;
 };
 
