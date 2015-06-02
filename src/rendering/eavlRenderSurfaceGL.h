@@ -9,6 +9,8 @@
 #include <eavlPNGImporter.h>
 #include <eavlGLTexture.h>
 
+#include "lodepng.h"
+
 class eavlRenderSurfaceGL : public eavlRenderSurface
 {
     int width, height;
@@ -306,29 +308,43 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
     }
     virtual void SaveAs(string fn, FileType ft)
     {
-        if (ft != PNM)
-        {
-            THROW(eavlException, "Can only save GL images as PNM");
-        }
-
         Activate();
 
-        int w = width, h = height;
-        vector<byte> rgba(w*h*4);
-        glReadPixels(0,0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, &rgba[0]);
-
-        ofstream out(fn.c_str());
-        out<<"P6"<<endl<<w<<" "<<h<<endl<<255<<endl;
-        for(int i = h-1; i >= 0; i--)
+        if (ft == PNM)
         {
-            for(int j = 0; j < w; j++)
-            {
-                const byte *tuple = &(rgba[i*w*4 + j*4]);
-                out<<tuple[0]<<tuple[1]<<tuple[2];
-            }
-        }
-        out.close();
+            int w = width, h = height;
+            vector<byte> rgba(w*h*4);
+            glReadPixels(0,0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, &rgba[0]);
 
+            ofstream out(fn.c_str());
+            out<<"P6"<<endl<<w<<" "<<h<<endl<<255<<endl;
+            for(int i = h-1; i >= 0; i--)
+            {
+                for(int j = 0; j < w; j++)
+                {
+                    const byte *tuple = &(rgba[i*w*4 + j*4]);
+                    out<<tuple[0]<<tuple[1]<<tuple[2];
+                }
+            }
+            out.close();
+        }
+        else if (ft == PNG)
+        {
+            int w = width, h = height;
+            vector<byte> tmp(w*h*4);
+            glReadPixels(0,0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, &tmp[0]);
+
+            // upside down relative to what lodepng wants
+            vector<byte> rgba(w*h*4);
+            for (int y=0; y<h; ++y)
+                memcpy(&(rgba[y*w*4]), &(tmp[(h-y-1)*w*4]), w*4);
+                                  
+            lodepng_encode32_file(fn.c_str(), &rgba[0], w, h);
+        }
+        else
+        {
+            THROW(eavlException, "Can only save GL images as PNM or PNG");
+        }
     }
 };
 

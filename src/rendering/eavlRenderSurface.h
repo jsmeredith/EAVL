@@ -9,7 +9,7 @@
 class eavlRenderSurface
 {
   public:
-    enum FileType { PNM, EPS };
+    enum FileType { PNM, PNG, EPS };
   protected:
   public:
     eavlRenderSurface()
