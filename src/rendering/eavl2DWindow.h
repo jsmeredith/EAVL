@@ -76,8 +76,9 @@ class eavl2DWindow : public eavlWindow
         {
             double vmin = scene->plots[0]->GetMinDataExtent();
             double vmax = scene->plots[0]->GetMaxDataExtent();
+            bool logscaling = scene->plots[0]->GetLogarithmicColorScaling();
             colorbar->SetAxisColor(eavlColor::white);
-            colorbar->SetRange(vmin, vmax, 5);
+            colorbar->SetRange(vmin, vmax, 5, logscaling);
             colorbar->SetColorTable(scene->plots[0]->GetColorTable());
             colorbar->Render(view);
         }

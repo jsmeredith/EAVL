@@ -35,7 +35,7 @@ class eavlColorBarAnnotation : public eavlAnnotation
     {
         colortable = ct;
     }
-    void SetRange(double l, double h, int nticks)
+    void SetRange(double l, double h, int nticks, bool logscale)
     {
         vector<double> pos, prop;
         axis->SetMinorTicks(pos, prop); // clear the minor ticks
@@ -43,7 +43,15 @@ class eavlColorBarAnnotation : public eavlAnnotation
         for (int i=0; i<nticks; ++i)
         {
             double p = double(i) / double(nticks-1);
-            pos.push_back(l + p*(h-l));
+            double v = l + p*(h-l);
+            if (logscale)
+            {
+                double ll = log(l);
+                double lh = log(h);
+                double lv = ll + p*(lh-ll);
+                v = exp(lv);
+            }
+            pos.push_back(v);
             prop.push_back(p);
         }
         axis->SetMajorTicks(pos, prop);

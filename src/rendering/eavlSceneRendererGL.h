@@ -11,7 +11,7 @@
 // ----------------------------------------------------------------------------
 template <bool PointColors>
 void eavlRenderPoints(int npts, double *pts,
-                      eavlField *f, double vmin, double vmax)
+                      eavlField *f, double vmin, double vmax, bool logscale)
 {
     glDisable(GL_LIGHTING);
     if (PointColors)
@@ -30,7 +30,7 @@ void eavlRenderPoints(int npts, double *pts,
         if (PointColors)
         {
             double value = f->GetArray()->GetComponentAsDouble(j,0);
-            glTexCoord1f(MapValueToNorm(value, vmin, vmax));
+            glTexCoord1f(MapValueToNorm(value, vmin, vmax, logscale));
         }
         glVertex3dv(&(pts[j*3]));
     }
@@ -44,7 +44,7 @@ void eavlRenderPoints(int npts, double *pts,
 template <bool PointColors, bool CellColors>
 void eavlRenderCells1D(eavlCellSet *cs,
                   int , double *pts,
-                  eavlField *f, double vmin, double vmax)
+                  eavlField *f, double vmin, double vmax, bool logscale)
 {
     glDisable(GL_LIGHTING);
     if (PointColors || CellColors)
@@ -72,9 +72,9 @@ void eavlRenderCells1D(eavlCellSet *cs,
         {
             double v0 = f->GetArray()->GetComponentAsDouble(i0,0);
             double v1 = f->GetArray()->GetComponentAsDouble(i1,0);
-            glTexCoord1f(MapValueToNorm(v0,vmin,vmax));
+            glTexCoord1f(MapValueToNorm(v0,vmin,vmax, logscale));
             glVertex3dv(&(pts[i0*3]));
-            glTexCoord1f(MapValueToNorm(v1,vmin,vmax));
+            glTexCoord1f(MapValueToNorm(v1,vmin,vmax, logscale));
             glVertex3dv(&(pts[i1*3]));
         }
         else
@@ -82,7 +82,7 @@ void eavlRenderCells1D(eavlCellSet *cs,
             if (CellColors)
             {
                 double value = f->GetArray()->GetComponentAsDouble(j,0);
-                glTexCoord1f(MapValueToNorm(value, vmin, vmax));
+                glTexCoord1f(MapValueToNorm(value, vmin, vmax, logscale));
             }
             glVertex3dv(&(pts[i0*3]));
             glVertex3dv(&(pts[i1*3]));
@@ -98,7 +98,7 @@ void eavlRenderCells1D(eavlCellSet *cs,
 template <bool PointColors, bool CellColors, bool PointNormals, bool CellNormals>
 void eavlRenderCells2D(eavlCellSet *cs,
                        int , double *pts,
-                       eavlField *f, double vmin, double vmax,
+                       eavlField *f, double vmin, double vmax, bool logscale,
                        eavlField *normals)
 {
     if (PointColors || CellColors)
@@ -150,21 +150,21 @@ void eavlRenderCells2D(eavlCellSet *cs,
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i0,0),
                                normals->GetArray()->GetComponentAsDouble(i0,1),
                                normals->GetArray()->GetComponentAsDouble(i0,2));
-                glTexCoord1f(MapValueToNorm(v0,vmin,vmax));
+                glTexCoord1f(MapValueToNorm(v0,vmin,vmax, logscale));
                 glVertex3dv(&(pts[i0*3]));
 
                 if (PointNormals)
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i1,0),
                                normals->GetArray()->GetComponentAsDouble(i1,1),
                                normals->GetArray()->GetComponentAsDouble(i1,2));
-                glTexCoord1f(MapValueToNorm(v1,vmin,vmax));
+                glTexCoord1f(MapValueToNorm(v1,vmin,vmax, logscale));
                 glVertex3dv(&(pts[i1*3]));
 
                 if (PointNormals)
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i2,0),
                                normals->GetArray()->GetComponentAsDouble(i2,1),
                                normals->GetArray()->GetComponentAsDouble(i2,2));
-                glTexCoord1f(MapValueToNorm(v2,vmin,vmax));
+                glTexCoord1f(MapValueToNorm(v2,vmin,vmax, logscale));
                 glVertex3dv(&(pts[i2*3]));
             }
             else // no point colors
@@ -172,7 +172,7 @@ void eavlRenderCells2D(eavlCellSet *cs,
                 if (CellColors)
                 {
                     double value = f->GetArray()->GetComponentAsDouble(j,0);
-                    glTexCoord1f(MapValueToNorm(value, vmin, vmax));
+                    glTexCoord1f(MapValueToNorm(value, vmin, vmax, logscale));
                 }
 
                 if (PointNormals)
@@ -235,28 +235,28 @@ void eavlRenderCells2D(eavlCellSet *cs,
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i0,0),
                                normals->GetArray()->GetComponentAsDouble(i0,1),
                                normals->GetArray()->GetComponentAsDouble(i0,2));
-                glTexCoord1f(MapValueToNorm(v0,vmin,vmax));
+                glTexCoord1f(MapValueToNorm(v0,vmin,vmax, logscale));
                 glVertex3dv(&(pts[i0*3]));
 
                 if (PointNormals)
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i1,0),
                                normals->GetArray()->GetComponentAsDouble(i1,1),
                                normals->GetArray()->GetComponentAsDouble(i1,2));
-                glTexCoord1f(MapValueToNorm(v1,vmin,vmax));
+                glTexCoord1f(MapValueToNorm(v1,vmin,vmax, logscale));
                 glVertex3dv(&(pts[i1*3]));
 
                 if (PointNormals)
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i2,0),
                                normals->GetArray()->GetComponentAsDouble(i2,1),
                                normals->GetArray()->GetComponentAsDouble(i2,2));
-                glTexCoord1f(MapValueToNorm(v2,vmin,vmax));
+                glTexCoord1f(MapValueToNorm(v2,vmin,vmax, logscale));
                 glVertex3dv(&(pts[i2*3]));
 
                 if (PointNormals)
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i3,0),
                                normals->GetArray()->GetComponentAsDouble(i3,1),
                                normals->GetArray()->GetComponentAsDouble(i3,2));
-                glTexCoord1f(MapValueToNorm(v3,vmin,vmax));
+                glTexCoord1f(MapValueToNorm(v3,vmin,vmax, logscale));
                 glVertex3dv(&(pts[i3*3]));
             }
             else // no point colors
@@ -264,7 +264,7 @@ void eavlRenderCells2D(eavlCellSet *cs,
                 if (CellColors)
                 {
                     double value = f->GetArray()->GetComponentAsDouble(j,0);
-                    glTexCoord1f(MapValueToNorm(value, vmin, vmax));
+                    glTexCoord1f(MapValueToNorm(value, vmin, vmax, logscale));
                 }
                 if (PointNormals)
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i0,0),
@@ -301,7 +301,7 @@ void eavlRenderCells2D(eavlCellSet *cs,
 template <bool PointColors, bool CellColors, bool PointNormals, bool CellNormals>
 void eavlRenderCellsWireframe2D(eavlCellSet *cs,
                                 int , double *pts,
-                                eavlField *f, double vmin, double vmax,
+                                eavlField *f, double vmin, double vmax, bool logscale,
                                 eavlField *normals)
 {
     if (PointColors || CellColors)
@@ -354,14 +354,14 @@ void eavlRenderCellsWireframe2D(eavlCellSet *cs,
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i0,0),
                                normals->GetArray()->GetComponentAsDouble(i0,1),
                                normals->GetArray()->GetComponentAsDouble(i0,2));
-                glTexCoord1f(MapValueToNorm(v0,vmin,vmax));
+                glTexCoord1f(MapValueToNorm(v0,vmin,vmax, logscale));
                 glVertex3dv(&(pts[i0*3]));
 
                 if (PointNormals)
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i1,0),
                                normals->GetArray()->GetComponentAsDouble(i1,1),
                                normals->GetArray()->GetComponentAsDouble(i1,2));
-                glTexCoord1f(MapValueToNorm(v1,vmin,vmax));
+                glTexCoord1f(MapValueToNorm(v1,vmin,vmax, logscale));
                 glVertex3dv(&(pts[i1*3]));
                 glVertex3dv(&(pts[i1*3]));
 
@@ -369,7 +369,7 @@ void eavlRenderCellsWireframe2D(eavlCellSet *cs,
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i2,0),
                                normals->GetArray()->GetComponentAsDouble(i2,1),
                                normals->GetArray()->GetComponentAsDouble(i2,2));
-                glTexCoord1f(MapValueToNorm(v2,vmin,vmax));
+                glTexCoord1f(MapValueToNorm(v2,vmin,vmax, logscale));
                 glVertex3dv(&(pts[i2*3]));
                 glVertex3dv(&(pts[i2*3]));
 
@@ -377,7 +377,7 @@ void eavlRenderCellsWireframe2D(eavlCellSet *cs,
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i0,0),
                                normals->GetArray()->GetComponentAsDouble(i0,1),
                                normals->GetArray()->GetComponentAsDouble(i0,2));
-                glTexCoord1f(MapValueToNorm(v0,vmin,vmax));
+                glTexCoord1f(MapValueToNorm(v0,vmin,vmax, logscale));
                 glVertex3dv(&(pts[i0*3]));
 
             }
@@ -386,7 +386,7 @@ void eavlRenderCellsWireframe2D(eavlCellSet *cs,
                 if (CellColors)
                 {
                     double value = f->GetArray()->GetComponentAsDouble(j,0);
-                    glTexCoord1f(MapValueToNorm(value, vmin, vmax));
+                    glTexCoord1f(MapValueToNorm(value, vmin, vmax, logscale));
                 }
 
                 if (PointNormals)
@@ -457,14 +457,14 @@ void eavlRenderCellsWireframe2D(eavlCellSet *cs,
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i0,0),
                                normals->GetArray()->GetComponentAsDouble(i0,1),
                                normals->GetArray()->GetComponentAsDouble(i0,2));
-                glTexCoord1f(MapValueToNorm(v0,vmin,vmax));
+                glTexCoord1f(MapValueToNorm(v0,vmin,vmax, logscale));
                 glVertex3dv(&(pts[i0*3]));
 
                 if (PointNormals)
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i1,0),
                                normals->GetArray()->GetComponentAsDouble(i1,1),
                                normals->GetArray()->GetComponentAsDouble(i1,2));
-                glTexCoord1f(MapValueToNorm(v1,vmin,vmax));
+                glTexCoord1f(MapValueToNorm(v1,vmin,vmax, logscale));
                 glVertex3dv(&(pts[i1*3]));
                 glVertex3dv(&(pts[i1*3]));
 
@@ -472,7 +472,7 @@ void eavlRenderCellsWireframe2D(eavlCellSet *cs,
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i2,0),
                                normals->GetArray()->GetComponentAsDouble(i2,1),
                                normals->GetArray()->GetComponentAsDouble(i2,2));
-                glTexCoord1f(MapValueToNorm(v2,vmin,vmax));
+                glTexCoord1f(MapValueToNorm(v2,vmin,vmax, logscale));
                 glVertex3dv(&(pts[i2*3]));
                 glVertex3dv(&(pts[i2*3]));
 
@@ -480,7 +480,7 @@ void eavlRenderCellsWireframe2D(eavlCellSet *cs,
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i3,0),
                                normals->GetArray()->GetComponentAsDouble(i3,1),
                                normals->GetArray()->GetComponentAsDouble(i3,2));
-                glTexCoord1f(MapValueToNorm(v3,vmin,vmax));
+                glTexCoord1f(MapValueToNorm(v3,vmin,vmax, logscale));
                 glVertex3dv(&(pts[i3*3]));
                 glVertex3dv(&(pts[i3*3]));
 
@@ -488,7 +488,7 @@ void eavlRenderCellsWireframe2D(eavlCellSet *cs,
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i0,0),
                                normals->GetArray()->GetComponentAsDouble(i0,1),
                                normals->GetArray()->GetComponentAsDouble(i0,2));
-                glTexCoord1f(MapValueToNorm(v0,vmin,vmax));
+                glTexCoord1f(MapValueToNorm(v0,vmin,vmax, logscale));
                 glVertex3dv(&(pts[i0*3]));
 
             }
@@ -497,7 +497,7 @@ void eavlRenderCellsWireframe2D(eavlCellSet *cs,
                 if (CellColors)
                 {
                     double value = f->GetArray()->GetComponentAsDouble(j,0);
-                    glTexCoord1f(MapValueToNorm(value, vmin, vmax));
+                    glTexCoord1f(MapValueToNorm(value, vmin, vmax, logscale));
                 }
                 if (PointNormals)
                     glNormal3d(normals->GetArray()->GetComponentAsDouble(i0,0),
@@ -574,7 +574,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
             glDisable(GL_LIGHTING);
             glColor3fv(opts.color.c);
 
-            eavlRenderPoints<false>(npts, pts, NULL,0,0);
+            eavlRenderPoints<false>(npts, pts, NULL,0,0,false);
         }
         else
         {
@@ -585,7 +585,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                       "Can't render points for cell-centered field.");
 
             eavlRenderPoints<true>(npts, pts, opts.field,
-                                   opts.vmin, opts.vmax);
+                                   opts.vmin, opts.vmax, opts.logscale);
         }
 
     }
@@ -602,7 +602,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
             glDisable(GL_DEPTH_TEST);
             glDisable(GL_LIGHTING);
             glColor3fv(opts.color.c);
-            eavlRenderCells1D<false, false>(cellset, npts, pts, NULL,0,0);
+            eavlRenderCells1D<false, false>(cellset, npts, pts, NULL,0,0,false);
         }
         else
         {
@@ -615,7 +615,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
             {
                 eavlRenderCells1D<true, false>(cellset, npts, pts,
                                                opts.field,
-                                               opts.vmin, opts.vmax);
+                                               opts.vmin, opts.vmax, opts.logscale);
                 return;
             }
             else if (opts.field->GetAssociation() == eavlField::ASSOC_CELL_SET &&
@@ -623,7 +623,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
             {
                 eavlRenderCells1D<false, true>(cellset, npts, pts,
                                                opts.field,
-                                               opts.vmin, opts.vmax);
+                                               opts.vmin, opts.vmax, opts.logscale);
                 return;
             }
 
@@ -647,20 +647,20 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
             if (wireframe)
             {
                 if (normals && normals->GetAssociation()==eavlField::ASSOC_POINTS)
-                    eavlRenderCellsWireframe2D<false, false, true, false>(cellset, npts, pts, NULL,0,0,normals);
+                    eavlRenderCellsWireframe2D<false, false, true, false>(cellset, npts, pts, NULL,0,0,false,normals);
                 else if (normals)
-                    eavlRenderCellsWireframe2D<false, false, false, true>(cellset, npts, pts, NULL,0,0,normals);
+                    eavlRenderCellsWireframe2D<false, false, false, true>(cellset, npts, pts, NULL,0,0,false,normals);
                 else
-                    eavlRenderCellsWireframe2D<false, false, false, false>(cellset, npts, pts, NULL,0,0,NULL);
+                    eavlRenderCellsWireframe2D<false, false, false, false>(cellset, npts, pts, NULL,0,0,false,NULL);
             }
             else
             {
                 if (normals && normals->GetAssociation()==eavlField::ASSOC_POINTS)
-                    eavlRenderCells2D<false, false, true, false>(cellset, npts, pts, NULL,0,0,normals);
+                    eavlRenderCells2D<false, false, true, false>(cellset, npts, pts, NULL,0,0,false,normals);
                 else if (normals)
-                    eavlRenderCells2D<false, false, false, true>(cellset, npts, pts, NULL,0,0,normals);
+                    eavlRenderCells2D<false, false, false, true>(cellset, npts, pts, NULL,0,0,false,normals);
                 else
-                    eavlRenderCells2D<false, false, false, false>(cellset, npts, pts, NULL,0,0,NULL);
+                    eavlRenderCells2D<false, false, false, false>(cellset, npts, pts, NULL,0,0,false,NULL);
             }
         }
         else
@@ -680,6 +680,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                                                                              opts.field,
                                                                              opts.vmin,
                                                                              opts.vmax,
+                                                                             opts.logscale,
                                                                              normals);
                     else if (normals)
                         eavlRenderCellsWireframe2D<true, false, false, true>(cellset,
@@ -687,6 +688,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                                                                              opts.field,
                                                                              opts.vmin,
                                                                              opts.vmax,
+                                                                             opts.logscale,
                                                                              normals);
                     else
                         eavlRenderCellsWireframe2D<true, false, false, false>(cellset,
@@ -694,6 +696,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                                                                               opts.field,
                                                                               opts.vmin,
                                                                               opts.vmax,
+                                                                              opts.logscale,
                                                                               NULL);
                 }
                 else
@@ -704,6 +707,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                                                                     opts.field,
                                                                     opts.vmin,
                                                                     opts.vmax,
+                                                                    opts.logscale,
                                                                     normals);
                     else if (normals)
                         eavlRenderCells2D<true, false, false, true>(cellset,
@@ -711,6 +715,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                                                                     opts.field,
                                                                     opts.vmin,
                                                                     opts.vmax,
+                                                                    opts.logscale,
                                                                     normals);
                     else
                         eavlRenderCells2D<true, false, false, false>(cellset,
@@ -718,6 +723,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                                                                      opts.field,
                                                                      opts.vmin,
                                                                      opts.vmax,
+                                                                     opts.logscale,
                                                                      NULL);
                 }
                 return;
@@ -733,6 +739,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                                                                              opts.field,
                                                                              opts.vmin,
                                                                              opts.vmax,
+                                                                             opts.logscale,
                                                                              normals);
                     else if (normals)
                         eavlRenderCellsWireframe2D<false, true, false, true>(cellset,
@@ -740,6 +747,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                                                                              opts.field,
                                                                              opts.vmin,
                                                                              opts.vmax,
+                                                                             opts.logscale,
                                                                              normals);
                     else
                         eavlRenderCellsWireframe2D<false, true, false, false>(cellset,
@@ -747,6 +755,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                                                                               opts.field,
                                                                               opts.vmin,
                                                                               opts.vmax,
+                                                                              opts.logscale,
                                                                               NULL);
                 }
                 else
@@ -757,6 +766,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                                                                     opts.field,
                                                                     opts.vmin,
                                                                     opts.vmax,
+                                                                    opts.logscale,
                                                                     normals);
                     else if (normals)
                         eavlRenderCells2D<false, true, false, true>(cellset,
@@ -764,6 +774,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                                                                     opts.field,
                                                                     opts.vmin,
                                                                     opts.vmax,
+                                                                    opts.logscale,
                                                                     normals);
                     else
                         eavlRenderCells2D<false, true, false, false>(cellset,
@@ -771,6 +782,7 @@ class eavlSceneRendererGL : public eavlSceneRendererSimpleGL
                                                                      opts.field,
                                                                      opts.vmin,
                                                                      opts.vmax,
+                                                                     opts.logscale,
                                                                      NULL);
                 }
                 return;

@@ -9,23 +9,40 @@
 #include "eavlView.h"
 #include "eavlRenderSurface.h"
 
-static inline eavlColor MapValueToColor(double value,
-                                 double vmin, double vmax,
-                                 eavlColorTable &ct)
-{
-    double norm = 0.5;
-    if (vmin != vmax)
-        norm = (value - vmin) / (vmax - vmin);
-    eavlColor c = ct.Map(norm);
-    return c;
-}
-
 static inline float MapValueToNorm(double value,
-                            double vmin, double vmax)
+                                   double vmin,
+                                   double vmax,
+                                   bool logarithmic)
 {
     double norm = 0.5;
-    if (vmin != vmax)
-        norm = (value - vmin) / (vmax - vmin);
+    if (logarithmic)
+    {
+        if (value <= 0)
+        {
+            norm = 0;
+        }
+        else if (vmin != vmax)
+        {
+            if (vmin <= 0)
+                vmin = 1.e-100;
+            if (vmax <= 0)
+                vmax = 1.e-100;
+
+            norm = (log(value) - log(vmin)) / (log(vmax) - log(vmin));
+        }
+
+        if (norm < 0)
+            norm = 0;
+        if (norm > 1)
+            norm = 1;
+    }
+    else
+    {
+        if (vmin != vmax)
+        {
+            norm = (value - vmin) / (vmax - vmin);
+        }
+    }
     return norm;
 }
 
@@ -35,6 +52,7 @@ struct ColorByOptions
     bool singleColor; ///< if true, use one flat color, else field+colortable
     eavlColor color;  ///< color to use when singleColor==true
     eavlField *field; ///< field to color by when singleColor==false
+    bool logscale;    ///< true if using logarithmic scaling for colortable
     double vmin, vmax; ///< field min and max
     eavlColorTable ct; ///< colortable to color by when singleColor==false
 };
@@ -420,7 +438,7 @@ class eavlSceneRenderer
             if (PointColors)
             {
                 double v = MapValueToNorm(f->GetArray()->GetComponentAsDouble(j,0),
-                                          opts.vmin, opts.vmax);
+                                          opts.vmin, opts.vmax, opts.logscale);
                 AddPointVs(x0,y0,z0, radius, v);
             }
             else
@@ -470,14 +488,14 @@ class eavlSceneRenderer
             {
                 double s = MapValueToNorm(f->GetArray()->
                                           GetComponentAsDouble(c,0),
-                                          opts.vmin, opts.vmax);
+                                          opts.vmin, opts.vmax, opts.logscale);
                 AddPointVs(x0,y0,z0, radius, s);
             }
             else if (PointColors)
             {
                 double s = MapValueToNorm(f->GetArray()->
                                           GetComponentAsDouble(p,0),
-                                          opts.vmin, opts.vmax);
+                                          opts.vmin, opts.vmax, opts.logscale);
                 AddPointVs(x0,y0,z0, radius, s);
             }
             else
@@ -534,16 +552,16 @@ class eavlSceneRenderer
             {
                 s = MapValueToNorm(f->GetArray()->
                                    GetComponentAsDouble(j,0),
-                                   opts.vmin, opts.vmax);
+                                   opts.vmin, opts.vmax, opts.logscale);
             }
             else if (PointColors)
             {
                 s0 = MapValueToNorm(f->GetArray()->
                                     GetComponentAsDouble(i0,0),
-                                    opts.vmin, opts.vmax);
+                                    opts.vmin, opts.vmax, opts.logscale);
                 s1 = MapValueToNorm(f->GetArray()->
                                     GetComponentAsDouble(i1,0),
-                                    opts.vmin, opts.vmax);
+                                    opts.vmin, opts.vmax, opts.logscale);
             }
 
             if (NoColors)
@@ -638,19 +656,19 @@ class eavlSceneRenderer
                 {
                     s = MapValueToNorm(f->GetArray()->
                                        GetComponentAsDouble(j,0),
-                                       opts.vmin, opts.vmax);
+                                       opts.vmin, opts.vmax, opts.logscale);
                 }
                 else if (PointColors)
                 {
                     s0 = MapValueToNorm(f->GetArray()->
                                         GetComponentAsDouble(i0,0),
-                                        opts.vmin, opts.vmax);
+                                        opts.vmin, opts.vmax, opts.logscale);
                     s1 = MapValueToNorm(f->GetArray()->
                                         GetComponentAsDouble(i1,0),
-                                        opts.vmin, opts.vmax);
+                                        opts.vmin, opts.vmax, opts.logscale);
                     s2 = MapValueToNorm(f->GetArray()->
                                         GetComponentAsDouble(i2,0),
-                                        opts.vmin, opts.vmax);
+                                        opts.vmin, opts.vmax, opts.logscale);
                 }
 
                 // get normals (if applicable)
@@ -843,7 +861,7 @@ class eavlSceneRenderer
                 {
                     ss = MapValueToNorm(f->GetArray()->
                                        GetComponentAsDouble(j,0),
-                                       opts.vmin, opts.vmax);
+                                        opts.vmin, opts.vmax, opts.logscale);
                     AddTetrahedronCs(x0,y0,z0,
                                      x1,y1,z1,
                                      x2,y2,z2,
@@ -854,16 +872,16 @@ class eavlSceneRenderer
                 {
                     s0 = MapValueToNorm(f->GetArray()->
                                         GetComponentAsDouble(i0,0),
-                                        opts.vmin, opts.vmax);
+                                        opts.vmin, opts.vmax, opts.logscale);
                     s1 = MapValueToNorm(f->GetArray()->
                                         GetComponentAsDouble(i1,0),
-                                        opts.vmin, opts.vmax);
+                                        opts.vmin, opts.vmax, opts.logscale);
                     s2 = MapValueToNorm(f->GetArray()->
                                         GetComponentAsDouble(i2,0),
-                                        opts.vmin, opts.vmax);
+                                        opts.vmin, opts.vmax, opts.logscale);
                     s3 = MapValueToNorm(f->GetArray()->
                                         GetComponentAsDouble(i3,0),
-                                        opts.vmin, opts.vmax);
+                                        opts.vmin, opts.vmax, opts.logscale);
                     AddTetrahedronVs(x0,y0,z0,
                                      x1,y1,z1,
                                      x2,y2,z2,

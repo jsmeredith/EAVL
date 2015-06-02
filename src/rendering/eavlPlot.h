@@ -36,6 +36,7 @@ class eavlPlot
     ///\todo:
     /// some of this is common, some is dimensionality-specific
     eavlColorTable colortable;
+    bool           logcolorscaling;
     bool           wireframe;
     eavlColor      color;
 
@@ -52,6 +53,7 @@ class eavlPlot
         /// initializer for other stuff
         field = NULL;
         wireframe = false;
+        logcolorscaling = false;
         color = eavlColor(.5,.5,.5);
         min_data_extents = max_data_extents = 0;
         if (csname != "")
@@ -132,6 +134,15 @@ class eavlPlot
                 }
             }
         }
+    }
+
+    void SetLogarithmicColorScaling(bool ls)
+    {
+        logcolorscaling = ls;
+    }
+    bool GetLogarithmicColorScaling() const
+    {
+        return logcolorscaling;
     }
 
     void SetTransformFunction(void (*xform)(double c0, double c1, double c2,
@@ -272,6 +283,7 @@ class eavlPlot
         opts.field = field;
         opts.vmin = min_data_extents;
         opts.vmax = max_data_extents;
+        opts.logscale = logcolorscaling;
         opts.ct = colortable;
 
         try
