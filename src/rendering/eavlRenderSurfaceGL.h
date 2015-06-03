@@ -312,6 +312,8 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
 
         if (ft == PNM)
         {
+            fn += ".pnm";
+
             int w = width, h = height;
             vector<byte> rgba(w*h*4);
             glReadPixels(0,0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, &rgba[0]);
@@ -330,6 +332,8 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
         }
         else if (ft == PNG)
         {
+            fn += ".png";
+
             int w = width, h = height;
             vector<byte> tmp(w*h*4);
             glReadPixels(0,0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, &tmp[0]);

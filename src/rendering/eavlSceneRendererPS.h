@@ -163,7 +163,7 @@ class eavlSceneRendererPS : public eavlSceneRenderer
 
         surf->ps << "newpath" << endl;
         surf->ps << c.c[0] << " " << c.c[1] << " " << c.c[2] << " setrgbcolor" << endl;
-        surf->ps << p.x << " " << p.y << " 7 0 360 arc" << endl;
+        surf->ps << p.x << " " << p.y << " 6 0 360 arc" << endl;
         surf->ps << "fill" << endl;
 
     }

@@ -246,6 +246,8 @@ class eavlRenderSurfacePS : public eavlRenderSurface
             THROW(eavlException, "Can only save PS images as EPS");
         }
 
+        fn += ".eps";
+
         ofstream out(fn.c_str());
         //out << ps.rdbuf() << std::flush; // why doesn't this work?
         out << ps.str();
