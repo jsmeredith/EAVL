@@ -47,6 +47,12 @@ class eavlColor
         // back down to 254 below.  So it actually reverses
         // correctly, even though the mutliplier and
         // divider don't match between these two methods.
+        //
+        // Of course, converting in GetComponentAsByte from
+        // 1.0 gives 256, so we need to still clamp to 255
+        // anyway.  Again, this is not a problem, because it 
+        // doesn't really extend the range of floating point 
+        // values which map to 255.
         c[i] = float(v) / 255.;
         // clamp?
         if (c[i]<0) c[i] = 0;
@@ -72,7 +78,11 @@ class eavlColor
         // inverse method above, though, we still use 255;
         // see SetComponentFromByte for an explanation of
         // why that is correct, if non-obvious.
+
         int tv = c[i] * 256.;
+        // Converting even from valid values (i.e 1.0)
+        // can give a result outside the range (i.e. 256),
+        // but we have to clamp anyway.
         return (tv < 0) ? 0 : (tv > 255) ? 255 : tv;
     }
     void GetRGBA(unsigned char &r, unsigned char &g,
