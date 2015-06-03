@@ -150,6 +150,22 @@ class eavlSceneRendererPS : public eavlSceneRenderer
 
     virtual void AddPointVs(double x, double y, double z, double r, double s)
     {
+        eavlPoint3 p(x,y,z);
+
+        p = S*T * view.P * view.V * p;
+
+        int ci = float(ncolors-1) * s;
+        eavlColor c(colors[ci*3+0], colors[ci*3+1], colors[ci*3+2]);
+
+        eavlRenderSurfacePS *surf = dynamic_cast<eavlRenderSurfacePS*>(surface);
+        if (!surf)
+            return;
+
+        surf->ps << "newpath" << endl;
+        surf->ps << c.c[0] << " " << c.c[1] << " " << c.c[2] << " setrgbcolor" << endl;
+        surf->ps << p.x << " " << p.y << " 7 0 360 arc" << endl;
+        surf->ps << "fill" << endl;
+
     }
 
     // ------------------------------------------------------------------------
