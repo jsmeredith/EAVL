@@ -27,13 +27,13 @@ class eavlColorTable
     };
 
   protected:
-    string name;
+    string uniquename;
     bool smooth;
     vector<ColorControlPoint> pts;
   public:
     const string &GetName() const
     {
-        return name;
+        return uniquename;
     }
     bool GetSmooth() const
     {
@@ -97,16 +97,16 @@ class eavlColorTable
             
     }
     eavlColorTable() : 
-        name(""), smooth(false)
+        uniquename(""), smooth(false)
     {
     }
     eavlColorTable(const eavlColorTable &ct) : 
-        name(ct.name), smooth(ct.smooth), pts(ct.pts.begin(), ct.pts.end())
+        uniquename(ct.uniquename), smooth(ct.smooth), pts(ct.pts.begin(), ct.pts.end())
     {
     }
     void operator=(const eavlColorTable &ct)
     {
-        name = ct.name;
+        uniquename = ct.uniquename;
         smooth = ct.smooth;
         pts.clear();
         pts.insert(pts.end(), ct.pts.begin(), ct.pts.end());
@@ -126,8 +126,13 @@ class eavlColorTable
         Clear();
         for (int i=tmp.size()-1; i>=0; --i)
             AddControlPoint(1.0 - tmp[i].position, tmp[i].color);
+
+        if (uniquename[1] == '0')
+            uniquename[1] = '1';
+        else
+            uniquename[1] = '0';
     }
-    eavlColorTable(string name) : name(name)
+    eavlColorTable(string name)
     {
         if (name == "" || name == "default")
             name = "dense";
@@ -759,6 +764,10 @@ class eavlColorTable
         }
         else 
             THROW(eavlException, "Unknown color table");
+
+        uniquename = string("00") + name;
+        if (smooth)
+            uniquename[0] = '1';
     }
 };
 
