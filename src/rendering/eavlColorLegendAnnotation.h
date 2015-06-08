@@ -24,7 +24,6 @@ class eavlColorLegendAnnotation : public eavlAnnotation
     vector<eavlColor> colors;
     vector<eavlScreenTextAnnotation*> annot;
   public:
-    GLuint texid;
     eavlColorLegendAnnotation(eavlWindow *win) : eavlAnnotation(win)
     {
     }
