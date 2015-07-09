@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 	eavlPlot *plot = new eavlPlot(ds);
 	
 	plot->SetField(field);
-	plot->SetColorTableName("dense");
+	plot->SetColorTableByName("dense");
 	scene->plots.push_back(plot);
 	scene->ResetView(window);
 	
