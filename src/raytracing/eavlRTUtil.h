@@ -324,7 +324,7 @@ inline void writeBMP(int _height, int _width, eavlFloatArray *r, eavlFloatArray 
     if( img )
         free( img );
     img = (unsigned char *)malloc(3*_width*_height);
-    memset(img,0,sizeof(img));
+    memset(img,0,sizeof(*img));
 
     for(int j=size;j>-1;j--)
     {
