@@ -4,7 +4,13 @@
 #include "eavlVector3.h"
 #include <algorithm>    
 using namespace std;
+
 #define PI          3.14159265359f
+#define TOLERANCE   0.00001
+#define BARY_TOLE   0.0001f
+#define EPSILON     0.01f
+#define INFINITE    1000000
+#define END_FLAG    -1000000000
 
 
 EAVL_HOSTDEVICE float rcp(float f){ return 1.0f/f;}
@@ -326,7 +332,7 @@ inline void writeBMP(int _height, int _width, eavlFloatArray *r, eavlFloatArray 
     img = (unsigned char *)malloc(3*_width*_height);
     memset(img,0,sizeof(*img));
 
-    for(int j=size;j>-1;j--)
+    for(int j=size-1;j>-1;j--)
     {
         img[j*3  ]= (unsigned char) (int)(b->GetValue(j)*255);
         img[j*3+1]= (unsigned char) (int)(g->GetValue(j)*255);
@@ -364,6 +370,54 @@ inline void writeBMP(int _height, int _width, eavlFloatArray *r, eavlFloatArray 
     free(img);
 }
 
+inline void writeFrameBufferBMP(int _height, int _width, eavlFloatArray *fb,const char*fname)
+{
+    FILE *f;
+    int size=_height*_width;
+    unsigned char *img = NULL;
+    int filesize = 54 + 3*_width*_height;  //w is your image width, h is image height, both int
+    if( img )
+        free( img );
+    img = (unsigned char *)malloc(3*_width*_height);
+    memset(img,0,sizeof(*img));
+
+    for(int j=size-1;j>-1;j--)
+    {
+        img[j*3  ]= (unsigned char) (fb->GetValue(j*4 + 2)*255);
+        img[j*3+1]= (unsigned char) (fb->GetValue(j*4 + 1)*255);
+        img[j*3+2]= (unsigned char) (fb->GetValue(j*4 + 0)*255);
+
+    }
+
+    unsigned char bmpfileheader[14] = {'B','M', 0,0,0,0, 0,0, 0,0, 54,0,0,0};
+    unsigned char bmpinfoheader[40] = {40,0,0,0, 0,0,0,0, 0,0,0,0, 1,0, 24,0};
+    unsigned char bmppad[3] = {0,0,0};
+
+    bmpfileheader[ 2] = (unsigned char)(filesize    );
+    bmpfileheader[ 3] = (unsigned char)(filesize>> 8);
+    bmpfileheader[ 4] = (unsigned char)(filesize>>16);
+    bmpfileheader[ 5] = (unsigned char)(filesize>>24);
+
+    bmpinfoheader[ 4] = (unsigned char)(       _width    );
+    bmpinfoheader[ 5] = (unsigned char)(       _width>> 8);
+    bmpinfoheader[ 6] = (unsigned char)(       _width>>16);
+    bmpinfoheader[ 7] = (unsigned char)(       _width>>24);
+    bmpinfoheader[ 8] = (unsigned char)(       _height    );
+    bmpinfoheader[ 9] = (unsigned char)(       _height>> 8);
+    bmpinfoheader[10] = (unsigned char)(       _height>>16);
+    bmpinfoheader[11] = (unsigned char)(       _height>>24);
+
+    f = fopen(fname,"wb");
+    fwrite(bmpfileheader,1,14,f);
+    fwrite(bmpinfoheader,1,40,f);
+    for(int i=0; i<_height; i++)
+    {
+        fwrite(img+(_width*(_height-i-1)*3),3,_width,f);
+        fwrite(bmppad,1,(4-(_width*3)%4)%4,f);
+    }
+    fclose(f);
+    free(img);
+}
 
 EAVL_HOSTDEVICE unsigned int expandBits(unsigned int v)
 {
@@ -403,7 +457,7 @@ EAVL_HOSTDEVICE unsigned int morton3D(float x, float y, float z)
     return xx * 4 + yy * 2 + zz;
 }
 
-inline unsigned int morton2D(float x, float y)
+EAVL_HOSTDEVICE unsigned int morton2D(float x, float y)
 {
     x = min(max(x * 1024.0f, 0.0f), 1023.0f);
     y = min(max(y * 1024.0f, 0.0f), 1023.0f);

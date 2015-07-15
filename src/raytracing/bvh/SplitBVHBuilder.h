@@ -36,6 +36,7 @@
 #include <vector>
 #include <set>
 #include "eavlVector3i.h"
+#include "eavlVector4.h"
 using namespace std;
 #define NON_LEAF_SIZE 16
 #define LEAF_FLAG 0xFF800000
@@ -51,7 +52,7 @@ private:
     {
         MaxDepth        = 64,
         MaxSpatialDepth = 48,
-        NumSpatialBins  = 128,
+        NumSpatialBins  = 128
     };
 
     struct Reference
@@ -227,7 +228,7 @@ inline BVHNode* SplitBVHBuilder::run(void)
         /* Insert methods here for creating bounding boxes of different primitives  */
         if(m_primitiveType == 0 )
         {
-            for (int j = 0; j < 3; j++) m_refStack[i].bounds.grow(Vec3f(triPtr[i*4+j].x, triPtr[i*4+j].y,triPtr[i*4+j].z));
+            for (int j = 0; j < 3; j++) m_refStack[i].bounds.grow(Vec3f(triPtr[i*3+j].x, triPtr[i*3+j].y,triPtr[i*3+j].z));
         }
         else if ( m_primitiveType == 1 )
         {
@@ -682,7 +683,7 @@ inline void SplitBVHBuilder::splitReference(Reference& left, Reference& right, c
 
     //const Vec3i* tris = (const Vec3i*)m_bvh.getScene()->getTriVtxIndexBuffer().getPtr();
     //const eavlVector3* verts = (const eavlVector3*)m_bvh.getScene()->getVtxPosBuffer().getPtr();
-    Vec3i inds(ref.triIdx*4, ref.triIdx*4+1, ref.triIdx*4+2);
+    Vec3i inds(ref.triIdx*3, ref.triIdx*3+1, ref.triIdx*3+2);
     const Vec3f* v1 = &verts[inds.z];
 
     for (int i = 0; i < 3; i++)

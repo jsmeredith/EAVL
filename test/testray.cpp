@@ -2,13 +2,15 @@
 #include "eavlImporterFactory.h"
 #include "eavlIsosurfaceFilter.h"
 #include "eavlExecutor.h"
-#include "eavlRayTracerMutator.h"
-
+#include "eavlRayTriangleIntersector.h"
+#include "eavlRayCamera.h"
+#include "eavlRayTriangleGeometry.h"
+#include "objloader.h"
 #include <string.h>
 #include <sys/time.h>
 #include <ctime>
 #include <sstream>
-
+#include "eavlRay.h"
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
@@ -70,7 +72,7 @@ int main(int argc, char *argv[])
         bool isTest=false;
         int warmups=1;
         int tests=1;
-        eavlRayTracerMutator *tracer= new eavlRayTracerMutator();
+        eavlRayCamera *camera = new eavlRayCamera();
         if(argc<2)
         {
             cerr<<"Must specify a file to load."<<endl;
@@ -100,7 +102,8 @@ int main(int argc, char *argv[])
                 float y=0; y=atof(argv[++i]);
                 float z=0; z=atof(argv[++i]);
                 //cerr<<x<<" "<<y<<" "<<z<<endl;
-                tracer->setCameraPos(x,y,z);
+                //tracer->setCameraPos(x,y,z);
+                camera->setCameraPosition(x,y,z);
             }
             else if(strcmp (argv[i],"-cu")==0)
             {
@@ -113,7 +116,8 @@ int main(int argc, char *argv[])
                 float y=0; y=atof(argv[++i]);
                 float z=0; z=atof(argv[++i]);
                 //cerr<<x<<" "<<y<<" "<<z<<endl;
-                tracer->setUp(x,y,z);
+                //tracer->setUp(x,y,z);
+                camera->setCameraUp(x,y,z);
             }
             else if(strcmp (argv[i],"-cla")==0)
             {
@@ -126,7 +130,7 @@ int main(int argc, char *argv[])
                 float y=0; y=atof(argv[++i]);
                 float z=0; z=atof(argv[++i]);
                 //cerr<<x<<" "<<y<<" "<<z<<endl;
-                tracer->lookAtPos(x,y,z);
+                camera->lookAtPosition(x,y,z);
             }
             else if(strcmp (argv[i],"-fovx")==0)
             {
@@ -141,7 +145,7 @@ int main(int argc, char *argv[])
                     cerr<<"Invalid FOV value "<<argv[i]<<endl;
                     printUsage();
                 }
-                tracer->setFOVx(x);
+                camera->setFOVX(x);
             }
             else if(strcmp (argv[i],"-fovy")==0)
             {
@@ -156,7 +160,7 @@ int main(int argc, char *argv[])
                     cerr<<"Invalid FOV value "<<argv[i]<<endl;
                     printUsage();
                 }
-                tracer->setFOVy(y);
+                camera->setFOVY(y);
             }
             else if(strcmp (argv[i],"-res")==0)
             {
@@ -172,7 +176,9 @@ int main(int argc, char *argv[])
                     cerr<<"Invalid resolution values. Must be non-zero integers."<<endl;
                     printUsage();
                 }
-                tracer->setResolution(y,x);
+            
+                camera->setWidth(x);
+                camera->setHeight(y);
                 
             }
             else if(strcmp (argv[i],"-lp")==0)
@@ -182,14 +188,14 @@ int main(int argc, char *argv[])
                     cerr<<"Not enough input for light parameters."<<endl;
                     printUsage();
                 }
-                float x=0; x=atof(argv[++i]);
-                float y=0; y=atof(argv[++i]);
-                float z=0; z=atof(argv[++i]);
-                float intensity=atof(argv[++i]);
-                float constant =atof(argv[++i]);
-                float linear   =atof(argv[++i]);
-                float exponent =atof(argv[++i]);
-                tracer->setLightParams(x,y,z, intensity, constant, linear, exponent);
+                // float x=0; x=atof(argv[++i]);
+                // float y=0; y=atof(argv[++i]);
+                // float z=0; z=atof(argv[++i]);
+                // float intensity=atof(argv[++i]);
+                // float constant =atof(argv[++i]);
+                // float linear   =atof(argv[++i]);
+                // float exponent =atof(argv[++i]);
+                // tracer->setLightParams(x,y,z, intensity, constant, linear, exponent);
                 
             }
             else if(strcmp (argv[i],"-ao")==0)
@@ -199,16 +205,16 @@ int main(int argc, char *argv[])
                     cerr<<"Not enough input for ambient occlusion."<<endl;
                     printUsage();
                 }
-                float y=0; y=atof(argv[++i]);
-                float z=0; z=atof(argv[++i]);
-                if(y<1)
-                {
-                    cerr<<"Invalid AO value "<<argv[i]<<endl;
-                    printUsage();
-                }
-                tracer->setAOMax(z);
-                tracer->setOccSamples(y);
-                tracer->setAO(true);
+                // float y=0; y=atof(argv[++i]);
+                // float z=0; z=atof(argv[++i]);
+                // if(y<1)
+                // {
+                //     cerr<<"Invalid AO value "<<argv[i]<<endl;
+                //     printUsage();
+                // }
+                // tracer->setAOMax(z);
+                // tracer->setOccSamples(y);
+                // tracer->setAO(true);
             }
             else if(strcmp (argv[i],"-test")==0)
             {
@@ -219,7 +225,7 @@ int main(int argc, char *argv[])
                 }
                 float y=0; y=atoi(argv[++i]);
                 float x=0; x=atoi(argv[++i]);
-                if(x<1 || y<1)
+                if(x<0 || y<0)
                 {
                     cerr<<"Invalid test values. Must be non-zero integers."<<endl;
                     printUsage();
@@ -231,7 +237,7 @@ int main(int argc, char *argv[])
             }
             else if(strcmp (argv[i],"-aa")==0)
             {
-                tracer->setAntiAlias(true);
+                //tracer->setAntiAlias(true);
             }
             else if(strcmp (argv[i],"-cpu")==0)
             {
@@ -240,11 +246,11 @@ int main(int argc, char *argv[])
             else if(strcmp (argv[i],"-o")==0)
             {
                 outFilename=argv[++i];
-                if(outFilename!=NULL) tracer->setOutputFilename(outFilename);
+                //if(outFilename!=NULL) tracer->setOutputFilename(outFilename);
             }
             else if(strcmp (argv[i],"-v")==0)
             {
-                tracer->setVerbose(true);
+                //tracer->setVerbose(true);
             }
             else
             {
@@ -257,47 +263,68 @@ int main(int argc, char *argv[])
         if(forceCPU)
         {
             eavlExecutor::SetExecutionMode(eavlExecutor::ForceCPU);
-            tracer->cpu=true;
+            //tracer->cpu=true;
         }
         else 
         {   //if this fails, it will fall back to the cpu
             eavlExecutor::SetExecutionMode(eavlExecutor::ForceGPU);
             eavlInitializeGPU();
-            tracer->cpu=false;
+            //tracer->cpu=false;
         }
         openmpInfo();
+        //load model data from a file
+        ObjReader *objreader= new ObjReader(filename);
+        float *v;   //verts 
+        float *n;   //norms
+        int *mIdx;
+        int numTris=objreader->totalTriangles;
+        float *mats;
+        int matCount;
+        objreader->getRawData(v,n,mats,mIdx,matCount);
         
-        tracer->scene->loadObjFile(filename);
-        tracer->setBVHCacheName(filename);
+        eavlRayTriangleGeometry geometry;
+        geometry.setBVHCacheName(filename);
+        geometry.setVertices(v, numTris);
+        cout<<"Number of triangles "<<numTris<<endl;
+        eavlRay rays(camera->getWidth() * camera->getHeight());
+        eavlRayTriangleIntersector intersector;
+        camera->createRays(&rays);
+
+
+        //tracer->scene->loadObjFile(filename);
+        //tracer->setBVHCacheName(filename);
         
-        tracer->setCompactOp(false);
+        //tracer->setCompactOp(false);
         //*************************************Testing****************************
 
-        tracer->setBVHCache(true);
-        tracer->setVerbose(true);    
-        tracer->setDepth(1);
+        //tracer->setBVHCache(true);
+        //tracer->setVerbose(true);    
+        //tracer->setDepth(1);
 
         if(!isTest)
         {
             cout<<"Rendering to Framebuffer\n";
-            for(int i=0; i<1;i++)
-            {
-                tracer->Execute();
-            }
+            // for(int i=0; i<1;i++)
+            // {
+            //     tracer->Execute();
+            // }
         }
         else 
         {
             cout<<"Starting test.\n";
             //tracer->visualRayTrace(1,"something");
             //tracer->traversalTestISPC(warmups,tests);
-            tracer->traversalTest(warmups,tests);
+            //tracer->traversalTest(warmups,tests);
 
             //tracer->fpsTest(warmups,tests);
+
+            intersector.testIntersections(&rays, 10000000, &geometry, warmups,tests, camera);
         }
 
         
 
-        delete tracer;}
+        delete camera;
+    }
     }
     catch (const eavlException &e)
     {

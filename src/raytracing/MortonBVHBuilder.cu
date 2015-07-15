@@ -1,5 +1,5 @@
 #include "MortonBVHBuilder.h"
-#include "eavlConstTextureArray.h"
+#include "eavlTextureObject.h"
 #include "eavlReduceOp_1.h"
 #include "eavlMapOp.h"
 #include "eavlRadixSortOp.h"
@@ -10,13 +10,6 @@ using namespace std;
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
-
-//Global refs for textures
-texture<float4> 		m_verts_tref; 
-texture<unsigned int> 	morton_tref;  
-
-eavlConstTexArray<float4>* m_verts_array;
-eavlConstTexArray<unsigned int>* morton_array;
 
 //This is the structure of the flat BVH inner 
 //layout
@@ -94,7 +87,9 @@ MortonBVHBuilder::MortonBVHBuilder(float * _verts, int _numPrimitives, primitive
 {
 
       verbose = 0;
-      forceCpu = false;
+    
+      convertedToAoS = false;
+      wasEavlArrayGiven = false;
       if(numPrimitives < 1) THROW(eavlException, "Number of primitives must be greater that zero.");
       if(verts == NULL)     THROW(eavlException, "Verticies can't be NULL");
       //Insert preprocess that splits triangles before any of the memory is allocated
@@ -108,30 +103,6 @@ MortonBVHBuilder::MortonBVHBuilder(float * _verts, int _numPrimitives, primitive
       mortonCodes = new eavlIntArray("mortonCodes",1,numPrimitives);
 
       tmpFloat   = new eavlFloatArray("tmpSpace",1, 2 * numPrimitives -1);
-      //hand these arrays off to the consumer and let them deaL with deleting them.
-      innerNodes = new eavlFloatArray("inner",1, (numPrimitives -1) * 16);  //16 flat values per node
-      leafNodes  = new eavlFloatArray("leafs",1, numPrimitives * 2);
-
-      //determine execution mode
-#ifdef HAVE_CUDA
-      if(eavlExecutor::GetExecutionMode() == eavlExecutor::PreferGPU)
-      {
-        //test if cuda works: cuda may be installed but
-        //no GPU is present
-        try
-        {
-            indexes->GetCUDAArray();
-        }
-        catch(eavlException &e)
-        {
-            forceCpu = true;
-        }
-      }
-      else if(eavlExecutor::GetExecutionMode() == eavlExecutor::ForceGPU) forceCpu = false;
-      else forceCpu = true;
-#else 
-      forceCpu = true;
-#endif
 }
 
 MortonBVHBuilder::~MortonBVHBuilder()
@@ -141,16 +112,22 @@ MortonBVHBuilder::~MortonBVHBuilder()
     delete indexes;
     delete tmpFloat;
     delete tmpInt;
-    delete leafNodes;
-    delete innerNodes;
+    if(!wasEavlArrayGiven) //we gave up control of this memory
+    {
+        delete leafNodes;
+        delete innerNodes;    
+    }
+    
 }
 //TODO: this might work better with Global mem since only a few values are accessed
-template<primitive_t primType>
+
+
+template<primitive_t primType> 
 struct AABBFunctor
 { 
-	eavlConstTexArray<float4> * verts;
-	AABBFunctor(eavlConstTexArray<float4> *_verts)
-	: verts(_verts)
+	eavlTextureObject<float4> verts;
+	AABBFunctor(eavlTextureObject<float4> *_verts)
+	: verts(*_verts)
 	{}
 	EAVL_FUNCTOR tuple<float, float, float, float, float, float> operator()(int idx)
 	{
@@ -161,24 +138,9 @@ struct AABBFunctor
         float zmin;
         float zmax;
 
-        if(primType == TRIANGLE)
-        {
-                                                                    // x  y  z  w
-            float4 a4 = verts->getValue(m_verts_tref, idx*3);    //x0 y0 z0 x1 
-            float4 b4 = verts->getValue(m_verts_tref, idx*3+1);  //y1 z1 x2 y2
-            float4 c4 = verts->getValue(m_verts_tref, idx*3+2);  //z2 s0 s1 s2 (scalars)
-
-            xmin = min(a4.x, min(a4.w, b4.z));
-            xmax = max(a4.x, max(a4.w, b4.z));
-            ymin = min(a4.y, min(b4.x, b4.w));
-            ymax = max(a4.y, max(b4.x, b4.w));
-            zmin = min(a4.z, min(b4.y, c4.x));
-            zmax = max(a4.z, max(b4.y, c4.x));
-        }
-
         if(primType == SPHERE)
         {
-            float4 sdata = verts->getValue(m_verts_tref, idx);
+            float4 sdata = verts.getValue(idx);
             eavlVector3 temp(0,0,0);
             eavlVector3 center( sdata.x, sdata.y, sdata.z );
             
@@ -229,8 +191,8 @@ struct AABBFunctor
         if(primType == CYLINDER)
         {
             eavlVector3 temp(0,0,0);
-            float4 c1 = verts->getValue(m_verts_tref, idx * 2);
-            float4 c2 = verts->getValue(m_verts_tref, idx * 2 + 1);
+            float4 c1 = verts.getValue(idx * 2);
+            float4 c2 = verts.getValue(idx * 2 + 1);
             eavlVector3 base( c1.x, c1.y, c1.z );
             float radius = c1.w;
             eavlVector3 axis( c2.x, c2.y, c2.z );
@@ -316,6 +278,44 @@ struct AABBFunctor
 	} 
 };
 
+
+struct AABBTriFunctor
+{ 
+    eavlTextureObject<float> verts;
+    AABBTriFunctor(eavlTextureObject<float> *_verts)
+    : verts(*_verts)
+    {}
+    EAVL_FUNCTOR tuple<float, float, float, float, float, float> operator()(int idx)
+    {
+        float xmin;
+        float xmax;
+        float ymin;
+        float ymax;
+        float zmin;
+        float zmax;
+
+        eavlVector3 a,b,c;
+        a.x = verts.getValue(idx * 9 + 0);
+        a.y = verts.getValue(idx * 9 + 1);
+        a.z = verts.getValue(idx * 9 + 2);
+        b.x = verts.getValue(idx * 9 + 3);
+        b.y = verts.getValue(idx * 9 + 4);
+        b.z = verts.getValue(idx * 9 + 5);
+        c.x = verts.getValue(idx * 9 + 6);
+        c.y = verts.getValue(idx * 9 + 7);
+        c.z = verts.getValue(idx * 9 + 8);
+
+        xmin = min(a.x, min(b.x, c.x));
+        xmax = max(a.x, max(b.x, c.x));
+        ymin = min(a.y, min(b.y, c.y));
+        ymax = max(a.y, max(b.y, c.y));
+        zmin = min(a.z, min(b.z, c.z));
+        zmax = max(a.z, max(b.z, c.z));
+
+        return tuple<float, float, float, float, float, float>(xmin, ymin, zmin, xmax, ymax, zmax);
+    } 
+};
+
 struct CentroidFunctor
 {
 
@@ -368,12 +368,14 @@ struct TreeFunctor
 	int leafCount;
     int innerCount;
 
-	eavlConstTexArray<unsigned int> * mortonCodes;
-    int *parents;
+	eavlTextureObject<unsigned int> mortonCodes;
+    eavlFunctorArray<int> parents;
 
 
-	TreeFunctor(eavlConstTexArray<unsigned int> *codes, int _leafCount, int *par)
-	: mortonCodes(codes), leafCount(_leafCount), parents(par)
+	TreeFunctor(eavlTextureObject<unsigned int> *codes, 
+                int _leafCount, 
+                eavlFunctorArray<int> par)
+	: mortonCodes(*codes), leafCount(_leafCount), parents(par)
 	{
         innerCount = leafCount - 1;
     }
@@ -391,8 +393,8 @@ struct TreeFunctor
 		bool tie = false;
 		bool outOfRange = (b < 0 || b > leafCount -1);
         int bb = (outOfRange) ? 0 : b; //still make the call but with a valid adderss
-		unsigned int aCode =  mortonCodes->getValue(morton_tref,a);
-		unsigned int bCode =  mortonCodes->getValue(morton_tref,bb);
+		unsigned int aCode =  mortonCodes.getValue(a);
+		unsigned int bCode =  mortonCodes.getValue(bb);
 		unsigned int exOr = aCode ^ bCode; //use xor to find where they differ
 		tie = (exOr == 0);
 		exOr = tie ? a ^ bb : exOr; //break the tie, a and b will always differ 
@@ -468,22 +470,28 @@ struct TreeFunctor
 
 struct BottomUpFunctor
 {
-    int *nodeCounters;
+    eavlFunctorArray<int> nodeCounters;
     int numLeafs;
-    float *xmins;
-    float *ymins;
-    float *zmins;
-    float *xmaxs;
-    float *ymaxs;
-    float *zmaxs;
-    int   *lChild;
-    int   *rChild;
-    int   *parents;
+    eavlFunctorArray<float> xmins;
+    eavlFunctorArray<float> ymins;
+    eavlFunctorArray<float> zmins;
+    eavlFunctorArray<float> xmaxs;
+    eavlFunctorArray<float> ymaxs;
+    eavlFunctorArray<float> zmaxs;
+    eavlFunctorArray<int>   lChild;
+    eavlFunctorArray<int>   rChild;
+    eavlFunctorArray<int>   parents;
 
-    BottomUpFunctor(float *_xmins, float *_ymins, float *_zmins,
-                    float *_xmaxs, float *_ymaxs, float *_zmaxs,
-                    int *_lChild, int *_rChild, int *_parents,
-                    int *aCounters, int _numLeafs)
+    BottomUpFunctor(eavlFunctorArray<float> _xmins, 
+                    eavlFunctorArray<float> _ymins, 
+                    eavlFunctorArray<float> _zmins,
+                    eavlFunctorArray<float> _xmaxs, 
+                    eavlFunctorArray<float> _ymaxs, 
+                    eavlFunctorArray<float> _zmaxs,
+                    eavlFunctorArray<int> _lChild, 
+                    eavlFunctorArray<int> _rChild,
+                    eavlFunctorArray<int> _parents,
+                    eavlFunctorArray<int> aCounters, int _numLeafs)
     :  xmins(_xmins), ymins(_ymins), zmins(_zmins),
        xmaxs(_xmaxs), ymaxs(_ymaxs), zmaxs(_zmaxs),
        lChild(_lChild), rChild(_rChild), parents(_parents),
@@ -500,14 +508,11 @@ struct BottomUpFunctor
 #ifdef __CUDA_ARCH__
         old = atomicAdd(&nodeCounters[idx],1);   
 #else 
-        #pragma omp critical
-        {
-            old = nodeCounters[idx];
-            nodeCounters[idx]++;
-        }
+        #pragma omp atomic capture
+        old = nodeCounters[idx]++;
 #endif
         if(old == 0) kill = true;
-        //if(old > 1) printf("*****Idx %d counter %d\n", idx, old);
+        // if(kill) printf("Idx %d \n", idx);
         return kill;
     }
 
@@ -531,7 +536,7 @@ struct BottomUpFunctor
             zmaxs[node] = max(zmaxs[lChild[node]], zmaxs[rChild[node]]);
         } while (node != 0);
         
-        //printf("There can only be one! %d\n", idx);
+        ;//printf("There can only be one! %d\n", idx);
 
         return tuple<int>(idx); //indexed to same value / Do nothing
     } 
@@ -540,16 +545,20 @@ struct BottomUpFunctor
 
 struct InnerToFlatFunctor
 {
-    float *xmins;
-    float *ymins;
-    float *zmins;
-    float *xmaxs;
-    float *ymaxs;
-    float *zmaxs;
+    eavlFunctorArray<float> xmins;
+    eavlFunctorArray<float> ymins;
+    eavlFunctorArray<float> zmins;
+    eavlFunctorArray<float> xmaxs;
+    eavlFunctorArray<float> ymaxs;
+    eavlFunctorArray<float> zmaxs;
     int    numPrimitives;
     int    primOffset;
-    InnerToFlatFunctor(float *_xmins, float *_ymins, float *_zmins,
-                       float *_xmaxs, float *_ymaxs, float *_zmaxs,
+    InnerToFlatFunctor(eavlFunctorArray<float> _xmins, 
+                       eavlFunctorArray<float> _ymins, 
+                       eavlFunctorArray<float> _zmins,
+                       eavlFunctorArray<float> _xmaxs, 
+                       eavlFunctorArray<float> _ymaxs, 
+                       eavlFunctorArray<float> _zmaxs,
                        int _numPrims) 
                        : xmins(_xmins), ymins(_ymins), zmins(_zmins),
                          xmaxs(_xmaxs), ymaxs(_ymaxs), zmaxs(_zmaxs),
@@ -592,6 +601,25 @@ void MortonBVHBuilder::setVerbose(const int &level)
 
 void MortonBVHBuilder::findAABBs()
 {
+    eavlTextureObject<float> *floatVerts = NULL;
+    eavlTextureObject<float4> *float4Verts = NULL;
+    //load verts into texture for bbox calculation
+    //TODO:Does this make sense to have this as texture? 
+    //3 reads per thread not really streaming many addresses
+    if(primitveType == TRIANGLE)
+    {
+        floatVerts = new eavlTextureObject<float>(numPrimitives * 9, verts, false);
+    }
+    else if(primitveType == SPHERE)
+    {
+        float4Verts = new eavlTextureObject<float4>(numPrimitives, (float4*)verts, false);
+    }
+    else if(primitveType == CYLINDER)
+    {
+        float4Verts = new eavlTextureObject<float4>(numPrimitives * 2, (float4*)verts, false);
+    }
+    
+
 	//calculate the AABBs of all the primitives
     if(primitveType == TRIANGLE)
     {
@@ -603,7 +631,7 @@ void MortonBVHBuilder::findAABBs()
                                  eavlIndexable<eavlFloatArray>(bvh->xmax, *bvh->leafIndexer),
                                  eavlIndexable<eavlFloatArray>(bvh->ymax, *bvh->leafIndexer),
                                  eavlIndexable<eavlFloatArray>(bvh->zmax, *bvh->leafIndexer)),
-                      AABBFunctor<TRIANGLE>(m_verts_array)),
+                      AABBTriFunctor(floatVerts)),
                       "AABB");
         eavlExecutor::Go();
     }
@@ -617,7 +645,7 @@ void MortonBVHBuilder::findAABBs()
                                  eavlIndexable<eavlFloatArray>(bvh->xmax, *bvh->leafIndexer),
                                  eavlIndexable<eavlFloatArray>(bvh->ymax, *bvh->leafIndexer),
                                  eavlIndexable<eavlFloatArray>(bvh->zmax, *bvh->leafIndexer)),
-                      AABBFunctor<SPHERE>(m_verts_array)),
+                      AABBFunctor<SPHERE>(float4Verts)),
                       "AABB");
         eavlExecutor::Go();
     }
@@ -631,11 +659,13 @@ void MortonBVHBuilder::findAABBs()
                                  eavlIndexable<eavlFloatArray>(bvh->xmax, *bvh->leafIndexer),
                                  eavlIndexable<eavlFloatArray>(bvh->ymax, *bvh->leafIndexer),
                                  eavlIndexable<eavlFloatArray>(bvh->zmax, *bvh->leafIndexer)),
-                      AABBFunctor<CYLINDER>(m_verts_array)),
+                      AABBFunctor<CYLINDER>(float4Verts)),
                       "AABB");
         eavlExecutor::Go();
     }
 	
+    if(floatVerts  != NULL) delete floatVerts;
+    if(float4Verts != NULL) delete float4Verts;
 
     //we have to create the legacy indexer since Reduce is old.
     //It will also never be updated.
@@ -720,12 +750,13 @@ void MortonBVHBuilder::sort()
 {
     // primitive ids and scatter indexes are the same
 	eavlIntArray *idx = bvh->primId;
-	eavlExecutor::AddOperation(
+	cout<<"BMorton Code "<<idx->GetValue(10)<<endl;
+    eavlExecutor::AddOperation(
 		new_eavlRadixSortOp(eavlOpArgs(mortonCodes),
                             eavlOpArgs(idx), true),
                             "Radix");
     eavlExecutor::Go();
-
+    cout<<"Morton Code "<<idx->GetValue(10)<<endl;
     int tgather;
 
     /**
@@ -807,48 +838,17 @@ void MortonBVHBuilder::propagateAABBs()
                       IntMemsetFunctor(0)), "");
     eavlExecutor::Go();
 
-    int *parents = NULL;
-    int *lChild  = NULL;
-    int *rChild  = NULL;
-    float *xmins = NULL;
-    float *ymins = NULL;
-    float *zmins = NULL;
-    float *xmaxs = NULL;
-    float *ymaxs = NULL;
-    float *zmaxs = NULL;
+    eavlFunctorArray<int>   atomicCounters(mortonCodes);
+    eavlFunctorArray<int>   parents(bvh->parent);
+    eavlFunctorArray<int>   lChild(bvh->leftChild);
+    eavlFunctorArray<int>   rChild(bvh->rightChild);
 
-    int   *atomicCounters = NULL;
-    if(forceCpu)
-    {
-        parents = (int*)bvh->parent->GetHostArray();
-        lChild  = (int*)bvh->leftChild->GetHostArray();
-        rChild  = (int*)bvh->rightChild->GetHostArray();
-
-        xmins   = (float*)bvh->xmin->GetHostArray();
-        ymins   = (float*)bvh->ymin->GetHostArray(); 
-        zmins   = (float*)bvh->zmin->GetHostArray();
-        xmaxs   = (float*)bvh->xmax->GetHostArray();
-        ymaxs   = (float*)bvh->ymax->GetHostArray(); 
-        zmaxs   = (float*)bvh->zmax->GetHostArray();
-        //re-use morton codes to store the atomic counters
-        atomicCounters = (int*)mortonCodes->GetHostArray();
-
-    }
-    else 
-    {
-        parents = (int*)bvh->parent->GetCUDAArray();
-        lChild  = (int*)bvh->leftChild->GetCUDAArray();
-        rChild  = (int*)bvh->rightChild->GetCUDAArray();
-
-        xmins   = (float*)bvh->xmin->GetCUDAArray();
-        ymins   = (float*)bvh->ymin->GetCUDAArray(); 
-        zmins   = (float*)bvh->zmin->GetCUDAArray();
-        xmaxs   = (float*)bvh->xmax->GetCUDAArray();
-        ymaxs   = (float*)bvh->ymax->GetCUDAArray(); 
-        zmaxs   = (float*)bvh->zmax->GetCUDAArray();
-
-        atomicCounters = (int*)mortonCodes->GetCUDAArray();
-    }
+    eavlFunctorArray<float> xmins(bvh->xmin);
+    eavlFunctorArray<float> ymins(bvh->ymin);
+    eavlFunctorArray<float> zmins(bvh->zmin);
+    eavlFunctorArray<float> xmaxs(bvh->xmax);
+    eavlFunctorArray<float> ymaxs(bvh->ymax);
+    eavlFunctorArray<float> zmaxs(bvh->zmax);
 
     eavlExecutor::AddOperation(
         new_eavlMapOp(eavlOpArgs(indexes),
@@ -859,18 +859,76 @@ void MortonBVHBuilder::propagateAABBs()
                                       atomicCounters, numPrimitives)), "");
     eavlExecutor::Go();
 
-    //validate parent pointers 
-    // for(int i = 0 ;i<numPrimitives - 1;i++)
-    // {
-    //     if(mortonCodes->GetValue(i) != 2) printf("node %d counter %d \n", i, mortonCodes->GetValue(i));
-    // }
-    // int lcount = 0;
-    // validate(bvh, numPrimitives, 0, lcount);
-    // printf("Number of reachable leafs from root = %d  actual %d \n", lcount, numPrimitives);
-    // for(int i = 1 ;i<2*numPrimitives - 1;i++)
-    // {
-    //     if(bvh->parent->GetValue(i) == -1) printf("No Parent node %d val %d \n", i, bvh->parent->GetValue(i));
-    // }
+}
+
+void MortonBVHBuilder::build()
+{
+
+	int taabb;
+    if(verbose > 0) taabb = eavlTimer::Start();
+    //Calculate AABBs and centroids of the primitves
+	findAABBs();
+	if(verbose > 0) cout<<"AABB     RUNTIME: "<<eavlTimer::Stop(taabb,"rf")<<endl;
+     //cout<<"VVVVVV "<<bvh->xmin->GetValue(bvh->numInner)<< " "<<bvh->zmax->GetValue(bvh->numInner)<<endl;
+
+	//Generate Morton code based on the centriod of the AABB
+	eavlExecutor::AddOperation(
+    	new_eavlMapOp(eavlOpArgs(bvh->centroidX, bvh->centroidY, bvh->centroidZ),
+                      eavlOpArgs(mortonCodes),
+                      MortonFunctor(bvh->extentMin, bvh->extentMax)),
+                      "Morton");
+    eavlExecutor::Go();
+     //cout<<"VVVVVV "<<bvh->xmin->GetValue(bvh->numInner)<< " "<<bvh->zmax->GetValue(bvh->numInner)<<endl;
+    int tsort;
+    if(verbose > 0) tsort = eavlTimer::Start();
+    sort();
+    if(verbose > 0) cout<<"SORT     RUNTIME: "<<eavlTimer::Stop(tsort,"rf")<<endl;
+
+    eavlTextureObject<unsigned int> *mortonTexture = NULL;
+    mortonTexture = new eavlTextureObject<unsigned int>( numPrimitives, 
+                                                         mortonCodes,
+                                                         false);
+    //cout<<"VVVVVV "<<bvh->xmin->GetValue(bvh->numInner)<< " "<<bvh->zmax->GetValue(bvh->numInner)<<endl;
+    bvh->parent->SetValue(0,-1);
+    eavlFunctorArray<int> parents(bvh->parent);
+
+    //Build the tree in place. TODO: figure out a better way to set parent pointers
+    // Current method will fail if the GPU falls back to the CPU
+    int ttree;
+    if(verbose > 0) ttree = eavlTimer::Start();
+    eavlExecutor::AddOperation(
+        new_eavlMapOp(eavlOpArgs(indexes),
+                      eavlOpArgs(bvh->leftChild, bvh->rightChild),
+                      TreeFunctor(mortonTexture, numPrimitives,parents), numPrimitives - 1),
+                      "tree");
+    eavlExecutor::Go();
+    if(verbose > 0) cout<<"TREE     RUNTIME: "<<eavlTimer::Stop(ttree,"rf")<<endl;
+    int tprop;
+    if(verbose > 0) tprop = eavlTimer::Start();
+    propagateAABBs();
+    if(verbose > 0) cout<<"PROP     RUNTIME: "<<eavlTimer::Stop(tprop,"rf")<<endl;
+    
+    delete mortonTexture;
+    
+}
+
+void MortonBVHBuilder::flatten()
+{
+    //hand these arrays off to the consumer and let them deaL with deleting them.
+    innerNodes = new eavlFloatArray("inner",1, (numPrimitives -1) * 16);  //16 flat values per node
+    leafNodes  = new eavlFloatArray("leafs",1, numPrimitives * 2);
+
+    eavlFunctorArray<int>   atomicCounters(mortonCodes);
+    eavlFunctorArray<int>   parents(bvh->parent);
+    eavlFunctorArray<int>   lChild(bvh->leftChild);
+    eavlFunctorArray<int>   rChild(bvh->rightChild);
+
+    eavlFunctorArray<float> xmins(bvh->xmin);
+    eavlFunctorArray<float> ymins(bvh->ymin);
+    eavlFunctorArray<float> zmins(bvh->zmin);
+    eavlFunctorArray<float> xmaxs(bvh->xmax);
+    eavlFunctorArray<float> ymaxs(bvh->ymax);
+    eavlFunctorArray<float> zmaxs(bvh->zmax);
 
     FlatIndxr flatIdx;
     //write out the array in parallel
@@ -913,82 +971,16 @@ void MortonBVHBuilder::propagateAABBs()
                       LeafToFlatFunctor()),
                       "write");
     eavlExecutor::Go();
-
-}
-
-void MortonBVHBuilder::build()
-{
-	//load verts into texture for bbox calculation
-    //TODO:Does this make sense to have this as texture? 
-    //3 reads per thread not really streaming many addresses
-	m_verts_array  = new eavlConstTexArray<float4>( (float4*)verts,numPrimitives*3, m_verts_tref, forceCpu);
-
-	//forcing the transfer so we get accurate GPU timings
-	eavlExecutor::AddOperation(
-		new_eavlMapOp(eavlOpArgs(indexes),
-                      eavlOpArgs(bvh->xmin, bvh->ymin, bvh->zmin,
-                                 bvh->xmax, bvh->ymax, bvh->zmax),
-                      AABBFunctor<SPHERE>(m_verts_array),1),
-                      "AABB");
-    eavlExecutor::Go();
-
-
-	int taabb;
-    if(verbose > 0) taabb = eavlTimer::Start();
-    //Calculate AABBs and centroids of the primitves
-	findAABBs();
-	if(verbose > 0) cout<<"AABB     RUNTIME: "<<eavlTimer::Stop(taabb,"rf")<<endl;
-
-
-	//Generate Morton code based on the centriod of the AABB
-	eavlExecutor::AddOperation(
-    	new_eavlMapOp(eavlOpArgs(bvh->centroidX, bvh->centroidY, bvh->centroidZ),
-                      eavlOpArgs(mortonCodes),
-                      MortonFunctor(bvh->extentMin, bvh->extentMax)),
-                      "Morton");
-    eavlExecutor::Go();
-
-    int tsort;
-    if(verbose > 0) tsort = eavlTimer::Start();
-    sort();
-    if(verbose > 0) cout<<"SORT     RUNTIME: "<<eavlTimer::Stop(tsort,"rf")<<endl;
-    //this memcpy costs 20ms on the GPU
-    morton_array  = new eavlConstTexArray<unsigned int>( (unsigned int*) mortonCodes->GetHostArray(),numPrimitives, morton_tref, forceCpu);
-
-    bvh->parent->SetValue(0,-1);
-
-    int *parents = NULL;
-    if(forceCpu)
-    {
-        parents = (int*)bvh->parent->GetHostArray();
-    }
-    else 
-    {
-        parents = (int*)bvh->parent->GetCUDAArray();
-    }
-
-    //Build the tree in place. TODO: figure out a better way to set parent pointers
-    // Current method will fail if the GPU falls back to the CPU
-    int ttree;
-    if(verbose > 0) ttree = eavlTimer::Start();
-    eavlExecutor::AddOperation(
-        new_eavlMapOp(eavlOpArgs(indexes),
-                      eavlOpArgs(bvh->leftChild, bvh->rightChild),
-                      TreeFunctor(morton_array, numPrimitives,parents), numPrimitives - 1),
-                      "tree");
-    eavlExecutor::Go();
-    if(verbose > 0) cout<<"TREE     RUNTIME: "<<eavlTimer::Stop(ttree,"rf")<<endl;
-    int tprop;
-    if(verbose > 0) tprop = eavlTimer::Start();
-    propagateAABBs();
-    if(verbose > 0) cout<<"PROP     RUNTIME: "<<eavlTimer::Stop(tprop,"rf")<<endl;
-    
-    delete morton_array;
-    delete m_verts_array;
 }
 
 float * MortonBVHBuilder::getInnerNodes(int &_size)
 { 
+    if(!convertedToAoS)
+    {
+        flatten();
+        convertedToAoS = true;
+    }
+
     int size = (numPrimitives -1) * 16;
     float * array =  new float[size];
     memcpy((void*)array, innerNodes->GetHostArray(), sizeof(float) * size);
@@ -997,9 +989,36 @@ float * MortonBVHBuilder::getInnerNodes(int &_size)
 }
 float * MortonBVHBuilder::getLeafNodes(int &_size)
 { 
+    if(!convertedToAoS)
+    {
+        flatten();
+        convertedToAoS = true;
+    }
     int size = numPrimitives * 2;
     float * array =  new float[size];
     memcpy((void*)array, leafNodes->GetHostArray(), sizeof(float) * size);
     _size = size;
     return array; 
+}
+
+eavlFloatArray * MortonBVHBuilder::getInnerNodes()
+{
+    if(!convertedToAoS)
+    {
+        flatten();
+        convertedToAoS = true;
+    }
+    wasEavlArrayGiven = true;
+    return innerNodes;
+}
+
+eavlFloatArray * MortonBVHBuilder::getLeafNodes()
+{
+    if(!convertedToAoS)
+    {
+        flatten();
+        convertedToAoS = true;
+    }
+    wasEavlArrayGiven = true;
+    return leafNodes;
 }

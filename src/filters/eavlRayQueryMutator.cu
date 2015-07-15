@@ -8,12 +8,6 @@
 #include "eavlTimer.h" 
 #include "SplitBVH.h"
 
-#define END_FLAG    -1000000000
-#define INFINITE    1000000
-#define EPSILON     0.001f
-
-
-
 /* Triangle textures */
 texture<float4> RQM_tri_bvh_in_tref;            /* BVH inner nodes */
 texture<float4> RQM_tri_verts_tref;              /* vert+ scalar data */

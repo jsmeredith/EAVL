@@ -2,6 +2,7 @@
 #define EAVL_CONST_TEX_ARRAY_H
 #define USE_TEXTURE_MEM
 
+#include "eavlRayDefines.h"
 /*******************************************************
 / Class: eavlConstTexArray
 / Purpose: 
@@ -22,16 +23,7 @@
 /
 *******************************************************/
 
-#ifndef __CUDACC__
-template<class T> class texture {};
 
-#ifndef HAVE_CUDA
-struct float4
-{
-    float x,y,z,w;
-};
-#endif
-#endif
 
 template<class T>
 class eavlConstTexArray

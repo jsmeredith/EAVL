@@ -4,7 +4,7 @@
 #include "eavlArray.h"
 #include "eavlException.h"
 #include "eavlRTUtil.h"
-
+#include "eavlFunctorArray.h"
 class BVHSOA
 {
  public:
@@ -117,6 +117,8 @@ class MortonBVHBuilder
 {
   private:      
     bool             forceCpu;
+    bool             convertedToAoS;
+    bool             wasEavlArrayGiven;
     int              verbose;
     BVHSOA          *bvh;
     eavlIntArray    *indexes;
@@ -130,7 +132,7 @@ class MortonBVHBuilder
     void findAABBs();
     void sort();
     void propagateAABBs();
-    
+    void flatten();         //Convert representation from SoA to AoS
 
   public:
     float         *verts;
@@ -143,5 +145,8 @@ class MortonBVHBuilder
     void setVerbose(const int &level);
     float * getInnerNodes(int &_size);
     float * getLeafNodes(int &_size);
+
+    eavlFloatArray * getInnerNodes();
+    eavlFloatArray * getLeafNodes();
 };
 #endif

@@ -71,6 +71,9 @@ OBJ=\
  math/eavlPoint3.o \
  math/eavlVector3.o \
  raytracing/MortonBVHBuilder.o \
+ raytracing/eavlRayCamera.o \
+ raytracing/eavlRayTriangleIntersector.o \
+ raytracing/eavlRayTriangleGeometry.o \
  rendering/eavlColor.o
 
 ifneq (@VTK@, no)

@@ -3,67 +3,77 @@
 #include "eavlSimpleVRMutator.h"
 #include "eavlMapOp.h"
 #include "eavlColor.h"
+#include "eavlPrefixSumOp_1.h"
+#include "eavlReduceOp_1.h"
+#include "eavlGatherOp.h"
+#include "eavlSimpleReverseIndexOp.h"
+#include "eavlRTUtil.h"
+#ifdef HAVE_CUDA
+#include <cuda.h>
+#include <cuda_runtime_api.h>
+#endif
 
-texture<float4> tets_verts_tref;
+#define COLOR_MAP_SIZE 1024
+
+long int scounter = 0;
+long int skipped = 0;
+
 texture<float4> scalars_tref;
-/*color map texture */
 texture<float4> cmap_tref;
 
-eavlConstTexArray<float4>* tets_verts_array;
 eavlConstTexArray<float4>* color_map_array;
 eavlConstTexArray<float4>* scalars_array;
 
+#define PASS_ESTIMATE_FACTOR  2.5f
 eavlSimpleVRMutator::eavlSimpleVRMutator()
-{
+{   //eavlExecutor::SetExecutionMode(eavlExecutor::ForceCPU);
     if(eavlExecutor::GetExecutionMode() == eavlExecutor::ForceCPU ) cpu = true;
     else cpu = false;
 
-	height = 500;
-	width  = 500;
-
-	samples = NULL;
-	framebuffer = NULL;
-    zBuffer = NULL;
-    ssa = NULL;
-    ssb = NULL;
-    ssc = NULL;
-    ssd = NULL;
-    clippingFlags = NULL;
-    iterator = NULL;
-    screenIterator = NULL;
-
-	tets_raw = NULL;
-	colormap_raw = NULL;
-    scalars_raw = NULL;
-
-    tets_verts_array = NULL;
-    tets_verts_array = NULL;
-    tets_verts_array = NULL;
-
-	scene = new eavlVRScene();
+    opacityFactor = 1.f;
+    height = 500;
+    width  = 500;    
+    setNumPasses(8); //default number of passes
+    samples                = NULL;
+    framebuffer            = NULL;
+    zBuffer                = NULL;
+    iterator               = NULL;
+    screenIterator         = NULL;
+    colormap_raw           = NULL;
+    scalars_raw            = NULL;
+    minPasses              = NULL;
+    maxPasses              = NULL;
+    currentPassMembers     = NULL;
+    passNumDirty           = true;
+    indexScan              = NULL;
+    reverseIndex           = NULL;
+    scalars_array          = NULL; 
+    ir     = NULL;
+    ig     = NULL;
+    ib     = NULL;
+    ia     = NULL;
+    ssa    = NULL;
+    ssb    = NULL;
+    ssc    = NULL;
+    ssd    = NULL;
+    tetSOA = NULL;
+    mask   = NULL;
+    scene = new eavlVRScene();
 
     geomDirty = true;
     sizeDirty = true;
 
     numTets = 0;
-    nSamples = 200;
-
+    nSamples = 1000;
+    passCount = new eavlIntArray("",1,1); 
     i1 = new eavlArrayIndexer(3,0);
     i2 = new eavlArrayIndexer(3,1);
     i3 = new eavlArrayIndexer(3,2);
-
-    ir = new eavlArrayIndexer(4,0);
-    ig = new eavlArrayIndexer(4,1);
-    ib = new eavlArrayIndexer(4,2);
-    ia = new eavlArrayIndexer(4,3);
-
     idummy = new eavlArrayIndexer();
     idummy->mod = 1 ;
     dummy = new eavlFloatArray("",1,2);
 
     verbose = false;
-
-    
 
     setDefaultColorMap(); 
 }
@@ -79,7 +89,6 @@ eavlSimpleVRMutator::~eavlSimpleVRMutator()
     deleteClassPtr(ssb);
     deleteClassPtr(ssc);
     deleteClassPtr(ssd);
-    deleteClassPtr(clippingFlags);
     deleteClassPtr(iterator);
     deleteClassPtr(i1);
     deleteClassPtr(i2);
@@ -89,197 +98,169 @@ eavlSimpleVRMutator::~eavlSimpleVRMutator()
     deleteClassPtr(ib);
     deleteClassPtr(ia);
     deleteClassPtr(idummy);
+    deleteClassPtr(minPasses);
+    deleteClassPtr(maxPasses);
+    deleteClassPtr(indexScan);
+    deleteClassPtr(mask);
+    deleteClassPtr(dummy);
+    if(numPasses != 1) deleteClassPtr(currentPassMembers);
+    deleteClassPtr(reverseIndex);
+    deleteClassPtr(screenIterator);
+
+    deleteClassPtr(tetSOA[0]);
+    deleteClassPtr(tetSOA[1]);
+    deleteClassPtr(tetSOA[2]);
 
     freeTextures();
     freeRaw();
 
 }
 
-struct ScreenSpaceFunctor
-{   
-    const eavlConstTexArray<float4> *verts;
-    eavlView         view;
-    int              nSamples;
-    float            mindepth;
-    float            maxdepth;
-    ScreenSpaceFunctor(const eavlConstTexArray<float4> *_verts, eavlView _view, int _nSamples)
-    : view(_view), verts(_verts), nSamples(_nSamples)
-    {
-        float dist = (view.view3d.from - view.view3d.at).norm();
-        eavlPoint3 closest(0,0,-dist+view.size*.5);
-        eavlPoint3 farthest(0,0,-dist-view.size*.5);
-        mindepth = (view.P * closest).z;
-        maxdepth = (view.P * farthest).z;
 
+void eavlSimpleVRMutator::getBBoxPixelExtent(eavlPoint3 &smins, eavlPoint3 &smaxs)
+{
+    float xmin = FLT_MAX;
+    float xmax = -FLT_MAX;
+    float ymin = FLT_MAX;
+    float ymax = -FLT_MAX;
+    float zmin = FLT_MAX;
+    float zmax = -FLT_MAX;
+
+    eavlPoint3 bbox[2];
+    bbox[0] = smins;
+    bbox[1] = smaxs;
+    for(int x = 0; x < 2 ; x++)
+    {
+        for(int y = 0; y < 2 ; y++)
+        {
+            for(int z = 0; z < 2 ; z++)
+            {
+                eavlPoint3 temp(bbox[x].x, bbox[y].y, bbox[z].z);
+
+                eavlPoint3 t = view.P * view.V * temp;
+                t.x = (t.x*.5+.5)  * view.w;
+                t.y = (t.y*.5+.5)  * view.h;
+                t.z = (t.z*.5+.5)  * (float) nSamples;
+                zmin = min(zmin,t.z);
+                ymin = min(ymin,t.y);
+                xmin = min(xmin,t.x);
+                zmax = max(zmax,t.z);
+                ymax = max(ymax,t.y);
+                xmax = max(xmax,t.x);
+            }
+        }
     }
 
-    EAVL_FUNCTOR tuple<float,float,float,float,float,float,float,float,float,float,float,float,int> operator()(tuple<int> iterator)
+    smins.x = xmin;
+    smins.y = ymin;
+    smins.z = zmin;
+
+    smaxs.x = xmax;
+    smaxs.y = ymax;
+    smaxs.z = zmax;
+}
+
+//When this is called, all tets passed in are in screen space
+struct ScreenSpaceFunctor
+{   
+    float4 *xverts;
+    float4 *yverts; 
+    float4 *zverts;
+    eavlView         view;
+    int              nSamples;
+    ScreenSpaceFunctor(float4 *_xverts, float4 *_yverts,float4 *_zverts, eavlView _view, int _nSamples)
+    : view(_view), xverts(_xverts),yverts(_yverts),zverts(_zverts), nSamples(_nSamples)
+    {}
+
+    EAVL_FUNCTOR tuple<float,float,float,float,float,float,float,float,float,float,float,float> operator()(tuple<int> iterator)
     {
         int tet = get<0>(iterator);
         eavlPoint3 mine(FLT_MAX,FLT_MAX,FLT_MAX);
         eavlPoint3 maxe(-FLT_MAX,-FLT_MAX,-FLT_MAX);
-        float4 v[4];
-        v[0] = verts->getValue(tets_verts_tref, tet*4   );
-        v[1] = verts->getValue(tets_verts_tref, tet*4+1 );
-        v[2] = verts->getValue(tets_verts_tref, tet*4+2 );
-        v[3] = verts->getValue(tets_verts_tref, tet*4+3 );
-        
-        eavlPoint3 p[4];
+        float* v[3];
+        v[0] = (float*)&xverts[tet]; //x
+        v[1] = (float*)&yverts[tet]; //y
+        v[2] = (float*)&zverts[tet]; //z
 
+        eavlPoint3 p[4];
+        //int clipped = 0;
         for( int i=0; i< 4; i++)
         {   
-            p[i].x = v[i].x;
-            p[i].y = v[i].y; 
-            p[i].z = v[i].z;
+            p[i].x = v[0][i];
+            p[i].y = v[1][i]; 
+            p[i].z = v[2][i];
 
             eavlPoint3 t = view.P * view.V * p[i];
+            //cout<<"Before"<<t<<endl;
+            // if(t.x > 1 || t.x < -1) clipped = 1;
+            // if(t.y > 1 || t.y < -1) clipped = 1;
+            // if(t.z > 1 || t.z < -1) clipped = 1;
             p[i].x = (t.x*.5+.5)  * view.w;
             p[i].y = (t.y*.5+.5)  * view.h;
-            p[i].z = float(nSamples) * (t.z-mindepth)/(maxdepth-mindepth);
-
+            p[i].z = (t.z*.5+.5)  * (float) nSamples;
+            //cout<<"After "<<p[i]<<endl;
         }
-        for(int i=0; i<4; i++)
-        {    
-            for (int d=0; d<3; ++d)
-            {
-                    mine[d] = min(p[i][d], mine[d] );
-                    maxe[d] = max(p[i][d], maxe[d] );
-            }
-        }
-        int clipped = 0;
-
-        float mn = min(maxe[2],min(maxe[1],min(maxe[0], float(1e9) )));
-        if(mn < 0) clipped = 1;
-
-        //if (maxe[0] < 0)
-        //    return;
-        //if (maxe[1] < 0)
-        //    return;
-        //if (maxe[2] < 0)
-        //    return;
-        if (mine[0] >= view.w)
-            clipped = 1;
-        if (mine[1] >= view.h)
-            clipped = 1;
-        if (mine[2] >= nSamples)
-            clipped = 1;
-        //cout<<"TET "<<tet<<" ";
         
-        return tuple<float,float,float,float,float,float,float,float,float,float,float,float,int>(p[0].x, p[0].y, p[0].z,
+
+        return tuple<float,float,float,float,float,float,float,float,float,float,float,float>(p[0].x, p[0].y, p[0].z,
                                                                                                   p[1].x, p[1].y, p[1].z,
                                                                                                   p[2].x, p[2].y, p[2].z,
-                                                                                                  p[3].x, p[3].y, p[3].z, clipped);
+                                                                                                  p[3].x, p[3].y, p[3].z);
     }
 
    
 
 };
 
-EAVL_HOSTDEVICE bool TetBarycentricCoords(eavlPoint3 p0,
-                                          eavlPoint3 p1,
-                                          eavlPoint3 p2,
-                                          eavlPoint3 p3,
-                                          eavlPoint3 p,
-                                          float &b0, float &b1, float &b2, float &b3)
-{
-
-    bool inside = true;
-    eavlMatrix4x4 Mn(p0.x,p0.y,p0.z, 1,
-                     p1.x,p1.y,p1.z, 1,
-                     p2.x,p2.y,p2.z, 1,
-                     p3.x,p3.y,p3.z, 1);
-
-    eavlMatrix4x4 M0(p.x ,p.y ,p.z , 1,
-                     p1.x,p1.y,p1.z, 1,
-                     p2.x,p2.y,p2.z, 1,
-                     p3.x,p3.y,p3.z, 1);
-
-    eavlMatrix4x4 M1(p0.x,p0.y,p0.z, 1,
-                     p.x ,p.y ,p.z , 1,
-                     p2.x,p2.y,p2.z, 1,
-                     p3.x,p3.y,p3.z, 1);
-
-    eavlMatrix4x4 M2(p0.x,p0.y,p0.z, 1,
-                     p1.x,p1.y,p1.z, 1,
-                     p.x ,p.y ,p.z , 1,
-                     p3.x,p3.y,p3.z, 1);
-
-    eavlMatrix4x4 M3(p0.x,p0.y,p0.z, 1,
-                     p1.x,p1.y,p1.z, 1,
-                     p2.x,p2.y,p2.z, 1,
-                     p.x ,p.y ,p.z , 1);
-
-
-    float Dn = Mn.Determinant();
-    float D0 = M0.Determinant();
-    float D1 = M1.Determinant();
-    float D2 = M2.Determinant();
-    float D3 = M3.Determinant();
-
-    float mx = max(D3,max(D2,max(D1, max(D0,0.f))));   //if any are greater than 0, mx > 0
-    float mn = min(D3,min(D2,min(D1, min(D0,float(1e9))))); //if any are less than 0,    mn < 0
-    if(Dn == 0) inside = false; 
-    if (Dn<0)
-    {
-        if (D0>0 || D1>0 || D2>0 || D3>0)
-        inside =false;
-    }
-    else //if(mn < 0)
-    {
-        if (D0<0 || D1<0 || D2<0 || D3<0)
-        inside =false;
-    }
-
-    if(inside)
-    {
-        b0 = D0/Dn;
-        b1 = D1/Dn;
-        b2 = D2/Dn;
-        b3 = D3/Dn;
-    }
-
-    return inside;
-
-}
-
-struct SampleFunctor
+struct PassRange
 {   
-    const eavlConstTexArray<float4> *scalars;
+    float4 *xverts;
+    float4 *yverts;
+    float4 *zverts;
     eavlView         view;
     int              nSamples;
-    float*           samples;
-    SampleFunctor(const eavlConstTexArray<float4> *_scalars, eavlView _view, int _nSamples, float* _samples)
-    : view(_view), scalars(_scalars), nSamples(_nSamples), samples(_samples)
+    float            mindepth;
+    float            maxdepth;
+    int              numPasses;
+    int              passStride;
+    PassRange(float4 *_xverts, float4 *_yverts,float4 *_zverts, eavlView _view, int _nSamples, int _numPasses)
+    : view(_view), xverts(_xverts),yverts(_yverts),zverts(_zverts), nSamples(_nSamples), numPasses(_numPasses)
     {
-
+       
+        passStride = nSamples / numPasses;
+        //if it is not evenly divided add one pixel row so we cover all pixels
+        if(((int)nSamples % numPasses) != 0) passStride++;
+        
     }
 
-    EAVL_FUNCTOR tuple<float> operator()(tuple<int, int,float,float,float,float,float,float,float,float,float,float,float,float> inputs )
+    EAVL_FUNCTOR tuple<byte,byte> operator()(tuple<int> iterator)
     {
-        int tet = get<0>(inputs);
-        int clipped = get<1>(inputs);
-        if( clipped == 1) return tuple<float>(0.f);
-
-        eavlPoint3 p[4];
-        p[0].x = get<2>(inputs);
-        p[0].y = get<3>(inputs);
-        p[0].z = get<4>(inputs);
-
-        p[1].x = get<5>(inputs);
-        p[1].y = get<6>(inputs);
-        p[1].z = get<7>(inputs);
-
-        p[2].x = get<8>(inputs);
-        p[2].y = get<9>(inputs);
-        p[2].z = get<10>(inputs);
-
-        p[3].x = get<11>(inputs);
-        p[3].y = get<12>(inputs);
-        p[3].z = get<13>(inputs);
-        /* need the extents again, just recalc */
+        int tet = get<0>(iterator);
         eavlPoint3 mine(FLT_MAX,FLT_MAX,FLT_MAX);
         eavlPoint3 maxe(-FLT_MAX,-FLT_MAX,-FLT_MAX);
+        float* v[3];
+        v[0] = (float*)&xverts[tet]; //x
+        v[1] = (float*)&yverts[tet]; //y
+        v[2] = (float*)&zverts[tet]; //z
 
+        int clipped = 0;
+        eavlPoint3 p[4];
+
+        for( int i=0; i < 4; i++)
+        {   
+            p[i].x = v[0][i];
+            p[i].y = v[1][i]; 
+            p[i].z = v[2][i];
+
+            eavlPoint3 t = view.P * view.V * p[i];
+            if(t.x > 1 || t.x < -1) clipped = 1;
+            if(t.y > 1 || t.y < -1) clipped = 1;
+            if(t.z > 1 || t.z < -1) clipped = 1;
+            p[i].x = (t.x*.5+.5)  * view.w;
+            p[i].y = (t.y*.5+.5)  * view.h;
+            p[i].z = (t.z*.5+.5)  * (float) nSamples;
+
+        }
         for(int i=0; i<4; i++)
         {    
             for (int d=0; d<3; ++d)
@@ -288,13 +269,136 @@ struct SampleFunctor
                     maxe[d] = max(p[i][d], maxe[d] );
             }
         }
-
-        for(int i = 0; i < 3; i++) mine[i] = max(mine[i],0.f);
-        /*clamp*/
-        maxe[0] = min(float(view.w-1), maxe[0]); //??
-        maxe[1] = min(float(view.h-1), maxe[1]);
-        maxe[2] = min(float(nSamples-1), maxe[2]);
+        //if the tet stradles the edge, dump it TODO: extra check to make sure it is all the way outside
+        float mn = min(mine[2],min(mine[1],min(mine[0], float(1e9) )));
+        if(mn < 0) clipped = 1;
         
+        if(clipped == 1) return tuple<byte,byte>(255,255); //not part of any pass
+        int minPass = 0;
+        int maxPass = 0;
+        
+        minPass = mine[2] / passStride; //min z coord
+        maxPass = maxe[2] / passStride; //max z coord
+    
+        return tuple<byte,byte>(minPass, maxPass);
+    }
+
+   
+
+};
+
+
+float EAVL_HOSTDEVICE ffmin(const float &a, const float &b)
+{
+    #if __CUDA_ARCH__
+        return fmin(a,b);
+    #else
+        return (a > b) ? b : a;
+    #endif
+}
+
+float EAVL_HOSTDEVICE ffmax(const float &a, const float &b)
+{
+     #if __CUDA_ARCH__
+        return fmax(a,b);
+    #else
+        return (a > b) ? a : b;
+    #endif
+    
+}
+
+struct SampleFunctor3
+{   
+    const eavlConstTexArray<float4> *scalars;
+    eavlView         view;
+    int              nSamples;
+    float*           samples;
+    float*           fb;
+    int              passMinZPixel;
+    int              passMaxZPixel;
+    int              zSize;
+    SampleFunctor3(const eavlConstTexArray<float4> *_scalars, eavlView _view, int _nSamples, float* _samples, int _passMinZPixel, int _passMaxZPixel,int numZperPass, float* _fb)
+    : view(_view), scalars(_scalars), nSamples(_nSamples), samples(_samples)
+    {
+        
+        passMaxZPixel  = min(int(nSamples-1), _passMaxZPixel);
+        passMinZPixel  = max(0, _passMinZPixel);
+        zSize = numZperPass;
+        fb = _fb;
+    }
+
+    EAVL_FUNCTOR tuple<float> operator()(tuple<int,float,float,float,float,float,float,float,float,float,float,float,float> inputs )
+    {
+        int tet = get<0>(inputs);
+        
+        eavlVector3 p[4]; //TODO vectorize
+        p[0].x = get<1>(inputs);
+        p[0].y = get<2>(inputs);
+        p[0].z = get<3>(inputs);
+
+        p[1].x = get<4>(inputs);
+        p[1].y = get<5>(inputs);
+        p[1].z = get<6>(inputs);
+
+        p[2].x = get<7>(inputs);
+        p[2].y = get<8>(inputs);
+        p[2].z = get<9>(inputs);
+
+        p[3].x = get<10>(inputs);
+        p[3].y = get<11>(inputs);
+        p[3].z = get<12>(inputs);
+
+        eavlVector3 v[3];
+        for(int i = 1; i < 4; i++)
+        {
+            v[i-1] = p[i] - p[0];
+        }
+
+        //                  a         b            c       d
+        //float d1 = D22(mat[1][1], mat[1][2], mat[2][1], mat[2][2]);
+        float d1 = v[1].y * v[2].z - v[2].y * v[1].z;
+        //float d2 = D22(mat[1][0], mat[1][2], mat[2][0], mat[2][2]);
+        float d2 = v[0].y * v[2].z - v[2].y *  v[0].z;
+        //float d3 = D22(mat[1][0], mat[1][1], mat[2][0], mat[2][1]);
+        float d3 = v[0].y * v[1].z - v[1].y * v[0].z;
+
+        float det = v[0].x * d1 - v[1].x * d2 + v[2].x * d3;
+
+        if(det == 0) return tuple<float>(0.f); // dirty degenerate tetrahedron
+        det  = 1.f  / det;
+
+        //D22(mat[0][1], mat[0][2], mat[2][1], mat[2][2]);
+        float d4 = v[1].x * v[2].z - v[2].x * v[1].z;
+        //D22(mat[0][1], mat[0][2], mat[1][1], mat[1][2])
+        float d5 = v[1].x * v[2].y - v[2].x * v[1].y;
+        //D22(mat[0][0], mat[0][2], mat[2][0], mat[2][2]) 
+        float d6 = v[0].x * v[2].z- v[2].x * v[0].z; 
+        //D22(mat[0][0], mat[0][2], mat[1][0], mat[1][2])
+        float d7 = v[0].x * v[2].y - v[2].x * v[0].y;
+        //D22(mat[0][0], mat[0][1], mat[2][0], mat[2][1])
+        float d8 = v[0].x * v[1].z - v[1].x * v[0].z;
+        //D22(mat[0][0], mat[0][1], mat[1][0], mat[1][1])
+        float d9 = v[0].x * v[1].y - v[1].x * v[0].y;
+        /* need the extents again, just recalc */
+        eavlPoint3 mine(FLT_MAX,FLT_MAX,FLT_MAX);
+        eavlPoint3 maxe(-FLT_MAX,-FLT_MAX,-FLT_MAX);
+       
+        for(int i=0; i<4; i++)  //these two loops cost 2 registers
+        {    
+            for (int d=0; d<3; ++d) 
+            {
+                    mine[d] = min(p[i][d], mine[d] );
+                    maxe[d] = max(p[i][d], maxe[d] );
+            }
+        } 
+
+        // for(int i = 0; i < 3; i++) mine[i] = max(mine[i],0.f);
+        // /*clamp*/
+        maxe[0] = min(float(view.w-1), maxe[0]); //??  //these lines cost 14 registers
+        maxe[1] = min(float(view.w - 1.f), maxe[1]);
+        maxe[2] = min(float(passMaxZPixel), maxe[2]);
+        mine[2] = max(float(passMinZPixel), mine[2]);
+        //cout<<p[0]<<p[1]<<p[2]<<p[3]<<endl;
         int xmin = ceil(mine[0]);
         int xmax = floor(maxe[0]);
         int ymin = ceil(mine[1]);
@@ -302,109 +406,56 @@ struct SampleFunctor
         int zmin = ceil(mine[2]);
         int zmax = floor(maxe[2]);
 
-        float value;
-        if (xmin > xmax || ymin > ymax || zmin > zmax) return tuple<float>(0.f);
         float4 s = scalars->getValue(scalars_tref, tet);
-        
-        for(int x=xmin; x<=xmax; ++x)
-        {
-            for(int y=ymin; y<=ymax; ++y)
-            {
-                int startindex = (y*view.w + x)*nSamples;
 
-                for(int z=zmin; z<=zmax; ++z)
+        for(int z = zmin; z <= zmax; ++z)
+        {
+            for(int y = ymin; y <= ymax; ++y)
+            { 
+                //int pixel = ( y * view.w + x);
+                //if(fb[pixel * 4 + 3] >= 1) {continue;}
+                
+                int startindex = view.w*(y + view.h*(z -passMinZPixel));
+                #pragma ivdep
+                for(int x=xmin; x<=xmax; ++x)
                 {
 
-                    float b0,b1,b2,b3;
-                    bool isInside = TetBarycentricCoords(p[0],p[1],p[2],p[3],
-                                                         eavlPoint3(x,y,z),b0,b1,b2,b3);
-                    if (!isInside)
-                                continue;
-                    value = b0*s.x + b1*s.y + b2*s.z + b3*s.w;
-                    int index3d = startindex + z;
+                    float w1 = x - p[0].x; 
+                    float w2 = y - p[0].y; 
+                    float w3 = z - p[0].z; 
 
-                    samples[index3d] = value;
-                    
+                    float xx =   w1 * d1 - w2 * d4 + w3 * d5;
+                    xx *= det; 
+
+                    float yy = - w1 * d2 + w2 * d6 - w3 * d7; 
+                    yy *= det;
+
+                    float zz =   w1 * d3 - w2 * d8 + w3 * d9;
+                    zz *= det;
+                    w1 = xx; 
+                    w2 = yy; 
+                    w3 = zz; 
+
+                    float w0 = 1.f - w1 - w2 - w3;
+
+                    int index3d = (x + startindex);//;startindex + z;
+                    //if(tet == 2) printf("x %d y %d z %d index3d %d\n", x,y,z, index3d);
+                    //if(index3d > 1024 * 1024 *500) printf("too big");
+                    float lerped = w0*s.x + w1*s.y + w2*s.z + w3*s.w;
+                    float a = ffmin(w0,ffmin(w1,ffmin(w2,w3)));
+                    float b = ffmax(w0,ffmax(w1,ffmax(w2,w3)));
+                    // bool valid  = (a >= 0 && b <= 1);
+                    // if(valid) lerped = w0*s.x + w1*s.y + w2*s.z + w3*s.w;
+                    if((a >= 0 && b <= 1)) samples[index3d] = lerped;
+
                 }//z
             }//y
         }//x
+
         return tuple<float>(0.f);
     }
-
-   
-
 };
 
-struct CompositeFunctor
-{   
-    const eavlConstTexArray<float4> *colorMap;
-    eavlView         view;
-    int              nSamples;
-    float*           samples;
-    int              h;
-    int              w;
-    int              ncolors;
-    float            mindepth;
-    float            maxdepth;
-    CompositeFunctor( eavlView _view, int _nSamples, float* _samples, const eavlConstTexArray<float4> *_colorMap, int _ncolors)
-    : view(_view), nSamples(_nSamples), samples(_samples), colorMap(_colorMap), ncolors(_ncolors)
-    {
-
-        w = view.w;
-        h = view.h;
-        float dist = (view.view3d.from - view.view3d.at).norm();
-        eavlPoint3 closest(0,0,-dist+view.size*.5);
-        eavlPoint3 farthest(0,0,-dist-view.size*.5);
-        mindepth = (view.P * closest).z;
-        maxdepth = (view.P * farthest).z; 
-
-    }
-
-    EAVL_FUNCTOR tuple<byte,byte,byte,byte,float> operator()(tuple<int> inputs )
-    {
-        int idx = get<0>(inputs);
-        int minz = nSamples;
-        int x = idx%w;
-        int y = idx/w;
-        float4 color= {0,0,0,0};
-        for(int z = nSamples ; z>=0; --z)
-        {
-            int index3d = (y*w + x)*nSamples + z;
-            float value = samples[index3d];
-            if (value<0 || value>1)
-                continue;
-
-            int colorindex = float(ncolors-1) * value;
-            float4 c = colorMap->getValue(cmap_tref, colorindex);
-            c.w = 1;
-            // use a gaussian density function as the opactiy
-            float center = 0.5;
-            float sigma = 0.13;
-            float attenuation = 0.02; 
-            float alpha = exp(-(value-center)*(value-center)/(2*sigma*sigma));
-            //float alpha = value;
-            alpha *= attenuation;
-            color.x = color.x * (1.-alpha) + c.x * alpha;
-            color.y = color.y * (1.-alpha) + c.y * alpha;
-            color.z = color.z * (1.-alpha) + c.z * alpha;
-            color.w = color.w * (1.-alpha) + c.w * alpha;
-            minz = z;
- 
-        }
-        
-        float depth;
-        if (minz < nSamples)
-        {
-            float projdepth = float(minz)*(maxdepth-mindepth)/float(nSamples) + mindepth;
-            depth = .5 * projdepth + .5;
-        }
-
-        return tuple<byte,byte,byte,byte,float>(color.x*255., color.y*255., color.z*255.,color.w*255.,depth);
-        
-    }
-   
-
-};
 
 struct CompositeFunctorFB
 {   
@@ -417,65 +468,87 @@ struct CompositeFunctorFB
     int              ncolors;
     float            mindepth;
     float            maxdepth;
-    CompositeFunctorFB( eavlView _view, int _nSamples, float* _samples, const eavlConstTexArray<float4> *_colorMap, int _ncolors)
-    : view(_view), nSamples(_nSamples), samples(_samples), colorMap(_colorMap), ncolors(_ncolors)
+    eavlPoint3       minComposite;
+    eavlPoint3       maxComposite;
+    int              zOffest;
+    bool             finalPass;
+    int              maxSIndx;
+    CompositeFunctorFB( eavlView _view, int _nSamples, float* _samples, const eavlConstTexArray<float4> *_colorMap, int _ncolors, eavlPoint3 _minComposite, eavlPoint3 _maxComposite, int _zOffset, bool _finalPass, int _maxSIndx)
+    : view(_view), nSamples(_nSamples), samples(_samples), colorMap(_colorMap), ncolors(_ncolors), minComposite(_minComposite), maxComposite(_maxComposite), finalPass(_finalPass), maxSIndx(_maxSIndx)
     {
-
         w = view.w;
         h = view.h;
-        float dist = (view.view3d.from - view.view3d.at).norm();
-        eavlPoint3 closest(0,0,-dist+view.size*.5);
-        eavlPoint3 farthest(0,0,-dist-view.size*.5);
-        mindepth = (view.P * closest).z;
-        maxdepth = (view.P * farthest).z;
-
+        zOffest = _zOffset;
     }
-
-    EAVL_FUNCTOR tuple<byte,byte,byte,byte,float> operator()(tuple<int> inputs )
+ 
+    EAVL_FUNCTOR tuple<float,float,float,float> operator()(tuple<int, float, float, float, float> inputs )
     {
         int idx = get<0>(inputs);
-        int minz = nSamples;
         int x = idx%w;
         int y = idx/w;
-        float4 color= {0,0,0,0};
-        for(int z = 0 ; z < nSamples; z++)
+        //get the incoming color and return if the opacity is already 100%
+        float4 color= {get<1>(inputs),get<2>(inputs),get<3>(inputs),get<4>(inputs)};
+        if(color.w >= 1) return tuple<float,float,float,float>(color.x, color.y, color.z,color.w);
+
+        //pixel outside the AABB of the data set
+        if((x < minComposite.x || x > maxComposite.x) ||( y < minComposite.y || y > maxComposite.y ))
         {
-            int index3d = (y*w + x)*nSamples + z;
-            float value = samples[index3d];
-            if (value<0 || value>1)
+            return tuple<float,float,float,float>(1.f, 1.f, 1.f, 1.f);
+        }
+        for(int z = 0 ; z < zOffest; z++)
+        {
+                //(x + view.w*(y + zSize*z));
+            int index3d = (x + w*(y + h*(z))) ;//(y*w + x)*zOffest + z;
+            
+            
+            float value =  samples[index3d];//tsamples->getValue(samples_tref, index3d);// samples[index3d];
+            
+            if (value == -1 || value > 1)
                 continue;
 
             int colorindex = float(ncolors-1) * value;
             float4 c = colorMap->getValue(cmap_tref, colorindex);
-            c.w = 1;
-            // use a gaussian density function as the opactiy
-            float center = 0.5;
-            float sigma = 0.13;
-            float attenuation = 0.02;
-            float alpha = exp(-(value-center)*(value-center)/(2*sigma*sigma));
-            //float alpha = value;
-            alpha *= attenuation;
-            color.x = color.x  + c.x * (1.-color.x)*alpha;
-            color.y = color.y  + c.y * (1.-color.y)*alpha;
-            color.z = color.z  + c.z * (1.-color.z)*alpha;
-            color.w = color.w  + c.w * (1.-color.w)*alpha;
-            minz = z;
+            c.w *= (1.f - color.w); 
+            color.x = color.x  + c.x * c.w;
+            color.y = color.y  + c.y * c.w;
+            color.z = color.z  + c.z * c.w;
+            color.w = c.w + color.w;
+
             if(color.w >=1 ) break;
 
         }
-        
-        float depth;
-        if (minz < nSamples)
-        {
-            float projdepth = float(minz)*(maxdepth-mindepth)/float(nSamples) + mindepth;
-            depth = .5 * projdepth + .5;
-        }
-
-        return tuple<byte,byte,byte,byte,float>(color.x*255., color.y*255., color.z*255.,color.w*255.,depth);
+    
+        return tuple<float,float,float,float>(min(1.f, color.x),  min(1.f, color.y),min(1.f, color.z),min(1.f,color.w) );
         
     }
    
 
+};
+
+//compisite the bakground color into the framebuffer
+struct CompositeBG
+{   
+    
+    CompositeBG()
+    {
+    }
+
+    EAVL_FUNCTOR tuple<float,float,float,float> operator()(tuple<float, float, float, float> inputs )
+    {
+
+        float4 color= {get<0>(inputs),get<1>(inputs),get<2>(inputs),get<3>(inputs)};
+        if(color.w >= 1) return tuple<float,float,float,float>(color.x, color.y, color.z,color.w);
+
+        float4 c = {1.f, 1.f, 1.f, 1.f}; //white background TODO: add bg var
+
+        c.w *= (1.f - color.w); 
+        color.x = color.x  + c.x * c.w;
+        color.y = color.y  + c.y * c.w;
+        color.z = color.z  + c.z * c.w;
+        color.w = c.w + color.w;
+
+        return tuple<float,float,float,float>(min(1.f, color.x),  min(1.f, color.y),min(1.f, color.z),min(1.f,color.w) );
+    }
 };
 
 eavlFloatArray* eavlSimpleVRMutator::getDepthBuffer(float proj22, float proj23, float proj32)
@@ -515,6 +588,35 @@ void eavlSimpleVRMutator::setColorMap3f(float* cmap,int size)
     color_map_array = new eavlConstTexArray<float4>((float4*)colormap_raw, colormapSize, cmap_tref, cpu);
 }
 
+void eavlSimpleVRMutator::setColorMap4f(float* cmap,int size)
+{
+    if(verbose) cout<<"Setting new color map"<<endl;
+    colormapSize = size;
+    if(color_map_array != NULL)
+    {
+        color_map_array->unbind(cmap_tref);
+        
+        delete color_map_array;
+    
+        color_map_array = NULL;
+    }
+    if(colormap_raw != NULL)
+    {
+        delete[] colormap_raw;
+        colormap_raw = NULL;
+    }
+    colormap_raw= new float[size*4];
+    
+    for(int i=0;i<size;i++)
+    {
+        colormap_raw[i*4  ] = cmap[i*4  ];
+        colormap_raw[i*4+1] = cmap[i*4+1];
+        colormap_raw[i*4+2] = cmap[i*4+2];
+        colormap_raw[i*4+3] = cmap[i*4+3];          
+    }
+    color_map_array = new eavlConstTexArray<float4>((float4*)colormap_raw, colormapSize, cmap_tref, cpu);
+}
+
 void eavlSimpleVRMutator::setDefaultColorMap()
 {   if(verbose) cout<<"setting defaul color map"<<endl;
     if(color_map_array!=NULL)
@@ -538,129 +640,303 @@ void eavlSimpleVRMutator::setDefaultColorMap()
 }
 
 
+void eavlSimpleVRMutator::calcMemoryRequirements()
+{
+
+    unsigned long int mem = 0; //mem in bytes
+
+    mem += pixelsPerPass * sizeof(float);       //samples
+    mem += numTets * 12 * sizeof(float);
+    mem += height * width * 4 * sizeof(float);  //framebuffer
+    mem += height * width * sizeof(float);      //zbuffer
+    mem += numTets * 4 * sizeof(float);         //scalars
+    mem += numTets * 2;                         //min and max passes (BYTEs)
+    mem += numTets * sizeof(int);               //interator
+    mem += height * width * sizeof(int);        //screen iterator;
+    mem += passCountEstimate * 12 * sizeof(float);//screen space coords
+    //find pass members arrays
+    mem += numTets * 4 * sizeof(int);           //indexscan, mask, currentPassMembers
+    mem += passCountEstimate * sizeof(int);     //reverse index
+    double memd = (double) mem / (1024.0 * 1024.0);
+    printf("Memory needed %10.3f MB. Do you have enough?\n", memd);
+    
+    if(!cpu)
+    {
+
+#ifdef HAVE_CUDA
+        size_t free_byte;
+        size_t total_byte;
+        cudaMemGetInfo( &free_byte, &total_byte );
+        double free_db = (double)free_byte ;
+        double total_db = (double)total_byte ;
+        double used_db = total_db - free_db ;
+        if(verbose) printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n", used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
+        if(mem > free_byte)
+        {
+            cout<<"Warning : this will exceed memory usage by "<< (mem - free_byte) << "bytes.\n";
+        }
+#endif
+
+    }
+
+    
+
+
+}
+
+void printGPUMemUsage()
+{
+    #ifdef HAVE_CUDA
+        size_t free_byte;
+        size_t total_byte;
+        cudaMemGetInfo( &free_byte, &total_byte );
+        double free_db = (double)free_byte ;
+        double total_db = (double)total_byte ;
+        double used_db = total_db - free_db ;
+        printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n", used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
+#endif
+}
+
+void eavlSimpleVRMutator::clearSamplesArray()
+{
+    int clearValue = 0xbf800000; //-1 float
+    size_t bytes = pixelsPerPass * sizeof(float);
+    if(!cpu)
+    {
+#ifdef HAVE_CUDA
+       cudaMemset(samples->GetCUDAArray(), clearValue,bytes);
+       CUDA_CHECK_ERROR();
+#endif
+    }
+    else
+    {
+       memset(samples->GetHostArray(), clearValue, bytes);   
+    }
+
+}
+
 
 void eavlSimpleVRMutator::init()
 {
-
+    
     if(sizeDirty)
     {   
+        setNumPasses(numPasses);
         if(verbose) cout<<"Size Dirty"<<endl;
         deleteClassPtr(samples);
         deleteClassPtr(framebuffer);
-        deleteClassPtr(screenIterator);
+        
         deleteClassPtr(zBuffer);
         
-        samples         = new eavlFloatArray("",1,height*width*nSamples);
-        framebuffer     = new eavlByteArray("",1,height*width*4);
-        screenIterator  = new eavlIntArray("",1,height*width);
+        samples         = new eavlFloatArray("",1,pixelsPerPass);
+        framebuffer     = new eavlFloatArray("",1,height*width*4);
         zBuffer         = new eavlFloatArray("",1,height*width);
-        
-        int size = height* width;
-        for(int i=0; i < size; i++) screenIterator->SetValue(i,i);
-
-        if(verbose) cout<<"Samples array size "<<height*width*nSamples<<endl;
-
+        clearSamplesArray();
+        if(verbose) cout<<"Samples array size "<<pixelsPerPass<<" Current CPU val "<<cpu<< endl;
+        if(verbose) cout<<"Current framebuffer size "<<(height*width*4)<<endl;
         sizeDirty = false;
+         
     }
 
     if(geomDirty && numTets > 0)
     {   
         if(verbose) cout<<"Geometry Dirty"<<endl;
-
+        firstPass = true;
+        passNumDirty = true;
         freeTextures();
         freeRaw();
 
+        deleteClassPtr(minPasses);
+        deleteClassPtr(maxPasses);
+        deleteClassPtr(iterator);
+        deleteClassPtr(dummy);
+        deleteClassPtr(indexScan);
+        deleteClassPtr(mask);
+
+        tetSOA = scene->getEavlTetPtrs();
+        scalars_raw = scene->getScalarPtr();
+        
+        scalars_array       = new eavlConstTexArray<float4>( (float4*) scalars_raw, numTets, scalars_tref, cpu);
+        minPasses = new eavlByteArray("",1, numTets);
+        maxPasses = new eavlByteArray("",1, numTets);
+        indexScan = new eavlIntArray("",1, numTets);
+        mask = new eavlIntArray("",1, numTets);
+
+        iterator      = new eavlIntArray("",1, numTets);
+        dummy = new eavlFloatArray("",1,1); //wtf
+        for(int i=0; i < numTets; i++) iterator->SetValue(i,i);
+        readTransferFunction(tfFilename);
+        geomDirty = false;
+    }
+
+    //we are trying to keep the mem usage down. We will conservativily estimate the number of
+    //indexes to keep in here. Edge case would we super zoomed in a particlar region which
+    //would maximize the wasted space.
+    
+    if(!firstPass)
+    {
+        float ratio = maxPassSize / (float) passCountEstimate;
+        if(ratio < .9 || ratio > 1.f) 
+        {
+            passCountEstimate = maxPassSize + (int)(maxPassSize * .1); //add a little padding here.
+            passNumDirty = true;
+            cout<<"Ajdusting Pass size"<<endl;
+        }
+    }
+
+    if(passNumDirty)
+    {
+        if(verbose) cout<<"Pass Dirty"<<endl;
+        if(firstPass) 
+        {
+       
+            passCountEstimate = (int)((numTets / numPasses) * PASS_ESTIMATE_FACTOR); //TODO: see how close we can cut this
+            if(numPasses == 1) passCountEstimate = numTets;
+            maxPassSize =-1;
+            firstPass = false;
+        }
+        deleteClassPtr(currentPassMembers);
+        deleteClassPtr(reverseIndex);
         deleteClassPtr(ssa);
         deleteClassPtr(ssb);
         deleteClassPtr(ssc);
         deleteClassPtr(ssd);
-        deleteClassPtr(clippingFlags);
-        deleteClassPtr(iterator);
-        deleteClassPtr(dummy);
-
-        tets_raw = scene->getTetPtr();
-        scalars_raw = scene->getScalarPtr();
-        
-        tets_verts_array    = new eavlConstTexArray<float4>( (float4*) tets_raw, numTets*4, tets_verts_tref, cpu); 
-        scalars_array       = new eavlConstTexArray<float4>( (float4*) scalars_raw, numTets, scalars_tref, cpu);
-      
-        ssa = new eavlFloatArray("",1, numTets*3);
-        ssb = new eavlFloatArray("",1, numTets*3);
-        ssc = new eavlFloatArray("",1, numTets*3);
-        ssd = new eavlFloatArray("",1, numTets*3);
-
-        clippingFlags = new eavlIntArray("",1, numTets);
-        iterator      = new eavlIntArray("",1, numTets);
-        dummy = new eavlFloatArray("",1,numTets);
-        for(int i=0; i < numTets; i++) iterator->SetValue(i,i);
-
-        geomDirty = false;
+        deleteClassPtr(screenIterator);
+        if(false && numPasses == 1)
+        {
+            currentPassMembers = iterator;
+        }
+        else
+        {   //we don't need to allocate this if we are only doing one pass
+            currentPassMembers = new eavlIntArray("",1, passCountEstimate);
+            reverseIndex = new eavlIntArray("",1, passCountEstimate); 
+        }
+        int size = width * height;
+        screenIterator  = new eavlIntArray("",1,size);
+        for(int i=0; i < size; i++) screenIterator->SetValue(i,i);
+        int space  = passCountEstimate*3;
+        if(space < 0) cout<<"ERROR int overflow"<<endl;
+        if(verbose) cout<<"allocating pce "<<passCountEstimate<<endl;
+        ssa = new eavlFloatArray("",1, passCountEstimate*3); 
+        ssb = new eavlFloatArray("",1, passCountEstimate*3);
+        ssc = new eavlFloatArray("",1, passCountEstimate*3);
+        ssd = new eavlFloatArray("",1, passCountEstimate*3);
+        passNumDirty = false;
     }
     
+    calcMemoryRequirements();
+}
 
+struct PassThreshFunctor
+{
+    int passId;
+    PassThreshFunctor(int _passId) : passId(_passId)
+    {}
+
+    EAVL_FUNCTOR tuple<int> operator()(tuple<int,int> input){
+        int minp = get<0>(input);
+        int maxp = get<1>(input);
+        if((minp <= passId) && (maxp >= passId)) return tuple<int>(1);
+        else return tuple<int>(0);
+    }
+};
+
+void eavlSimpleVRMutator::findCurrentPassMembers(int pass)
+{
+    int passtime;
+    if(verbose)  passtime = eavlTimer::Start();
+
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(minPasses,maxPasses),
+                                         eavlOpArgs(mask),
+                                         PassThreshFunctor(pass)),
+                                         "find pass members");
+
+    eavlExecutor::Go();
+    eavlExecutor::AddOperation(new eavlPrefixSumOp_1(mask,indexScan,false), //inclusive==true exclusive ==false
+                                                     "create indexes");
+    eavlExecutor::Go();
+
+    eavlExecutor::AddOperation(new eavlReduceOp_1<eavlAddFunctor<int> >
+                              (mask,
+                               passCount,
+                               eavlAddFunctor<int>()),
+                               "count output");
+    eavlExecutor::Go();
+
+    passSize = passCount->GetValue(0);
+    maxPassSize = max(maxPassSize, passSize);
+
+    if(passSize > passCountEstimate)
+    {
+      cout<<"WARNING Exceeded max passSize:  maxPassSize "<<maxPassSize<<" estimate "<<passCountEstimate<<endl;  
+      passNumDirty = true;
+      THROW(eavlException, "exceeded max pass size.");
+    } 
+
+    if(passSize == 0)
+    {
+        return;
+    }
+    
+    eavlExecutor::AddOperation(new eavlSimpleReverseIndexOp(mask,
+                                                            indexScan,
+                                                            reverseIndex),
+                                                            "generate reverse lookup");
+    eavlExecutor::Go();
+    
+    eavlExecutor::AddOperation(new_eavlGatherOp(eavlOpArgs(iterator),
+                                                eavlOpArgs(currentPassMembers),
+                                                eavlOpArgs(reverseIndex),
+                                                passSize),
+                                                "pull in the tets for this pass");
+    eavlExecutor::Go();
+    
+
+    if(verbose) passSelectionTime += eavlTimer::Stop(passtime,"pass");
 }
 
 void  eavlSimpleVRMutator::Execute()
 {
 
+
+    //timing accumulators
+    double clearTime = 0;
+    passFilterTime = 0;
+    compositeTime = 0;
+    passSelectionTime = 0;
+    sampleTime = 0;
+    allocateTime = 0;
+    screenSpaceTime = 0;
+    renderTime = 0;
+   
     int tets = scene->getNumTets();
     if(tets != numTets)
     {
         geomDirty = true;
         numTets = tets;
     }
+    if(verbose) cout<<"Num Tets = "<<numTets<<endl;
+
     int tinit;
     if(verbose) tinit = eavlTimer::Start();
     init();
-    if(verbose) cout<<"Init        RUNTIME: "<<eavlTimer::Stop(tinit,"init")<<endl;
-
-    if(numTets < 1)
+    float4* xtet;
+    float4* ytet;
+    float4* ztet;
+    if(!cpu)
     {
-        //cout<<"Nothing to render."<<endl;
-        return;
+        //cout<<"Getting cuda array for tets."<<endl;
+        xtet = (float4*) tetSOA[0]->GetCUDAArray();
+        ytet = (float4*) tetSOA[1]->GetCUDAArray();
+        ztet = (float4*) tetSOA[2]->GetCUDAArray();
     }
-
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(framebuffer),
-                                             eavlOpArgs(framebuffer),
-                                             IntMemsetFunctor(0.f)),
-                                             "clear Frame Buffer");
-    eavlExecutor::Go();
-
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(samples),
-                                             eavlOpArgs(samples),
-                                             FloatMemsetFunctor(0.f)),
-                                             "clear Frame Buffer");
-    eavlExecutor::Go();
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(zBuffer),
-                                             eavlOpArgs(zBuffer),
-                                             FloatMemsetFunctor(1.f)),
-                                             "clear Frame Buffer");
-    eavlExecutor::Go();
-
-    int ttrans;
-    if(verbose) ttrans = eavlTimer::Start();
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(iterator),
-                                             eavlOpArgs(eavlIndexable<eavlFloatArray>(ssa,*i1),
-                                                        eavlIndexable<eavlFloatArray>(ssa,*i2),
-                                                        eavlIndexable<eavlFloatArray>(ssa,*i3),
-                                                        eavlIndexable<eavlFloatArray>(ssb,*i1),
-                                                        eavlIndexable<eavlFloatArray>(ssb,*i2),
-                                                        eavlIndexable<eavlFloatArray>(ssb,*i3),
-                                                        eavlIndexable<eavlFloatArray>(ssc,*i1),
-                                                        eavlIndexable<eavlFloatArray>(ssc,*i2),
-                                                        eavlIndexable<eavlFloatArray>(ssc,*i3),
-                                                        eavlIndexable<eavlFloatArray>(ssd,*i1),
-                                                        eavlIndexable<eavlFloatArray>(ssd,*i2),
-                                                        eavlIndexable<eavlFloatArray>(ssd,*i3),
-                                                        eavlIndexable<eavlIntArray>(clippingFlags)),
-                                             ScreenSpaceFunctor(tets_verts_array, view, nSamples)),
-                                             "Screen Space transform");
-    eavlExecutor::Go();
-
-    if(verbose) cout<<"Transform   RUNTIME: "<<eavlTimer::Stop(ttrans,"ttrans")<<endl;
-
+    else 
+    {
+        xtet = (float4*) tetSOA[0]->GetHostArray();
+        ytet = (float4*) tetSOA[1]->GetHostArray();
+        ztet = (float4*) tetSOA[2]->GetHostArray();
+    }
     float* samplePtr;
-   
     if(!cpu)
     {
         samplePtr = (float*) samples->GetCUDAArray();
@@ -670,10 +946,141 @@ void  eavlSimpleVRMutator::Execute()
         samplePtr = (float*) samples->GetHostArray();
     }
 
-    int tsample;
-    if(verbose) tsample = eavlTimer::Start();
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlIntArray>(iterator),
-                                                        eavlIndexable<eavlIntArray>(clippingFlags),
+    float* alphaPtr;
+    if(!cpu)
+    {
+        alphaPtr = (float*) framebuffer->GetCUDAArray();
+    }
+    else 
+    {
+        alphaPtr = (float*) framebuffer->GetHostArray();
+    }
+    if(verbose) cout<<"Init        RUNTIME: "<<eavlTimer::Stop(tinit,"init")<<endl;
+
+    
+    
+    if(numTets < 1)
+    {
+        cout<<"Nothing to render. Number of tets = "<<numTets<<endl;
+        return;
+    }
+
+    // Pixels extents are used to skip empty space in compositing.
+    eavlPoint3 mins(scene->getSceneBBox().min.x,scene->getSceneBBox().min.y,scene->getSceneBBox().min.z);
+    eavlPoint3 maxs(scene->getSceneBBox().max.x,scene->getSceneBBox().max.y,scene->getSceneBBox().max.z);
+    getBBoxPixelExtent(mins,maxs);
+
+    int ttot;
+    if(verbose) ttot = eavlTimer::Start();
+
+    if(verbose)
+    {
+        cout<<"BBox Screen Space "<<mins<<maxs<<endl; 
+    }
+    int tclear;
+    if(verbose) tclear = eavlTimer::Start();
+
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(framebuffer),
+                                             eavlOpArgs(framebuffer),
+                                             FloatMemsetFunctor(0)),
+                                             "clear Frame Buffer");
+    eavlExecutor::Go();
+
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(zBuffer),
+                                             eavlOpArgs(zBuffer),
+                                             FloatMemsetFunctor(1.f)),
+                                             "clear Frame Buffer");
+    eavlExecutor::Go();
+   
+    
+    
+     if(verbose) cout<<"ClearBuffs  RUNTIME: "<<eavlTimer::Stop(tclear,"")<<endl;
+
+    int ttrans;
+    if(verbose) ttrans = eavlTimer::Start();
+    if(false && numPasses == 1)
+    {
+        //just set all tets to the first pass
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(minPasses),
+                                             eavlOpArgs(minPasses),
+                                             IntMemsetFunctor(0)),
+                                             "set");
+        eavlExecutor::Go();
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(maxPasses),
+                                             eavlOpArgs(maxPasses),
+                                             IntMemsetFunctor(0)),
+                                             "set");
+        eavlExecutor::Go();
+        //passSize = numTets;
+    }
+    else
+    {
+        //find the min and max passes the tets belong to
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(iterator),
+                                             eavlOpArgs(minPasses, maxPasses),
+                                             PassRange(xtet,ytet,ztet, view, nSamples, numPasses)),
+                                             "PassFilter");
+        eavlExecutor::Go(); 
+    }
+    
+
+    if(verbose) passFilterTime =  eavlTimer::Stop(ttrans,"ttrans");
+        
+    
+    //cout<<"Pass Z stride "<<passZStride<<endl;
+    for(int i = 0; i < numPasses; i++)
+    {
+        int pixelZMin = passZStride * i;
+        int pixelZMax = passZStride * (i + 1) - 1;
+      
+        try
+        {
+            //if(numPasses > 1) 
+                findCurrentPassMembers(i);
+        }
+        catch(eavlException &e)
+        {
+            return;
+        }
+        
+
+        
+        if(passSize > 0)
+        {
+            int tclearS;
+            if(verbose) tclearS = eavlTimer::Start();
+            if (i != 0) clearSamplesArray();  //this is a win on CPU for sure, gpu seems to be the same
+            // eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(samples),
+            //                                          eavlOpArgs(samples),
+            //                                          FloatMemsetFunctor(-1.f)),
+            //                                          "clear Frame Buffer");
+            // eavlExecutor::Go();
+            if(verbose) clearTime += eavlTimer::Stop(tclearS,"");
+                
+            int tsspace;
+            if(verbose) tsspace = eavlTimer::Start();
+           
+            eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(currentPassMembers),
+                                                     eavlOpArgs(eavlIndexable<eavlFloatArray>(ssa,*i1),
+                                                                eavlIndexable<eavlFloatArray>(ssa,*i2),
+                                                                eavlIndexable<eavlFloatArray>(ssa,*i3),
+                                                                eavlIndexable<eavlFloatArray>(ssb,*i1),
+                                                                eavlIndexable<eavlFloatArray>(ssb,*i2),
+                                                                eavlIndexable<eavlFloatArray>(ssb,*i3),
+                                                                eavlIndexable<eavlFloatArray>(ssc,*i1),
+                                                                eavlIndexable<eavlFloatArray>(ssc,*i2),
+                                                                eavlIndexable<eavlFloatArray>(ssc,*i3),
+                                                                eavlIndexable<eavlFloatArray>(ssd,*i1),
+                                                                eavlIndexable<eavlFloatArray>(ssd,*i2),
+                                                                eavlIndexable<eavlFloatArray>(ssd,*i3)),
+                                                    ScreenSpaceFunctor(xtet,ytet,ztet,view, nSamples),passSize),
+                                                    "Screen Space transform");
+            eavlExecutor::Go();
+    
+            if(verbose) screenSpaceTime += eavlTimer::Stop(tsspace,"sample");
+            int tsample;
+            if(verbose) tsample = eavlTimer::Start();
+            eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlIntArray>(currentPassMembers),
                                                         eavlIndexable<eavlFloatArray>(ssa,*i1),
                                                         eavlIndexable<eavlFloatArray>(ssa,*i2),
                                                         eavlIndexable<eavlFloatArray>(ssa,*i3),
@@ -686,51 +1093,357 @@ void  eavlSimpleVRMutator::Execute()
                                                         eavlIndexable<eavlFloatArray>(ssd,*i1),
                                                         eavlIndexable<eavlFloatArray>(ssd,*i2),
                                                         eavlIndexable<eavlFloatArray>(ssd,*i3)),
-                                             eavlOpArgs(eavlIndexable<eavlFloatArray>(dummy,*idummy)), 
-                                             SampleFunctor(scalars_array, view, nSamples, samplePtr)),
-                                             "Sampler");
-    eavlExecutor::Go();
-    if(verbose) cout<<"Sample      RUNTIME: "<<eavlTimer::Stop(tsample,"sample")<<endl;
+                                                        eavlOpArgs(eavlIndexable<eavlFloatArray>(dummy,*idummy)), 
+                                                     SampleFunctor3(scalars_array, view, nSamples, samplePtr, pixelZMin, pixelZMax, passZStride, alphaPtr),passSize),
+                                                     "Sampler");
+            eavlExecutor::Go();
+            
+            if(verbose) sampleTime += eavlTimer::Stop(tsample,"sample");
+            int talloc;
+            if(verbose) talloc = eavlTimer::Start();
+            //we have to offset into the pixel buffer
+            deleteClassPtr(ir);
+            deleteClassPtr(ig);
+            deleteClassPtr(ib);
+            deleteClassPtr(ia);
+           
 
-    int tcomp;
-    if(verbose) tcomp = eavlTimer::Start();
-     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(screenIterator),
-                                              eavlOpArgs(eavlIndexable<eavlByteArray>(framebuffer,*ir),
-                                                         eavlIndexable<eavlByteArray>(framebuffer,*ig),
-                                                         eavlIndexable<eavlByteArray>(framebuffer,*ib),
-                                                         eavlIndexable<eavlByteArray>(framebuffer,*ia),
-                                                         eavlIndexable<eavlFloatArray>(zBuffer)),
-                                             CompositeFunctor( view, nSamples, samplePtr, color_map_array, colormapSize), height*width),
-                                             "Composite");
+            ir = new eavlArrayIndexer(4,0);
+            ig = new eavlArrayIndexer(4,1);
+            ib = new eavlArrayIndexer(4,2);
+            ia = new eavlArrayIndexer(4,3);
+            if(verbose) allocateTime += eavlTimer::Stop(talloc,"sample");
+            //eavlArrayIndexer * ifb = new eavlArrayIndexer(1, offset);
+            //cout<<"screenIterator last value "<<screenIterator->GetS
+            bool finalPass = (i == numPasses - 1) ? true : false;
+            int tcomp;
+            if(verbose) tcomp = eavlTimer::Start();
+             eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlIntArray>(screenIterator),
+                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ir),
+                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ig),
+                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ib),
+                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ia)),
+                                                      eavlOpArgs(eavlIndexable<eavlFloatArray>(framebuffer,*ir),
+                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ig),
+                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ib),
+                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ia)),
+                                                     CompositeFunctorFB( view, nSamples, samplePtr, color_map_array, colormapSize, mins, maxs, passZStride, finalPass, pixelsPerPass), width*height),
+                                                     "Composite");
+            eavlExecutor::Go();
+            if(verbose) compositeTime += eavlTimer::Stop(tcomp,"tcomp");
+        }
+    }//for each pass
+    renderTime  = eavlTimer::Stop(ttot,"total render");
+    if(verbose) cout<<"PassFilter  RUNTIME: "<<passFilterTime<<endl;
+    cout<<"Clear Sample  RUNTIME: "<<clearTime<<endl;
+    if(verbose) cout<<"PassSel     RUNTIME: "<<passSelectionTime<<" Pass AVE: "<<passSelectionTime / (float)numPasses<<endl;
+    if(verbose) cout<<"ScreenSpace RUNTIME: "<<screenSpaceTime<<" Pass AVE: "<<screenSpaceTime / (float)numPasses<<endl;
+    if(verbose) cout<<"Sample      RUNTIME: "<<sampleTime<<" Pass AVE: "<<sampleTime / (float)numPasses<<endl;
+    if(verbose) cout<<"Composite   RUNTIME: "<<compositeTime<<" Pass AVE: "<<compositeTime / (float)numPasses<<endl;
+    if(verbose) cout<<"Alloc       RUNTIME: "<<allocateTime<<" Pass AVE: "<<allocateTime / (float)numPasses<<endl;
+    if(verbose) cout<<"Total       RUNTIME: "<<renderTime<<endl;
+    dataWriter();
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(
+                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ir),
+                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ig),
+                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ib),
+                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ia)),
+                                                      eavlOpArgs(eavlIndexable<eavlFloatArray>(framebuffer,*ir),
+                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ig),
+                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ib),
+                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ia)),
+                                                     CompositeBG(), height*width),
+                                                     "Composite");
     eavlExecutor::Go();
-    if(verbose) cout<<"Composite   RUNTIME: "<<eavlTimer::Stop(tcomp,"tcomp")<<endl;
+    //cout<<"SCONTER "<<scounter<<" Skipped " <<skipped <<" ratio "<<skipped / (float) scounter<< endl;
+    //cout<<"Samples "<<scounter<<" Tets "<<numTets<<" Ratio "<<scounter/(float)numTets<<" per pixel "<<scounter / (float)(view.h*view.w)<<endl;
+}
+
+
+inline bool exists (const std::string& name) {
+    ifstream f(name.c_str());
+    if (f.good()) {
+        f.close();
+        return true;
+    } else {
+        f.close();
+        return false;
+    }   
+}
+
+void  eavlSimpleVRMutator::dataWriter()
+{
+  string sCPU = "_CPU_";
+  string sGPU = "_GPU_";
+  string dfile;
+  if(cpu) dfile = "datafile_" + sCPU + dataname + ".dat";
+  else dfile = "datafile_" + sGPU + dataname + ".dat";  
+   
+  if(!exists(dfile))
+  {
+    ofstream boilerplate;
+    boilerplate.open (dfile.c_str());
+    boilerplate << "Step\n";
+    boilerplate << "Pass Filter\n";
+    boilerplate << "Pass Selection\n";
+    boilerplate << "Screen Space\n";
+    boilerplate << "Sampling\n";
+    boilerplate << "Compostiting\n";
+    boilerplate << "Render\n";
+    boilerplate.close();
+  }
+  string separator = ",";
+  string line[7];
+  double times[6];
+  times[0] = passFilterTime;
+  times[1] = passSelectionTime;
+  times[2] = screenSpaceTime;
+  times[3] = sampleTime;
+  times[4] = compositeTime;
+  times[5] = renderTime;
+
+  ifstream dataIn (dfile.c_str());
+  if (dataIn.is_open())
+  {
+    for(int i = 0; i < 7; i++)
+    {
+        getline (dataIn,line[i]);
+        //cout << line[i] << '\n';
+    }
+    dataIn.close();
+  }
+  else
+  {
+    cout << "Unable to open file"<<endl;
+    return; 
+  }
+  ofstream dataOut (dfile.c_str());
+  if (dataOut.is_open())
+  {
+    for(int i = 0; i < 7; i++)
+    {
+         if(i ==  0) dataOut << line[i] << separator <<numPasses<<endl;
+         else dataOut << line[i] << separator <<times[i-1]<<endl;
+    }
+    
+    dataOut.close();
+  }
+  else dataOut << "Unable to open file";
+    string space = " ";
 
 }
 
 void  eavlSimpleVRMutator::freeTextures()
 {
-    if(verbose) cout<<"Free textures"<<endl;
-
-    if (tets_verts_array != NULL) 
-    {
-        tets_verts_array->unbind(tets_verts_tref);
-        delete tets_verts_array;
-        tets_verts_array = NULL;
-    }
     if (scalars_array != NULL) 
     {
         scalars_array->unbind(scalars_tref);
         delete scalars_array;
         scalars_array = NULL;
     }
-   
 
 }
 void  eavlSimpleVRMutator::freeRaw()
 {
-    if(verbose) cout<<"Free raw"<<endl;
-    deleteArrayPtr(tets_raw);
     deleteArrayPtr(scalars_raw);
-   
+}
+template <class A, class B> EAVL_HOSTDEVICE A lerp(const A& a, const A& b, const B& t) { return (A)(a * ((B)1 - t) + b * t); }
+void eavlSimpleVRMutator::readTransferFunction(string filename)
+{
 
+    std::fstream file(filename.c_str(), std::ios_base::in);
+    if(file != NULL)
+    {
+        //file format number of peg points, then peg points 
+        //peg point 0 0 255 255 0.0241845 //RGBA postion(float)
+        int numPegs;
+        file>>numPegs;
+        if(numPegs >= COLOR_MAP_SIZE || numPegs < 1) 
+        {
+            cerr<<"Invalid number of peg points, valid range [1,1024]: "<<numPegs<<endl;
+            exit(1);
+        } 
+
+        float *rgb = new float[numPegs*3];
+        float *positions = new float[numPegs];
+        int trash;
+        for(int i = 0; i < numPegs; i++)
+        {
+            file>>rgb[i*3 + 0];
+            file>>rgb[i*3 + 1];
+            file>>rgb[i*3 + 2];
+            rgb[i*3 + 0] = rgb[i*3 + 0] / 255.f; //normalize
+            rgb[i*3 + 1] = rgb[i*3 + 1] / 255.f; //normalize
+            rgb[i*3 + 2] = rgb[i*3 + 2] / 255.f; //normalize
+            file>>trash;
+            file>>positions[i];
+
+        }
+        //next we read in the free form opacity
+        int numOpacity;
+        file>>numOpacity;
+        if(numOpacity >= COLOR_MAP_SIZE || numOpacity < 1) 
+        {
+            cerr<<"Invalid number of opacity points, valid range [1,1024]: "<<numOpacity<<endl;
+            exit(1);
+        } 
+        float *opacityPoints = new float[numOpacity];
+        float *opacityPositions = new float[numOpacity];
+        for(int i = 0; i < numOpacity; i++)
+        {
+            file>>opacityPoints[i];
+            opacityPoints[i] = (opacityPoints[i] / 255.f ) * opacityFactor; //normalize
+            opacityPositions[i] = i / (float) numOpacity;
+        }
+        cout<<endl;
+        //build the color map
+
+        int rgbPeg1 = 0;
+        int rgbPeg2 = 1;
+
+        int opacityPeg1 = 0;
+        int opacityPeg2 = 1;
+        
+        float currentPosition = 0.f;
+        float *colorMap = new float[COLOR_MAP_SIZE * 4];
+
+        //fill in rgb values
+        float startPosition;
+        float endPosition;
+        float4 startColor = {0,0,0,0};
+        float4 endColor = {0,0,0,0};
+        //init color and positions
+        if(positions[rgbPeg1] == 0.f)
+        {
+            startPosition = positions[rgbPeg1];
+            startColor.x = rgb[rgbPeg1*3 + 0];
+            startColor.y = rgb[rgbPeg1*3 + 1];
+            startColor.z = rgb[rgbPeg1*3 + 2];
+            endPosition = positions[rgbPeg2];
+            endColor.x = rgb[rgbPeg2*3 + 0];
+            endColor.y = rgb[rgbPeg2*3 + 1];
+            endColor.z = rgb[rgbPeg2*3 + 2];
+        }
+        else
+        {
+            //cout<<"init 0 start"<<endl;
+            startPosition = 0;
+            //color already 0
+            endPosition = positions[rgbPeg1];
+            endColor.x = rgb[rgbPeg1*3 + 0];
+            endColor.y = rgb[rgbPeg1*3 + 1];
+            endColor.z = rgb[rgbPeg1*3 + 2];
+        }
+
+        for(int i = 0; i < COLOR_MAP_SIZE; i++)
+        {
+            
+            currentPosition = i / (float)COLOR_MAP_SIZE;
+
+            float t = (currentPosition - startPosition) / (endPosition - startPosition);
+            colorMap[i*4 + 0] = lerp(startColor.x, endColor.x, t);
+            colorMap[i*4 + 1] = lerp(startColor.y, endColor.y, t);
+            colorMap[i*4 + 2] = lerp(startColor.z, endColor.z, t);
+
+            if( (currentPosition > endPosition) )
+            {
+                //advance peg points
+
+                rgbPeg1++;
+                rgbPeg2++;  
+                //reached the last Peg point 
+                if(rgbPeg2 >= numPegs) 
+                {
+                    startPosition = positions[rgbPeg1];
+                    startColor.x = rgb[rgbPeg1*3 + 0];
+                    startColor.y = rgb[rgbPeg1*3 + 1];
+                    startColor.z = rgb[rgbPeg1*3 + 2];
+                    //just keep the same color, we could change this to 0
+                    endPosition = 1.f;
+                    endColor.x = rgb[rgbPeg1*3 + 0];
+                    endColor.y = rgb[rgbPeg1*3 + 1];
+                    endColor.z = rgb[rgbPeg1*3 + 2];
+
+                }
+                else
+                {
+                    startPosition = positions[rgbPeg1];
+                    startColor.x = rgb[rgbPeg1*3 + 0];
+                    startColor.y = rgb[rgbPeg1*3 + 1];
+                    startColor.z = rgb[rgbPeg1*3 + 2];
+                    endPosition = positions[rgbPeg2];
+                    endColor.x = rgb[rgbPeg2*3 + 0];
+                    endColor.y = rgb[rgbPeg2*3 + 1];
+                    endColor.z = rgb[rgbPeg2*3 + 2];
+                }
+
+            }
+        }
+
+        float startAlpha = 0.f;
+        float endAlpha = 1.f;
+        if(positions[opacityPeg1] == 0.f)
+        {
+            startPosition = opacityPositions[opacityPeg1];
+            startAlpha = opacityPoints[opacityPeg1];
+            endPosition = opacityPositions[opacityPeg2];
+            endAlpha = opacityPoints[opacityPeg2];
+        }
+        else
+        {
+            startPosition = 0.f;
+            startAlpha = 0.f;
+            endPosition = opacityPoints[opacityPeg1];
+            endAlpha = opacityPoints[opacityPeg1];
+        }
+        // fill in alphas
+        for(int i = 0; i < COLOR_MAP_SIZE; i++)
+        {
+           
+            currentPosition = i / (float)COLOR_MAP_SIZE;
+
+            float t = (currentPosition - startPosition) / (endPosition - startPosition);
+            colorMap[i*4 + 3] = lerp(startAlpha, endAlpha, t);
+
+            //cout<<colorMap[i*4+0]<<" "<<colorMap[i*4+1]<<" "<<colorMap[i*4+2]<<" "<<colorMap[i*4+3]<<" pos "<<currentPosition<<endl;
+            if(currentPosition > endPosition)
+            {
+                //advance peg points
+
+                opacityPeg1++;
+                opacityPeg2++;  
+                //reached the last Peg point
+                if(opacityPeg2 >= numOpacity) 
+                {
+                    startPosition = opacityPositions[opacityPeg1];
+                    startAlpha = opacityPoints[opacityPeg1];
+                   
+                    //just keep the same color, we could change this to 0
+                    endPosition = 1.f;
+                    endAlpha = opacityPoints[opacityPeg1];
+                    
+
+                }
+                else
+                {
+                    startPosition = opacityPositions[opacityPeg1];
+                    startAlpha = opacityPoints[opacityPeg1];
+                   
+                    endPosition = opacityPositions[opacityPeg2];
+                    endAlpha = opacityPoints[opacityPeg2];
+                   
+                }
+            }
+        }
+
+        setColorMap4f(colorMap, COLOR_MAP_SIZE);
+        delete[] rgb;
+        delete[] positions;
+        delete[] opacityPoints;
+        delete[] opacityPositions;
+    }
+    else 
+    {
+        cerr<<"Could not open tranfer function file : "<<filename.c_str()<<endl;
+    }
 }
