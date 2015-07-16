@@ -92,14 +92,14 @@ class eavlRay
 class eavlFullRay : public eavlRay
 {
   public:
-  	eavlFloatArray*     weight;	      //contribution
-  	eavlFloatArray*     normalX;	      //intersection normal
+  	eavlFloatArray*     weight;	      		//contribution
+  	eavlFloatArray*     normalX;	      	//intersection normal
   	eavlFloatArray*     normalY;	     
   	eavlFloatArray*     normalZ;
   	eavlFloatArray*     intersectionX;
   	eavlFloatArray*     intersectionY;
   	eavlFloatArray*     intersectionZ;	     
-  	eavlByteArray*      hitType;      //type of geometry hit
+  	eavlByteArray*      hitType;      		//type of geometry hit
   	eavlFullRay(const size_t &size) : eavlRay(size) 
   	{
   		weight  = new eavlFloatArray("",1,numRays);
