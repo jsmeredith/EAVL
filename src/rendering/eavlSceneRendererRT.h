@@ -182,11 +182,8 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         eavlVector3 right = (lookdir % view.view3d.up).normalized();
         /* Tracer is a lefty, so this is flip so down is not up */
         eavlVector3 up = ( lookdir % right).normalized();  
-        
-        
-        camera->lookAtPosition(view.view3d.at.x,view.view3d.at.y,view.view3d.at.z);
         camera->setCameraPosition(view.view3d.from.x,view.view3d.from.y,view.view3d.from.z);
-
+        camera->lookAtPosition(view.view3d.at.x,view.view3d.at.y,view.view3d.at.z);
         camera->setCameraUp(up.x,up.y,up.z);
 
         /*Otherwise the light will move with the camera*/
