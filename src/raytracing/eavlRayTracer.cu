@@ -1,5 +1,5 @@
 #include <eavlRayTracer.h>
-
+#include <eavlMapOp.h>
 
 eavlRayTracer::eavlRayTracer()
 {
@@ -276,6 +276,7 @@ void eavlRayTracer::init()
 		rgbaPixels  = new eavlByteArray("", 1, numRays * 4); //rgba
 		depthBuffer = new eavlFloatArray("", 1, numRays);
 		inShadow    = new eavlFloatArray("", 1, numRays);
+                currentFrameSize = numRays;
 	}
 
 	if(geometryDirty)
@@ -312,7 +313,8 @@ void eavlRayTracer::render()
                                              IntMemsetFunctor(0)),
                                              "shadows");
     eavlExecutor::Go();
-
+	intersector->testIntersections(rays, INFINITE, triGeometry,1,1,camera);
+	exit(0);
 	intersector->intersectionDepth(rays, INFINITE, triGeometry);
 	eavlFunctorArray<float> mats(eavlMaterials);
 	eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->rayOriginX,
@@ -388,3 +390,19 @@ eavlFloatArray* eavlRayTracer::getDepthBuffer(float proj22, float proj23, float 
 }
 
 eavlByteArray* eavlRayTracer::getFrameBuffer() { return rgbaPixels; }
+
+void eavlRayTracer::setDefaultMaterial(const float &ka,const float &kd, const float &ks)
+{
+	
+      float old_a=scene->getDefaultMaterial().ka.x;
+      float old_s=scene->getDefaultMaterial().ka.x;
+      float old_d=scene->getDefaultMaterial().ka.x;
+      if(old_a==ka && old_d == kd && old_s == ks) return;     //no change, do nothing
+      scene->setDefaultMaterial(RTMaterial(eavlVector3(ka,ka,ka),
+                                           eavlVector3(kd,kd,kd),
+                                           eavlVector3(ks,ks,ks), 10.f,1));
+      cout<<"Changing Default mats"<<endl;
+}
+
+
+

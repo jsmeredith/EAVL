@@ -26,7 +26,7 @@
 class eavlSceneRendererRT : public eavlSceneRenderer
 {
   private:
-    eavlRayTracerMutator* tracer;
+    eavlRayTracer* tracer;
     bool canRender;
     bool setLight;
     string ctName;
@@ -46,7 +46,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         //tracer->setShadowsOn(true);
         setLight = true;
         ctName = "";
-        tracer->scene->setDefaultMaterial(Ka,Kd,Ks);
+        tracer->setDefaultMaterial(Ka,Kd,Ks);
         pointRadius = .1f;
         lineWidth = .05f;
 
@@ -161,44 +161,53 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {        
         int tframe = eavlTimer::Start();
 
-
-        tracer->setDefaultMaterial(Ka,Kd,Ks);
-        tracer->setResolution(view.h,view.w);
-        float magnitude=tracer->scene->getSceneExtentMagnitude();
         eavlRayCamera * camera = tracer->camera;
+        tracer->setDefaultMaterial(Ka,Kd,Ks);
+        camera->setWidth(view.w);
+        camera->setHeight(view.h);
+        
+        float magnitude=tracer->scene->getSceneExtentMagnitude();
+       
         //tracer->setAOMax(magnitude*.2f);
 
         /*Set up field of view: tracer takes the half FOV in degrees*/
         float fovx= 2.f*atan(tan(view.view3d.fov/2.f)*view.w/view.h);
         fovx*=180.f/M_PI;
-        tracer->setFOVy((view.view3d.fov*(180.f/M_PI))/2.f);
-        tracer->setFOVx( fovx/2.f );
+        camera->setFOVY((view.view3d.fov*(180.f/M_PI))/2.f);
+        camera->setFOVX( fovx/2.f );
 
-        tracer->setZoom(view.view3d.zoom);
+       // camera->setZoom(view.view3d.zoom);
 
         eavlVector3 lookdir = (view.view3d.at - view.view3d.from).normalized();
         eavlVector3 right = (lookdir % view.view3d.up).normalized();
         /* Tracer is a lefty, so this is flip so down is not up */
         eavlVector3 up = ( lookdir % right).normalized();  
+        
+        
+        camera->lookAtPosition(view.view3d.at.x,view.view3d.at.y,view.view3d.at.z);
+        camera->setCameraPosition(view.view3d.from.x,view.view3d.from.y,view.view3d.from.z);
 
-        tracer->lookAtPos(view.view3d.at.x,view.view3d.at.y,view.view3d.at.z);
-        tracer->setCameraPos(view.view3d.from.x,view.view3d.from.y,view.view3d.from.z);
-
-        tracer->setUp(up.x,up.y,up.z);
+        camera->setCameraUp(up.x,up.y,up.z);
 
         /*Otherwise the light will move with the camera*/
         if(eyeLight)//setLight)
         {
           eavlVector3 minersLight(view.view3d.from.x,view.view3d.from.y,view.view3d.from.z);
           minersLight = minersLight+ up*magnitude*.3f;
-          tracer->setLightParams(minersLight.x,minersLight.y,minersLight.z, 1.f, 1.f, 0.f, 0.f);  /*Light params: intensity, constant, linear and exponential coefficeints*/
+          //tracer->setLightParams(minersLight.x,minersLight.y,minersLight.z, 1.f, 1.f, 0.f, 0.f);  /*Light params: intensity, constant, linear and exponential coefficeints*/
+          tracer->lightPosition.x = minersLight.x;
+          tracer->lightPosition.y = minersLight.y;
+          tracer->lightPosition.z = minersLight.z;
         } 
         else
         {
-           tracer->setLightParams(Lx, Ly, Lz, 1.f, 1.f , 0.f , 0.f);
+          //tracer->setLightParams(Lx, Ly, Lz, 1.f, 1.f , 0.f , 0.f);
+          tracer->lightPosition.x = Lx;
+          tracer->lightPosition.y = Ly;
+          tracer->lightPosition.z = Lz;
         }
 
-        tracer->Execute();
+        tracer->render();
         
         cerr<<"\nTotal Frame Time   : "<<eavlTimer::Stop(tframe,"")<<endl;
     }

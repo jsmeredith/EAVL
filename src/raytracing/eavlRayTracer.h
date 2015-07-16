@@ -8,7 +8,7 @@
 #include <eavlRTScene.h>
 #include <eavlRay.h>
 
-#include <eavlMapOp.h>
+
 
 class eavlRayTracer
 {
@@ -43,6 +43,7 @@ public:
 
 	void render();
 	void startScene();
+	void setDefaultMaterial(const float&, const float&, const float&);
 	eavlByteArray* getFrameBuffer();
 	eavlFloatArray *getDepthBuffer(float proj22, float proj23, float proj32);
 private:
