@@ -52,6 +52,7 @@ class eavlRTScene
 		EAVL_HOSTONLY inline void       clear();   												/* clears primitives */
 		EAVL_HOSTONLY inline float*     getTrianglePtr();
 		EAVL_HOSTONLY inline float*     getTriangleNormPtr();
+		EAVL_HOSTONLY inline float*     getTriangleScalarsPtr();
 		EAVL_HOSTONLY inline float*     getSpherePtr();
 		EAVL_HOSTONLY inline float*     getSphereScalarPtr();
 	    EAVL_HOSTONLY inline int*       getSphrMatIdxPtr();
@@ -274,26 +275,39 @@ EAVL_HOSTONLY  inline float*  eavlRTScene::getTrianglePtr()
 {
 	if(getNumTriangles() < 1) return NULL;
 	int n = getNumTriangles();
-	float *tris_raw = new float[getNumTriangles()*12];
+	float *tris_raw = new float[getNumTriangles()*9];
 	for(int i=0; i<n;i++)
 	{
 
-	 	tris_raw[i*12   ] = tris->at(i).verts[0].x;
-      	tris_raw[i*12+1 ] = tris->at(i).verts[0].y;
-      	tris_raw[i*12+2 ] = tris->at(i).verts[0].z;
-      	tris_raw[i*12+3 ] = tris->at(i).verts[1].x;
-      	tris_raw[i*12+4 ] = tris->at(i).verts[1].y;
-      	tris_raw[i*12+5 ] = tris->at(i).verts[1].z;
-      	tris_raw[i*12+6 ] = tris->at(i).verts[2].x;
-      	tris_raw[i*12+7 ] = tris->at(i).verts[2].y;
-      	tris_raw[i*12+8 ] = tris->at(i).verts[2].z;
-      	tris_raw[i*12+9 ] = tris->at(i).scalars[0]; 						
-      	tris_raw[i*12+10] = tris->at(i).scalars[1];
-      	tris_raw[i*12+11] = tris->at(i).scalars[2];
+	 	tris_raw[i*9   ] = tris->at(i).verts[0].x;
+      	tris_raw[i*9+1 ] = tris->at(i).verts[0].y;
+      	tris_raw[i*9+2 ] = tris->at(i).verts[0].z;
+      	tris_raw[i*9+3 ] = tris->at(i).verts[1].x;
+      	tris_raw[i*9+4 ] = tris->at(i).verts[1].y;
+      	tris_raw[i*9+5 ] = tris->at(i).verts[1].z;
+      	tris_raw[i*9+6 ] = tris->at(i).verts[2].x;
+      	tris_raw[i*9+7 ] = tris->at(i).verts[2].y;
+      	tris_raw[i*9+8 ] = tris->at(i).verts[2].z;
   	}
 
 	
 	return tris_raw;
+}
+
+EAVL_HOSTONLY  inline float*  eavlRTScene::getTriangleScalarsPtr()
+{
+	if(getNumTriangles() < 1) return NULL;
+	int n = getNumTriangles();
+	float *scalars_raw = new float[getNumTriangles()*3];
+	for(int i=0; i<n;i++)
+	{
+      	scalars_raw[i*3 + 0] = tris->at(i).scalars[0]; 						
+      	scalars_raw[i*3 + 1] = tris->at(i).scalars[1];
+      	scalars_raw[i*3 + 2] = tris->at(i).scalars[2];
+  	}
+
+	
+	return scalars_raw;
 }
 
 EAVL_HOSTONLY  inline float* eavlRTScene::getTriangleNormPtr()

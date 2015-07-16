@@ -19,6 +19,7 @@ class eavlRayCamera
 	EAVL_HOSTONLY int   getHeight();
 
 	EAVL_HOSTONLY void  setMortonSorting(bool on);
+	EAVL_HOSTONLY bool  getMortonSorting();
 	EAVL_HOSTONLY bool  getIsViewDirty();
 
 

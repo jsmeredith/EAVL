@@ -98,7 +98,8 @@ class eavlFullRay : public eavlRay
   	eavlFloatArray*     normalZ;
   	eavlFloatArray*     intersectionX;
   	eavlFloatArray*     intersectionY;
-  	eavlFloatArray*     intersectionZ;	     
+  	eavlFloatArray*     intersectionZ;
+  	eavlFloatArray*		scalar;	     
   	eavlByteArray*      hitType;      		//type of geometry hit
   	eavlFullRay(const size_t &size) : eavlRay(size) 
   	{
@@ -106,6 +107,7 @@ class eavlFullRay : public eavlRay
   		normalX = new eavlFloatArray("",1,numRays);
   		normalY = new eavlFloatArray("",1,numRays);
   		normalZ = new eavlFloatArray("",1,numRays);
+  		scalar  = new eavlFloatArray("",1,numRays);
   		hitType = new eavlByteArray("",1, numRays);
   	}
   	void resize(const size_t &newSize)
@@ -117,11 +119,13 @@ class eavlFullRay : public eavlRay
   		delete normalX;
   		delete normalY;
   		delete normalZ; 
+  		delete scalar;
   		weight  = new eavlFloatArray("",1,numRays);
   		normalX = new eavlFloatArray("",1,numRays);
   		normalY = new eavlFloatArray("",1,numRays);
   		normalZ = new eavlFloatArray("",1,numRays);
   		hitType = new eavlByteArray("",1, numRays);
+  		scalar  = new eavlFloatArray("",1,numRays);
   	}
   	~eavlFullRay()
   	{
@@ -130,6 +134,7 @@ class eavlFullRay : public eavlRay
   		delete normalX;
   		delete normalY;
   		delete normalZ; 
+  		delete scalar;
   	}
 
 };

@@ -179,7 +179,9 @@ EAVL_HOSTDEVICE int getIntersectionWoop(const eavlVector3 rayDir,
                                         eavlTextureObject<float>  &leafNodes, 
                                         eavlTextureObject<float4> &verts,
                                         const float &maxDistance, 
-                                        float &distance)
+                                        float &distance,
+                                        float &minU,
+                                        float &minV)
 {
 
     float minDistance = maxDistance;
@@ -307,10 +309,12 @@ EAVL_HOSTDEVICE int getIntersectionWoop(const eavlVector3 rayDir,
                             float unitDirX = dirx * xCol.x + diry * xCol.y + dirz * xCol.z;
                             float u = dist * unitDirX + unitOriginX;
 
-                            if(u>=0 && (u+v) <= 1)
+                            if((u >= 0) && ((u+v) <= 1))
                             {
                                 minDistance = dist;
                                 minIndex = triIndex;
+                                minU = u;
+                                minV = v;
                                 if(occlusion) return minIndex;//or set todo to -1
                             }
                         }
@@ -341,13 +345,14 @@ struct UnitMultipleDistancesTriangleDepthFunctor{
          innerNodes(*_innerNodes),
          leafNodes(*_leafNodes)
     {}                                                 
-    EAVL_HOSTDEVICE tuple<int,float> operator()( tuple<float,float,float,float,float,float,float> rayTuple){
+    EAVL_HOSTDEVICE tuple<int,float, float, float> operator()( tuple<float,float,float,float,float,float,float> rayTuple){
        
         float distance;
         float maxDistance = get<6>(rayTuple);
         eavlVector3 rayOrigin(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
         eavlVector3       ray(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
-
+        float u = 0.f;
+        float v = 0.f;
         int minHit = getIntersectionWoop(ray,
         							 	 rayOrigin, 
         							 	 false,
@@ -355,9 +360,11 @@ struct UnitMultipleDistancesTriangleDepthFunctor{
         							 	 leafNodes, 
         							 	 verts,
         							 	 maxDistance,
-        							 	 distance);
-          
-		return tuple<int,float>(minHit, distance);
+        							 	 distance,
+                                         u,
+                                         v);
+        
+		return tuple<int,float, float, float>(minHit, distance, u, v);
     }
 };
 
@@ -380,12 +387,14 @@ struct UnitSingleDistanceTriangleDepthFunctor{
 
  
     {}                                                 
-    EAVL_HOSTDEVICE tuple<int,float> operator()( tuple<float,float,float,float,float,float> rayTuple){
+    EAVL_HOSTDEVICE tuple<int,float,float,float> operator()( tuple<float,float,float,float,float,float> rayTuple){
        
         float distance;
         eavlVector3 rayOrigin(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
         eavlVector3       ray(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
         //printf(" %f %f %f " ,ray.x,ray.y,ray.z);
+        float u = 0.f;
+        float v = 0.f;
         int minHit = getIntersectionWoop(ray,
         							 	 rayOrigin, 
         							 	 false,
@@ -393,9 +402,11 @@ struct UnitSingleDistanceTriangleDepthFunctor{
         							 	 leafNodes, 
         							 	 verts,
         							 	 maxDistance,
-        							 	 distance);
+        							 	 distance,
+                                         u,
+                                         v);
           
-		return tuple<int,float>(minHit, distance);
+		return tuple<int,float,float,float>(minHit, distance,u,v);
  
     }
 };
@@ -440,7 +451,9 @@ EAVL_HOSTONLY void eavlRayTriangleIntersector::intersectionDepth(const eavlRay *
 														rays->rayDirY,
 														rays->rayDirZ),
                                              eavlOpArgs(rays->hitIdx,
-                                             			rays->distance),
+                                             			rays->distance,
+                                                        rays->alpha,
+                                                        rays->beta),
                                              UnitSingleDistanceTriangleDepthFunctor(geometry->vertices,
                                              										geometry->bvhInnerNodes,
                                              										geometry->bvhLeafNodes,
@@ -462,7 +475,9 @@ EAVL_HOSTONLY void eavlRayTriangleIntersector::intersectionDepth(const eavlRay *
 														rays->rayDirZ,
 														maxDistances),
                                              eavlOpArgs(rays->hitIdx,
-                                             			rays->distance),
+                                             			rays->distance,
+                                                        rays->alpha,
+                                                        rays->beta),
                                              UnitMultipleDistancesTriangleDepthFunctor(geometry->vertices,
                                              										  geometry->bvhInnerNodes,
                                              										  geometry->bvhLeafNodes)),
@@ -503,7 +518,9 @@ EAVL_HOSTONLY void eavlRayTriangleIntersector::testIntersections(const eavlRay *
 															rays->rayDirY,
 															rays->rayDirZ),
                                             	 eavlOpArgs(dummy,
-                                             				dummyFloat),
+                                             				dummyFloat,
+                                                            rays->alpha,
+                                                            rays->beta),
                                              	UnitSingleDistanceTriangleDepthFunctor(geometry->vertices,
                                              										   geometry->bvhInnerNodes,
                                              										   geometry->bvhLeafNodes,
@@ -526,7 +543,9 @@ EAVL_HOSTONLY void eavlRayTriangleIntersector::testIntersections(const eavlRay *
 															rays->rayDirY,
 															rays->rayDirZ),
                                             	 eavlOpArgs(dummy,
-                                             				dummyFloat),
+                                             				dummyFloat,
+                                                            rays->alpha,
+                                                            rays->beta),
                                              	UnitSingleDistanceTriangleDepthFunctor(geometry->vertices,
                                              										   geometry->bvhInnerNodes,
                                              										   geometry->bvhLeafNodes,
@@ -545,7 +564,9 @@ EAVL_HOSTONLY void eavlRayTriangleIntersector::testIntersections(const eavlRay *
 														rays->rayDirY,
 														rays->rayDirZ),
                                              eavlOpArgs(rays->hitIdx,
-                                             			rays->distance),
+                                             			rays->distance,
+                                                        rays->alpha,
+                                                        rays->beta),
                                              	UnitSingleDistanceTriangleDepthFunctor(geometry->vertices,
                                              										   geometry->bvhInnerNodes,
                                              										   geometry->bvhLeafNodes,

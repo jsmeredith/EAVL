@@ -141,6 +141,17 @@ EAVL_HOSTONLY void eavlRayCamera::generatePixelIndexes()
 
 EAVL_HOSTONLY void eavlRayCamera::createRays(eavlRay* rays)
 {
+    if( !isResDirty && !isViewDirty && rays->numRays == size) 
+    { 
+      cerr<<"No rays to create\n"; 
+      eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx), //dummy arg
+                                              eavlOpArgs(rays->hitIdx),
+                                              IntMemsetFunctor(-1)),
+                                              "init");
+      eavlExecutor::Go();
+      return;
+    }
+
     if(isResDirty || rays->numRays != size)
     {
     	if(isResDirty)
@@ -164,6 +175,12 @@ EAVL_HOSTONLY void eavlRayCamera::createRays(eavlRay* rays)
                                              eavlOpArgs(rays->rayDirX ,rays->rayDirY, rays->rayDirZ),
                                              PerspectiveRayGenFunctor(width, height, fovx, fovy, look, up, zoom)),
                                              "ray gen");
+    eavlExecutor::Go();
+
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx), //dummy arg
+                                             eavlOpArgs(rays->hitIdx),
+                                             IntMemsetFunctor(-1)),
+                                             "init");
     eavlExecutor::Go();
 }  
 
@@ -247,6 +264,11 @@ EAVL_HOSTONLY void eavlRayCamera::setCameraPosition(const float &_x, const float
 EAVL_HOSTONLY void eavlRayCamera::setMortonSorting(bool on)
 {
 	mortonSort = on;
+}
+
+EAVL_HOSTONLY bool eavlRayCamera::getMortonSorting()
+{
+  return mortonSort;
 }
 
 EAVL_HOSTONLY void eavlRayCamera::setCameraPositionX(const float &_x)

@@ -7,7 +7,7 @@
 #include "eavlColor.h"
 #include "eavlColorTable.h"
 #include "eavlSceneRenderer.h"
-#include "eavlRayTracerMutator.h"
+#include "eavlRayTracer.h"
 #include "eavlTimer.h"
 // ****************************************************************************
 // Class:  eavlSceneRendererRT
@@ -35,18 +35,18 @@ class eavlSceneRendererRT : public eavlSceneRenderer
   public:
     eavlSceneRendererRT()
     {
-        tracer = new eavlRayTracerMutator();
-        tracer->setDepth(1);
+        tracer = new eavlRayTracer();
+        //tracer->setDepth(1);
         // /tracer->setVerbose(true);
-        tracer->setAOMax(5);
-        tracer->setOccSamples(4);
-        tracer->setAO(true);
-        tracer->setBVHCache(false); // don't use cache
-        tracer->setCompactOp(false);
-        tracer->setShadowsOn(true);
+        //tracer->setAOMax(5);
+        //tracer->setOccSamples(4);
+        ////tracer->setAO(true);
+        //tracer->setBVHCache(false); // don't use cache
+        //tracer->setCompactOp(false);
+        //tracer->setShadowsOn(true);
         setLight = true;
         ctName = "";
-        tracer->setDefaultMaterial(Ka,Kd,Ks);
+        tracer->scene->setDefaultMaterial(Ka,Kd,Ks);
         pointRadius = .1f;
         lineWidth = .05f;
 
@@ -63,7 +63,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
     void SetBackGroundColor(float r, float g, float b)
     {
-        tracer->setBackgroundColor(r,g,b);
+        //tracer->setBackgroundColor(r,g,b);
     }
 
     virtual void SetActiveColor(eavlColor c)
@@ -132,7 +132,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     virtual void AddPointVs(double x, double y, double z, double r, double s)
     {
         
-        tracer->scene->addSphere(pointRadius,x,y,z,s,"default");
+        //tracer->scene->addSphere(pointRadius,x,y,z,s,"default");
     }
 
     // ------------------------------------------------------------------------
@@ -152,7 +152,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
                            double s0, double s1)
     {
         //cout<<"ADDING LINE"<<endl;
-        tracer->scene->addLine(lineWidth, eavlVector3(x0,y0,z0),s0, eavlVector3(x1,y1,z1),s1 );
+        //tracer->scene->addLine(lineWidth, eavlVector3(x0,y0,z0),s0, eavlVector3(x1,y1,z1),s1 );
     }
 
 
@@ -160,11 +160,13 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     virtual void Render()
     {        
         int tframe = eavlTimer::Start();
+
+
         tracer->setDefaultMaterial(Ka,Kd,Ks);
         tracer->setResolution(view.h,view.w);
         float magnitude=tracer->scene->getSceneExtentMagnitude();
-
-        tracer->setAOMax(magnitude*.2f);
+        eavlRayCamera * camera = tracer->camera;
+        //tracer->setAOMax(magnitude*.2f);
 
         /*Set up field of view: tracer takes the half FOV in degrees*/
         float fovx= 2.f*atan(tan(view.view3d.fov/2.f)*view.w/view.h);

@@ -13,7 +13,7 @@ class eavlRayTriangleGeometry : public eavlRayGeometry
 	  string cacheName;
 
 	public:
-	  eavlFloatArray    *normals;
+	  eavlTextureObject<float>    *normals;
 	  eavlRayTriangleGeometry() 
 	  {
 	  	geometryType = EAVL_TRI;
@@ -92,6 +92,15 @@ class eavlRayTriangleGeometry : public eavlRayGeometry
         if(woopify) woopifyVerts(_vertices, size);
 	  }
 
+	  void setScalars(float * _scalars, const int &size)
+	  {
+	  	scalars = new eavlTextureObject<float>(size * 3, _scalars, true);
+	  }
+
+	  void setNormals(float * _normals, const int &size)
+	  {
+	  	normals = new eavlTextureObject<float>(size * 9, _normals, true);
+	  }
 	  ~eavlRayTriangleGeometry()
 	  {
 	  	if(normals != NULL) 	delete normals;

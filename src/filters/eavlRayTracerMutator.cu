@@ -25,11 +25,6 @@
 #include "eavlRTUtil.h"
 #include "SplitBVH.h"
 
-#define TOLERANCE   0.00001
-#define BARY_TOLE   0.0001f
-#define EPSILON     0.01f
-#define INFINITE    1000000
-#define END_FLAG    -1000000000
 
 //declare the texture reference even if we are not using texture memory
 
@@ -122,7 +117,7 @@ eavlRayTracerMutator::eavlRayTracerMutator()
 
     fileprefix  = "output";
     filetype    = ".bmp";
-    outfilename =" output.bmp";
+    outfilename = "output.bmp";
     frameCounter= 0;
     isOccusionOn= false;
     occSamples  = 4;

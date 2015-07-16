@@ -45,12 +45,13 @@ class BVHNode
 {
 public:
     BVHNode() : m_probability(1.f),m_parentProbability(1.f),m_treelet(-1),m_index(-1) {}
+    virtual ~BVHNode() {};
     virtual bool        isLeaf() const = 0;
     virtual int         getNumChildNodes() const = 0;
     virtual BVHNode*    getChildNode(int i) const   = 0;
     virtual int         getNumTriangles() const { return 0; }
     BVHNode*            m_parent;
-    float       getArea() const     { return m_bounds.area(); }
+    float               getArea() const     { return m_bounds.area(); }
 
     AABB        m_bounds;
 
