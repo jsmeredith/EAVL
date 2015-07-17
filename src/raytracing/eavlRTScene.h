@@ -73,7 +73,7 @@ class eavlRTScene
 EAVL_HOSTONLY inline eavlRTScene::eavlRTScene(RTMaterial defaultMaterial)
 {
 	defaultMat = defaultMaterial;
-	mats = new eavlFloatArray("",1,1);
+	mats = new eavlFloatArray("",1,0);
 	//mats->AddValue(defaultMaterial);
 	mats->AddValue(defaultMat.ka.x);
 	mats->AddValue(defaultMat.ka.y);
@@ -90,10 +90,10 @@ EAVL_HOSTONLY inline eavlRTScene::eavlRTScene(RTMaterial defaultMaterial)
 	matMap.insert(pair<string, int> ("default", 0));
 	numMats = 1;
 
-	trisVerts    = new eavlFloatArray("",1,1);
-	triMatIds   = new eavlFloatArray("",1,1);
-	triScalars   = new eavlFloatArray("",1,1);
-	triNormals   = new eavlFloatArray("",1,1);
+	trisVerts    = new eavlFloatArray("",1,0);
+	triMatIds   = new eavlFloatArray("",1,0);
+	triScalars   = new eavlFloatArray("",1,0);
+	triNormals   = new eavlFloatArray("",1,0);
 	spheres = new vector<RTSphere>();
 	cyls    = new vector<RTCyl>();
 }
@@ -410,11 +410,11 @@ void inline eavlRTScene::clear()
 	delete triScalars;
 	delete triNormals;
 	delete mats;
-	mats = new eavlFloatArray("",1,1);
-	trisVerts    = new eavlFloatArray("",1,1);
-	triMatIds   = new eavlFloatArray("",1,1);
-	triScalars   = new eavlFloatArray("",1,1);
-	triNormals   = new eavlFloatArray("",1,1);
+	mats = new eavlFloatArray("",1,0);
+	trisVerts    = new eavlFloatArray("",1,0);
+	triMatIds   = new eavlFloatArray("",1,0);
+	triScalars   = new eavlFloatArray("",1,0);
+	triNormals   = new eavlFloatArray("",1,0s);
 	mats->AddValue(defaultMat.ka.x);
 	mats->AddValue(defaultMat.ka.y);
 	mats->AddValue(defaultMat.ka.z);
