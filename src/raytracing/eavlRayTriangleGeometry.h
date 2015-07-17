@@ -35,7 +35,7 @@ class eavlRayTriangleGeometry : public eavlRayGeometry
 	  	if(_size > 0) size = _size;
 	  	else THROW(eavlException,"Cannot set vertices with size 0");
 	  	bool cacheExists  = false;
-    	bool writeCache   = true;
+    	bool writeCache   = false;
 		int  innerSize    = 0;
 		int  leafSize     = 0;
 		float *inner_raw;

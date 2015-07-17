@@ -462,7 +462,7 @@ class eavl1DScene : public eavlScene
 };
 
 #ifdef HAVE_MPI
-
+#include <mpi.h>
 class eavl2DParallelScene : public eavl2DScene
 {
   protected:
