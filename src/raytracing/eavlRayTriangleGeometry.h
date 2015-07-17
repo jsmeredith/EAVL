@@ -95,12 +95,17 @@ class eavlRayTriangleGeometry : public eavlRayGeometry
 
 	  void setScalars(eavlFloatArray * _scalars, const int &size)
 	  {
-	  	scalars = new eavlTextureObject<float>(size * 3, _scalars, true);
+	  	scalars = new eavlTextureObject<float>(size * 3, _scalars, false);
+	  }
+	  
+	  void setMaterialIds(eavlFloatArray *_matIds, const int &size)
+	  {
+	  	materialIds = new eavlTextureObject<int>(size, _matIds, false);
 	  }
 
 	  void setNormals(eavlFloatArray * _normals, const int &size)
 	  {
-	  	normals = new eavlTextureObject<float>(size * 9, _normals, true);
+	  	normals = new eavlTextureObject<float>(size * 9, _normals, false);
 	  }
 	  ~eavlRayTriangleGeometry()
 	  {

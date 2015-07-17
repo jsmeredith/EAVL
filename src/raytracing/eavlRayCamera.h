@@ -52,6 +52,8 @@ class eavlRayCamera
 	EAVL_HOSTONLY float getCameraLookX();
 	EAVL_HOSTONLY float getCameraLookY();
 	EAVL_HOSTONLY float getCameraLookZ();
+	
+	EAVL_HOSTONLY void  setCameraZoom(const float &_zoom);
 
 	EAVL_HOSTONLY void  lookAtPosition(const float &_x, const float &_y,const float &_z);
 

@@ -397,6 +397,12 @@ EAVL_HOSTONLY eavlIntArray* eavlRayCamera::getPixelIndexes()
   return pixelIndexes;
 } 
 
+EAVL_HOSTONLY void eavlRayCamera::setCameraZoom(const float &_zoom)
+{
+  if(zoom != _zoom) isViewDirty = true;
+  zoom = _zoom;
+} 
+
 EAVL_HOSTONLY void eavlRayCamera::lookAtPosition(const float &_x, const float &_y,const float &_z)
 {
   eavlVector3 lookAt(_x, _y, _z);

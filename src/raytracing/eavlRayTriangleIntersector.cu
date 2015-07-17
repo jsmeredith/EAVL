@@ -309,10 +309,10 @@ EAVL_HOSTDEVICE int getIntersectionWoop(const eavlVector3 rayDir,
                             float unitDirX = dirx * xCol.x + diry * xCol.y + dirz * xCol.z;
                             float u = dist * unitDirX + unitOriginX;
 
-                            if((u >= 0) && ((u+v) <= 1))
+                            if((u >= 0.f) && ((u+v) <= 1.00002))
                             {
                                 minDistance = dist;
-                                minIndex = triIndex;
+                                minIndex = triIndex / 3;
                                 minU = u;
                                 minV = v;
                                 if(occlusion) return minIndex;//or set todo to -1
@@ -405,7 +405,7 @@ struct UnitSingleDistanceTriangleDepthFunctor{
         							 	 distance,
                                          u,
                                          v);
-          
+        if(minHit == -1) distance = INFINITE;
 		return tuple<int,float,float,float>(minHit, distance,u,v);
  
     }

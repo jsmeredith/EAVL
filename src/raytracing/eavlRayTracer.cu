@@ -16,6 +16,7 @@ eavlRayTracer::eavlRayTracer()
 	geometryDirty = true;
 	currentFrameSize = camera->getWidth() * camera->getHeight();
 	frameBuffer = new eavlFloatArray("", 1, currentFrameSize * 4);
+	rgbaPixels = new eavlByteArray("", 1, currentFrameSize * 4);
 	depthBuffer = new eavlFloatArray("", 1, currentFrameSize);
 	inShadow = new eavlFloatArray("", 1, currentFrameSize);
 	//
@@ -68,6 +69,7 @@ void eavlRayTracer::setColorMap3f(float* cmap, const int &nColors)
 	}
     delete colorMap;
     colorMap = new eavlTextureObject<float>(nColors, cmap, false);
+    numColors = nColors;
 }
 
 struct NormalFunctor{
@@ -127,7 +129,7 @@ struct NormalFunctor{
         //reflect the ray
         
         normal.normalize();
-        if ((normal * rayDir) > 0.0f) normal = -normal; //flip the normal if we hit the back side
+        if ((normal * rayDir) < 0.0f) normal = -normal; //flip the normal if we hit the back side
         return tuple<float,float,float,float,float,float,float>(normal.x, normal.y, normal.z, lerpedScalar, intersect.x, intersect.y, intersect.z);
     }
 };
@@ -152,14 +154,14 @@ struct PhongShaderFunctor
     PhongShaderFunctor(eavlVector3 theLight, 
     			  	   eavlVector3 eyePos, 
     			  	   eavlTextureObject<int> *_matIds, 
-                  	   eavlFunctorArray<float> *_mats, 
+                  	   eavlFunctorArray<float> _mats, 
                   	   eavlTextureObject<float> *_colorMap, 
                   	   int _colorMapSize, 
-                  	   eavlVector3 _bgColor)
+                  	   eavlVector3 *_bgColor)
         : matIds(*_matIds),
-          mats(*_mats),
+          mats(_mats),
           colorMap(*_colorMap), 
-          bgColor(_bgColor)
+          bgColor(*_bgColor)
 
     {
         light = theLight;
@@ -195,12 +197,12 @@ struct PhongShaderFunctor
         eavlVector3 normal(get<8>(input), get<9>(input), get<10>(input));
         
         eavlVector3 lightDir  = light - rayInt;
-        eavlVector3 viewDir   = eye - rayOrigin;
+        eavlVector3 viewDir   = eye - rayInt;
         
         lightDir.normalize();
         viewDir.normalize();
         
-        float ambPct= .3 ; //get<7>(input); TODO: ambient occlusion
+        float ambPct= 1 ; //get<7>(input); TODO: ambient occlusion
         
         int id = 0;
         id = matIds.getValue(hitIdx);
@@ -252,6 +254,8 @@ struct PhongShaderFunctor
         red   *= color.x;
         green *= color.y;
         blue  *= color.z;
+        
+        
         return tuple<float,float,float,float>(min(red,1.0f),min(green,1.0f),min(blue,1.0f), 1.0f);
 
     }
@@ -261,7 +265,7 @@ struct PhongShaderFunctor
 
 void eavlRayTracer::init()
 {
-	camera->createRays(rays); //this call resets hitIndexes as well
+	
 
 	int numRays = camera->getWidth() * camera->getHeight();
 	
@@ -287,12 +291,14 @@ void eavlRayTracer::init()
 			triGeometry->setVertices(scene->getTrianglePtr(), numTriangles);
 			triGeometry->setScalars(scene->getTriangleScalarsPtr(), numTriangles);
 			triGeometry->setNormals(scene->getTriangleNormPtr(), numTriangles);
+			triGeometry->setMaterialIds(scene->getTriMatIdxsPtr(), numTriangles);
 			int numMaterials = scene->getNumMaterials();
 			eavlMaterials = scene->getMatsPtr();
 		}
 		geometryDirty = false;
 	}
-
+	
+	camera->createRays(rays); //this call resets hitIndexes as well
 
 }
 void eavlRayTracer::render()
@@ -312,9 +318,15 @@ void eavlRayTracer::render()
                                              IntMemsetFunctor(0)),
                                              "shadows");
     eavlExecutor::Go();
-	intersector->testIntersections(rays, INFINITE, triGeometry,1,1,camera);
-	exit(0);
+	//intersector->testIntersections(rays, INFINITE, triGeometry,1,1,camera);
+
 	intersector->intersectionDepth(rays, INFINITE, triGeometry);
+	
+	for(int i = 0; i < currentFrameSize; i++)
+	{
+		int idx = rays->hitIdx->GetValue(i);
+		//if(idx != -1) cout<<"Scalars "<<triGeometry->scalars->getValue(idx *3)<<endl;
+	}
 	eavlFunctorArray<float> mats(eavlMaterials);
 	eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->rayOriginX,
 														rays->rayOriginY,
@@ -359,10 +371,10 @@ void eavlRayTracer::render()
                                              								camera->getCameraPositionY(),
                                              								camera->getCameraPositionZ()),
                                              					triGeometry->materialIds,
-                                             					&mats,
+                                             					mats,
                                              					colorMap,
                                              					numColors,
-                                             					bgColor)),
+                                             					&bgColor)),
                                              "Shader");
     eavlExecutor::Go();
 
@@ -383,7 +395,7 @@ void eavlRayTracer::render()
 
 eavlFloatArray* eavlRayTracer::getDepthBuffer(float proj22, float proj23, float proj32)
 { 
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(depthBuffer), eavlOpArgs(depthBuffer), ScreenDepthFunctor(proj22, proj23, proj32)),"convertDepth");
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->distance), eavlOpArgs(depthBuffer), ScreenDepthFunctor(proj22, proj23, proj32)),"convertDepth");
     eavlExecutor::Go();
     return depthBuffer;
 }
