@@ -21,7 +21,7 @@ class eavlRayGeometry
 		eavlRayGeometry()
 		{
 			isDirty 		= true;
-			fastBuild 		= false;
+			fastBuild 		= true;
 			vertices 		= NULL;
 			materialIds 	= NULL;
 			bvhLeafNodes 	= NULL;
