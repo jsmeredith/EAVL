@@ -196,7 +196,7 @@ EAVL_HOSTONLY inline void eavlRTScene::addTriangle(const eavlVector3 &v0 , const
 	}
 	triScalars->AddValue(scalarV0);
 	triScalars->AddValue(scalarV1);
-	triScalars->AddValue(scalarV1);
+	triScalars->AddValue(scalarV2);
 	triMatIds->AddValue(matId);
 	BBox bbox;
 	bbox.expandToInclude(v0);
@@ -265,7 +265,7 @@ EAVL_HOSTONLY inline void eavlRTScene::addTriangle(const eavlVector3 &v0 , const
 	}
 	triScalars->AddValue(scalarV0);
 	triScalars->AddValue(scalarV1);
-	triScalars->AddValue(scalarV1);
+	triScalars->AddValue(scalarV2);
 	triMatIds->AddValue(matId);
 	BBox bbox;
 	bbox.expandToInclude(v0);
@@ -308,7 +308,7 @@ EAVL_HOSTONLY inline void eavlRTScene::addTriangle(const eavlVector3 &v0 , const
 	triMatIds->AddValue(matId);
 	triScalars->AddValue(scalarV0);
 	triScalars->AddValue(scalarV1);
-	triScalars->AddValue(scalarV1);
+	triScalars->AddValue(scalarV2);
 	BBox bbox;
 	bbox.expandToInclude(v0);
 	bbox.expandToInclude(v1);
