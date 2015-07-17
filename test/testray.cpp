@@ -281,10 +281,14 @@ int main(int argc, char *argv[])
         float *mats;
         int matCount;
         objreader->getRawData(v,n,mats,mIdx,matCount);
-        
+        eavlFloatArray *verts = new eavlFloatArray("",1,0);
+        for (int i = 0; i < numTris*9; ++i)
+        {
+           verts->AddValue(v[i]);
+        }
         eavlRayTriangleGeometry geometry;
         geometry.setBVHCacheName(filename);
-        geometry.setVertices(v, numTris);
+        geometry.setVertices(verts, numTris);
         cout<<"Number of triangles "<<numTris<<endl;
         eavlRay rays(camera->getWidth() * camera->getHeight());
         eavlRayTriangleIntersector intersector;

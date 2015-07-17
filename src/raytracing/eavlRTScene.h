@@ -414,7 +414,7 @@ void inline eavlRTScene::clear()
 	trisVerts    = new eavlFloatArray("",1,0);
 	triMatIds   = new eavlFloatArray("",1,0);
 	triScalars   = new eavlFloatArray("",1,0);
-	triNormals   = new eavlFloatArray("",1,0s);
+	triNormals   = new eavlFloatArray("",1,0);
 	mats->AddValue(defaultMat.ka.x);
 	mats->AddValue(defaultMat.ka.y);
 	mats->AddValue(defaultMat.ka.z);
