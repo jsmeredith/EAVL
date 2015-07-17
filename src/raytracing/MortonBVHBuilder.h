@@ -135,11 +135,11 @@ class MortonBVHBuilder
     void flatten();         //Convert representation from SoA to AoS
 
   public:
-    float         *verts;
+    eavlFloatArray *verts;
     primitive_t    primitveType;
     int            numPrimitives;
 
-    MortonBVHBuilder(float * _verts, int _numPrimitives, primitive_t _primitveType);
+    MortonBVHBuilder(eavlFloatArray * _verts, int _numPrimitives, primitive_t _primitveType);
     ~MortonBVHBuilder();
     void build();
     void setVerbose(const int &level);

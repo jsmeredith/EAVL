@@ -22,15 +22,15 @@ class eavlRayTriangleGeometry : public eavlRayGeometry
 	  	normals 	= NULL;
 	  	useBVHCache = false;
 	  }
-	  void woopifyVerts(float * _vertices, const int &_size);
+	  void woopifyVerts(eavlFloatArray * _vertices, const int &_size);
 
 	  void setBVHCacheName(string _cacheName)
 	  {
 	  	cacheName = _cacheName + ".bvh";
-	  	useBVHCache = true;
+	  	//useBVHCache = true;
 	  }
 
-	  void setVertices(float *_vertices,const int &_size)
+	  void setVertices(eavlFloatArray *_vertices,const int &_size)
 	  {
 	  	if(_size > 0) size = _size;
 	  	else THROW(eavlException,"Cannot set vertices with size 0");
@@ -75,7 +75,8 @@ class eavlRayTriangleGeometry : public eavlRayGeometry
 			}
 			else
 			{
-				SplitBVH *sbvh= new SplitBVH(_vertices, size, TRIANGLE);
+				float *fptr = (float*)_vertices->GetHostArray();
+				SplitBVH *sbvh= new SplitBVH(fptr, size, TRIANGLE);
 
 				sbvh->getFlatArray(innerSize, leafSize, inner_raw, leafs_raw);
 				bvhInnerNodes = new eavlTextureObject<float4>(innerSize / 4, (float4*)inner_raw, true);
@@ -92,12 +93,12 @@ class eavlRayTriangleGeometry : public eavlRayGeometry
         if(woopify) woopifyVerts(_vertices, size);
 	  }
 
-	  void setScalars(float * _scalars, const int &size)
+	  void setScalars(eavlFloatArray * _scalars, const int &size)
 	  {
 	  	scalars = new eavlTextureObject<float>(size * 3, _scalars, true);
 	  }
 
-	  void setNormals(float * _normals, const int &size)
+	  void setNormals(eavlFloatArray * _normals, const int &size)
 	  {
 	  	normals = new eavlTextureObject<float>(size * 9, _normals, true);
 	  }

@@ -42,9 +42,8 @@ struct WoopifyFunctor
 
 };
 
-void eavlRayTriangleGeometry::woopifyVerts(float * _vertices, const int &_size)
+void eavlRayTriangleGeometry::woopifyVerts(eavlFloatArray * _vertices, const int &_size)
 {
-	eavlFloatArray *verts = new eavlFloatArray(eavlArray::HOST, _vertices, "vertsIn",1, _size * 9);
     //eavlFloatArray *verts = new eavlFloatArray("vertsIn",1, _size * 9);
     //for(int i = 0; i < _size * 9; i++) verts->SetValue(i, _vertices[i]);
 	eavlFloatArray *vertsOut =  new eavlFloatArray("", 1, _size * 12);
@@ -118,15 +117,15 @@ void eavlRayTriangleGeometry::woopifyVerts(float * _vertices, const int &_size)
     m03.mul = 12;
 
     eavlExecutor::AddOperation(
-        new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(verts, v0Inx),
-                                 eavlIndexable<eavlFloatArray>(verts, v0Iny),
-                                 eavlIndexable<eavlFloatArray>(verts, v0Inz),
-                                 eavlIndexable<eavlFloatArray>(verts, v1Inx),
-                                 eavlIndexable<eavlFloatArray>(verts, v1Iny),
-                                 eavlIndexable<eavlFloatArray>(verts, v1Inz),
-                                 eavlIndexable<eavlFloatArray>(verts, v2Inx),
-                                 eavlIndexable<eavlFloatArray>(verts, v2Iny),
-                                 eavlIndexable<eavlFloatArray>(verts, v2Inz)),
+        new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(_vertices, v0Inx),
+                                 eavlIndexable<eavlFloatArray>(_vertices, v0Iny),
+                                 eavlIndexable<eavlFloatArray>(_vertices, v0Inz),
+                                 eavlIndexable<eavlFloatArray>(_vertices, v1Inx),
+                                 eavlIndexable<eavlFloatArray>(_vertices, v1Iny),
+                                 eavlIndexable<eavlFloatArray>(_vertices, v1Inz),
+                                 eavlIndexable<eavlFloatArray>(_vertices, v2Inx),
+                                 eavlIndexable<eavlFloatArray>(_vertices, v2Iny),
+                                 eavlIndexable<eavlFloatArray>(_vertices, v2Inz)),
                       eavlOpArgs(eavlIndexable<eavlFloatArray>(vertsOut, m20),
                                  eavlIndexable<eavlFloatArray>(vertsOut, m21),
                                  eavlIndexable<eavlFloatArray>(vertsOut, m22),

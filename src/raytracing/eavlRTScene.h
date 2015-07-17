@@ -13,8 +13,11 @@ class eavlRTScene
 
 		BBox 				sceneBbox;
 		float 				surfaceArea; 
-		vector<RTMaterial>* mats;
-		vector<RTTriangle>* tris;					// Optimization idea: have a triangle class keep a struct of arrays and preform as the data as it is inserted. Just get pointer to the vector data
+		eavlFloatArray		*mats;
+		eavlFloatArray		*trisVerts;
+		eavlFloatArray		*triMatIds;
+		eavlFloatArray		*triScalars;
+		eavlFloatArray		*triNormals;
 		vector<RTSphere>* 	spheres;
 		vector<RTCyl>* 	    cyls;
 		map<string, int> 	matMap;
@@ -43,26 +46,26 @@ class eavlRTScene
 		EAVL_HOSTONLY inline void 		setDefaultMaterial(const RTMaterial &_mat);
 		EAVL_HOSTONLY inline int 		addMaterial( RTMaterial _mat, string matName);
 		EAVL_HOSTONLY inline int 		addMaterial( RTMaterial _mat);
-		EAVL_HOSTONLY inline int 		getNumTriangles(){ return tris->size(); };
-		EAVL_HOSTONLY inline int 		getNumMaterials(){ return mats->size(); };
+		EAVL_HOSTONLY inline int 		getNumTriangles(){ return trisVerts->GetNumberOfTuples() / 9; };
+		EAVL_HOSTONLY inline int 		getNumMaterials(){ return mats->GetNumberOfTuples() / 12; };
 		EAVL_HOSTONLY inline int 		getNumSpheres(){ return spheres->size(); };
 		EAVL_HOSTONLY inline int 		getNumCyls(){ return cyls->size(); };
 		EAVL_HOSTONLY inline int 		getTotalPrimitives();
 		EAVL_HOSTONLY inline void       loadObjFile(const char* filename);
 		EAVL_HOSTONLY inline void       clear();   												/* clears primitives */
-		EAVL_HOSTONLY inline float*     getTrianglePtr();
-		EAVL_HOSTONLY inline float*     getTriangleNormPtr();
-		EAVL_HOSTONLY inline float*     getTriangleScalarsPtr();
 		EAVL_HOSTONLY inline float*     getSpherePtr();
 		EAVL_HOSTONLY inline float*     getSphereScalarPtr();
 	    EAVL_HOSTONLY inline int*       getSphrMatIdxPtr();
 	    EAVL_HOSTONLY inline float*     getCylPtr();
 		EAVL_HOSTONLY inline float*     getCylScalarPtr();
 	    EAVL_HOSTONLY inline int*       getCylMatIdxPtr();
-		EAVL_HOSTONLY inline float*     getMatsPtr();
-		EAVL_HOSTONLY inline int*       getTriMatIdxsPtr();
 		EAVL_HOSTONLY inline float 		getSceneExtentMagnitude();
 		EAVL_HOSTONLY inline RTMaterial getDefaultMaterial(){ return defaultMat;};
+		EAVL_HOSTONLY inline eavlFloatArray* getTrianglePtr();
+		EAVL_HOSTONLY inline eavlFloatArray* getTriangleNormPtr();
+		EAVL_HOSTONLY inline eavlFloatArray* getTriangleScalarsPtr();
+		EAVL_HOSTONLY inline eavlFloatArray* getTriMatIdxsPtr();
+		EAVL_HOSTONLY inline eavlFloatArray* getMatsPtr();
 
 };
 
@@ -70,12 +73,27 @@ class eavlRTScene
 EAVL_HOSTONLY inline eavlRTScene::eavlRTScene(RTMaterial defaultMaterial)
 {
 	defaultMat = defaultMaterial;
-	mats = new vector<RTMaterial>();
-	mats->push_back(defaultMaterial);
+	mats = new eavlFloatArray("",1,1);
+	//mats->AddValue(defaultMaterial);
+	mats->AddValue(defaultMat.ka.x);
+	mats->AddValue(defaultMat.ka.y);
+	mats->AddValue(defaultMat.ka.z);
+	mats->AddValue(defaultMat.kd.x);
+	mats->AddValue(defaultMat.kd.y);
+	mats->AddValue(defaultMat.kd.z);
+	mats->AddValue(defaultMat.ks.x);
+	mats->AddValue(defaultMat.ks.y);
+	mats->AddValue(defaultMat.ks.z);
+	mats->AddValue(defaultMat.shiny);
+	mats->AddValue(defaultMat.rs);
+	mats->AddValue(0.f);
 	matMap.insert(pair<string, int> ("default", 0));
 	numMats = 1;
 
-	tris    = new vector<RTTriangle>();
+	trisVerts    = new eavlFloatArray("",1,1);
+	triMatIds   = new eavlFloatArray("",1,1);
+	triScalars   = new eavlFloatArray("",1,1);
+	triNormals   = new eavlFloatArray("",1,1);
 	spheres = new vector<RTSphere>();
 	cyls    = new vector<RTCyl>();
 }
@@ -83,13 +101,27 @@ EAVL_HOSTONLY inline eavlRTScene::eavlRTScene(RTMaterial defaultMaterial)
 EAVL_HOSTONLY inline eavlRTScene::~eavlRTScene()
 {
 	delete mats;
-	delete tris;
+	delete trisVerts;
+	delete triMatIds;
+	delete triScalars;
+	delete triNormals;
 	delete spheres;
 }
 
 EAVL_HOSTONLY inline void eavlRTScene::setDefaultMaterial(const RTMaterial &_mat)
 {
-	mats->at(0)=_mat;
+	mats->SetValue(0,_mat.ka.x);
+	mats->SetValue(1,_mat.ka.y);
+	mats->SetValue(2,_mat.ka.z);
+	mats->SetValue(3,_mat.kd.x);
+	mats->SetValue(4,_mat.kd.y);
+	mats->SetValue(5,_mat.kd.z);
+	mats->SetValue(6,_mat.ks.x);
+	mats->SetValue(7,_mat.ks.y);
+	mats->SetValue(8,_mat.ks.z);
+	mats->SetValue(9,_mat.shiny);
+	mats->SetValue(10,_mat.rs);
+
 	defaultMat=_mat;
 }
 
@@ -97,7 +129,18 @@ EAVL_HOSTONLY inline int eavlRTScene::addMaterial(RTMaterial _mat, string matNam
 {
 	int idx=numMats;
 	matMap.insert(pair<string, int>(matName, numMats));
-	mats->push_back(_mat);
+	mats->AddValue(_mat.ka.x);
+	mats->AddValue(_mat.ka.y);
+	mats->AddValue(_mat.ka.z);
+	mats->AddValue(_mat.kd.x);
+	mats->AddValue(_mat.kd.y);
+	mats->AddValue(_mat.kd.z);
+	mats->AddValue(_mat.ks.x);
+	mats->AddValue(_mat.ks.y);
+	mats->AddValue(_mat.ks.z);
+	mats->AddValue(_mat.shiny);
+	mats->AddValue(_mat.rs);
+	mats->AddValue(0.f);
 	numMats++;
 	return idx;
 }
@@ -105,7 +148,18 @@ EAVL_HOSTONLY inline int eavlRTScene::addMaterial(RTMaterial _mat, string matNam
 EAVL_HOSTONLY inline int eavlRTScene::addMaterial( RTMaterial _mat)
 {
 	int idx=numMats;
-	mats->push_back(_mat);
+	mats->AddValue(_mat.ka.x);
+	mats->AddValue(_mat.ka.y);
+	mats->AddValue(_mat.ka.z);
+	mats->AddValue(_mat.kd.x);
+	mats->AddValue(_mat.kd.y);
+	mats->AddValue(_mat.kd.z);
+	mats->AddValue(_mat.ks.x);
+	mats->AddValue(_mat.ks.y);
+	mats->AddValue(_mat.ks.z);
+	mats->AddValue(_mat.shiny);
+	mats->AddValue(_mat.rs);
+	mats->AddValue(0.f);
 	numMats++;
 	return idx;
 }
@@ -124,10 +178,31 @@ EAVL_HOSTONLY inline void eavlRTScene::addTriangle(const eavlVector3 &v0 , const
   			matId=matMap[matName];
 		} 
 	}
-
-	RTTriangle t(v0, v1, v2, scalarV0, scalarV1, scalarV2, matId);
-	tris->push_back( t );
-	sceneBbox.expandToInclude(t.getBBox());
+	trisVerts->AddValue(v0.x);
+	trisVerts->AddValue(v0.y);
+	trisVerts->AddValue(v0.z);
+	trisVerts->AddValue(v1.x);
+	trisVerts->AddValue(v1.y);
+	trisVerts->AddValue(v1.z);
+	trisVerts->AddValue(v2.x);
+	trisVerts->AddValue(v2.y);
+	trisVerts->AddValue(v2.z);
+	eavlVector3 normal = (v1 - v0) % (v2 - v0);
+	for (int i = 0; i < 3; ++i)
+	{
+		triNormals->AddValue(normal.x);
+		triNormals->AddValue(normal.y);
+		triNormals->AddValue(normal.z);
+	}
+	triScalars->AddValue(scalarV0);
+	triScalars->AddValue(scalarV1);
+	triScalars->AddValue(scalarV1);
+	triMatIds->AddValue(matId);
+	BBox bbox;
+	bbox.expandToInclude(v0);
+	bbox.expandToInclude(v1);
+	bbox.expandToInclude(v2);
+	sceneBbox.expandToInclude(bbox);  //TODO: get rid of this
 }
 
 EAVL_HOSTONLY inline void eavlRTScene::addTriangle(const eavlVector3 &v0 , const eavlVector3 &v1, const eavlVector3 &v2, string matName)
@@ -142,17 +217,61 @@ EAVL_HOSTONLY inline void eavlRTScene::addTriangle(const eavlVector3 &v0 , const
 		} 
 	}
 
-	RTTriangle t(v0, v1, v2, 0, 0, 0, matId);
-	tris->push_back( t );
-	sceneBbox.expandToInclude(t.getBBox());
+	trisVerts->AddValue(v0.x);
+	trisVerts->AddValue(v0.y);
+	trisVerts->AddValue(v0.z);
+	trisVerts->AddValue(v1.x);
+	trisVerts->AddValue(v1.y);
+	trisVerts->AddValue(v1.z);
+	trisVerts->AddValue(v2.x);
+	trisVerts->AddValue(v2.y);
+	trisVerts->AddValue(v2.z);
+	eavlVector3 normal = (v1 - v0) % (v2 - v0);
+	for (int i = 0; i < 3; ++i)
+	{
+		triNormals->AddValue(normal.x);
+		triNormals->AddValue(normal.y);
+		triNormals->AddValue(normal.z);
+	}
+	triScalars->AddValue(0.f);
+	triScalars->AddValue(0.f);
+	triScalars->AddValue(0.f);
+	triMatIds->AddValue(matId);
+	BBox bbox;
+	bbox.expandToInclude(v0);
+	bbox.expandToInclude(v1);
+	bbox.expandToInclude(v2);
+	sceneBbox.expandToInclude(bbox);  //TODO: get rid of this
 }
 
 EAVL_HOSTONLY inline void eavlRTScene::addTriangle(const eavlVector3 &v0 , const eavlVector3 &v1, const eavlVector3 &v2,
 										    const float &scalarV0 , const float &scalarV1, const float &scalarV2, const int &matId)
 {
-	RTTriangle t(v0, v1, v2, scalarV0, scalarV1, scalarV2, matId);
-	tris->push_back( t );
-	sceneBbox.expandToInclude(t.getBBox());
+	trisVerts->AddValue(v0.x);
+	trisVerts->AddValue(v0.y);
+	trisVerts->AddValue(v0.z);
+	trisVerts->AddValue(v1.x);
+	trisVerts->AddValue(v1.y);
+	trisVerts->AddValue(v1.z);
+	trisVerts->AddValue(v2.x);
+	trisVerts->AddValue(v2.y);
+	trisVerts->AddValue(v2.z);
+	eavlVector3 normal = (v1 - v0) % (v2 - v0);
+	for (int i = 0; i < 3; ++i)
+	{
+		triNormals->AddValue(normal.x);
+		triNormals->AddValue(normal.y);
+		triNormals->AddValue(normal.z);
+	}
+	triScalars->AddValue(scalarV0);
+	triScalars->AddValue(scalarV1);
+	triScalars->AddValue(scalarV1);
+	triMatIds->AddValue(matId);
+	BBox bbox;
+	bbox.expandToInclude(v0);
+	bbox.expandToInclude(v1);
+	bbox.expandToInclude(v2);
+	sceneBbox.expandToInclude(bbox);  //TODO: get rid of this
 }
 
 EAVL_HOSTONLY inline void eavlRTScene::addTriangle(const eavlVector3 &v0 , const eavlVector3 &v1, const eavlVector3 &v2,
@@ -168,9 +287,33 @@ EAVL_HOSTONLY inline void eavlRTScene::addTriangle(const eavlVector3 &v0 , const
   			matId=matMap[matName];
 		} 
 	}
-	RTTriangle t(v0, v1, v2, n0, n1 ,n2, scalarV0, scalarV1, scalarV2, matId);
-	tris->push_back( t );
-	sceneBbox.expandToInclude(t.getBBox());
+	trisVerts->AddValue(v0.x);
+	trisVerts->AddValue(v0.y);
+	trisVerts->AddValue(v0.z);
+	trisVerts->AddValue(v1.x);
+	trisVerts->AddValue(v1.y);
+	trisVerts->AddValue(v1.z);
+	trisVerts->AddValue(v2.x);
+	trisVerts->AddValue(v2.y);
+	trisVerts->AddValue(v2.z);
+	triNormals->AddValue(n0.x);
+	triNormals->AddValue(n0.y);
+	triNormals->AddValue(n0.z);
+	triNormals->AddValue(n1.x);
+	triNormals->AddValue(n1.y);
+	triNormals->AddValue(n1.z);
+	triNormals->AddValue(n2.x);
+	triNormals->AddValue(n2.y);
+	triNormals->AddValue(n2.z);
+	triMatIds->AddValue(matId);
+	triScalars->AddValue(scalarV0);
+	triScalars->AddValue(scalarV1);
+	triScalars->AddValue(scalarV1);
+	BBox bbox;
+	bbox.expandToInclude(v0);
+	bbox.expandToInclude(v1);
+	bbox.expandToInclude(v2);
+	sceneBbox.expandToInclude(bbox);  //TODO: get rid of this
 }
 
 EAVL_HOSTONLY  inline void eavlRTScene::addSphere(const float &radius, const float &centerX, const float &centerY, const float &centerZ, const float _scalar, string matName)
@@ -262,72 +405,47 @@ EAVL_HOSTONLY inline void eavlRTScene::loadObjFile(const char * _filename)
 
 void inline eavlRTScene::clear()
 {
-	tris->clear();
+	delete trisVerts;
+	delete triMatIds;
+	delete triScalars;
+	delete triNormals;
+	delete mats;
+	mats = new eavlFloatArray("",1,1);
+	trisVerts    = new eavlFloatArray("",1,1);
+	triMatIds   = new eavlFloatArray("",1,1);
+	triScalars   = new eavlFloatArray("",1,1);
+	triNormals   = new eavlFloatArray("",1,1);
+	mats->AddValue(defaultMat.ka.x);
+	mats->AddValue(defaultMat.ka.y);
+	mats->AddValue(defaultMat.ka.z);
+	mats->AddValue(defaultMat.kd.x);
+	mats->AddValue(defaultMat.kd.y);
+	mats->AddValue(defaultMat.kd.z);
+	mats->AddValue(defaultMat.ks.x);
+	mats->AddValue(defaultMat.ks.y);
+	mats->AddValue(defaultMat.ks.z);
+	mats->AddValue(defaultMat.shiny);
+	mats->AddValue(defaultMat.rs);
+	mats->AddValue(0.f);
 	spheres->clear();
-	mats->clear();
 	matMap.clear();
 	/* Load the defualt materials back in*/
-	mats->push_back(defaultMat);
 	matMap.insert(pair<string, int> ("default", 0));
 }
 
-EAVL_HOSTONLY  inline float*  eavlRTScene::getTrianglePtr()
+EAVL_HOSTONLY inline eavlFloatArray* eavlRTScene::getTrianglePtr()
 {
-	if(getNumTriangles() < 1) return NULL;
-	int n = getNumTriangles();
-	float *tris_raw = new float[getNumTriangles()*9];
-	for(int i=0; i<n;i++)
-	{
-
-	 	tris_raw[i*9   ] = tris->at(i).verts[0].x;
-      	tris_raw[i*9+1 ] = tris->at(i).verts[0].y;
-      	tris_raw[i*9+2 ] = tris->at(i).verts[0].z;
-      	tris_raw[i*9+3 ] = tris->at(i).verts[1].x;
-      	tris_raw[i*9+4 ] = tris->at(i).verts[1].y;
-      	tris_raw[i*9+5 ] = tris->at(i).verts[1].z;
-      	tris_raw[i*9+6 ] = tris->at(i).verts[2].x;
-      	tris_raw[i*9+7 ] = tris->at(i).verts[2].y;
-      	tris_raw[i*9+8 ] = tris->at(i).verts[2].z;
-  	}
-
-	
-	return tris_raw;
+	return trisVerts;
 }
 
-EAVL_HOSTONLY  inline float*  eavlRTScene::getTriangleScalarsPtr()
+EAVL_HOSTONLY inline eavlFloatArray* eavlRTScene::getTriangleScalarsPtr()
 {
-	if(getNumTriangles() < 1) return NULL;
-	int n = getNumTriangles();
-	float *scalars_raw = new float[getNumTriangles()*3];
-	for(int i=0; i<n;i++)
-	{
-      	scalars_raw[i*3 + 0] = tris->at(i).scalars[0]; 						
-      	scalars_raw[i*3 + 1] = tris->at(i).scalars[1];
-      	scalars_raw[i*3 + 2] = tris->at(i).scalars[2];
-  	}
-
-	
-	return scalars_raw;
+	return triScalars;
 }
 
-EAVL_HOSTONLY  inline float* eavlRTScene::getTriangleNormPtr()
+EAVL_HOSTONLY  inline eavlFloatArray* eavlRTScene::getTriangleNormPtr()
 {
-	if(getNumTriangles()==0) return NULL;
-	int n = getNumTriangles();
-	float *tris_norms_raw  = new float[getNumTriangles()*9];
-	for(int i=0; i<n;i++)
-	{
-      	tris_norms_raw[i*9  ] = tris->at(i).norms[0].x;
-      	tris_norms_raw[i*9+1] = tris->at(i).norms[0].y;
-      	tris_norms_raw[i*9+2] = tris->at(i).norms[0].z;
-      	tris_norms_raw[i*9+3] = tris->at(i).norms[1].x;
-      	tris_norms_raw[i*9+4] = tris->at(i).norms[1].y;
-      	tris_norms_raw[i*9+5] = tris->at(i).norms[1].z;
-      	tris_norms_raw[i*9+6] = tris->at(i).norms[2].x;
-      	tris_norms_raw[i*9+7] = tris->at(i).norms[2].y;
-      	tris_norms_raw[i*9+8] = tris->at(i).norms[2].z;
-  	}
-	return tris_norms_raw;
+	return triNormals;
 }
 
 EAVL_HOSTONLY inline float* eavlRTScene::getSpherePtr()
@@ -394,45 +512,14 @@ EAVL_HOSTONLY inline int*   eavlRTScene::getCylMatIdxPtr()
 	return cylMatIdx;
 };
 
-EAVL_HOSTONLY inline float* eavlRTScene::getMatsPtr()
+EAVL_HOSTONLY inline eavlFloatArray* eavlRTScene::getMatsPtr()
 {
-	if(getNumMaterials() ==0) return NULL;
-	float* mats_raw;
-	int numMats=mats->size();
-	
-	mats_raw= new float[12*numMats];
-	for(int i=0;i<numMats;i++)
-	{
-		mats_raw[i*12   ] = mats->at(i).ka.x;
-		mats_raw[i*12+1 ] = mats->at(i).ka.y;
-		mats_raw[i*12+2 ] = mats->at(i).ka.z;
-		mats_raw[i*12+3 ] = mats->at(i).kd.x;
-		mats_raw[i*12+4 ] = mats->at(i).kd.y;
-		mats_raw[i*12+5 ] = mats->at(i).kd.z;
-		mats_raw[i*12+6 ] = mats->at(i).ks.x;
-		mats_raw[i*12+7 ] = mats->at(i).ks.y;
-		mats_raw[i*12+8 ] = mats->at(i).ks.z;
-		mats_raw[i*12+9 ] = mats->at(i).shiny;
-		mats_raw[i*12+10] = mats->at(i).rs;
-		mats_raw[i*12+11] = 0.f;
-
-	}
-
-
-
-	return mats_raw;
+	return mats;
 }
 
-EAVL_HOSTONLY inline int* eavlRTScene::getTriMatIdxsPtr()
+EAVL_HOSTONLY inline eavlFloatArray* eavlRTScene::getTriMatIdxsPtr()
 {
-	if(getNumTriangles()==0) return NULL;
-	int n = getNumTriangles();
-	int* trisMatIdxs	= new int[getNumTriangles()];
-	for(int i=0; i<n;i++)
-	{
-		trisMatIdxs[i] = tris->at(i).getMatIndex();
-  	}
-	return trisMatIdxs;
+	return triMatIds;
 }
 
 EAVL_HOSTONLY inline float eavlRTScene::getSceneExtentMagnitude()

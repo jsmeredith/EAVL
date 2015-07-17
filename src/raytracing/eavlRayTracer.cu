@@ -276,7 +276,7 @@ void eavlRayTracer::init()
 		rgbaPixels  = new eavlByteArray("", 1, numRays * 4); //rgba
 		depthBuffer = new eavlFloatArray("", 1, numRays);
 		inShadow    = new eavlFloatArray("", 1, numRays);
-                currentFrameSize = numRays;
+        currentFrameSize = numRays;
 	}
 
 	if(geometryDirty)
@@ -287,9 +287,8 @@ void eavlRayTracer::init()
 			triGeometry->setVertices(scene->getTrianglePtr(), numTriangles);
 			triGeometry->setScalars(scene->getTriangleScalarsPtr(), numTriangles);
 			triGeometry->setNormals(scene->getTriangleNormPtr(), numTriangles);
-			materials = scene->getMatsPtr();
 			int numMaterials = scene->getNumMaterials();
-			eavlMaterials = new eavlFloatArray(eavlArray::HOST, materials, "mats",1, numMaterials * 12);
+			eavlMaterials = scene->getMatsPtr();
 		}
 		geometryDirty = false;
 	}

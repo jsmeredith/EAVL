@@ -328,7 +328,7 @@ void eavlRayQueryMutator::extractGeometry()
     freeRaw();
     freeTextures();
 
-    tri_verts_raw = scene.getTrianglePtr();
+    tri_verts_raw = &(scene.getTrianglePtr()->GetValue(0));
     int tri_bvh_in_size = 0;
     int tri_bvh_lf_size = 0;
     

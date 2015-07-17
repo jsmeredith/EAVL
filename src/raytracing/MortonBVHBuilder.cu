@@ -82,7 +82,7 @@ void validate(BVHSOA *bvh, int numLeafs, int currentNode, int &count)
 }
 
 
-MortonBVHBuilder::MortonBVHBuilder(float * _verts, int _numPrimitives, primitive_t _primitveType)
+MortonBVHBuilder::MortonBVHBuilder(eavlFloatArray* _verts, int _numPrimitives, primitive_t _primitveType)
   : verts(_verts), numPrimitives(_numPrimitives), primitveType(_primitveType)
 {
 
@@ -408,7 +408,7 @@ struct TreeFunctor
 	{								
         if(idx > leafCount - 2) return tuple<int, int>(-1,-1);					
         //determine range direction
-        int d = signbit(delta(idx, idx + 1) - delta(idx, idx - 1)) ?  -1 : 1;
+        int d = 0 > (delta(idx, idx + 1) - delta(idx, idx - 1)) ?  -1 : 1;
         
         //find upper bound for the length of the range
         int minDelta = delta(idx, idx - d);

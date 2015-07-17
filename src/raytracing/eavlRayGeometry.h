@@ -28,9 +28,9 @@ class eavlRayGeometry
 			bvhInnerNodes 	= NULL;
 			size = 0;
 		}
-		void setVertices(float *_vertices,const int &_size);
-		void setMaterialIds(float *_matIds,const int &_size);
-		void setScalars(float *_scalars, const int &_size);
+		void setVertices(eavlFloatArray *_vertices,const int &_size);
+		void setMaterialIds(eavlFloatArray *_matIds,const int &_size);
+		void setScalars(eavlFloatArray *_scalars, const int &_size);
 		void setFastBuild(bool on)
 		{
 			fastBuild = on;

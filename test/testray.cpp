@@ -5,6 +5,7 @@
 #include "eavlRayTriangleIntersector.h"
 #include "eavlRayCamera.h"
 #include "eavlRayTriangleGeometry.h"
+#include "eavlArray.h"
 #include "objloader.h"
 #include <string.h>
 #include <sys/time.h>
@@ -284,7 +285,12 @@ int main(int argc, char *argv[])
         
         eavlRayTriangleGeometry geometry;
         geometry.setBVHCacheName(filename);
-        geometry.setVertices(v, numTris);
+        eavlFloatArray *verts = new eavlFloatArray("",1,numTris *9);
+        for (int i = 0; i < numTris*9; ++i)
+        {
+           verts->SetValue(i,v[i]);
+        }
+        geometry.setVertices(verts, numTris);
         cout<<"Number of triangles "<<numTris<<endl;
         eavlRay rays(camera->getWidth() * camera->getHeight());
         eavlRayTriangleIntersector intersector;
@@ -324,6 +330,7 @@ int main(int argc, char *argv[])
         
 
         delete camera;
+        delete verts;
     }
     }
     catch (const eavlException &e)
