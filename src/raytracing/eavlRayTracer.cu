@@ -68,7 +68,7 @@ void eavlRayTracer::setColorMap3f(float* cmap, const int &nColors)
 		THROW(eavlException, "Cannot set color map size of less than 1");
 	}
     delete colorMap;
-    colorMap = new eavlTextureObject<float>(nColors, cmap, false);
+    colorMap = new eavlTextureObject<float>(nColors * 3, cmap, false);
     numColors = nColors;
 }
 
@@ -85,12 +85,12 @@ struct NormalFunctor{
     {
         
     }                                                    
-    EAVL_FUNCTOR tuple<float,float,float,float,float,float,float> operator()( tuple<float,  // rayDir x
+    EAVL_FUNCTOR tuple<float,float,float,float,float,float,float> operator()( tuple<float,  // rayOrigin x
+														   						    float,  // rayOrigin y
+														   						    float,  // rayOrigin z
+														   						    float,  // rayDir x
 														   						    float,  // rayDir y
 														   						    float,  // rayDir z
-														   						    float,  // rayOrigin x
-														   						    float,  // ray Origin y
-														   						    float,  // ray Origin z
 														   						    float,  // hit distance
 														   						    float,  // alpha
 														   						    float,  // beta
@@ -98,8 +98,8 @@ struct NormalFunctor{
 														   						    > input)
     {
        
-        eavlVector3 rayDir(get<0>(input), get<1>(input), get<2>(input));
-        eavlVector3 rayOrigin(get<3>(input), get<4>(input), get<5>(input));
+       	eavlVector3 rayOrigin(get<0>(input), get<1>(input), get<2>(input));
+        eavlVector3 rayDir(get<3>(input), get<4>(input), get<5>(input));
         float hitDistance = get<6>(input);
         rayDir.normalize();
         eavlVector3 intersect = rayOrigin + hitDistance * rayDir  - EPSILON * rayDir; 
@@ -127,9 +127,8 @@ struct NormalFunctor{
         					 scalars.getValue(hitIndex * 3 + 1) * beta  + 
         					 scalars.getValue(hitIndex * 3 + 2) * gamma;
         //reflect the ray
-        
         normal.normalize();
-        if ((normal * rayDir) < 0.0f) normal = -normal; //flip the normal if we hit the back side
+        if ((normal * rayDir) > 0.0f) normal = -normal; //flip the normal if we hit the back side
         return tuple<float,float,float,float,float,float,float>(normal.x, normal.y, normal.z, lerpedScalar, intersect.x, intersect.y, intersect.z);
     }
 };
@@ -302,8 +301,8 @@ void eavlRayTracer::init()
 
 }
 void eavlRayTracer::render()
-{
-
+{   camera->printSummary();
+	cerr<<"Light Pos : "<<lightPosition<<endl;
 	eavlVector3 bgColor(.2, .2, .3);
 	init();
 	if(numTriangles < 1) 
@@ -325,7 +324,7 @@ void eavlRayTracer::render()
 	for(int i = 0; i < currentFrameSize; i++)
 	{
 		int idx = rays->hitIdx->GetValue(i);
-		//if(idx != -1) cout<<"Scalars "<<triGeometry->scalars->getValue(idx *3)<<endl;
+		if(idx > numTriangles) cout<<"Bad index "<<idx<<endl;
 	}
 	eavlFunctorArray<float> mats(eavlMaterials);
 	eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->rayOriginX,

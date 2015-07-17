@@ -409,3 +409,20 @@ EAVL_HOSTONLY void eavlRayCamera::lookAtPosition(const float &_x, const float &_
   look = lookAt - position;
   look.normalize();
 }
+
+EAVL_HOSTONLY void eavlRayCamera::printSummary()
+{
+	cerr<<"----------------Camera Parameters--------------"<<endl;
+	cerr<<"Height      : "<<height<<endl;
+	cerr<<"Width       : "<<width<<endl;
+	cerr<<"FovX        : "<<fovx<<endl;
+	cerr<<"FovY        : "<<fovy<<endl;
+	cerr<<"Zoom        : "<<zoom<<endl;
+	cerr<<"Morton sort : "<<mortonSort<<endl;
+	cerr<<"Look        : "<<look<<endl;
+	cerr<<"Look at     : "<<lookat<<endl;
+	cerr<<"Up          : "<<up<<endl;
+	cerr<<"Position    : "<<position<<endl;
+	cerr<<"--------------------------------------------------"<<endl;
+	
+}

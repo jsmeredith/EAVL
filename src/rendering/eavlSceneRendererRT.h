@@ -84,6 +84,40 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         
     }
 
+    virtual void StartTetrahedra()
+    {
+       tracer->startScene();
+    }
+
+    virtual void EndTetrahedra()
+    {
+     
+    }
+
+
+    virtual void AddTetrahedronVs(double x0, double y0, double z0,
+                                  double x1, double y1, double z1,
+                                  double x2, double y2, double z2,
+                                  double x3, double y3, double z3,
+                                  double s0, double s1, double s2, double s3)
+    {
+        AddTriangleVs(x1,y1,z1,
+                      x0,y0,z0,
+                      x2,y2,z2,
+                      s1,s0,s2);
+        AddTriangleVs(x0,y0,z0,
+                      x1,y1,z1,
+                      x3,y3,z3,
+                      s0,s1,s3);
+        AddTriangleVs(x1,y1,z1,
+                      x2,y2,z2,
+                      x3,y3,z3,
+                      s1,s2,s3);
+        AddTriangleVs(x2,y2,z2,
+                      x0,y0,z0,
+                      x3,y3,z3,
+                      s2,s0,s3);
+    }
     virtual void StartScene() 
     {
         //cout<<"Calling Start scene"<<endl;
@@ -176,7 +210,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         camera->setFOVY((view.view3d.fov*(180.f/M_PI))/2.f);
         camera->setFOVX( fovx/2.f );
 
-       // camera->setZoom(view.view3d.zoom);
+        camera->setCameraZoom(view.view3d.zoom);
 
         eavlVector3 lookdir = (view.view3d.at - view.view3d.from).normalized();
         eavlVector3 right = (lookdir % view.view3d.up).normalized();
