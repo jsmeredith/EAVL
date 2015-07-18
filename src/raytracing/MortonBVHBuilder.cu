@@ -575,11 +575,15 @@ struct InnerToFlatFunctor
         //First prim is at -1
         int clIdx  = (lChild < numPrimitives - 1) ? lChild * 4 : -(lChild - primOffset) * 2 - 1;  
         int crIdx  = (rChild < numPrimitives - 1) ? rChild * 4 : -(rChild - primOffset) * 2 - 1;  
+        //to avoid truncating interger value when casting to floating point
+        float clf,crf;
+        memcpy(&clf,&clIdx, 4);
+        memcpy(&crf,&crIdx, 4);
         //each node stores the bounding boxes of its children 
         return tuple<float, float, float, float, float, float, float, float, float, float, float, float, float, float>
         (xmins[lChild], ymins[lChild], zmins[lChild], xmaxs[lChild], ymaxs[lChild], zmaxs[lChild],
          xmins[rChild], ymins[rChild], zmins[rChild], xmaxs[rChild], ymaxs[rChild], zmaxs[rChild],
-         clIdx, crIdx);
+         clf, crf);
     } 
 };
 

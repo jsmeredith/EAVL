@@ -866,11 +866,15 @@ inline void SplitBVHBuilder::bvhToFlatArray(BVHNode * root, int &innerSize, int 
             {
                 if(current->m_parent->getChildNode(0) == current)
                 {
-                    flat_inner_array->at(current->m_parent->m_index+12) = nodeIdx;
+                    float clf;
+                    memcpy(&clf,&nodeIdx, 4);
+                    flat_inner_array->at(current->m_parent->m_index+12) = clf;
                 }
                 else if(current->m_parent->getChildNode(1) == current)
                 {
-                    flat_inner_array->at(current->m_parent->m_index+13) = nodeIdx;
+                    float clf;
+                    memcpy(&clf,&nodeIdx, 4);
+                    flat_inner_array->at(current->m_parent->m_index+13) = clf;
                 }
 
             }

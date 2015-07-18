@@ -252,9 +252,10 @@ EAVL_HOSTDEVICE int getIntersectionWoop(const eavlVector3 rayDir,
         else
         {
             float4 n4 = innerNodes.getValue(currentNode+3); 
-            int leftChild = (int)n4.x;
-            int rightChild = (int)n4.y;
-
+            int leftChild;
+            memcpy(&leftChild, &n4.x,4);
+            int rightChild; 
+            memcpy(&rightChild, &n4.y, 4);
             currentNode = (traverseChild0) ? leftChild : rightChild;
             if(traverseChild1 && traverseChild0)
             {
