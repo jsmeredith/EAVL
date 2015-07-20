@@ -38,8 +38,7 @@ class eavlRay
 	    	alpha    = new eavlFloatArray("",1,numRays);
 	    	beta     = new eavlFloatArray("",1,numRays);
 	    	distance = new eavlFloatArray("",1,numRays);
-	    	
-
+	    
 	    }
 
 	    ~eavlRay()
@@ -59,6 +58,7 @@ class eavlRay
 	    virtual void resize(const size_t &newSize)
 	    {
 	    	if(newSize == numRays) return; //nothing to do
+	    	 
 	    	numRays = newSize;
 	    	delete rayOriginX;
 	    	delete rayOriginY;
@@ -83,7 +83,7 @@ class eavlRay
 	    	alpha    = new eavlFloatArray("",1,numRays);
 	    	beta     = new eavlFloatArray("",1,numRays);
 	    	distance = new eavlFloatArray("",1,numRays);
-
+			
 
 	    }
 };
@@ -116,7 +116,7 @@ class eavlFullRay : public eavlRay
   	virtual void resize(const size_t &newSize)
   	{
   		if(newSize == numRays) return;
-  		numRays = newSize;
+
   		delete weight;
   		delete hitType;
   		delete normalX;
@@ -126,16 +126,16 @@ class eavlFullRay : public eavlRay
   		delete intersectionX;
   		delete intersectionY;
   		delete intersectionZ;
-  		weight  = new eavlFloatArray("",1,numRays);
-  		normalX = new eavlFloatArray("",1,numRays);
-  		normalY = new eavlFloatArray("",1,numRays);
-  		normalZ = new eavlFloatArray("",1,numRays);
-  		hitType = new eavlByteArray("",1, numRays);
-  		scalar  = new eavlFloatArray("",1,numRays);
+  		weight  = new eavlFloatArray("",1,newSize);
+  		normalX = new eavlFloatArray("",1,newSize);
+  		normalY = new eavlFloatArray("",1,newSize);
+  		normalZ = new eavlFloatArray("",1,newSize);
+  		hitType = new eavlByteArray("",1, newSize);
+  		scalar  = new eavlFloatArray("",1,newSize);
   		
-  		intersectionX = new eavlFloatArray("",1,numRays);
-  		intersectionY = new eavlFloatArray("",1,numRays);
-  		intersectionZ = new eavlFloatArray("",1,numRays);
+  		intersectionX = new eavlFloatArray("",1,newSize);
+  		intersectionY = new eavlFloatArray("",1,newSize);
+  		intersectionZ = new eavlFloatArray("",1,newSize);
   		eavlRay::resize(newSize);
   	}
   	~eavlFullRay()
