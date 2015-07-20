@@ -120,7 +120,7 @@ class eavlTextureObject
         eavlArrayProvided = true;
         
         array  = arrayPtr;
-        host   = (T*) arrayPtr->GetHostArray();
+        
         
         bool singleChannel  = true;
         bool floatType      = true;
@@ -185,6 +185,7 @@ class eavlTextureObject
             textureObjectId = tex; //this is just a unsigned long long
 #endif
         }
+        else host   = (T*) arrayPtr->GetHostArray();
     }
 
 

@@ -891,7 +891,7 @@ void MortonBVHBuilder::build()
                                                          mortonCodes,
                                                          false);
     //cout<<"VVVVVV "<<bvh->xmin->GetValue(bvh->numInner)<< " "<<bvh->zmax->GetValue(bvh->numInner)<<endl;
-    bvh->parent->SetValue(0,-1);
+    //bvh->parent->SetValue(0,-1);
     eavlFunctorArray<int> parents(bvh->parent);
 
     //Build the tree in place. TODO: figure out a better way to set parent pointers

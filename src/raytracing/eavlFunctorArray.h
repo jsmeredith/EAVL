@@ -24,15 +24,21 @@ class eavlFunctorArray
  	public:
  		eavlFunctorArray(eavlArray * arrayPtr)
  		{
- 			host = (T*) arrayPtr->GetHostArray();
+ 			
  			cpu = eavlRayExecutionMode::isCPUOnly();
 
  			if(!cpu)
  			{
  #ifdef HAVE_CUDA
  				device = (T*) arrayPtr->GetCUDAArray();
+ 				host = NULL;
  #endif
  			}
+ 			else
+ 			{
+ 				host = (T*) arrayPtr->GetHostArray();
+ 				device = NULL;	
+ 			} 
  		}
  		eavlFunctorArray(const eavlFunctorArray &other)
  		{
