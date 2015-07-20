@@ -126,7 +126,7 @@ class MortonBVHBuilder
     eavlFloatArray  *tmpFloat;
     eavlIntArray    *tmpInt;
     eavlFloatArray  *innerNodes;
-    eavlFloatArray  *leafNodes;
+    eavlIntArray    *leafNodes;
 
 
     void findAABBs();
@@ -144,9 +144,9 @@ class MortonBVHBuilder
     void build();
     void setVerbose(const int &level);
     float * getInnerNodes(int &_size);
-    float * getLeafNodes(int &_size);
+    int * getLeafNodes(int &_size);
 
     eavlFloatArray * getInnerNodes();
-    eavlFloatArray * getLeafNodes();
+    eavlIntArray * getLeafNodes();
 };
 #endif

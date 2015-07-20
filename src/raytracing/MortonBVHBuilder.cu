@@ -3,6 +3,7 @@
 #include "eavlReduceOp_1.h"
 #include "eavlMapOp.h"
 #include "eavlRadixSortOp.h"
+#include "eavlCountingIterator.h"
 #include "eavlGatherOp.h"
 #include <algorithm>    
 using namespace std; 
@@ -96,9 +97,8 @@ MortonBVHBuilder::MortonBVHBuilder(eavlFloatArray* _verts, int _numPrimitives, p
       bvh     = new BVHSOA(numPrimitives);
       indexes = new eavlIntArray("idx",1,numPrimitives);
       tmpInt  = new eavlIntArray("tmp",1,numPrimitives);
-      //innerNodes  = new BVHInnerNodeSOA(numPrimitives - 1);
-      //TODO: create indexing operation
-      for(int i = 0; i < numPrimitives; i++) indexes->SetValue(i,i);
+    
+      eavlCountingIterator::generateIterator(indexes);
 
       mortonCodes = new eavlIntArray("mortonCodes",1,numPrimitives);
 
@@ -567,7 +567,7 @@ struct InnerToFlatFunctor
         primOffset = numPrimitives - 1;
     }
     EAVL_FUNCTOR   tuple<float, float, float, float, float, float, float, float, float, float, float, float, float, float>
-        operator()(tuple<float, float>  input)
+        operator()(tuple<int, int>  input)
     {                                               
         int lChild = get<0>(input);
         int rChild = get<1>(input);
@@ -591,9 +591,9 @@ struct InnerToFlatFunctor
 struct LeafToFlatFunctor
 {
     LeafToFlatFunctor(){}
-    EAVL_FUNCTOR tuple<float, float> operator()(int  primId)
+    EAVL_FUNCTOR tuple<int, int> operator()(int  primId)
     {                                               
-        return tuple<float, float>(1, primId);
+        return tuple<int, int>(1, primId);
     } 
 };
 
@@ -754,13 +754,11 @@ void MortonBVHBuilder::sort()
 {
     // primitive ids and scatter indexes are the same
 	eavlIntArray *idx = bvh->primId;
-	cout<<"BMorton Code "<<idx->GetValue(10)<<endl;
     eavlExecutor::AddOperation(
 		new_eavlRadixSortOp(eavlOpArgs(mortonCodes),
                             eavlOpArgs(idx), true),
                             "Radix");
     eavlExecutor::Go();
-    cout<<"Morton Code "<<idx->GetValue(10)<<endl;
     int tgather;
 
     /**
@@ -920,7 +918,7 @@ void MortonBVHBuilder::flatten()
 {
     //hand these arrays off to the consumer and let them deaL with deleting them.
     innerNodes = new eavlFloatArray("inner",1, (numPrimitives -1) * 16);  //16 flat values per node
-    leafNodes  = new eavlFloatArray("leafs",1, numPrimitives * 2);
+    leafNodes  = new eavlIntArray("leafs",1, numPrimitives * 2);
 
     eavlFunctorArray<int>   atomicCounters(mortonCodes);
     eavlFunctorArray<int>   parents(bvh->parent);
@@ -970,8 +968,8 @@ void MortonBVHBuilder::flatten()
     id.add = 1;
     eavlExecutor::AddOperation(
         new_eavlMapOp(eavlOpArgs(bvh->primId),
-                      eavlOpArgs(eavlIndexable<eavlFloatArray>(leafNodes,  numPrim),
-                                 eavlIndexable<eavlFloatArray>(leafNodes,  id)),
+                      eavlOpArgs(eavlIndexable<eavlIntArray>(leafNodes,  numPrim),
+                                 eavlIndexable<eavlIntArray>(leafNodes,  id)),
                       LeafToFlatFunctor()),
                       "write");
     eavlExecutor::Go();
@@ -991,7 +989,7 @@ float * MortonBVHBuilder::getInnerNodes(int &_size)
     _size = size;
     return array; 
 }
-float * MortonBVHBuilder::getLeafNodes(int &_size)
+int * MortonBVHBuilder::getLeafNodes(int &_size)
 { 
     if(!convertedToAoS)
     {
@@ -999,8 +997,8 @@ float * MortonBVHBuilder::getLeafNodes(int &_size)
         convertedToAoS = true;
     }
     int size = numPrimitives * 2;
-    float * array =  new float[size];
-    memcpy((void*)array, leafNodes->GetHostArray(), sizeof(float) * size);
+    int * array =  new int[size];
+    memcpy((void*)array, leafNodes->GetHostArray(), sizeof(int) * size);
     _size = size;
     return array; 
 }
@@ -1016,7 +1014,7 @@ eavlFloatArray * MortonBVHBuilder::getInnerNodes()
     return innerNodes;
 }
 
-eavlFloatArray * MortonBVHBuilder::getLeafNodes()
+eavlIntArray * MortonBVHBuilder::getLeafNodes()
 {
     if(!convertedToAoS)
     {

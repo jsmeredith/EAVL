@@ -487,7 +487,7 @@ struct tri
 
 };
 
-inline bool readBVHCache(float *&innerNodes, int &innerSize, float *&leafNodes, int &leafSize, const char* filename )
+inline bool readBVHCache(float *&innerNodes, int &innerSize, int *&leafNodes, int &leafSize, const char* filename )
 {
     ifstream bvhcache(filename, ios::in |ios::binary);
     if(bvhcache.is_open())
@@ -512,8 +512,8 @@ inline bool readBVHCache(float *&innerNodes, int &innerSize, float *&leafNodes, 
             return false;
         }
 
-        leafNodes= new float[leafSize];
-        bvhcache.read((char*)leafNodes, sizeof(float)*leafSize);
+        leafNodes= new int[leafSize];
+        bvhcache.read((char*)leafNodes, sizeof(int)*leafSize);
     }
     else
     {
@@ -526,7 +526,7 @@ inline bool readBVHCache(float *&innerNodes, int &innerSize, float *&leafNodes, 
     return true;
 }
 
-inline void writeBVHCache(const float *innerNodes, const int innerSize, const float * leafNodes, const int leafSize, const char* filename )
+inline void writeBVHCache(const float *innerNodes, const int innerSize, const int * leafNodes, const int leafSize, const char* filename )
 {
     cout<<"Writing BVH to cache"<<endl;
     ofstream bvhcache(filename, ios::out | ios::binary);
@@ -537,7 +537,7 @@ inline void writeBVHCache(const float *innerNodes, const int innerSize, const fl
         bvhcache.write((const char*)innerNodes, sizeof(float)*innerSize);
 
         bvhcache.write((char*)&leafSize, sizeof(leafSize));
-        bvhcache.write((const char*)leafNodes, sizeof(float)*leafSize);
+        bvhcache.write((const char*)leafNodes, sizeof(int)*leafSize);
     }
     else
     {

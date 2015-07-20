@@ -176,7 +176,7 @@ EAVL_HOSTDEVICE int getIntersectionWoop(const eavlVector3 rayDir,
 									    const eavlVector3 rayOrigin, 
 									    bool occlusion, 
 									    eavlTextureObject<float4> &innerNodes,
-                                        eavlTextureObject<float>  &leafNodes, 
+                                        eavlTextureObject<int>  &leafNodes, 
                                         eavlTextureObject<float4> &verts,
                                         const float &maxDistance, 
                                         float &distance,
@@ -281,11 +281,11 @@ EAVL_HOSTDEVICE int getIntersectionWoop(const eavlVector3 rayDir,
         if(currentNode < 0 && currentNode != barrier)//check register usage
         {
             currentNode = -currentNode - 1; //swap the neg address 
-            int numTri = (int)leafNodes.getValue(currentNode)+1;
+            int numTri = leafNodes.getValue(currentNode)+1;
 
             for(int i = 1; i < numTri; i++)
             {        
-                    int triIndex = (int)leafNodes.getValue(currentNode+i) * 3;
+                    int triIndex = leafNodes.getValue(currentNode+i) * 3;
  
                     float4 zCol = verts.getValue(triIndex);
 
@@ -337,11 +337,11 @@ struct UnitMultipleDistancesTriangleDepthFunctor{
 
     eavlTextureObject<float4> verts;
     eavlTextureObject<float4> innerNodes;
-    eavlTextureObject<float>  leafNodes;
+    eavlTextureObject<int>  leafNodes;
 
     UnitMultipleDistancesTriangleDepthFunctor(eavlTextureObject<float4> *_verts,
     						 				  eavlTextureObject<float4> *_innerNodes,
-                                              eavlTextureObject<float>  *_leafNodes)
+                                              eavlTextureObject<int>  *_leafNodes)
         :verts(*_verts),
          innerNodes(*_innerNodes),
          leafNodes(*_leafNodes)
@@ -374,12 +374,12 @@ struct UnitSingleDistanceTriangleDepthFunctor{
 
     eavlTextureObject<float4> verts;
     eavlTextureObject<float4> innerNodes;
-    eavlTextureObject<float>  leafNodes;
+    eavlTextureObject<int>  leafNodes;
     int maxDistance;
 
     UnitSingleDistanceTriangleDepthFunctor(eavlTextureObject<float4> *_verts,
     						 				  eavlTextureObject<float4> *_innerNodes,
-                                              eavlTextureObject<float>  *_leafNodes,
+                                              eavlTextureObject<int>  *_leafNodes,
                                               int _maxDistance)
         :verts(*_verts),
          innerNodes(*_innerNodes),
@@ -499,7 +499,6 @@ EAVL_HOSTONLY void eavlRayTriangleIntersector::testIntersections(const eavlRay *
 
 	eavlIntArray    *dummy= new eavlIntArray("",1,size);
     eavlFloatArray  *dummyFloat= new eavlFloatArray("",1,size);
-    cout<<"Text id "<<geometry->vertices->textureObjectId<<endl;
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->rayOriginX),
                                                  eavlOpArgs(
                                                             dummyFloat),

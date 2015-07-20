@@ -104,7 +104,7 @@ public:
 
     BVHNode*                run                 (void);
     int                     getSAH              (BVHNode *);
-    void                    bvhToFlatArray      (BVHNode * root, int &innerSize, int &leafSize, float*& innerNodes, float*& leafNodes);
+    void                    bvhToFlatArray      (BVHNode * root, int &innerSize, int &leafSize, float*& innerNodes, int*& leafNodes);
 
 private:
     static bool             sortCompare         (void* data, int idxA, int idxB);
@@ -742,11 +742,11 @@ inline void SplitBVHBuilder::assignParentPointers(BVHNode* root)
     }
 }
 
-inline void SplitBVHBuilder::bvhToFlatArray(BVHNode * root, int &innerSize, int &leafSize, float*& innerNodes, float*& leafNodes)
+inline void SplitBVHBuilder::bvhToFlatArray(BVHNode * root, int &innerSize, int &leafSize, float*& innerNodes, int*& leafNodes)
 {
     vector<float> *flat_inner_array = new vector<float>(m_innerNodeCount*16+16);// allocate some space.
     //cout<<"Inner node array size "<<m_innerNodeCount*16+1<<endl;
-    vector<float> *flat_leaf_array = new vector<float>(m_leafNodeCount*(m_platform.getMaxLeafSize()*2+1));
+    vector<int> *flat_leaf_array = new vector<int>(m_leafNodeCount*(m_platform.getMaxLeafSize()*2+1));
     //cout<<"leaf array size "<<m_leafNodeCount*(m_platform.getMaxLeafSize()+1)<<endl;
     assignParentPointers(root);
    
@@ -887,7 +887,7 @@ inline void SplitBVHBuilder::bvhToFlatArray(BVHNode * root, int &innerSize, int 
     }
 
     float *innerraw = new float[currentIndex];
-    float *leafraw = new float[-currentLeafIndex];
+    int   *leafraw = new int[-currentLeafIndex];
     int numLeafVals=-currentLeafIndex;
 
     for (int i = 0; i < currentIndex;i++)

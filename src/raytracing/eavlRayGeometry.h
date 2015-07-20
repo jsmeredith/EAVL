@@ -17,7 +17,7 @@ class eavlRayGeometry
 		eavlTextureObject<int>     *materialIds;
 		eavlTextureObject<float>   *scalars;
 		eavlTextureObject<float4>  *bvhInnerNodes;
-		eavlTextureObject<float>   *bvhLeafNodes;
+		eavlTextureObject<int>     *bvhLeafNodes;
 		eavlRayGeometry()
 		{
 			isDirty 		= true;

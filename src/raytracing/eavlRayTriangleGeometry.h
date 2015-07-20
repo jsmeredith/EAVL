@@ -39,7 +39,7 @@ class eavlRayTriangleGeometry : public eavlRayGeometry
 		int  innerSize    = 0;
 		int  leafSize     = 0;
 		float *inner_raw;
-	    float *leafs_raw;	  	
+	    int   *leafs_raw;	  	
 		if(useBVHCache)
 	  	{
 	  		if(useBVHCache)
@@ -55,7 +55,7 @@ class eavlRayTriangleGeometry : public eavlRayGeometry
 		    if(cacheExists)
 		    {
 		    	bvhInnerNodes = new eavlTextureObject<float4>(innerSize / 4, (float4*)inner_raw, true);
-				bvhLeafNodes = new eavlTextureObject<float>(leafSize, leafs_raw, true);
+				bvhLeafNodes = new eavlTextureObject<int>(leafSize, leafs_raw, true);
 		    }
 	  	}
 	  	if(!cacheExists)
@@ -66,11 +66,11 @@ class eavlRayTriangleGeometry : public eavlRayGeometry
 				mortonBVH->setVerbose(3);
 				mortonBVH->build();
 				eavlFloatArray *inner = mortonBVH->getInnerNodes();
-				eavlFloatArray *leafs = mortonBVH->getLeafNodes(); 
+				eavlIntArray *leafs = mortonBVH->getLeafNodes(); 
 				innerSize = inner->GetNumberOfTuples();
 				leafSize = leafs->GetNumberOfTuples();
 				bvhInnerNodes = new eavlTextureObject<float4>(innerSize / 4, inner, true);
-				bvhLeafNodes = new eavlTextureObject<float>(leafSize , leafs, true);
+				bvhLeafNodes = new eavlTextureObject<int>(leafSize , leafs, true);
 				delete mortonBVH;
 			}
 			else
@@ -80,7 +80,7 @@ class eavlRayTriangleGeometry : public eavlRayGeometry
 
 				sbvh->getFlatArray(innerSize, leafSize, inner_raw, leafs_raw);
 				bvhInnerNodes = new eavlTextureObject<float4>(innerSize / 4, (float4*)inner_raw, true);
-				bvhLeafNodes = new eavlTextureObject<float>(leafSize, leafs_raw, true);  
+				bvhLeafNodes = new eavlTextureObject<int>(leafSize, leafs_raw, true);  
 				delete sbvh;
 			}
 	  	}

@@ -30,7 +30,7 @@ SplitBVH(float * verts, int numPrimitives, int primitveType)
 	
 }
 
-void getFlatArray(int &size, int &leafSize, float *& inner, float *&leafs)
+void getFlatArray(int &size, int &leafSize, float *& inner, int *&leafs)
 {
 	return builder->bvhToFlatArray(root,size, leafSize, inner, leafs);
 }
