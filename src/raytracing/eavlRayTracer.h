@@ -23,7 +23,7 @@ protected:
 	eavlFloatArray 			  	*frameBuffer;
 	eavlByteArray				*rgbaPixels;
 	eavlFloatArray 				*depthBuffer;
-	eavlFloatArray 				*inShadow;
+	eavlIntArray 				*inShadow;
 	bool 						geometryDirty;
 	int 						currentFrameSize;
 	int 						numTriangles;
@@ -32,6 +32,7 @@ protected:
     eavlArrayIndexer      		*greenIndexer;
     eavlArrayIndexer      		*blueIndexer;
     eavlArrayIndexer      		*alphaIndexer;
+    eavlVector3					bgColor;
 
 public:
 	eavlRTScene					*scene;
@@ -40,6 +41,7 @@ public:
 	eavlRayTracer();
 	~eavlRayTracer();
 	void setColorMap3f(float *, const int &);
+	void setBackgroundColor(float, float, float);
 
 	void render();
 	void startScene();

@@ -15,6 +15,10 @@ class eavlRayTriangleIntersector{
 		EAVL_HOSTONLY void intersectionDepth(const eavlRay *rays, 
 									  		 eavlFloatArray *maxDistances, 
 									  		 const eavlRayTriangleGeometry *geometry);
+		EAVL_HOSTONLY void intersectionShadow(const eavlFullRay *rays, 
+									  		 eavlIntArray *hits,
+									  		 eavlVector3 &lightPosition,  
+									  		 const eavlRayTriangleGeometry *geometry);
 		//Full returns hit index, distance, U, V, 
 		//static void intersectionFull(const eavlRay &rays, const int &maxDistance, const eavlRayTriangleGeomtry &geometry);
 		//static void intersectionFull(const eavlRay &rays, eavlFloatArray *maxDistances, const eavlRayTriangleGeomtry &geometry);
