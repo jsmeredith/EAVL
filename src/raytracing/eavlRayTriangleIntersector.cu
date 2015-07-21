@@ -293,7 +293,7 @@ EAVL_HOSTDEVICE int getIntersectionWoopOcculsion(const eavlVector3 rayDir,
 
                             if((u >= 0.f) && ((u+v) <= 1.00002))
                             {
-                                return 1; //ray is occluded
+                                return 0; //ray is occluded
                             }
                         }
 
@@ -306,7 +306,7 @@ EAVL_HOSTDEVICE int getIntersectionWoopOcculsion(const eavlVector3 rayDir,
 
     }
  
- return -1; //clear path
+ return 1; //clear path
 }
 
 struct UnitMultipleDistancesTriangleDepthFunctor{

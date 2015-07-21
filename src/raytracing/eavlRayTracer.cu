@@ -22,7 +22,7 @@ eavlRayTracer::eavlRayTracer()
 	rgbaPixels = new eavlByteArray("", 1, currentFrameSize * 4);
 	depthBuffer = new eavlFloatArray("", 1, currentFrameSize);
 	inShadow = new eavlIntArray("", 1, currentFrameSize);
-	
+	ambientPct = new eavlFloatArray("", 1, currentFrameSize);
 	bgColor.x = .1f;
 	bgColor.y = .1f;
 	bgColor.z = .1f;
@@ -54,7 +54,7 @@ eavlRayTracer::eavlRayTracer()
     occY = NULL;
     occZ = NULL;
     occHits = NULL;
-    ambientPct = NULL;
+    occDirty = false;
     occIndexer = NULL;
 }
 
@@ -233,7 +233,7 @@ struct PhongShaderFunctor
     {
 
         int hitIdx = get<0>(input);
-        int hit = get<1>(input);
+        int shadowHit = get<1>(input);
 
         if(hitIdx == -1 ) return tuple<float,float,float,float>(bgColor.x, bgColor.y,bgColor.z,1.f); // primary ray never hit anything.
         
@@ -247,8 +247,8 @@ struct PhongShaderFunctor
         lightDir.normalize();
         viewDir.normalize();
         
-        float ambPct= get<11>(input);
-        
+        float ambPct= get<12>(input);
+    
         int id = 0;
         id = matIds.getValue(hitIdx);
         eavlVector3* matPtr = (eavlVector3*)(&mats[0]+id*12);
@@ -257,10 +257,9 @@ struct PhongShaderFunctor
         eavlVector3 ks = matPtr[2];
         float matShine = matPtr[3].x;
 
-
-        float red   = 0;
-        float green = 0;
-        float blue  = 0;
+        float red   = 0.f;
+        float green = 0.f;
+        float blue  = 0.f;
  
  		//
         // Diffuse
@@ -276,12 +275,7 @@ struct PhongShaderFunctor
         float cosPhi = normal * halfVector;
         float specConst;
         specConst = pow(max(cosPhi,0.0f),matShine);
-
-        float shadowHit = (hit==1) ? 0.f : 1.f;
-        //red  =ambPct;
-        //green=ambPct;
-        //blue =ambPct;
-    
+ 
         red   = ka.x * ambPct+ (kd.x * lightDiff.x * cosTheta + ks.x * lightSpec.x * specConst) * shadowHit;
         green = ka.y * ambPct+ (kd.y * lightDiff.y * cosTheta + ks.y * lightSpec.y * specConst) * shadowHit;
         blue  = ka.z * ambPct+ (kd.z * lightDiff.z * cosTheta + ks.z * lightSpec.z * specConst) * shadowHit;
@@ -330,13 +324,30 @@ void eavlRayTracer::init()
         ambientPct = new eavlFloatArray("",1,numRays);
         if(occlusionOn)
         {
+        	delete occX;
+        	delete occY;
+        	delete occZ;
+        	delete occHits;
+        	delete occIndexer;
             occX = new eavlFloatArray("",1,numRays * numOccSamples);
             occY = new eavlFloatArray("",1,numRays * numOccSamples);
             occZ = new eavlFloatArray("",1,numRays * numOccSamples);
             occHits = new eavlIntArray("",1,numRays * numOccSamples);
             occIndexer = new eavlArrayIndexer(numOccSamples,1e9, 1, 0);
+            occDirty = false;
         }
         currentFrameSize = numRays;
+	}
+	// ifthe framesize didn't change and occlusion is turned on
+	// allocate the arrays
+	if(occlusionOn && occDirty)
+	{
+		occX = new eavlFloatArray("",1,numRays * numOccSamples);
+        occY = new eavlFloatArray("",1,numRays * numOccSamples);
+        occZ = new eavlFloatArray("",1,numRays * numOccSamples);
+        occHits = new eavlIntArray("",1,numRays * numOccSamples);
+        occIndexer = new eavlArrayIndexer(numOccSamples,1e9, 1, 0);
+        occDirty = false;
 	}
 
 	if(geometryDirty)
@@ -358,8 +369,8 @@ void eavlRayTracer::init()
 
 }
 void eavlRayTracer::render()
-{   camera->printSummary();
-	cerr<<"Light Pos : "<<lightPosition<<endl;
+{   
+	camera->printSummary();
 	init();
 	if(numTriangles < 1) 
 	{
@@ -402,6 +413,7 @@ void eavlRayTracer::render()
                      									   triGeometry->normals)),
                                              "Normal functor");
     eavlExecutor::Go();
+
     if(occlusionOn)
     {
         eavlExecutor::AddOperation(new_eavl1toNScatterOp(eavlOpArgs(rays->normalX,
@@ -421,7 +433,7 @@ void eavlRayTracer::render()
                                                             "gather");
         eavlExecutor::Go();
     }
-	intersector->intersectionShadow(rays, inShadow, lightPosition, triGeometry);	
+	//intersector->intersectionShadow(rays, inShadow, lightPosition, triGeometry);	
 	
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx,
 														inShadow,
@@ -510,7 +522,11 @@ void eavlRayTracer::setOcclusionSamples(int numSamples)
         cerr<<"Cannot set occulsion samples to "<<numSamples<<endl;
         return;
     }
-    else numOccSamples = numSamples;
+    else 
+    {
+    	if(numSamples != numOccSamples) occDirty = true;
+    	numOccSamples = numSamples;
+    }
 }
 void eavlRayTracer::setOcclusionDistance(float distance)
 {
@@ -519,10 +535,23 @@ void eavlRayTracer::setOcclusionDistance(float distance)
         cerr<<"Cannot set occulsion samples to "<<distance<<endl;
         return;
     }
-    else occDistance = distance;
+    else
+    {	
+		occDistance = distance;
+	}
 }
 
 void eavlRayTracer::setOcclusionOn(bool on)
 {
+	if(on != occlusionOn) occDirty = true;
     occlusionOn = on;
+    // it was on, now we are off
+    if(!occlusionOn && occX == NULL)
+    {
+    	delete occX;
+        delete occY;
+        delete occZ;
+        delete occHits;
+        delete occIndexer;
+    }
 }

@@ -192,32 +192,29 @@ int main(int argc, char *argv[])
                 float x=0; x=atof(argv[++i]);
                 float y=0; y=atof(argv[++i]);
                 float z=0; z=atof(argv[++i]);
-                // float intensity=atof(argv[++i]);
-                // float constant =atof(argv[++i]);
-                // float linear   =atof(argv[++i]);
-                // float exponent =atof(argv[++i]);
                 tracer->lightPosition.x = x;
                 tracer->lightPosition.y = y;
                 tracer->lightPosition.z = z;
                 
             }
             else if(strcmp (argv[i],"-ao")==0)
-            {
-                if(argc<=i) 
+            {   cout<<"AO"<<endl;
+                if(argc<=i+2) 
                 {
                     cerr<<"Not enough input for ambient occlusion."<<endl;
                     printUsage();
                 }
-                // float y=0; y=atof(argv[++i]);
-                // float z=0; z=atof(argv[++i]);
-                // if(y<1)
-                // {
-                //     cerr<<"Invalid AO value "<<argv[i]<<endl;
-                //     printUsage();
-                // }
-                // tracer->setAOMax(z);
-                // tracer->setOccSamples(y);
-                // tracer->setAO(true);
+                float y=0; y=atof(argv[++i]);
+                float z=0; z=atof(argv[++i]);
+                if(y<1)
+                {
+                    cerr<<"Invalid AO value "<<argv[i]<<endl;
+                    printUsage();
+                 }
+                tracer->setOcclusionDistance(z);
+                tracer->setOcclusionSamples(y);
+                tracer->setOcclusionOn(true);
+                
             }
             else if(strcmp (argv[i],"-test")==0)
             {
