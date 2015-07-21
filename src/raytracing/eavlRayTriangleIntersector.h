@@ -19,6 +19,14 @@ class eavlRayTriangleIntersector{
 									  		 eavlIntArray *hits,
 									  		 eavlVector3 &lightPosition,  
 									  		 const eavlRayTriangleGeometry *geometry);
+		EAVL_HOSTONLY void intersectionOcclusion(const eavlFullRay *rays, 
+									  		 	 eavlFloatArray *occX,
+									  		 	 eavlFloatArray *occY,
+									  		 	 eavlFloatArray *occZ,
+									  		 	 eavlIntArray *hits,
+									  		 	 eavlArrayIndexer *occIndexer,
+									  		 	 float maxDistance,  
+									  		 	 const eavlRayTriangleGeometry *geometry);
 		//Full returns hit index, distance, U, V, 
 		//static void intersectionFull(const eavlRay &rays, const int &maxDistance, const eavlRayTriangleGeomtry &geometry);
 		//static void intersectionFull(const eavlRay &rays, eavlFloatArray *maxDistances, const eavlRayTriangleGeomtry &geometry);

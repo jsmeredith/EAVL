@@ -423,6 +423,38 @@ struct UnitShadowFunctor{
     }
 };
 
+struct UnitOcclusionFunctor{
+    eavlTextureObject<float4>   verts;
+    eavlTextureObject<float4>   innerNodes;
+    eavlTextureObject<int>      leafNodes;
+    float                       maxDistance;
+
+    UnitOcclusionFunctor(eavlTextureObject<float4> *_verts,
+                         eavlTextureObject<float4> *_innerNodes,
+                         eavlTextureObject<int>    *_leafNodes,
+                         float &_maxDistance)
+        :verts(*_verts),
+         innerNodes(*_innerNodes),
+         leafNodes(*_leafNodes),
+         maxDistance(_maxDistance)
+ 
+    {}                                                 
+    EAVL_HOSTDEVICE tuple<int> operator()( tuple<float,float,float,float,float,float> rayTuple){
+       
+ 
+        eavlVector3 rayOrigin(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
+        eavlVector3 rayDir(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
+        int minHit = getIntersectionWoopOcculsion(rayDir,
+                                                  rayOrigin,
+                                                  innerNodes,
+                                                  leafNodes, 
+                                                  verts,
+                                                  maxDistance);
+        return tuple<int>(minHit);
+ 
+    }
+};
+
 EAVL_HOSTDEVICE float testFunction(const eavlTextureObject<float4> *tt)
 { 
     return tt->getValue(0).x;
@@ -511,6 +543,30 @@ EAVL_HOSTONLY void eavlRayTriangleIntersector::intersectionShadow(const eavlFull
                                              				   geometry->bvhInnerNodes,
                                              				   geometry->bvhLeafNodes,
                                              				   lightPosition)),
+                                             "Intersect");
+    eavlExecutor::Go();
+}
+
+EAVL_HOSTONLY void eavlRayTriangleIntersector::intersectionOcclusion(const eavlFullRay *rays, 
+                                                                     eavlFloatArray *occX,
+                                                                     eavlFloatArray *occY,
+                                                                     eavlFloatArray *occZ,
+                                                                     eavlIntArray *hits,
+                                                                     eavlArrayIndexer *occIndexer,
+                                                                     float maxDistance,  
+                                                                     const eavlRayTriangleGeometry *geometry)
+{
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(rays->intersectionX, *occIndexer),
+                                                        eavlIndexable<eavlFloatArray>(rays->intersectionY, *occIndexer),
+                                                        eavlIndexable<eavlFloatArray>(rays->intersectionZ, *occIndexer),
+                                                        eavlIndexable<eavlFloatArray>(occX),
+                                                        eavlIndexable<eavlFloatArray>(occY),
+                                                        eavlIndexable<eavlFloatArray>(occZ)),
+                                             eavlOpArgs(hits),
+                                             UnitOcclusionFunctor(geometry->vertices,
+                                                                  geometry->bvhInnerNodes,
+                                                                  geometry->bvhLeafNodes,
+                                                                  maxDistance)),
                                              "Intersect");
     eavlExecutor::Go();
 }

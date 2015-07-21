@@ -42,6 +42,8 @@ protected:
     eavlFloatArray 				*occY;
     eavlFloatArray 				*occZ;
     eavlIntArray				*occHits;
+    eavlFloatArray 				*ambientPct;
+    eavlArrayIndexer      		*occIndexer;
 public:
 	eavlRTScene					*scene;
 	eavlRayCamera 				*camera;

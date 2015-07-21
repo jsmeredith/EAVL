@@ -1,4 +1,7 @@
 #include <eavlRayTracer.h>
+#include <eavl1toNScatterOp.h>
+#include <eavlNto1GatherOp.h>
+#include <eavlSampler.h>
 #include <eavlMapOp.h>
 
 eavlRayTracer::eavlRayTracer()
@@ -51,6 +54,8 @@ eavlRayTracer::eavlRayTracer()
     occY = NULL;
     occZ = NULL;
     occHits = NULL;
+    ambientPct = NULL;
+    occIndexer = NULL;
 }
 
 eavlRayTracer::~eavlRayTracer()
@@ -64,6 +69,11 @@ eavlRayTracer::~eavlRayTracer()
 	delete rgbaPixels;
 	delete depthBuffer;
 	delete inShadow; 
+    delete redIndexer;
+    delete greenIndexer;
+    delete blueIndexer;
+    delete alphaIndexer;
+    delete ambientPct;
 
     if(occlusionOn)
     {
@@ -71,6 +81,7 @@ eavlRayTracer::~eavlRayTracer()
         delete occY;
         delete occZ;
         delete occHits;
+        delete occIndexer;
     }
 
 }
@@ -154,6 +165,19 @@ struct NormalFunctor{
     }
 };
 
+struct OccRayGenFunctor
+{   
+    OccRayGenFunctor(){}
+
+    EAVL_FUNCTOR tuple<float,float,float> operator()(tuple<float,float,float,int>input, int seed, int sampleNum){
+        int hitIdx = get<3>(input);
+        if(hitIdx == -1) tuple<float,float,float>(0.f,0.f,0.f);
+        eavlVector3 normal(get<0>(input),get<1>(input),get<2>(input));
+        eavlVector3 dir = eavlSampler::hemisphere<eavlSampler::HALTON>(sampleNum, seed, normal);
+        return tuple<float,float,float>(dir.x,dir.y,dir.z);
+    }
+};
+
 struct PhongShaderFunctor
 {
     eavlVector3     light;
@@ -187,8 +211,8 @@ struct PhongShaderFunctor
         light = theLight;
         colorMapSize = _colorMapSize;
         eye = eyePos;
-        lightDiff=eavlVector3(.9,.9,.9);
-        lightSpec=eavlVector3(.9,.9,.9);
+        lightDiff=eavlVector3(.6,.6,.6);
+        lightSpec=eavlVector3(.6,.6,.6);
        
     }
 
@@ -203,7 +227,8 @@ struct PhongShaderFunctor
     													   		 float,	// normal x
     													   		 float,	// normal y
     													   		 float,	// normal z
-    													   		 float  // hit scalar 
+    													   		 float, // hit scalar 
+                                                                 float  // ambient occlusion percentage
     													   		 >input)
     {
 
@@ -222,7 +247,7 @@ struct PhongShaderFunctor
         lightDir.normalize();
         viewDir.normalize();
         
-        float ambPct= 1 ; //get<7>(input); TODO: ambient occlusion
+        float ambPct= get<11>(input);
         
         int id = 0;
         id = matIds.getValue(hitIdx);
@@ -302,13 +327,14 @@ void eavlRayTracer::init()
 		rgbaPixels  = new eavlByteArray("", 1, numRays * 4); //rgba
 		depthBuffer = new eavlFloatArray("", 1, numRays);
 		inShadow    = new eavlIntArray("", 1, numRays);
-        ambPercentage = new eavlFloatArray("",1,numRays);
+        ambientPct = new eavlFloatArray("",1,numRays);
         if(occlusionOn)
         {
             occX = new eavlFloatArray("",1,numRays * numOccSamples);
             occY = new eavlFloatArray("",1,numRays * numOccSamples);
             occZ = new eavlFloatArray("",1,numRays * numOccSamples);
             occHits = new eavlIntArray("",1,numRays * numOccSamples);
+            occIndexer = new eavlArrayIndexer(numOccSamples,1e9, 1, 0);
         }
         currentFrameSize = numRays;
 	}
@@ -343,8 +369,8 @@ void eavlRayTracer::render()
 	}
     if(!occlusionOn)
     {
-        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(ambPercentage), //dummy arg
-                                                 eavlOpArgs(ambPercentage),
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(ambientPct), //dummy arg
+                                                 eavlOpArgs(ambientPct),
                                                  FloatMemsetFunctor(.5f)),
                                                  "setAmbient");
         eavlExecutor::Go();    
@@ -378,7 +404,22 @@ void eavlRayTracer::render()
     eavlExecutor::Go();
     if(occlusionOn)
     {
+        eavlExecutor::AddOperation(new_eavl1toNScatterOp(eavlOpArgs(rays->normalX,
+                                                                    rays->normalY,
+                                                                    rays->normalZ,
+                                                                    rays->hitIdx),
+                                                    eavlOpArgs(occX,occY,occZ),OccRayGenFunctor(),
+                                                    numOccSamples),
+                                                    "occ scatter");
+        eavlExecutor::Go();
 
+        intersector->intersectionOcclusion(rays, occX, occY, occZ, occHits, occIndexer, occDistance, triGeometry);
+
+        eavlExecutor::AddOperation(new_eavlNto1GatherOp(eavlOpArgs(occHits),
+                                                            eavlOpArgs(ambientPct), 
+                                                            numOccSamples),
+                                                            "gather");
+        eavlExecutor::Go();
     }
 	intersector->intersectionShadow(rays, inShadow, lightPosition, triGeometry);	
 	
@@ -393,7 +434,8 @@ void eavlRayTracer::render()
 														rays->normalX,
 														rays->normalY,
 														rays->normalZ,
-														rays->scalar),
+														rays->scalar,
+                                                        ambientPct),
                                              			eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer),
                                                             	   eavlIndexable<eavlFloatArray>(frameBuffer,*greenIndexer),
                                                             	   eavlIndexable<eavlFloatArray>(frameBuffer,*blueIndexer),
