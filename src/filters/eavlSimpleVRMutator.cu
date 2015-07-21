@@ -24,7 +24,7 @@ texture<float4> cmap_tref;
 eavlConstTexArray<float4>* color_map_array;
 eavlConstTexArray<float4>* scalars_array;
 
-#define PASS_ESTIMATE_FACTOR  2.5f
+#define PASS_ESTIMATE_FACTOR  5.f
 eavlSimpleVRMutator::eavlSimpleVRMutator()
 {   //eavlExecutor::SetExecutionMode(eavlExecutor::ForceCPU);
     if(eavlExecutor::GetExecutionMode() == eavlExecutor::ForceCPU ) cpu = true;
@@ -37,6 +37,7 @@ eavlSimpleVRMutator::eavlSimpleVRMutator()
     samples                = NULL;
     framebuffer            = NULL;
     zBuffer                = NULL;
+    minSample			   = NULL;
     iterator               = NULL;
     screenIterator         = NULL;
     colormap_raw           = NULL;
@@ -84,6 +85,7 @@ eavlSimpleVRMutator::~eavlSimpleVRMutator()
     deleteClassPtr(samples);
     deleteClassPtr(framebuffer);
     deleteClassPtr(zBuffer);
+    deleteClassPtr(minSample);
     deleteClassPtr(scene);
     deleteClassPtr(ssa);
     deleteClassPtr(ssb);
@@ -473,28 +475,33 @@ struct CompositeFunctorFB
     int              zOffest;
     bool             finalPass;
     int              maxSIndx;
-    CompositeFunctorFB( eavlView _view, int _nSamples, float* _samples, const eavlConstTexArray<float4> *_colorMap, int _ncolors, eavlPoint3 _minComposite, eavlPoint3 _maxComposite, int _zOffset, bool _finalPass, int _maxSIndx)
+    int 			 minZPixel;
+    CompositeFunctorFB( eavlView _view, int _nSamples, float* _samples, const eavlConstTexArray<float4> *_colorMap, int _ncolors, eavlPoint3 _minComposite, eavlPoint3 _maxComposite, int _zOffset, bool _finalPass, int _maxSIndx, int _minZPixel)
     : view(_view), nSamples(_nSamples), samples(_samples), colorMap(_colorMap), ncolors(_ncolors), minComposite(_minComposite), maxComposite(_maxComposite), finalPass(_finalPass), maxSIndx(_maxSIndx)
     {
         w = view.w;
         h = view.h;
         zOffest = _zOffset;
+        minZPixel = _minZPixel;
+        
     }
  
-    EAVL_FUNCTOR tuple<float,float,float,float> operator()(tuple<int, float, float, float, float> inputs )
+    EAVL_FUNCTOR tuple<float,float,float,float,int> operator()(tuple<int, float, float, float, float, int> inputs )
     {
         int idx = get<0>(inputs);
         int x = idx%w;
         int y = idx/w;
+        int minZsample = get<5>(inputs);
         //get the incoming color and return if the opacity is already 100%
         float4 color= {get<1>(inputs),get<2>(inputs),get<3>(inputs),get<4>(inputs)};
-        if(color.w >= 1) return tuple<float,float,float,float>(color.x, color.y, color.z,color.w);
+        if(color.w >= 1) return tuple<float,float,float,float,int>(color.x, color.y, color.z,color.w, minZsample);
 
         //pixel outside the AABB of the data set
         if((x < minComposite.x || x > maxComposite.x) ||( y < minComposite.y || y > maxComposite.y ))
         {
-            return tuple<float,float,float,float>(1.f, 1.f, 1.f, 1.f);
+            return tuple<float,float,float,float,int>(1.f, 1.f, 1.f, 1.f,minZsample);
         }
+        
         for(int z = 0 ; z < zOffest; z++)
         {
                 //(x + view.w*(y + zSize*z));
@@ -513,12 +520,12 @@ struct CompositeFunctorFB
             color.y = color.y  + c.y * c.w;
             color.z = color.z  + c.z * c.w;
             color.w = c.w + color.w;
-
+			minZsample = min(minZsample, minZPixel + z); //we need the closest sample to get depth buffer 
             if(color.w >=1 ) break;
 
         }
     
-        return tuple<float,float,float,float>(min(1.f, color.x),  min(1.f, color.y),min(1.f, color.z),min(1.f,color.w) );
+        return tuple<float,float,float,float,int>(min(1.f, color.x),  min(1.f, color.y),min(1.f, color.z),min(1.f,color.w), minZsample);
         
     }
    
@@ -554,14 +561,14 @@ struct CompositeBG
 eavlFloatArray* eavlSimpleVRMutator::getDepthBuffer(float proj22, float proj23, float proj32)
 { 
 
-        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(zBuffer), eavlOpArgs(zBuffer), ScreenDepthFunctor(proj22, proj23, proj32)),"convertDepth");
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(minSample), eavlOpArgs(minSample), ScreenDepthFunctor(proj22, proj23, proj32)),"convertDepth");
         eavlExecutor::Go();
         return zBuffer;
 }
 
 void eavlSimpleVRMutator::setColorMap3f(float* cmap,int size)
 {
-    if(verbose) cout<<"Setting new color map"<<endl;
+    if(verbose) cout<<"Setting new color map 3f"<<endl;
     colormapSize = size;
     if(color_map_array != NULL)
     {
@@ -583,7 +590,7 @@ void eavlSimpleVRMutator::setColorMap3f(float* cmap,int size)
         colormap_raw[i*4  ] = cmap[i*3  ];
         colormap_raw[i*4+1] = cmap[i*3+1];
         colormap_raw[i*4+2] = cmap[i*3+2];
-        colormap_raw[i*4+3] = .05;          //test Alpha
+        colormap_raw[i*4+3] = .002f;          //test Alpha
     }
     color_map_array = new eavlConstTexArray<float4>((float4*)colormap_raw, colormapSize, cmap_tref, cpu);
 }
@@ -609,9 +616,9 @@ void eavlSimpleVRMutator::setColorMap4f(float* cmap,int size)
     
     for(int i=0;i<size;i++)
     {
-        colormap_raw[i*4  ] = cmap[i*4  ];
-        colormap_raw[i*4+1] = cmap[i*4+1];
-        colormap_raw[i*4+2] = cmap[i*4+2];
+        colormap_raw[i*4  ] = cmap[i*3  ];
+        colormap_raw[i*4+1] = cmap[i*3+1];
+        colormap_raw[i*4+2] = cmap[i*3+2];
         colormap_raw[i*4+3] = cmap[i*4+3];          
     }
     color_map_array = new eavlConstTexArray<float4>((float4*)colormap_raw, colormapSize, cmap_tref, cpu);
@@ -731,6 +738,7 @@ void eavlSimpleVRMutator::init()
         samples         = new eavlFloatArray("",1,pixelsPerPass);
         framebuffer     = new eavlFloatArray("",1,height*width*4);
         zBuffer         = new eavlFloatArray("",1,height*width);
+        minSample		= new eavlIntArray("",1,height*width);
         clearSamplesArray();
         if(verbose) cout<<"Samples array size "<<pixelsPerPass<<" Current CPU val "<<cpu<< endl;
         if(verbose) cout<<"Current framebuffer size "<<(height*width*4)<<endl;
@@ -765,7 +773,7 @@ void eavlSimpleVRMutator::init()
         iterator      = new eavlIntArray("",1, numTets);
         dummy = new eavlFloatArray("",1,1); //wtf
         for(int i=0; i < numTets; i++) iterator->SetValue(i,i);
-        readTransferFunction(tfFilename);
+        //readTransferFunction(tfFilename);
         geomDirty = false;
     }
 
@@ -991,6 +999,12 @@ void  eavlSimpleVRMutator::Execute()
                                              FloatMemsetFunctor(1.f)),
                                              "clear Frame Buffer");
     eavlExecutor::Go();
+    
+     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(minSample),
+                                             eavlOpArgs(minSample),
+                                             IntMemsetFunctor(nSamples+1)), //TODO:Maybe this should be higher
+                                             "clear first sample");
+    eavlExecutor::Go();
    
     
     
@@ -1122,12 +1136,14 @@ void  eavlSimpleVRMutator::Execute()
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ir),
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ig),
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ib),
-                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ia)),
+                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ia),
+                                                                 eavlIndexable<eavlIntArray>(minSample)),
                                                       eavlOpArgs(eavlIndexable<eavlFloatArray>(framebuffer,*ir),
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ig),
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ib),
-                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ia)),
-                                                     CompositeFunctorFB( view, nSamples, samplePtr, color_map_array, colormapSize, mins, maxs, passZStride, finalPass, pixelsPerPass), width*height),
+                                                                 eavlIndexable<eavlFloatArray>(framebuffer,*ia),
+                                                                 eavlIndexable<eavlIntArray>(minSample)),
+                                                     CompositeFunctorFB( view, nSamples, samplePtr, color_map_array, colormapSize, mins, maxs, passZStride, finalPass, pixelsPerPass,pixelZMin), width*height),
                                                      "Composite");
             eavlExecutor::Go();
             if(verbose) compositeTime += eavlTimer::Stop(tcomp,"tcomp");
@@ -1142,7 +1158,7 @@ void  eavlSimpleVRMutator::Execute()
     if(verbose) cout<<"Composite   RUNTIME: "<<compositeTime<<" Pass AVE: "<<compositeTime / (float)numPasses<<endl;
     if(verbose) cout<<"Alloc       RUNTIME: "<<allocateTime<<" Pass AVE: "<<allocateTime / (float)numPasses<<endl;
     if(verbose) cout<<"Total       RUNTIME: "<<renderTime<<endl;
-    dataWriter();
+    //dataWriter();
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ir),
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ig),
@@ -1155,8 +1171,11 @@ void  eavlSimpleVRMutator::Execute()
                                                      CompositeBG(), height*width),
                                                      "Composite");
     eavlExecutor::Go();
-    //cout<<"SCONTER "<<scounter<<" Skipped " <<skipped <<" ratio "<<skipped / (float) scounter<< endl;
-    //cout<<"Samples "<<scounter<<" Tets "<<numTets<<" Ratio "<<scounter/(float)numTets<<" per pixel "<<scounter / (float)(view.h*view.w)<<endl;
+   
+    for(int i = 0; i < minSample->GetNumberOfTuples(); i++)
+    {
+    	cout<<minSample->GetValue(i)<<" ";
+    }
 }
 
 

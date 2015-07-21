@@ -126,6 +126,7 @@ class eavlSimpleVRMutator : public eavlMutator
     eavlFloatArray*     ssc;
     eavlFloatArray*     ssd;
     eavlFloatArray*     zBuffer;
+    eavlIntArray*		minSample; 			// Keeps the pixel depth of the first sample so we can  get correct zbuff
     eavlFloatArray*     dummy;
     eavlIntArray*       clippingFlags;
     eavlIntArray*       iterator;

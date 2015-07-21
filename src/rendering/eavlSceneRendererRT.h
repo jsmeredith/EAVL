@@ -201,9 +201,9 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         camera->setHeight(view.h);
         
         float magnitude=tracer->scene->getSceneExtentMagnitude();
-       
-        //tracer->setAOMax(magnitude*.2f);
-
+        tracer->setOcclusionSamples(4);
+        tracer->setOcclusionDistance(magnitude*.2f);
+		tracer->setOcclusionOn(true);
         /*Set up field of view: tracer takes the half FOV in degrees*/
         float fovx= 2.f*atan(tan(view.view3d.fov/2.f)*view.w/view.h);
         fovx*=180.f/M_PI;
@@ -219,7 +219,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         camera->setCameraPosition(view.view3d.from.x,view.view3d.from.y,view.view3d.from.z);
         camera->lookAtPosition(view.view3d.at.x,view.view3d.at.y,view.view3d.at.z);
         camera->setCameraUp(up.x,up.y,up.z);
-
+		eyeLight = true;
         /*Otherwise the light will move with the camera*/
         if(eyeLight)//setLight)
         {
@@ -253,8 +253,12 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         float proj22=view.P(2,2);
         float proj23=view.P(2,3);
         float proj32=view.P(3,2);
-
-        return (float *) tracer->getDepthBuffer(proj22,proj23,proj32)->GetHostArray();
+		float *zBuffer = (float *) tracer->getDepthBuffer(proj22,proj23,proj32)->GetHostArray();
+		for(int i = 0; i< 1000; i++)
+		{
+			cout<<zBuffer[i]<<" ";
+		}
+        return zBuffer;
     }
 
 };

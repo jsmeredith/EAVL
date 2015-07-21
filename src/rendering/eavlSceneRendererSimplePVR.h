@@ -9,6 +9,7 @@
 #include "eavlSceneRenderer.h"
 #include "eavlTimer.h"
 #include "eavlSimpleVRMutator.h"
+#include "eavlRTUtil.h"
 
 // ****************************************************************************
 // Class:  eavlSceneRendererSimplePVR
@@ -128,15 +129,40 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
     // ------------------------------------------------------------------------
     virtual void Render()
     {   
-        int tframe = eavlTimer::Start();
+    	view.view3d.nearplane = 0;  
+        view.view3d.farplane =  1;
+
+        view.SetupMatrices();
+       	BBox bbox = vr->scene->getSceneBBox();
+        //extract bounding box and project
+        eavlPoint3 mins(bbox.min.x,bbox.min.y,bbox.min.z);
+        eavlPoint3 maxs(bbox.max.x,bbox.max.y,bbox.max.z);
+
+        mins = view.V * mins;
+        maxs = view.V * maxs;
+
+         //squeeze near and far plane to extract max samples
+        view.view3d.nearplane = -maxs.z - 5; 
+        view.view3d.farplane =  -mins.z + 2; 
+        view.SetupMatrices();
         vr->setView(view);
+        
+        int tframe = eavlTimer::Start();
         vr->Execute();
         cerr<<"\nTotal Frame Time   : "<<eavlTimer::Stop(tframe,"")<<endl;
     }
 
     virtual unsigned char *GetRGBAPixels()
     {
-        return (unsigned char *) vr->getFrameBuffer()->GetHostArray();
+    	cout<<"Getting pixels"<<endl;
+    	unsigned char * pixels = (unsigned char *) vr->getFrameBuffer()->GetHostArray();
+    	writeFrameBufferBMP(500, 500, vr->getFrameBuffer(), "output.bmp");
+    	for(int i = 0; i <1000; i++)
+    	{
+    		//cout<<(int)pixels[i*4 + 0]<<","<<(int)pixels[i*4 + 2]<<","<<(int)pixels[i*4 + 2]<<","<<(int)pixels[i*4 + 3]<<" ";
+    		
+    	}
+        return pixels;
     }
 
     virtual float *GetDepthPixels()
@@ -144,8 +170,12 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
         float proj22=view.P(2,2);
         float proj23=view.P(2,3);
         float proj32=view.P(3,2);
-
-        return (float *) vr->getDepthBuffer(proj22,proj23,proj32)->GetHostArray();
+		float *zBuffer = (float *) vr->getDepthBuffer(proj22,proj23,proj32)->GetHostArray();
+		for(int i = 0; i< 500*500; i++)
+		{
+			//cout<<zBuffer[i]<<" ";
+		}
+        return zBuffer;
     }
 
 

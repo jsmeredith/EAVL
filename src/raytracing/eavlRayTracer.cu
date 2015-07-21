@@ -433,7 +433,7 @@ void eavlRayTracer::render()
                                                             "gather");
         eavlExecutor::Go();
     }
-	//intersector->intersectionShadow(rays, inShadow, lightPosition, triGeometry);	
+	intersector->intersectionShadow(rays, inShadow, lightPosition, triGeometry);	
 	
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx,
 														inShadow,
