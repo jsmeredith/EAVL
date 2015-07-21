@@ -174,8 +174,6 @@ EAVL_HOSTDEVICE int getIntersectionWoopOcculsion(const eavlVector3 rayDir,
                                        			 const float &maxDistance)
 {
 
-    int   minIndex    = -1;
-    
     float dirx = rayDir.x;
     float diry = rayDir.y;
     float dirz = rayDir.z;

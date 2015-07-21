@@ -5,6 +5,7 @@
 #include "eavlRayTriangleIntersector.h"
 #include "eavlRayCamera.h"
 #include "eavlRayTriangleGeometry.h"
+#include "eavlRayTracer.h"
 #include "objloader.h"
 #include <string.h>
 #include <sys/time.h>
@@ -67,12 +68,12 @@ int main(int argc, char *argv[])
     {  
         for(int k=0;k<1;k++){
         char *filename;
-        char *outFilename;
+        char *outFilename = NULL;
         bool forceCPU=false;
         bool isTest=false;
         int warmups=1;
         int tests=1;
-        eavlRayCamera *camera = new eavlRayCamera();
+        eavlRayTracer *tracer = new eavlRayTracer();
         if(argc<2)
         {
             cerr<<"Must specify a file to load."<<endl;
@@ -103,7 +104,7 @@ int main(int argc, char *argv[])
                 float z=0; z=atof(argv[++i]);
                 //cerr<<x<<" "<<y<<" "<<z<<endl;
                 //tracer->setCameraPos(x,y,z);
-                camera->setCameraPosition(x,y,z);
+                tracer->camera->setCameraPosition(x,y,z);
             }
             else if(strcmp (argv[i],"-cu")==0)
             {
@@ -117,7 +118,7 @@ int main(int argc, char *argv[])
                 float z=0; z=atof(argv[++i]);
                 //cerr<<x<<" "<<y<<" "<<z<<endl;
                 //tracer->setUp(x,y,z);
-                camera->setCameraUp(x,y,z);
+                tracer->camera->setCameraUp(x,y,z);
             }
             else if(strcmp (argv[i],"-cla")==0)
             {
@@ -130,7 +131,7 @@ int main(int argc, char *argv[])
                 float y=0; y=atof(argv[++i]);
                 float z=0; z=atof(argv[++i]);
                 //cerr<<x<<" "<<y<<" "<<z<<endl;
-                camera->lookAtPosition(x,y,z);
+                tracer->camera->lookAtPosition(x,y,z);
             }
             else if(strcmp (argv[i],"-fovx")==0)
             {
@@ -145,7 +146,7 @@ int main(int argc, char *argv[])
                     cerr<<"Invalid FOV value "<<argv[i]<<endl;
                     printUsage();
                 }
-                camera->setFOVX(x);
+                tracer->camera->setFOVX(x);
             }
             else if(strcmp (argv[i],"-fovy")==0)
             {
@@ -160,7 +161,7 @@ int main(int argc, char *argv[])
                     cerr<<"Invalid FOV value "<<argv[i]<<endl;
                     printUsage();
                 }
-                camera->setFOVY(y);
+                tracer->camera->setFOVY(y);
             }
             else if(strcmp (argv[i],"-res")==0)
             {
@@ -177,25 +178,27 @@ int main(int argc, char *argv[])
                     printUsage();
                 }
             
-                camera->setWidth(x);
-                camera->setHeight(y);
+                tracer->camera->setWidth(x);
+                tracer->camera->setHeight(y);
                 
             }
             else if(strcmp (argv[i],"-lp")==0)
             {
-                if(argc<=i+7) 
+                if(argc<=i+3) 
                 {
                     cerr<<"Not enough input for light parameters."<<endl;
                     printUsage();
                 }
-                // float x=0; x=atof(argv[++i]);
-                // float y=0; y=atof(argv[++i]);
-                // float z=0; z=atof(argv[++i]);
+                float x=0; x=atof(argv[++i]);
+                float y=0; y=atof(argv[++i]);
+                float z=0; z=atof(argv[++i]);
                 // float intensity=atof(argv[++i]);
                 // float constant =atof(argv[++i]);
                 // float linear   =atof(argv[++i]);
                 // float exponent =atof(argv[++i]);
-                // tracer->setLightParams(x,y,z, intensity, constant, linear, exponent);
+                tracer->lightPosition.x = x;
+                tracer->lightPosition.y = y;
+                tracer->lightPosition.z = z;
                 
             }
             else if(strcmp (argv[i],"-ao")==0)
@@ -234,10 +237,6 @@ int main(int argc, char *argv[])
                 warmups=y;
                 tests=x;
                 
-            }
-            else if(strcmp (argv[i],"-aa")==0)
-            {
-                //tracer->setAntiAlias(true);
             }
             else if(strcmp (argv[i],"-cpu")==0)
             {
@@ -282,17 +281,32 @@ int main(int argc, char *argv[])
         int matCount;
         objreader->getRawData(v,n,mats,mIdx,matCount);
         eavlFloatArray *verts = new eavlFloatArray("",1,0);
-        for (int i = 0; i < numTris*9; ++i)
+        for (int i = 0; i < numTris; ++i)
         {
-           verts->AddValue(v[i]);
+           
+           eavlVector3 a;
+           eavlVector3 b;
+           eavlVector3 c;
+
+           a.x = v[i*9+0];
+           a.y = v[i*9+1];
+           a.z = v[i*9+2];
+           b.x = v[i*9+3];
+           b.y = v[i*9+4];
+           b.z = v[i*9+5];
+           c.x = v[i*9+6];
+           c.y = v[i*9+7];
+           c.z = v[i*9+8];
+           tracer->scene->addTriangle(a,b,c);
         }
-        eavlRayTriangleGeometry geometry;
-        geometry.setBVHCacheName(filename);
-        geometry.setVertices(verts, numTris);
+
+        //eavlRayTriangleGeometry geometry;
+        //geometry.setBVHCacheName(filename);
+        //geometry.setVertices(verts, numTris);
         cout<<"Number of triangles "<<numTris<<endl;
-        eavlRay rays(camera->getWidth() * camera->getHeight());
-        eavlRayTriangleIntersector intersector;
-        camera->createRays(&rays);
+        //eavlRay rays(camera->getWidth() * camera->getHeight());
+        //eavlRayTriangleIntersector intersector;
+        //camera->createRays(&rays);
 
 
         //tracer->scene->loadObjFile(filename);
@@ -308,10 +322,12 @@ int main(int argc, char *argv[])
         if(!isTest)
         {
             cout<<"Rendering to Framebuffer\n";
-            // for(int i=0; i<1;i++)
-            // {
-            //     tracer->Execute();
-            // }
+            tracer->render();
+            cout<<"Filename "<<outFilename<<endl;
+            if(outFilename != NULL) writeFrameBufferBMP(tracer->camera->getWidth(),
+                                                        tracer->camera->getHeight(),
+                                                        tracer->getFrameBuffer(),
+                                                        outFilename);
         }
         else 
         {
@@ -322,12 +338,12 @@ int main(int argc, char *argv[])
 
             //tracer->fpsTest(warmups,tests);
 
-            intersector.testIntersections(&rays, 10000000, &geometry, warmups,tests, camera);
+            //intersector.testIntersections(&rays, 10000000, &geometry, warmups,tests, camera);
         }
 
         
 
-        delete camera;
+        delete tracer;
     }
     }
     catch (const eavlException &e)

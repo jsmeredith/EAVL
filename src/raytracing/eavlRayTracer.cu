@@ -42,6 +42,15 @@ eavlRayTracer::eavlRayTracer()
     greenIndexer = new eavlArrayIndexer(4,1);
     blueIndexer  = new eavlArrayIndexer(4,2);
     alphaIndexer = new eavlArrayIndexer(4,3);
+
+    //occlusion
+    occlusionOn = false;
+    occDistance = 1.f;
+    numOccSamples = 4;
+    occX = NULL;
+    occY = NULL;
+    occZ = NULL;
+    occHits = NULL;
 }
 
 eavlRayTracer::~eavlRayTracer()
@@ -55,6 +64,14 @@ eavlRayTracer::~eavlRayTracer()
 	delete rgbaPixels;
 	delete depthBuffer;
 	delete inShadow; 
+
+    if(occlusionOn)
+    {
+        delete occX;
+        delete occY;
+        delete occZ;
+        delete occHits;
+    }
 
 }
 
@@ -266,6 +283,8 @@ struct PhongShaderFunctor
 
 };
 
+
+
 void eavlRayTracer::init()
 {
 	
@@ -283,6 +302,14 @@ void eavlRayTracer::init()
 		rgbaPixels  = new eavlByteArray("", 1, numRays * 4); //rgba
 		depthBuffer = new eavlFloatArray("", 1, numRays);
 		inShadow    = new eavlIntArray("", 1, numRays);
+        ambPercentage = new eavlFloatArray("",1,numRays);
+        if(occlusionOn)
+        {
+            occX = new eavlFloatArray("",1,numRays * numOccSamples);
+            occY = new eavlFloatArray("",1,numRays * numOccSamples);
+            occZ = new eavlFloatArray("",1,numRays * numOccSamples);
+            occHits = new eavlIntArray("",1,numRays * numOccSamples);
+        }
         currentFrameSize = numRays;
 	}
 
@@ -314,12 +341,15 @@ void eavlRayTracer::render()
 		cerr<<"No trianles to render"<<endl;
 		return;
 	}
-
-	eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(inShadow), //dummy arg
-                                             eavlOpArgs(inShadow),
-                                             IntMemsetFunctor(0)),
-                                             "shadows");
-    eavlExecutor::Go();
+    if(!occlusionOn)
+    {
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(ambPercentage), //dummy arg
+                                                 eavlOpArgs(ambPercentage),
+                                                 FloatMemsetFunctor(.5f)),
+                                                 "setAmbient");
+        eavlExecutor::Go();    
+    }
+	
 	//intersector->testIntersections(rays, INFINITE, triGeometry,1,1,camera);
 
 	intersector->intersectionDepth(rays, INFINITE, triGeometry);
@@ -346,7 +376,10 @@ void eavlRayTracer::render()
                      									   triGeometry->normals)),
                                              "Normal functor");
     eavlExecutor::Go();
+    if(occlusionOn)
+    {
 
+    }
 	intersector->intersectionShadow(rays, inShadow, lightPosition, triGeometry);	
 	
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx,
@@ -407,7 +440,7 @@ void eavlRayTracer::setDefaultMaterial(const float &ka,const float &kd, const fl
       float old_a=scene->getDefaultMaterial().ka.x;
       float old_s=scene->getDefaultMaterial().ka.x;
       float old_d=scene->getDefaultMaterial().ka.x;
-      if(old_a==ka && old_d == kd && old_s == ks) return;     //no change, do nothing
+      if(old_a == ka && old_d == kd && old_s == ks) return;     //no change, do nothing
       scene->setDefaultMaterial(RTMaterial(eavlVector3(ka,ka,ka),
                                            eavlVector3(kd,kd,kd),
                                            eavlVector3(ks,ks,ks), 10.f,1));
@@ -428,4 +461,26 @@ void eavlRayTracer::setBackgroundColor(float r, float g, float b)
 	bgColor.z = b;
 }
 
+void eavlRayTracer::setOcclusionSamples(int numSamples)
+{
+    if(numSamples < 1)
+    {
+        cerr<<"Cannot set occulsion samples to "<<numSamples<<endl;
+        return;
+    }
+    else numOccSamples = numSamples;
+}
+void eavlRayTracer::setOcclusionDistance(float distance)
+{
+    if(distance < 1)
+    {
+        cerr<<"Cannot set occulsion samples to "<<distance<<endl;
+        return;
+    }
+    else occDistance = distance;
+}
 
+void eavlRayTracer::setOcclusionOn(bool on)
+{
+    occlusionOn = on;
+}

@@ -24,6 +24,7 @@ protected:
 	eavlByteArray				*rgbaPixels;
 	eavlFloatArray 				*depthBuffer;
 	eavlIntArray 				*inShadow;
+	eavlFloatArray 				*ambPercentage;
 	bool 						geometryDirty;
 	int 						currentFrameSize;
 	int 						numTriangles;
@@ -33,7 +34,14 @@ protected:
     eavlArrayIndexer      		*blueIndexer;
     eavlArrayIndexer      		*alphaIndexer;
     eavlVector3					bgColor;
-
+    //ambient occlusion
+    bool 						occlusionOn;
+    int 						numOccSamples;
+    float 						occDistance;
+    eavlFloatArray 				*occX;
+    eavlFloatArray 				*occY;
+    eavlFloatArray 				*occZ;
+    eavlIntArray				*occHits;
 public:
 	eavlRTScene					*scene;
 	eavlRayCamera 				*camera;
@@ -42,6 +50,9 @@ public:
 	~eavlRayTracer();
 	void setColorMap3f(float *, const int &);
 	void setBackgroundColor(float, float, float);
+	void setOcclusionSamples(int);
+	void setOcclusionDistance(float);
+	void setOcclusionOn(bool);
 
 	void render();
 	void startScene();

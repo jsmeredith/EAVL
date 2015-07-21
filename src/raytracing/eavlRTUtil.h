@@ -419,6 +419,55 @@ inline void writeFrameBufferBMP(int _height, int _width, eavlFloatArray *fb,cons
     free(img);
 }
 
+inline void writeFrameBufferBMP(int _height, int _width, eavlByteArray *fb,const char*fname)
+{
+    FILE *f;
+    int size=_height*_width;
+    unsigned char *img = NULL;
+    int filesize = 54 + 3*_width*_height;  //w is your image width, h is image height, both int
+    if( img )
+        free( img );
+    img = (unsigned char *)malloc(3*_width*_height);
+    memset(img,0,sizeof(*img));
+
+    for(int j=size-1;j>-1;j--)
+    {
+        img[j*3  ]= fb->GetValue(j*4 + 2);
+        img[j*3+1]= fb->GetValue(j*4 + 1);
+        img[j*3+2]= fb->GetValue(j*4 + 0);
+
+    }
+
+    unsigned char bmpfileheader[14] = {'B','M', 0,0,0,0, 0,0, 0,0, 54,0,0,0};
+    unsigned char bmpinfoheader[40] = {40,0,0,0, 0,0,0,0, 0,0,0,0, 1,0, 24,0};
+    unsigned char bmppad[3] = {0,0,0};
+
+    bmpfileheader[ 2] = (unsigned char)(filesize    );
+    bmpfileheader[ 3] = (unsigned char)(filesize>> 8);
+    bmpfileheader[ 4] = (unsigned char)(filesize>>16);
+    bmpfileheader[ 5] = (unsigned char)(filesize>>24);
+
+    bmpinfoheader[ 4] = (unsigned char)(       _width    );
+    bmpinfoheader[ 5] = (unsigned char)(       _width>> 8);
+    bmpinfoheader[ 6] = (unsigned char)(       _width>>16);
+    bmpinfoheader[ 7] = (unsigned char)(       _width>>24);
+    bmpinfoheader[ 8] = (unsigned char)(       _height    );
+    bmpinfoheader[ 9] = (unsigned char)(       _height>> 8);
+    bmpinfoheader[10] = (unsigned char)(       _height>>16);
+    bmpinfoheader[11] = (unsigned char)(       _height>>24);
+
+    f = fopen(fname,"wb");
+    fwrite(bmpfileheader,1,14,f);
+    fwrite(bmpinfoheader,1,40,f);
+    for(int i=0; i<_height; i++)
+    {
+        fwrite(img+(_width*(_height-i-1)*3),3,_width,f);
+        fwrite(bmppad,1,(4-(_width*3)%4)%4,f);
+    }
+    fclose(f);
+    free(img);
+}
+
 EAVL_HOSTDEVICE unsigned int expandBits(unsigned int v)
 {
     v = (v * 0x00010001u) & 0xFF0000FFu;

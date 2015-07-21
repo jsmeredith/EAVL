@@ -68,6 +68,7 @@ class eavlRayCamera
 	bool    isViewDirty;
 	bool    isResDirty;
 	bool    mortonSort;
+	bool 	lookAtSet;
 
 	eavlVector3 look;     
     eavlVector3 up;

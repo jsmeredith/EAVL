@@ -23,7 +23,7 @@ EAVL_HOSTONLY eavlRayCamera::eavlRayCamera()
 	up.x = 0.f;
 	up.y = 1.f;
 	up.z = 0.f;
-
+  lookAtSet = false;
 	size = height * width;
 	mortonSort = true;
 
@@ -170,7 +170,12 @@ EAVL_HOSTONLY void eavlRayCamera::createRays(eavlRay* rays)
                                              FloatMemsetFunctor3to3(position.x,position.y,position.z)),
                                              "init");
     eavlExecutor::Go();
-
+    if(lookAtSet)
+    {
+      look = lookat - position;
+      look.normalize();  
+    }
+    
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(pixelIndexes),
                                              eavlOpArgs(rays->rayDirX ,rays->rayDirY, rays->rayDirZ),
                                              PerspectiveRayGenFunctor(width, height, fovx, fovy, look, up, zoom)),
@@ -351,6 +356,7 @@ EAVL_HOSTONLY float eavlRayCamera::getCameraUpZ()
 
 EAVL_HOSTONLY void eavlRayCamera::setCameraLook(const float &_x, const float &_y, const float &_z)
 {
+  lookAtSet = false;
   if( look.x != _x) isViewDirty=true;
   look.x = _x;
   if( look.y != _y) isViewDirty=true;
@@ -405,9 +411,10 @@ EAVL_HOSTONLY void eavlRayCamera::setCameraZoom(const float &_zoom)
 
 EAVL_HOSTONLY void eavlRayCamera::lookAtPosition(const float &_x, const float &_y,const float &_z)
 {
-  eavlVector3 lookAt(_x, _y, _z);
-  look = lookAt - position;
-  look.normalize();
+  lookat.x = _x;
+  lookat.y = _y;
+  lookat.z = _z;
+  lookAtSet = true;
 }
 
 EAVL_HOSTONLY void eavlRayCamera::printSummary()
