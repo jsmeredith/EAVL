@@ -12,6 +12,7 @@ class eavlRenderSurface
     enum FileType { PNM, PNG, EPS };
   protected:
   public:
+    eavlColor bgColor;
     eavlRenderSurface()
     {
     }

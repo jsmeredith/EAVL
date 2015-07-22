@@ -47,7 +47,7 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
         glFinish();
     }
     virtual void Clear(eavlColor bg)
-    {
+    {   bgColor = bg;
         glClearColor(bg.c[0], bg.c[1], bg.c[2], 1.0); ///< c[3] instead of 1.0?
         glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     }

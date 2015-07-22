@@ -32,9 +32,10 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
   public:
     eavlSceneRendererSimplePVR()
     {
-        numSamples = 300;
+        numSamples = 200;
         vr = new eavlSimpleVRMutator();
         vr->setVerbose(true);
+        vr->setNumSamples(numSamples);
         doOnce = true;
         ctName = "";
         
@@ -128,23 +129,9 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
 
     // ------------------------------------------------------------------------
     virtual void Render()
-    {   
-    	view.view3d.nearplane = 0;  
-        view.view3d.farplane =  1;
+    {  
 
-        view.SetupMatrices();
-       	BBox bbox = vr->scene->getSceneBBox();
-        //extract bounding box and project
-        eavlPoint3 mins(bbox.min.x,bbox.min.y,bbox.min.z);
-        eavlPoint3 maxs(bbox.max.x,bbox.max.y,bbox.max.z);
-
-        mins = view.V * mins;
-        maxs = view.V * maxs;
-
-         //squeeze near and far plane to extract max samples
-        view.view3d.nearplane = -maxs.z - 5; 
-        view.view3d.farplane =  -mins.z + 2; 
-        view.SetupMatrices();
+        vr->setBGColor(surface->bgColor);
         vr->setView(view);
         
         int tframe = eavlTimer::Start();
@@ -156,7 +143,7 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
     {
     	cout<<"Getting pixels"<<endl;
     	unsigned char * pixels = (unsigned char *) vr->getFrameBuffer()->GetHostArray();
-    	writeFrameBufferBMP(500, 500, vr->getFrameBuffer(), "output.bmp");
+    	//writeFrameBufferBMP(500, 500, vr->getFrameBuffer(), "output.bmp");
     	for(int i = 0; i <1000; i++)
     	{
     		//cout<<(int)pixels[i*4 + 0]<<","<<(int)pixels[i*4 + 2]<<","<<(int)pixels[i*4 + 2]<<","<<(int)pixels[i*4 + 3]<<" ";
@@ -171,10 +158,12 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
         float proj23=view.P(2,3);
         float proj32=view.P(3,2);
 		float *zBuffer = (float *) vr->getDepthBuffer(proj22,proj23,proj32)->GetHostArray();
-		for(int i = 0; i< 500*500; i++)
-		{
-			//cout<<zBuffer[i]<<" ";
-		}
+		for(int i = 0; i <view.h*view.w; i++)
+    	{
+    		//cout<<zBuffer[i]<<" ";
+    		//zBuffer[i] = .90001f;
+    		
+    	}
         return zBuffer;
     }
 

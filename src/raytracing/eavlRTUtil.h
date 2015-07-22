@@ -2,6 +2,8 @@
 #define EAVL_RT_UTIL_H
 #include "eavlExecutor.h"
 #include "eavlVector3.h"
+#include <eavlView.h>
+#include <eavlPoint3.h>
 #include <algorithm>    
 using namespace std;
 
@@ -106,6 +108,30 @@ struct ScreenDepthFunctor{
         return tuple<float>(projdepth);
     }
 };
+
+struct convertDepthFunctor{
+
+   eavlView view;
+   int nSamples;
+   float mindepth;
+   float maxdepth;
+    convertDepthFunctor(eavlView _view, int _nSamples)
+    {
+        view = _view;
+        nSamples = _nSamples;
+        float dist = (view.view3d.from - view.view3d.at).norm();
+        eavlPoint3 closest(0,0,-dist+view.size*.5);
+        eavlPoint3 farthest(0,0,-dist-view.size*.5);
+        mindepth = (view.P * closest).z;
+        maxdepth = (view.P * farthest).z;
+    }                                                 
+    EAVL_FUNCTOR tuple<float> operator()(int minz){
+        float depth = minz;
+        depth = depth / float(nSamples);
+        return tuple<float>(depth);
+    }
+};
+
 
 /*----------------------Utility Functors---------------------------------- */
 struct ThreshFunctor
@@ -316,6 +342,18 @@ struct ConvertFrameBufferFunctor
         byte  gb = g*255;
         byte  ab = a*255; 
         return tuple<byte,byte,byte,byte>(rb,gb,bb,ab);
+    }
+
+};
+
+struct CastToUnsignedCharFunctor
+{
+    CastToUnsignedCharFunctor()
+    {}
+
+    EAVL_FUNCTOR tuple<byte> operator()(float in){
+        byte  rb = in*255.f; 
+        return tuple<byte>(rb);
     }
 
 };

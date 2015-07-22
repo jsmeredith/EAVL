@@ -7,6 +7,7 @@
 #include "eavlReduceOp_1.h"
 #include "eavlGatherOp.h"
 #include "eavlSimpleReverseIndexOp.h"
+#include "eavlRayExecutionMode.h"
 #include "eavlRTUtil.h"
 #ifdef HAVE_CUDA
 #include <cuda.h>
@@ -26,14 +27,14 @@ eavlConstTexArray<float4>* scalars_array;
 
 #define PASS_ESTIMATE_FACTOR  5.f
 eavlSimpleVRMutator::eavlSimpleVRMutator()
-{   //eavlExecutor::SetExecutionMode(eavlExecutor::ForceCPU);
-    if(eavlExecutor::GetExecutionMode() == eavlExecutor::ForceCPU ) cpu = true;
-    else cpu = false;
+{   
+    cpu = eavlRayExecutionMode::isCPUOnly();
+
 
     opacityFactor = 1.f;
     height = 500;
     width  = 500;    
-    setNumPasses(8); //default number of passes
+    setNumPasses(1); //default number of passes
     samples                = NULL;
     framebuffer            = NULL;
     zBuffer                = NULL;
@@ -41,7 +42,6 @@ eavlSimpleVRMutator::eavlSimpleVRMutator()
     iterator               = NULL;
     screenIterator         = NULL;
     colormap_raw           = NULL;
-    scalars_raw            = NULL;
     minPasses              = NULL;
     maxPasses              = NULL;
     currentPassMembers     = NULL;
@@ -49,23 +49,25 @@ eavlSimpleVRMutator::eavlSimpleVRMutator()
     indexScan              = NULL;
     reverseIndex           = NULL;
     scalars_array          = NULL; 
-    ir     = NULL;
-    ig     = NULL;
-    ib     = NULL;
-    ia     = NULL;
+
+    ir = new eavlArrayIndexer(4,0);
+    ig = new eavlArrayIndexer(4,1);
+    ib = new eavlArrayIndexer(4,2);
+    ia = new eavlArrayIndexer(4,3);
     ssa    = NULL;
     ssb    = NULL;
     ssc    = NULL;
     ssd    = NULL;
     tetSOA = NULL;
     mask   = NULL;
+    rgba   = NULL;
     scene = new eavlVRScene();
 
     geomDirty = true;
     sizeDirty = true;
 
     numTets = 0;
-    nSamples = 1000;
+    nSamples = 300;
     passCount = new eavlIntArray("",1,1); 
     i1 = new eavlArrayIndexer(3,0);
     i2 = new eavlArrayIndexer(3,1);
@@ -86,6 +88,7 @@ eavlSimpleVRMutator::~eavlSimpleVRMutator()
     deleteClassPtr(framebuffer);
     deleteClassPtr(zBuffer);
     deleteClassPtr(minSample);
+    deleteClassPtr(rgba);
     deleteClassPtr(scene);
     deleteClassPtr(ssa);
     deleteClassPtr(ssb);
@@ -448,7 +451,11 @@ struct SampleFunctor3
                     float b = ffmax(w0,ffmax(w1,ffmax(w2,w3)));
                     // bool valid  = (a >= 0 && b <= 1);
                     // if(valid) lerped = w0*s.x + w1*s.y + w2*s.z + w3*s.w;
-                    if((a >= 0 && b <= 1)) samples[index3d] = lerped;
+                    if((a >= 0 && b <= 1)) 
+                    {
+                        samples[index3d] = lerped;
+                        if(lerped < 0 || lerped >1) printf("Bad lerp %f ",lerped);
+                    }
 
                 }//z
             }//y
@@ -476,14 +483,18 @@ struct CompositeFunctorFB
     bool             finalPass;
     int              maxSIndx;
     int 			 minZPixel;
-    CompositeFunctorFB( eavlView _view, int _nSamples, float* _samples, const eavlConstTexArray<float4> *_colorMap, int _ncolors, eavlPoint3 _minComposite, eavlPoint3 _maxComposite, int _zOffset, bool _finalPass, int _maxSIndx, int _minZPixel)
+    float4           bgColor;
+    CompositeFunctorFB( eavlView _view, int _nSamples, float* _samples, const eavlConstTexArray<float4> *_colorMap, int _ncolors, eavlPoint3 _minComposite, eavlPoint3 _maxComposite, int _zOffset, bool _finalPass, int _maxSIndx, int _minZPixel, eavlColor _bgColor)
     : view(_view), nSamples(_nSamples), samples(_samples), colorMap(_colorMap), ncolors(_ncolors), minComposite(_minComposite), maxComposite(_maxComposite), finalPass(_finalPass), maxSIndx(_maxSIndx)
     {
         w = view.w;
         h = view.h;
         zOffest = _zOffset;
         minZPixel = _minZPixel;
-        
+        bgColor.x = _bgColor.c[0];
+        bgColor.y = _bgColor.c[1];
+        bgColor.z = _bgColor.c[2];
+        bgColor.w = _bgColor.c[3];
     }
  
     EAVL_FUNCTOR tuple<float,float,float,float,int> operator()(tuple<int, float, float, float, float, int> inputs )
@@ -499,7 +510,7 @@ struct CompositeFunctorFB
         //pixel outside the AABB of the data set
         if((x < minComposite.x || x > maxComposite.x) ||( y < minComposite.y || y > maxComposite.y ))
         {
-            return tuple<float,float,float,float,int>(1.f, 1.f, 1.f, 1.f,minZsample);
+            return tuple<float,float,float,float,int>(bgColor.x, bgColor.y, bgColor.z, bgColor.w, minZsample);
         }
         
         for(int z = 0 ; z < zOffest; z++)
@@ -510,9 +521,9 @@ struct CompositeFunctorFB
             
             float value =  samples[index3d];//tsamples->getValue(samples_tref, index3d);// samples[index3d];
             
-            if (value == -1 || value > 1)
+            if (value <= 0.f || value > 1.f)
                 continue;
-
+        
             int colorindex = float(ncolors-1) * value;
             float4 c = colorMap->getValue(cmap_tref, colorindex);
             c.w *= (1.f - color.w); 
@@ -535,9 +546,15 @@ struct CompositeFunctorFB
 //compisite the bakground color into the framebuffer
 struct CompositeBG
 {   
-    
-    CompositeBG()
+    float4 cc;
+    CompositeBG(eavlColor &_bgColor)
     {
+    	cc.x = _bgColor.c[0];
+    	cc.y = _bgColor.c[1];
+    	cc.z = _bgColor.c[2];
+    	cc.w = _bgColor.c[3]; 
+    	
+    	
     }
 
     EAVL_FUNCTOR tuple<float,float,float,float> operator()(tuple<float, float, float, float> inputs )
@@ -546,8 +563,8 @@ struct CompositeBG
         float4 color= {get<0>(inputs),get<1>(inputs),get<2>(inputs),get<3>(inputs)};
         if(color.w >= 1) return tuple<float,float,float,float>(color.x, color.y, color.z,color.w);
 
-        float4 c = {1.f, 1.f, 1.f, 1.f}; //white background TODO: add bg var
-
+        float4 c = cc; 
+		
         c.w *= (1.f - color.w); 
         color.x = color.x  + c.x * c.w;
         color.y = color.y  + c.y * c.w;
@@ -561,7 +578,7 @@ struct CompositeBG
 eavlFloatArray* eavlSimpleVRMutator::getDepthBuffer(float proj22, float proj23, float proj32)
 { 
 
-        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(minSample), eavlOpArgs(minSample), ScreenDepthFunctor(proj22, proj23, proj32)),"convertDepth");
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(minSample), eavlOpArgs(zBuffer), convertDepthFunctor(view,nSamples)),"convertDepth");
         eavlExecutor::Go();
         return zBuffer;
 }
@@ -590,7 +607,7 @@ void eavlSimpleVRMutator::setColorMap3f(float* cmap,int size)
         colormap_raw[i*4  ] = cmap[i*3  ];
         colormap_raw[i*4+1] = cmap[i*3+1];
         colormap_raw[i*4+2] = cmap[i*3+2];
-        colormap_raw[i*4+3] = .002f;          //test Alpha
+        colormap_raw[i*4+3] = .01f;          //test Alpha
     }
     color_map_array = new eavlConstTexArray<float4>((float4*)colormap_raw, colormapSize, cmap_tref, cpu);
 }
@@ -737,6 +754,7 @@ void eavlSimpleVRMutator::init()
         
         samples         = new eavlFloatArray("",1,pixelsPerPass);
         framebuffer     = new eavlFloatArray("",1,height*width*4);
+        rgba            = new eavlByteArray("",1,height*width*4);
         zBuffer         = new eavlFloatArray("",1,height*width);
         minSample		= new eavlIntArray("",1,height*width);
         clearSamplesArray();
@@ -762,9 +780,11 @@ void eavlSimpleVRMutator::init()
         deleteClassPtr(mask);
 
         tetSOA = scene->getEavlTetPtrs();
-        scalars_raw = scene->getScalarPtr();
         
-        scalars_array       = new eavlConstTexArray<float4>( (float4*) scalars_raw, numTets, scalars_tref, cpu);
+        scalars_array       = new eavlConstTexArray<float4>( (float4*) scene->getScalarPtr()->GetHostArray(), 
+                                                             numTets, 
+                                                             scalars_tref, 
+                                                             cpu);
         minPasses = new eavlByteArray("",1, numTets);
         maxPasses = new eavlByteArray("",1, numTets);
         indexScan = new eavlIntArray("",1, numTets);
@@ -1002,7 +1022,7 @@ void  eavlSimpleVRMutator::Execute()
     
      eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(minSample),
                                              eavlOpArgs(minSample),
-                                             IntMemsetFunctor(nSamples+1)), //TODO:Maybe this should be higher
+                                             IntMemsetFunctor(nSamples+1000)), //TODO:Maybe this should be higher
                                              "clear first sample");
     eavlExecutor::Go();
    
@@ -1115,17 +1135,7 @@ void  eavlSimpleVRMutator::Execute()
             if(verbose) sampleTime += eavlTimer::Stop(tsample,"sample");
             int talloc;
             if(verbose) talloc = eavlTimer::Start();
-            //we have to offset into the pixel buffer
-            deleteClassPtr(ir);
-            deleteClassPtr(ig);
-            deleteClassPtr(ib);
-            deleteClassPtr(ia);
-           
 
-            ir = new eavlArrayIndexer(4,0);
-            ig = new eavlArrayIndexer(4,1);
-            ib = new eavlArrayIndexer(4,2);
-            ia = new eavlArrayIndexer(4,3);
             if(verbose) allocateTime += eavlTimer::Stop(talloc,"sample");
             //eavlArrayIndexer * ifb = new eavlArrayIndexer(1, offset);
             //cout<<"screenIterator last value "<<screenIterator->GetS
@@ -1143,7 +1153,7 @@ void  eavlSimpleVRMutator::Execute()
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ib),
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ia),
                                                                  eavlIndexable<eavlIntArray>(minSample)),
-                                                     CompositeFunctorFB( view, nSamples, samplePtr, color_map_array, colormapSize, mins, maxs, passZStride, finalPass, pixelsPerPass,pixelZMin), width*height),
+                                                     CompositeFunctorFB( view, nSamples, samplePtr, color_map_array, colormapSize, mins, maxs, passZStride, finalPass, pixelsPerPass,pixelZMin, bgColor), width*height),
                                                      "Composite");
             eavlExecutor::Go();
             if(verbose) compositeTime += eavlTimer::Stop(tcomp,"tcomp");
@@ -1159,7 +1169,7 @@ void  eavlSimpleVRMutator::Execute()
     if(verbose) cout<<"Alloc       RUNTIME: "<<allocateTime<<" Pass AVE: "<<allocateTime / (float)numPasses<<endl;
     if(verbose) cout<<"Total       RUNTIME: "<<renderTime<<endl;
     //dataWriter();
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(
+ eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ir),
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ig),
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ib),
@@ -1168,14 +1178,9 @@ void  eavlSimpleVRMutator::Execute()
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ig),
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ib),
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ia)),
-                                                     CompositeBG(), height*width),
+                                                     CompositeBG(bgColor), height*width),
                                                      "Composite");
     eavlExecutor::Go();
-   
-    for(int i = 0; i < minSample->GetNumberOfTuples(); i++)
-    {
-    	cout<<minSample->GetValue(i)<<" ";
-    }
 }
 
 
@@ -1264,7 +1269,6 @@ void  eavlSimpleVRMutator::freeTextures()
 }
 void  eavlSimpleVRMutator::freeRaw()
 {
-    deleteArrayPtr(scalars_raw);
 }
 template <class A, class B> EAVL_HOSTDEVICE A lerp(const A& a, const A& b, const B& t) { return (A)(a * ((B)1 - t) + b * t); }
 void eavlSimpleVRMutator::readTransferFunction(string filename)
@@ -1465,4 +1469,15 @@ void eavlSimpleVRMutator::readTransferFunction(string filename)
     {
         cerr<<"Could not open tranfer function file : "<<filename.c_str()<<endl;
     }
+}
+
+eavlByteArray * eavlSimpleVRMutator::getFrameBuffer()
+{
+    
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(framebuffer),
+                                             eavlOpArgs(rgba),
+                                             CastToUnsignedCharFunctor()),
+                                             "set");
+    eavlExecutor::Go();
+    return rgba;
 }

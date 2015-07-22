@@ -254,10 +254,6 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         float proj23=view.P(2,3);
         float proj32=view.P(3,2);
 		float *zBuffer = (float *) tracer->getDepthBuffer(proj22,proj23,proj32)->GetHostArray();
-		for(int i = 0; i< 1000; i++)
-		{
-			cout<<zBuffer[i]<<" ";
-		}
         return zBuffer;
     }
 

@@ -5,6 +5,7 @@
 #include "eavlVRScene.h"
 #include "eavlRTUtil.h"
 #include "eavlConstTextureArray.h"
+#include "eavlColor.h"
 
 class eavlSimpleVRMutator : public eavlMutator
 {
@@ -82,8 +83,9 @@ class eavlSimpleVRMutator : public eavlMutator
     void setColorMap3f(float*,int);
     void setColorMap4f(float*,int);
     void setDefaultColorMap();
+    void setBGColor(eavlColor c) {bgColor = c;}
     
-    eavlFloatArray*  getFrameBuffer() { return framebuffer; }
+    eavlByteArray*  getFrameBuffer();
     eavlFloatArray* getDepthBuffer(float, float, float);
     eavlVRScene*        scene;
   protected:
@@ -114,11 +116,13 @@ class eavlSimpleVRMutator : public eavlMutator
     double  tempTime;
     double  passFilterTime;
     double  renderTime;
+    eavlColor bgColor;
     string  dataname;
     eavlView view;
 
     eavlFloatArray*     samples;
     eavlFloatArray*     framebuffer;
+    eavlByteArray*      rgba;
     
 
     eavlFloatArray*     ssa; 

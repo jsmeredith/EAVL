@@ -136,9 +136,21 @@ class eavl3DScene : public eavlScene
         view.view3d.up   = eavlVector3(0,1,0);
         view.view3d.fov  = 0.5; // perspective only
         view.view3d.size = ds_size; //orthographic only;
+        
         view.view3d.nearplane = ds_size/16.;
         view.view3d.farplane = ds_size*4;
-
+		view.SetupMatrices();
+		//squeezing the near and far planes for volume renderer 
+		eavlPoint3 mins(view.minextents[0],view.minextents[1],view.minextents[2]);
+		eavlPoint3 maxs(view.maxextents[0],view.maxextents[1],view.maxextents[2]);
+		mins = view.V * mins;
+		maxs = view.V * maxs;
+		float far = std::max(-mins.z, -maxs.z);
+		float near = std::min(-mins.z, -maxs.z);
+		view.view3d.nearplane = near * 0.9f; 
+        view.view3d.farplane =  far * 1.1f; 
+        view.SetupMatrices();   
+		
     }
     virtual void Render(eavlWindow *win)
     {
@@ -559,6 +571,18 @@ class eavl3DParallelScene : public eavl3DScene
         view.view3d.fov  = 0.5;
         view.view3d.nearplane = ds_size/16.;
         view.view3d.farplane = ds_size*4;
+        view.SetupMatrices();
+		//squeezing the near and far planes for volume renderer 
+		eavlPoint3 mins(view.minextents[0],view.minextents[1],view.minextents[2]);
+		eavlPoint3 maxs(view.maxextents[0],view.maxextents[1],view.maxextents[2]);
+		mins = view.V * mins;
+		maxs = view.V * maxs;
+		float far = std::max(-mins.z, -maxs.z);
+		float near = std::min(-mins.z, -maxs.z);
+		view.view3d.nearplane = near * 0.9f; 
+        view.view3d.farplane =  far * 1.1f; 
+        view.SetupMatrices();   
+   		 
     }
 };
 
