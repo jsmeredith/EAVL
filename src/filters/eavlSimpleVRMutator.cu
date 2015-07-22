@@ -27,9 +27,9 @@ eavlConstTexArray<float4>* scalars_array;
 
 #define PASS_ESTIMATE_FACTOR  5.f
 eavlSimpleVRMutator::eavlSimpleVRMutator()
-{   //eavlExecutor::SetExecutionMode(eavlExecutor::ForceCPU);
+{   
     cpu = eavlRayExecutionMode::isCPUOnly();
-    else cpu = false;
+
 
     opacityFactor = 1.f;
     height = 500;
@@ -450,7 +450,11 @@ struct SampleFunctor3
                     float b = ffmax(w0,ffmax(w1,ffmax(w2,w3)));
                     // bool valid  = (a >= 0 && b <= 1);
                     // if(valid) lerped = w0*s.x + w1*s.y + w2*s.z + w3*s.w;
-                    if((a >= 0 && b <= 1)) samples[index3d] = lerped;
+                    if((a >= 0 && b <= 1)) 
+                    {
+                        samples[index3d] = lerped;
+                        if(lerped < 0 || lerped >1) printf("Bad lerp %f ",lerped);
+                    }
 
                 }//z
             }//y
