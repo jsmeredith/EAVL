@@ -7,6 +7,7 @@
 #include "eavlReduceOp_1.h"
 #include "eavlGatherOp.h"
 #include "eavlSimpleReverseIndexOp.h"
+#include "eavlRayExecutionMode.h"
 #include "eavlRTUtil.h"
 #ifdef HAVE_CUDA
 #include <cuda.h>
@@ -27,7 +28,7 @@ eavlConstTexArray<float4>* scalars_array;
 #define PASS_ESTIMATE_FACTOR  5.f
 eavlSimpleVRMutator::eavlSimpleVRMutator()
 {   //eavlExecutor::SetExecutionMode(eavlExecutor::ForceCPU);
-    if(eavlExecutor::GetExecutionMode() == eavlExecutor::ForceCPU ) cpu = true;
+    cpu = eavlRayExecutionMode::isCPUOnly();
     else cpu = false;
 
     opacityFactor = 1.f;
@@ -1175,11 +1176,6 @@ void  eavlSimpleVRMutator::Execute()
                                                      CompositeBG(), height*width),
                                                      "Composite");
     eavlExecutor::Go();
-   
-    for(int i = 0; i < minSample->GetNumberOfTuples(); i++)
-    {
-    	cout<<minSample->GetValue(i)<<" ";
-    }
 }
 
 
