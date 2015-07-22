@@ -83,7 +83,7 @@ class eavlSimpleVRMutator : public eavlMutator
     void setColorMap4f(float*,int);
     void setDefaultColorMap();
     
-    eavlFloatArray*  getFrameBuffer() { return framebuffer; }
+    eavlByteArray*  getFrameBuffer();
     eavlFloatArray* getDepthBuffer(float, float, float);
     eavlVRScene*        scene;
   protected:
@@ -119,6 +119,7 @@ class eavlSimpleVRMutator : public eavlMutator
 
     eavlFloatArray*     samples;
     eavlFloatArray*     framebuffer;
+    eavlByteArray*      rgba;
     
 
     eavlFloatArray*     ssa; 

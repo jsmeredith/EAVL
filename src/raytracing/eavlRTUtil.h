@@ -320,6 +320,18 @@ struct ConvertFrameBufferFunctor
 
 };
 
+struct CastToUnsignedCharFunctor
+{
+    CastToUnsignedCharFunctor()
+    {}
+
+    EAVL_FUNCTOR tuple<byte> operator()(float in){
+        byte  rb = in*255.f; 
+        return tuple<byte>(rb);
+    }
+
+};
+
     
 inline void writeBMP(int _height, int _width, eavlFloatArray *r, eavlFloatArray *g, eavlFloatArray *b,const char*fname)
 {

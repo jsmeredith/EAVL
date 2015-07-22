@@ -59,13 +59,14 @@ eavlSimpleVRMutator::eavlSimpleVRMutator()
     ssd    = NULL;
     tetSOA = NULL;
     mask   = NULL;
+    rgba   = NULL;
     scene = new eavlVRScene();
 
     geomDirty = true;
     sizeDirty = true;
 
     numTets = 0;
-    nSamples = 1000;
+    nSamples = 300;
     passCount = new eavlIntArray("",1,1); 
     i1 = new eavlArrayIndexer(3,0);
     i2 = new eavlArrayIndexer(3,1);
@@ -86,6 +87,7 @@ eavlSimpleVRMutator::~eavlSimpleVRMutator()
     deleteClassPtr(framebuffer);
     deleteClassPtr(zBuffer);
     deleteClassPtr(minSample);
+    deleteClassPtr(rgba);
     deleteClassPtr(scene);
     deleteClassPtr(ssa);
     deleteClassPtr(ssb);
@@ -737,6 +739,7 @@ void eavlSimpleVRMutator::init()
         
         samples         = new eavlFloatArray("",1,pixelsPerPass);
         framebuffer     = new eavlFloatArray("",1,height*width*4);
+        rgba            = new eavlByteArray("",1,height*width);
         zBuffer         = new eavlFloatArray("",1,height*width);
         minSample		= new eavlIntArray("",1,height*width);
         clearSamplesArray();
@@ -1465,4 +1468,15 @@ void eavlSimpleVRMutator::readTransferFunction(string filename)
     {
         cerr<<"Could not open tranfer function file : "<<filename.c_str()<<endl;
     }
+}
+
+eavlByteArray * eavlSimpleVRMutator::getFrameBuffer()
+{
+    
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(framebuffer),
+                                             eavlOpArgs(rgba),
+                                             CastToUnsignedCharFunctor()),
+                                             "set");
+    eavlExecutor::Go();
+    return rgba;
 }
