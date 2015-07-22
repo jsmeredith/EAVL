@@ -41,7 +41,6 @@ eavlSimpleVRMutator::eavlSimpleVRMutator()
     iterator               = NULL;
     screenIterator         = NULL;
     colormap_raw           = NULL;
-    scalars_raw            = NULL;
     minPasses              = NULL;
     maxPasses              = NULL;
     currentPassMembers     = NULL;
@@ -739,7 +738,7 @@ void eavlSimpleVRMutator::init()
         
         samples         = new eavlFloatArray("",1,pixelsPerPass);
         framebuffer     = new eavlFloatArray("",1,height*width*4);
-        rgba            = new eavlByteArray("",1,height*width);
+        rgba            = new eavlByteArray("",1,height*width*4);
         zBuffer         = new eavlFloatArray("",1,height*width);
         minSample		= new eavlIntArray("",1,height*width);
         clearSamplesArray();
@@ -765,9 +764,11 @@ void eavlSimpleVRMutator::init()
         deleteClassPtr(mask);
 
         tetSOA = scene->getEavlTetPtrs();
-        scalars_raw = scene->getScalarPtr();
         
-        scalars_array       = new eavlConstTexArray<float4>( (float4*) scalars_raw, numTets, scalars_tref, cpu);
+        scalars_array       = new eavlConstTexArray<float4>( (float4*) scene->getScalarPtr()->GetHostArray(), 
+                                                             numTets, 
+                                                             scalars_tref, 
+                                                             cpu);
         minPasses = new eavlByteArray("",1, numTets);
         maxPasses = new eavlByteArray("",1, numTets);
         indexScan = new eavlIntArray("",1, numTets);
@@ -1267,7 +1268,6 @@ void  eavlSimpleVRMutator::freeTextures()
 }
 void  eavlSimpleVRMutator::freeRaw()
 {
-    deleteArrayPtr(scalars_raw);
 }
 template <class A, class B> EAVL_HOSTDEVICE A lerp(const A& a, const A& b, const B& t) { return (A)(a * ((B)1 - t) + b * t); }
 void eavlSimpleVRMutator::readTransferFunction(string filename)
