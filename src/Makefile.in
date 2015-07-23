@@ -73,6 +73,7 @@ OBJ=\
  raytracing/eavlRayTriangleIntersector.o \
  raytracing/eavlRayTriangleGeometry.o \
  raytracing/eavlRayTracer.o \
+ raytracing/eavlPathTracer.o \
  rendering/eavlColor.o
 
 ifneq (@VTK@, no)

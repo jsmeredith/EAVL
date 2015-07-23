@@ -545,7 +545,7 @@ if test "$CUDA" != "no"; then
    CUDA_LDFLAGS="-L""$CUDA""/lib"
    rpathize(CUDA_LDFLAGS, $CUDA/lib)
    if test -z "$CUDA_LIBS"; then
-      CUDA_LIBS="-lcuda -lcudart"
+      CUDA_LIBS="-lcuda -lcudart -lcurand"
    fi
    old_cppflags=$CPPFLAGS
    old_ldflags=$LDFLAGS

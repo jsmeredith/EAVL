@@ -6,16 +6,16 @@
 #include "eavlRTUtil.h"
 
 
-EAVL_HOSTDEVICE int getIntersectionWoop(const eavlVector3 rayDir,
-									    const eavlVector3 rayOrigin, 
-									    bool occlusion, 
-									    eavlTextureObject<float4> &innerNodes,
-                                        eavlTextureObject<int>  &leafNodes, 
-                                        eavlTextureObject<float4> &verts,
-                                        const float &maxDistance, 
-                                        float &distance,
-                                        float &minU,
-                                        float &minV)
+EAVL_HOSTDEVICE int getIntersection(const eavlVector3 rayDir,
+								    const eavlVector3 rayOrigin, 
+								    bool occlusion, 
+								    eavlTextureObject<float4> &innerNodes,
+                                    eavlTextureObject<int>  &leafNodes, 
+                                    eavlTextureObject<float4> &verts,
+                                    const float &maxDistance, 
+                                    float &distance,
+                                    float &minU,
+                                    float &minV)
 {
 
     float minDistance = maxDistance;
@@ -166,12 +166,12 @@ EAVL_HOSTDEVICE int getIntersectionWoop(const eavlVector3 rayDir,
  return minIndex;
 }
 
-EAVL_HOSTDEVICE int getIntersectionWoopOcculsion(const eavlVector3 rayDir,
-									   			 const eavlVector3 rayOrigin, 
-									   			 eavlTextureObject<float4> &innerNodes,
-                                       			 eavlTextureObject<int>  &leafNodes, 
-                                       			 eavlTextureObject<float4> &verts,
-                                       			 const float &maxDistance)
+EAVL_HOSTDEVICE int getIntersectionOcculsion(const eavlVector3 rayDir,
+								   			 const eavlVector3 rayOrigin, 
+								   			 eavlTextureObject<float4> &innerNodes,
+                                   			 eavlTextureObject<int>  &leafNodes, 
+                                   			 eavlTextureObject<float4> &verts,
+                                   			 const float &maxDistance)
 {
 
     float dirx = rayDir.x;
@@ -331,16 +331,16 @@ struct UnitMultipleDistancesTriangleDepthFunctor{
         eavlVector3       ray(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
         float u = 0.f;
         float v = 0.f;
-        int minHit = getIntersectionWoop(ray,
-        							 	 rayOrigin, 
-        							 	 false,
-        							 	 innerNodes,
-        							 	 leafNodes, 
-        							 	 verts,
-        							 	 maxDistance,
-        							 	 distance,
-                                         u,
-                                         v);
+        int minHit = getIntersection(ray,
+    							 	 rayOrigin, 
+    							 	 false,
+    							 	 innerNodes,
+    							 	 leafNodes, 
+    							 	 verts,
+    							 	 maxDistance,
+    							 	 distance,
+                                     u,
+                                     v);
         
 		return tuple<int,float, float, float>(minHit, distance, u, v);
     }
@@ -373,16 +373,16 @@ struct UnitSingleDistanceTriangleDepthFunctor{
         //printf(" %f %f %f " ,ray.x,ray.y,ray.z);
         float u = 0.f;
         float v = 0.f;
-        int minHit = getIntersectionWoop(ray,
-        							 	 rayOrigin, 
-        							 	 false,
-        							 	 innerNodes,
-        							 	 leafNodes, 
-        							 	 verts,
-        							 	 maxDistance,
-        							 	 distance,
-                                         u,
-                                         v);
+        int minHit = getIntersection(ray,
+    							 	 rayOrigin, 
+    							 	 false,
+    							 	 innerNodes,
+    							 	 leafNodes, 
+    							 	 verts,
+    							 	 maxDistance,
+    							 	 distance,
+                                     u,
+                                     v);
         if(minHit == -1) distance = INFINITE;
 		return tuple<int,float,float,float>(minHit, distance,u,v);
  
@@ -412,12 +412,12 @@ struct UnitShadowFunctor{
         eavlVector3 rayOrigin(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
         eavlVector3 rayDir = lightPosition - rayOrigin;
         float maxDistance = sqrt(rayDir*rayDir);
-        int minHit = getIntersectionWoopOcculsion(rayDir,
-        							 	 		  rayOrigin,
-        							 	 		  innerNodes,
-        							 	 		  leafNodes, 
-        							 	 		  verts,
-        							 	 		  maxDistance);
+        int minHit = getIntersectionOcculsion(rayDir,
+    							 	 		  rayOrigin,
+    							 	 		  innerNodes,
+    							 	 		  leafNodes, 
+    							 	 		  verts,
+    							 	 		  maxDistance);
 		return tuple<int>(minHit);
  
     }
@@ -444,12 +444,12 @@ struct UnitOcclusionFunctor{
  
         eavlVector3 rayOrigin(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
         eavlVector3 rayDir(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
-        int minHit = getIntersectionWoopOcculsion(rayDir,
-                                                  rayOrigin,
-                                                  innerNodes,
-                                                  leafNodes, 
-                                                  verts,
-                                                  maxDistance);
+        int minHit = getIntersectionOcculsion(rayDir,
+                                              rayOrigin,
+                                              innerNodes,
+                                              leafNodes, 
+                                              verts,
+                                              maxDistance);
         return tuple<int>(minHit);
  
     }

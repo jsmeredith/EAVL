@@ -661,5 +661,19 @@ EAVL_HOSTDEVICE bool solveQuadratic(const T &a, const T &b, const T &c, T &x0, T
     return true;
 }
 
+struct MultFunctor3to3color
+{
+    MultFunctor3to3color(){}
+
+    EAVL_FUNCTOR tuple<float,float,float> operator()(tuple<float,float,float,float,float,float> input){
+        eavlVector3 color1(get<0>(input),get<1>(input),get<2>(input));
+        eavlVector3 color2(get<3>(input),get<4>(input),get<5>(input));
+        color1.x = color1.x * color2.x;
+        color1.y = color1.y * color2.y;
+        color1.z = color1.z * color2.z;
+        return tuple<float,float,float>(color1.x , color1.y , color1.z);
+    }
+
+};
 
 #endif
