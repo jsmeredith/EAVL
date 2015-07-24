@@ -83,7 +83,8 @@ class eavlSimpleVRMutator : public eavlMutator
     void setColorMap3f(float*,int);
     void setColorMap4f(float*,int);
     void setDefaultColorMap();
-    void setBGColor(eavlColor c) {bgColor = c;}
+    void setBGColor(eavlColor c) { bgColor = c;}
+    void setTransparentBG(bool on){ isTransparentBG = on; }
     
     eavlByteArray*  getFrameBuffer();
     eavlFloatArray* getDepthBuffer(float, float, float);
@@ -106,6 +107,7 @@ class eavlSimpleVRMutator : public eavlMutator
     bool    passNumDirty;
     bool    cpu;
     bool    verbose;
+    bool 	isTransparentBG;
     float   opacityFactor;
 
     double  sampleTime;

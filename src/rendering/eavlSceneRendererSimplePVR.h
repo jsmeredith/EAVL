@@ -10,6 +10,7 @@
 #include "eavlTimer.h"
 #include "eavlSimpleVRMutator.h"
 #include "eavlRTUtil.h"
+#include "eavlTransferFuntion.h"
 
 // ****************************************************************************
 // Class:  eavlSceneRendererSimplePVR
@@ -26,6 +27,8 @@
 class eavlSceneRendererSimplePVR : public eavlSceneRenderer
 {
     eavlSimpleVRMutator* vr;
+    eavlTransferFunction tf;
+    float 				 tfVals[4*1024];
     bool doOnce;
     int numSamples;
     string ctName;
@@ -43,6 +46,7 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
     virtual ~eavlSceneRendererSimplePVR()
     {
         delete vr;
+        delete[] tfVals;
     }
 
     virtual void StartScene()
@@ -64,12 +68,31 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
         eavlSceneRenderer::SetActiveColorTable(ct);
         if(ct.GetName()!=ctName)
         {
-            ctName=ct.GetName();
-            vr->setColorMap3f(colors,ncolors);
-            //cout<<"Setting Active Color Table"<<endl;
+        	//
+            // Eavl creates a "uniqiue" name by adding 
+            // two numbers to the front of the name
+            //
+            ctName=ct.GetName().substr(2);		
+            cout<<"Name "<<ct.GetName()<<endl;
+            tf.Clear();
+            tf.SetByColorTableName(ctName); 
+            tf.CreateDefaultAlpha();
+            tf.GetTransferFunction(ncolors, tfVals);
+            vr->setColorMap4f(tfVals,ncolors);
         }
         
     }
+    
+    void SetTransferFunction(eavlTransferFunction _tf)
+    {
+    	tf = _tf;
+    }
+    
+    void SetTransparentBG(bool on)
+    {
+    	vr->setTransparentBG(on);
+    }
+    
 
     // ------------------------------------------------------------------------
 

@@ -79,6 +79,7 @@ eavlSimpleVRMutator::eavlSimpleVRMutator()
     verbose = false;
 
     setDefaultColorMap(); 
+    isTransparentBG = false;
 }
 
 eavlSimpleVRMutator::~eavlSimpleVRMutator()
@@ -400,7 +401,7 @@ struct SampleFunctor3
         // for(int i = 0; i < 3; i++) mine[i] = max(mine[i],0.f);
         // /*clamp*/
         maxe[0] = min(float(view.w-1), maxe[0]); //??  //these lines cost 14 registers
-        maxe[1] = min(float(view.w - 1.f), maxe[1]);
+        maxe[1] = min(float(view.h - 1.f), maxe[1]);
         maxe[2] = min(float(passMaxZPixel), maxe[2]);
         mine[2] = max(float(passMinZPixel), mine[2]);
         //cout<<p[0]<<p[1]<<p[2]<<p[3]<<endl;
@@ -451,7 +452,7 @@ struct SampleFunctor3
                     float b = ffmax(w0,ffmax(w1,ffmax(w2,w3)));
                     // bool valid  = (a >= 0 && b <= 1);
                     // if(valid) lerped = w0*s.x + w1*s.y + w2*s.z + w3*s.w;
-                    if((a >= 0 && b <= 1)) 
+                    if((a >= 0.f && b <= 1.f)) 
                     {
                         samples[index3d] = lerped;
                         if(lerped < 0 || lerped >1) printf("Bad lerp %f ",lerped);
@@ -633,9 +634,9 @@ void eavlSimpleVRMutator::setColorMap4f(float* cmap,int size)
     
     for(int i=0;i<size;i++)
     {
-        colormap_raw[i*4  ] = cmap[i*3  ];
-        colormap_raw[i*4+1] = cmap[i*3+1];
-        colormap_raw[i*4+2] = cmap[i*3+2];
+        colormap_raw[i*4  ] = cmap[i*4  ];
+        colormap_raw[i*4+1] = cmap[i*4+1];
+        colormap_raw[i*4+2] = cmap[i*4+2];
         colormap_raw[i*4+3] = cmap[i*4+3];          
     }
     color_map_array = new eavlConstTexArray<float4>((float4*)colormap_raw, colormapSize, cmap_tref, cpu);
@@ -925,7 +926,17 @@ void eavlSimpleVRMutator::findCurrentPassMembers(int pass)
 
 void  eavlSimpleVRMutator::Execute()
 {
-
+	//
+	// If we are doing parallel compositing, we just want the partial
+	// composites without the background color
+	//
+	if(isTransparentBG) 
+	{
+		bgColor.c[0] =0.f; 
+		bgColor.c[1] =0.f; 
+		bgColor.c[2] =0.f; 
+		bgColor.c[3] =0.f;
+	}
 
     //timing accumulators
     double clearTime = 0;
@@ -938,6 +949,8 @@ void  eavlSimpleVRMutator::Execute()
     renderTime = 0;
    
     int tets = scene->getNumTets();
+    
+   
     if(tets != numTets)
     {
         geomDirty = true;
@@ -948,6 +961,35 @@ void  eavlSimpleVRMutator::Execute()
     int tinit;
     if(verbose) tinit = eavlTimer::Start();
     init();
+    
+    if(tets < 1)
+    {
+    	//There is nothing to render. Set depth and framebuffer
+    	eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(minSample),
+                                             eavlOpArgs(minSample),
+                                             IntMemsetFunctor(nSamples+1000)), //what should this be?
+                                             "clear first sample");
+    	eavlExecutor::Go();
+    	
+    	eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(framebuffer),
+                                             eavlOpArgs(framebuffer),
+                                             FloatMemsetFunctor(0)),
+                                             "clear Frame Buffer");
+    	eavlExecutor::Go();
+		eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(framebuffer,*ir),
+				                                             eavlIndexable<eavlFloatArray>(framebuffer,*ig),
+				                                             eavlIndexable<eavlFloatArray>(framebuffer,*ib),
+				                                             eavlIndexable<eavlFloatArray>(framebuffer,*ia)),
+				                                  eavlOpArgs(eavlIndexable<eavlFloatArray>(framebuffer,*ir),
+				                                             eavlIndexable<eavlFloatArray>(framebuffer,*ig),
+				                                             eavlIndexable<eavlFloatArray>(framebuffer,*ib),
+				                                             eavlIndexable<eavlFloatArray>(framebuffer,*ia)),
+				                                 CompositeBG(bgColor), height*width),
+				                                 "Composite");
+		eavlExecutor::Go();
+		return;
+    }
+    
     float4* xtet;
     float4* ytet;
     float4* ztet;
@@ -985,13 +1027,6 @@ void  eavlSimpleVRMutator::Execute()
     }
     if(verbose) cout<<"Init        RUNTIME: "<<eavlTimer::Stop(tinit,"init")<<endl;
 
-    
-    
-    if(numTets < 1)
-    {
-        cout<<"Nothing to render. Number of tets = "<<numTets<<endl;
-        return;
-    }
 
     // Pixels extents are used to skip empty space in compositing.
     eavlPoint3 mins(scene->getSceneBBox().min.x,scene->getSceneBBox().min.y,scene->getSceneBBox().min.z);
