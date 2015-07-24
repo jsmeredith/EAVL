@@ -10,7 +10,7 @@
 #include "eavlTimer.h"
 #include "eavlSimpleVRMutator.h"
 #include "eavlRTUtil.h"
-#include "eavlTransferFuntion.h"
+#include "eavlTransferFunction.h"
 
 // ****************************************************************************
 // Class:  eavlSceneRendererSimplePVR

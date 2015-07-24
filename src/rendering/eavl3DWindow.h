@@ -155,7 +155,7 @@ class eavl3DWindow : public eavlWindow
 	all the frames are blended together. Someone is 
 	logically in front of the other and the 
 	boundign boxes are rendered on top of the 
-	all other images. Additionally, only MPI
+	all other images. Additionally, only one MPI
 	process should render the color bar.
 
 */
