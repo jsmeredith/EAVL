@@ -676,4 +676,18 @@ struct MultFunctor3to3color
 
 };
 
+struct AveFunctor
+{
+    int samples;
+    AveFunctor(int nSamples)
+    {
+        samples = nSamples;
+    }
+
+    EAVL_FUNCTOR tuple<float> operator()(tuple<float> input){
+        float color = get<0>(input) / (float) samples;
+        return tuple<float>(min(color,1.0f));
+    }
+
+};
 #endif

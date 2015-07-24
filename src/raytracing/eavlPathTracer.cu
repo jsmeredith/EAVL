@@ -5,7 +5,7 @@
 #include <eavlRandOp.h>
 #include <eavlMapOp.h>
 
-eavlRayTracer::eavlRayTracer()
+eavlPathTracer::eavlPathTracer()
 {
 
 	//
@@ -27,15 +27,21 @@ eavlRayTracer::eavlRayTracer()
     shadowX = new eavlFloatArray("",1,currentFrameSize);
     shadowY = new eavlFloatArray("",1,currentFrameSize);
     shadowZ = new eavlFloatArray("",1,currentFrameSize);
+    reflectX = new eavlFloatArray("",1,currentFrameSize);
+    reflectY = new eavlFloatArray("",1,currentFrameSize);
+    reflectZ = new eavlFloatArray("",1,currentFrameSize);
     rSurface = new eavlFloatArray("",1,currentFrameSize);                  
     gSurface = new eavlFloatArray("",1,currentFrameSize);
     bSurface = new eavlFloatArray("",1,currentFrameSize);
+    rCurrent = new eavlFloatArray("",1,currentFrameSize);                  
+    gCurrent = new eavlFloatArray("",1,currentFrameSize);
+    bCurrent = new eavlFloatArray("",1,currentFrameSize);
     lred = new eavlFloatArray("",1,currentFrameSize);               
     lgreen = new eavlFloatArray("",1,currentFrameSize);
     lblue = new eavlFloatArray("",1,currentFrameSize);
-	bgColor.x = .1f;
-	bgColor.y = .1f;
-	bgColor.z = .1f;
+	bgColor.x = .5f;
+	bgColor.y = .5f;
+	bgColor.z = .5f;
 	//
 	// Create default color map
 	//
@@ -59,7 +65,7 @@ eavlRayTracer::eavlRayTracer()
 
 }
 
-eavlRayTracer::~eavlRayTracer()
+eavlPathTracer::~eavlPathTracer()
 {
 	delete colorMap;
 	delete triGeometry;
@@ -78,10 +84,16 @@ eavlRayTracer::~eavlRayTracer()
     delete shadowX;
     delete shadowY;
     delete shadowZ;
+    delete reflectX;
+    delete reflectY;
+    delete reflectZ;
     delete indexer;
     delete rSurface;
     delete gSurface;
     delete bSurface;
+    delete rCurrent;
+    delete gCurrent;
+    delete bCurrent;
     delete lred;
     delete lgreen;
     delete lblue;
@@ -89,12 +101,12 @@ eavlRayTracer::~eavlRayTracer()
 }
 
 
-void eavlRayTracer::startScene()
+void eavlPathTracer::startScene()
 {
 	scene->clear();
 	geometryDirty = true;
 }
-void eavlRayTracer::setColorMap3f(float* cmap, const int &nColors)
+void eavlPathTracer::setColorMap3f(float* cmap, const int &nColors)
 {
 	// Colors are fed in as RGB, no alpha
 	if(nColors < 1)
@@ -111,25 +123,44 @@ struct NormalFunctor{
     eavlTextureObject<float>  scalars;
     eavlTextureObject<float>  norms;
 
+    eavlTextureObject<float>  colorMap;
+    int colorMapSize;
+    int sampleNum;
 
     NormalFunctor(eavlTextureObject<float>  *_scalars,
-    			  eavlTextureObject<float>  *_norms)
+    			  eavlTextureObject<float>  *_norms,
+                  eavlTextureObject<float>  *_colorMap,
+                  int _colorMapSize)
         :scalars(*_scalars),
-         norms(*_norms)
+         norms(*_norms),
+         colorMap(*_colorMap),
+         colorMapSize(_colorMapSize)
+
     {
-        
+        sampleNum = 1;
     }                                                    
-    EAVL_FUNCTOR tuple<float,float,float,float,float,float,float> operator()( tuple<float,  // rayOrigin x
-														   						    float,  // rayOrigin y
-														   						    float,  // rayOrigin z
-														   						    float,  // rayDir x
-														   						    float,  // rayDir y
-														   						    float,  // rayDir z
-														   						    float,  // hit distance
-														   						    float,  // alpha
-														   						    float,  // beta
-														   						    int     // Hit index
-														   						    > input)
+    EAVL_FUNCTOR tuple<float,
+                        float,
+                        float,
+                        float,
+                        float,
+                        float,
+                        float,
+                        float,
+                        float,
+                        float,
+                        float,
+                        float> operator()( tuple<float,  // rayOrigin x
+										   						    float,  // rayOrigin y
+										   						    float,  // rayOrigin z
+										   						    float,  // rayDir x
+										   						    float,  // rayDir y
+										   						    float,  // rayDir z
+										   						    float,  // hit distance
+										   						    float,  // alpha
+										   						    float,  // beta
+										   						    int     // Hit index
+										   						    > input, int seed)
     {
        
        	eavlVector3 rayOrigin(get<0>(input), get<1>(input), get<2>(input));
@@ -142,7 +173,18 @@ struct NormalFunctor{
         float beta  = get<8>(input);
         float gamma = 1.f - alpha - beta;
         int hitIndex=get<9>(input);
-        if(hitIndex == -1) return tuple<float,float,float,float,float,float,float>(0.f,0.f,0.f,0.f,0.f,0.f,0.f);
+        if(hitIndex == -1) return tuple<float,
+                                        float,
+                                        float,
+                                        float,
+                                        float,
+                                        float,
+                                        float,
+                                        float,
+                                        float,
+                                        float,
+                                        float,
+                                        float>(0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f,0.f);
      
         eavlVector3 aNorm, bNorm, cNorm;
         aNorm.x = norms.getValue(hitIndex * 9 + 0);
@@ -163,7 +205,54 @@ struct NormalFunctor{
         //reflect the ray
         normal.normalize();
         if ((normal * rayDir) > 0.0f) normal = -normal; //flip the normal if we hit the back side
-        return tuple<float,float,float,float,float,float,float>(normal.x, normal.y, normal.z, lerpedScalar, intersect.x, intersect.y, intersect.z);
+        eavlVector3 reflection = rayDir - normal*2.f*(normal*rayDir);
+
+        int   colorIdx = max(min(colorMapSize-1, (int)floor(lerpedScalar*colorMapSize)), 0);
+        float shine = (colorIdx > colorIdx / 4) ? float(colorIdx) : 0.f; //someones got to be shiny
+        float weight = 1.f;
+        float4 color;
+        color.x = colorMap.getValue(colorIdx * 3 + 0); 
+        color.y = colorMap.getValue(colorIdx * 3 + 1); 
+        color.z = colorMap.getValue(colorIdx * 3 + 2); 
+        if(shine > 0)
+        {
+            bool diffuse = (seed % 2 == 0);
+            if(shine == 1.f) diffuse = true;
+            
+            if(diffuse)
+            {
+                reflection = normal;
+                shine = 1.f;
+            }
+           
+            //cout<<"Before "<<reflection<<" After ";
+             reflection = eavlSampler::importanceSampleHemi<eavlSampler::HALTON>(sampleNum,reflection,shine, weight, seed);
+        }
+
+
+        return tuple<float,
+                     float,
+                     float,
+                     float,
+                     float,
+                     float,
+                     float,
+                     float,
+                     float,
+                     float,
+                     float,
+                     float>(normal.x, 
+                            normal.y, 
+                            normal.z, 
+                            intersect.x, 
+                            intersect.y, 
+                            intersect.z, 
+                            color.x, 
+                            color.y, 
+                            color.z, 
+                            reflection.x, 
+                            reflection.y, 
+                            reflection.z);
     }
 };
 
@@ -202,6 +291,7 @@ struct WorldLightingFunctor
             normal.normalize();
             dir.normalize();
             float cosTheta = normal*dir; //for diffuse
+            //cout<<"V "<<normal<<dir<<cosTheta<<"\n";
             cosTheta = min(max(cosTheta,0.f),1.f); //clamp this to [0,1]
             return tuple<float,float,float>(skyColor.x * cosTheta,
                                             skyColor.y * cosTheta,
@@ -211,133 +301,35 @@ struct WorldLightingFunctor
     }
 };
 
-struct PhongShaderFunctor
-{
-    eavlVector3     light;
-    eavlVector3     lightDiff;
-    eavlVector3     lightSpec;
-
-    eavlVector3     eye; 
-    float           depth;
-    int             colorMapSize;
-    eavlVector3     bgColor;
-    float4          defaultColor;
-
-    eavlTextureObject<int>      matIds; 
-    eavlFunctorArray<float>     mats;
-    eavlTextureObject<float>    colorMap;
-    
-
-    PhongShaderFunctor(eavlVector3 theLight, 
-    			  	   eavlVector3 eyePos, 
-    			  	   eavlTextureObject<int> *_matIds, 
-                  	   eavlFunctorArray<float> _mats, 
-                  	   eavlTextureObject<float> *_colorMap, 
-                  	   int _colorMapSize, 
-                  	   eavlVector3 *_bgColor)
-        : matIds(*_matIds),
-          mats(_mats),
-          colorMap(*_colorMap), 
-          bgColor(*_bgColor)
-
+struct LightingFunctor
+{   
+    eavlVector3 lightColor;
+    LightingFunctor(eavlVector3 _lightColor)
     {
-        light = theLight;
-        colorMapSize = _colorMapSize;
-        eye = eyePos;
-        lightDiff=eavlVector3(.6,.6,.6);
-        lightSpec=eavlVector3(.6,.6,.6);
-       
+        lightColor = _lightColor;
     }
 
-    EAVL_FUNCTOR tuple<float,float,float,float> operator()(tuple<int,  	// hit index
-    													   		 int,	// shadow ray hit
-    													   		 float,	// origin x 
-    													   		 float,	// origin y
-    													   		 float,	// origin z
-    													   		 float,	// intersect x
-    													   		 float,	// intersect y
-    													   		 float,	// intersect z	
-    													   		 float,	// normal x
-    													   		 float,	// normal y
-    													   		 float,	// normal z
-    													   		 float, // hit scalar 
-                                                                 float  // ambient occlusion percentage
-    													   		 >input)
-    {
-
-        int hitIdx = get<0>(input);
-        int shadowHit = get<1>(input);
-
-        if(hitIdx == -1 ) return tuple<float,float,float,float>(bgColor.x, bgColor.y,bgColor.z,1.f); // primary ray never hit anything.
-        
-        eavlVector3 rayOrigin(get<2>(input),get<3>(input),get<4>(input));
-        eavlVector3 rayInt(get<5>(input), get<6>(input), get<7>(input));
-        eavlVector3 normal(get<8>(input), get<9>(input), get<10>(input));
-        
-        eavlVector3 lightDir  = light - rayInt;
-        eavlVector3 viewDir   = eye - rayInt;
-        
-        lightDir.normalize();
-        viewDir.normalize();
-        
-        float ambPct= get<12>(input);
-    
-        int id = 0;
-        id = matIds.getValue(hitIdx);
-        eavlVector3* matPtr = (eavlVector3*)(&mats[0]+id*12);
-        eavlVector3 ka = matPtr[0];     //these could be lerped if it is possible that a single tri could be made of several mats
-        eavlVector3 kd = matPtr[1];
-        eavlVector3 ks = matPtr[2];
-        float matShine = matPtr[3].x;
-
-        float red   = 0.f;
-        float green = 0.f;
-        float blue  = 0.f;
- 
- 		//
-        // Diffuse
- 		//
-        float cosTheta = normal*lightDir; //for diffuse
-        cosTheta = min(max(cosTheta,0.f),1.f); //clamp this to [0,1]
-        
-        //
-        // Specular
-        //
-        eavlVector3 halfVector = viewDir+lightDir;
-        halfVector.normalize();
-        float cosPhi = normal * halfVector;
-        float specConst;
-        specConst = pow(max(cosPhi,0.0f),matShine);
- 
-        red   = ka.x * ambPct+ (kd.x * lightDiff.x * cosTheta + ks.x * lightSpec.x * specConst) * shadowHit;
-        green = ka.y * ambPct+ (kd.y * lightDiff.y * cosTheta + ks.y * lightSpec.y * specConst) * shadowHit;
-        blue  = ka.z * ambPct+ (kd.z * lightDiff.z * cosTheta + ks.z * lightSpec.z * specConst) * shadowHit;
-        
-        /*Color map*/
-        float scalar   = get<11>(input);
-        int   colorIdx = max(min(colorMapSize-1, (int)floor(scalar*colorMapSize)), 0); 
-
-        //float4 color = (colorMapSize != 2) ? colorMap->getValue(color_map_tref, colorIdx) : defaultColor; 
-        float4 color;
-        color.x = colorMap.getValue(colorIdx * 3 + 0); 
-        color.y = colorMap.getValue(colorIdx * 3 + 1); 
-        color.z = colorMap.getValue(colorIdx * 3 + 2); 
-        
-        red   *= color.x;
-        green *= color.y;
-        blue  *= color.z;
-        
-        
-        return tuple<float,float,float,float>(min(red,1.0f),min(green,1.0f),min(blue,1.0f), 1.0f);
-
+    EAVL_FUNCTOR tuple<float,float,float> operator()(tuple<int,float,float,float,float,float,float>input){
+        int hit = get<0>(input);
+        if(hit == 1) 
+        {
+            eavlVector3 normal(get<1>(input), get<2>(input), get<3>(input));
+            eavlVector3 dir(get<4>(input), get<5>(input), get<6>(input));
+            normal.normalize();
+            dir.normalize();
+            float cosTheta = normal*dir; //for diffuse
+            cosTheta = min(max(cosTheta,0.f),1.f); //clamp this to [0,1]
+            return tuple<float,float,float>(lightColor.x * cosTheta,
+                                            lightColor.y * cosTheta,
+                                            lightColor.z * cosTheta);
+        }
+        else return tuple<float,float,float>(0.f,0.f,0.f);
     }
-
-
 };
 
 
 
-void eavlRayTracer::init()
+void eavlPathTracer::init()
 {
 	
 
@@ -358,13 +350,18 @@ void eavlRayTracer::init()
         shadowX = new eavlFloatArray("",1,numRays);
         shadowY = new eavlFloatArray("",1,numRays);
         shadowZ = new eavlFloatArray("",1,numRays);
-
-        rSurface = new eavlFloatArray("",1,currentFrameSize);                  
-        gSurface = new eavlFloatArray("",1,currentFrameSize);
-        bSurface = new eavlFloatArray("",1,currentFrameSize);
-        lred = new eavlFloatArray("",1,currentFrameSize);               
-        lgreen = new eavlFloatArray("",1,currentFrameSize);
-        lblue = new eavlFloatArray("",1,currentFrameSize);
+        reflectX = new eavlFloatArray("",1,numRays);
+        reflectY = new eavlFloatArray("",1,numRays);
+        reflectZ = new eavlFloatArray("",1,numRays);
+        rSurface = new eavlFloatArray("",1,numRays);                  
+        gSurface = new eavlFloatArray("",1,numRays);
+        bSurface = new eavlFloatArray("",1,numRays);
+        rCurrent = new eavlFloatArray("",1,numRays);                  
+        gCurrent = new eavlFloatArray("",1,numRays);
+        bCurrent = new eavlFloatArray("",1,numRays);
+        lred = new eavlFloatArray("",1,numRays);               
+        lgreen = new eavlFloatArray("",1,numRays);
+        lblue = new eavlFloatArray("",1,numRays);
 
         
         currentFrameSize = numRays;
@@ -388,131 +385,201 @@ void eavlRayTracer::init()
 	camera->createRays(rays); //this call resets hitIndexes as well
 
 }
-void eavlRayTracer::render()
+void eavlPathTracer::render()
 {   
 	camera->printSummary();
-	init();
-	if(numTriangles < 1) 
-	{
-		//may be set the framebuffer and depthbuffer to background and infinite
-		cerr<<"No trianles to render"<<endl;
-		return;
-	}
-    if(!occlusionOn)
+
+    int numSamples = 1;
+    int rayDepth = 1;
+    for (int p = 0; p < numSamples; ++p)
     {
-        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(ambientPct), //dummy arg
-                                                 eavlOpArgs(ambientPct),
-                                                 FloatMemsetFunctor(.5f)),
-                                                 "setAmbient");
-        eavlExecutor::Go();    
-    }
+        float progress = (float) p / (float) numSamples;
+        cout<<"Progress "<<progress * 100.f<<"%";
+        cout<<"\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b";
+        eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rSurface), //dummy arg
+                                        eavlOpArgs(rSurface,gSurface,bSurface),
+                                        FloatMemsetFunctor3to3(1.f, 1.f, 1.f)), //this was 1.f
+                                        "init");
+        eavlExecutor::Go();
+        init(); //Create camera rays
+        if(numTriangles < 1) 
+        {
+            //may be set the framebuffer and depthbuffer to background and infinite
+            cerr<<"No trianles to render"<<endl;
+            return;
+        }
+        for (int i = 0; i < rayDepth; ++i)
+        {
+            
 
-   eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rSurface), //dummy arg
-                                            eavlOpArgs(rSurface,gSurface,bSurface),
-                                            FloatMemsetFunctor3to3(0.f, 0.f, 0.f)), //this was 1.f
-                                            "init");
-    eavlExecutor::Go();
-	
-	//intersector->testIntersections(rays, INFINITE, triGeometry,1,1,camera);
+        	
+        	//intersector->testIntersections(rays, INFINITE, triGeometry,1,1,camera);
 
-	intersector->intersectionDepth(rays, INFINITE, triGeometry);
-	
-	eavlFunctorArray<float> mats(eavlMaterials);
-	eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->rayOriginX,
-														rays->rayOriginY,
-														rays->rayOriginZ,
-														rays->rayDirX,
-														rays->rayDirY,
-														rays->rayDirZ,
-														rays->distance,
-														rays->alpha,
-														rays->beta,
-														rays->hitIdx),
-                                             eavlOpArgs(rays->normalX,
-                                             			rays->normalY,
-                                                        rays->normalZ,
-                                                        rays->scalar,
-                                                        rays->intersectionX,
-                                                        rays->intersectionY,
-                                                        rays->intersectionZ),
-                                             NormalFunctor(triGeometry->scalars,
-                     									   triGeometry->normals)),
-                                             "Normal functor");
-    eavlExecutor::Go();
+        	intersector->intersectionDepth(rays, INFINITE, triGeometry);
+        	
+        	eavlFunctorArray<float> mats(eavlMaterials);
+        	eavlExecutor::AddOperation(new_eavlRandOp(eavlOpArgs(rays->rayOriginX,
+        														rays->rayOriginY,
+        														rays->rayOriginZ,
+        														rays->rayDirX,
+        														rays->rayDirY,
+        														rays->rayDirZ,
+        														rays->distance,
+        														rays->alpha,
+        														rays->beta,
+        														rays->hitIdx),
+                                                     eavlOpArgs(rays->normalX,
+                                                     			rays->normalY,
+                                                                rays->normalZ,
+                                                                rays->intersectionX,
+                                                                rays->intersectionY,
+                                                                rays->intersectionZ,
+                                                                rCurrent,
+                                                                gCurrent,
+                                                                bCurrent,
+                                                                reflectX,
+                                                                reflectY,
+                                                                reflectZ),
+                                                     NormalFunctor(triGeometry->scalars,
+                             									   triGeometry->normals,
+                                                                   colorMap,
+                                                                   numColors)),
+                                                     "Normal functor");
+            eavlExecutor::Go();
 
-    eavlExecutor::AddOperation(new_eavlRandOp(eavlOpArgs(rays->normalX,
-                                                         rays->normalY,
-                                                         rays->normalZ,
-                                                         rays->hitIdx),
-                                                eavlOpArgs(shadowX,shadowY,shadowZ),OccRayGenFunctor(1)),
-                                                "World Lighing sample");
-    eavlExecutor::Go();
+            eavlExecutor::AddOperation(new_eavlRandOp(eavlOpArgs(rays->normalX,
+                                                                 rays->normalY,
+                                                                 rays->normalZ,
+                                                                 rays->hitIdx),
+                                                        eavlOpArgs(shadowX,shadowY,shadowZ),OccRayGenFunctor(p)),
+                                                        "World Lighing sample");
+            eavlExecutor::Go();
 
-    intersector->intersectionOcclusion(rays, shadowX, shadowY, shadowZ, inShadow, indexer, INFINITE, triGeometry);
+            intersector->intersectionOcclusion(rays, shadowX, shadowY, shadowZ, inShadow, indexer, INFINITE, triGeometry);
 
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(inShadow, rays->normalX, rays->normalY, rays->normalZ,
-                                                        shadowX, shadowY, shadowZ),
-                                             eavlOpArgs(lred, lgreen, lblue),
-                                             WorldLightingFunctor(bgColor)),
-                                             "wlighting");
-    eavlExecutor::Go();
+            eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(inShadow, rays->normalX, rays->normalY, rays->normalZ,
+                                                                shadowX, shadowY, shadowZ),
+                                                     eavlOpArgs(lred, lgreen, lblue),
+                                                     WorldLightingFunctor(bgColor)),
+                                                     "wlighting");
+            eavlExecutor::Go();	
+            for (int i = 0; i < currentFrameSize; ++i)
+            {
+                //
+                cout<<lred->GetValue(i)<<" ";
+            }
+            //
+            // mult the current world lighting color with the current surface color, then the total surface color
+            // and add its contribution to the framebuffer 
+            // There are better ways to do this, but there is a limit to the number of functor arguments.
+            //
 
-	intersector->intersectionShadow(rays, inShadow, lightPosition, triGeometry);	
-	
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx,
-														inShadow,
-														rays->rayOriginX,
-														rays->rayOriginY,
-														rays->rayOriginZ,
-														rays->intersectionX,
-														rays->intersectionY,
-														rays->intersectionZ,
-														rays->normalX,
-														rays->normalY,
-														rays->normalZ,
-														rays->scalar,
-                                                        ambientPct),
-                                             			eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer),
-                                                            	   eavlIndexable<eavlFloatArray>(frameBuffer,*greenIndexer),
-                                                            	   eavlIndexable<eavlFloatArray>(frameBuffer,*blueIndexer),
-                                                            	   eavlIndexable<eavlFloatArray>(frameBuffer,*alphaIndexer)),
-                                             PhongShaderFunctor(lightPosition,
-                                             					eavlVector3(camera->getCameraPositionX(),
-                                             								camera->getCameraPositionY(),
-                                             								camera->getCameraPositionZ()),
-                                             					triGeometry->materialIds,
-                                             					mats,
-                                             					colorMap,
-                                             					numColors,
-                                             					&bgColor)),
-                                             "Shader");
-    eavlExecutor::Go();
+        	eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rCurrent,gCurrent,bCurrent,lred,lblue,lgreen),
+                                                             eavlOpArgs(lred,lblue,lgreen),
+                                                             MultFunctor3to3color()),
+                                                             "add");
+            eavlExecutor::Go();
+            eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rSurface,gSurface,bSurface,lred,lblue,lgreen),
+                                                             eavlOpArgs(lred,lblue,lgreen),
+                                                             MultFunctor3to3color()),
+                                                             "add");
+            eavlExecutor::Go();
+            eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer),
+                                                                eavlIndexable<eavlFloatArray>(frameBuffer,*greenIndexer),
+                                                                eavlIndexable<eavlFloatArray>(frameBuffer,*blueIndexer),
+                                                                eavlIndexable<eavlFloatArray>(lred),
+                                                                eavlIndexable<eavlFloatArray>(lblue),
+                                                                eavlIndexable<eavlFloatArray>(lgreen)),
+                                                             eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer),
+                                                                        eavlIndexable<eavlFloatArray>(frameBuffer,*greenIndexer),
+                                                                        eavlIndexable<eavlFloatArray>(frameBuffer,*blueIndexer)),
+                                                             AccFunctor3to3()),
+                                                             "add");
+            eavlExecutor::Go();
 
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer),
-                                                        eavlIndexable<eavlFloatArray>(frameBuffer,*greenIndexer),
-                                                        eavlIndexable<eavlFloatArray>(frameBuffer,*blueIndexer),
-                                                        eavlIndexable<eavlFloatArray>(frameBuffer,*alphaIndexer)),
-                                                 eavlOpArgs(eavlIndexable<eavlByteArray>(rgbaPixels,*redIndexer),
-                                                            eavlIndexable<eavlByteArray>(rgbaPixels,*greenIndexer),
-                                                            eavlIndexable<eavlByteArray>(rgbaPixels,*blueIndexer),
-                                                            eavlIndexable<eavlByteArray>(rgbaPixels,*alphaIndexer)),
-                                                 CopyFrameBuffer()),
-                                                 "memcopy");
-    eavlExecutor::Go();
+            intersector->intersectionShadow(rays, inShadow, lightPosition, triGeometry);
+            
+            eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(inShadow, rays->normalX, rays->normalY, rays->normalZ,
+                                                                shadowX, shadowY, shadowZ),
+                                                     eavlOpArgs(lred, lgreen, lblue),
+                                                     LightingFunctor(eavlVector3(.6f,.6f,.6f))),
+                                                     "wlighting");
+            eavlExecutor::Go();
+            //do the direct lightiing
+            eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rCurrent,gCurrent,bCurrent,lred,lblue,lgreen),
+                                                             eavlOpArgs(lred,lblue,lgreen),
+                                                             MultFunctor3to3color()),
+                                                             "add");
+            eavlExecutor::Go();
+            eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rSurface,gSurface,bSurface,lred,lblue,lgreen),
+                                                             eavlOpArgs(lred,lblue,lgreen),
+                                                             MultFunctor3to3color()),
+                                                             "add");
+            eavlExecutor::Go();
 
 
+            eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer),
+                                                                eavlIndexable<eavlFloatArray>(frameBuffer,*greenIndexer),
+                                                                eavlIndexable<eavlFloatArray>(frameBuffer,*blueIndexer),
+                                                                eavlIndexable<eavlFloatArray>(lred),
+                                                                eavlIndexable<eavlFloatArray>(lblue),
+                                                                eavlIndexable<eavlFloatArray>(lgreen)),
+                                                             eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer),
+                                                                        eavlIndexable<eavlFloatArray>(frameBuffer,*greenIndexer),
+                                                                        eavlIndexable<eavlFloatArray>(frameBuffer,*blueIndexer)),
+                                                             AccFunctor3to3()),
+                                                             "add");
+            eavlExecutor::Go();
+
+            
+            //swap ray directions
+            eavlFloatArray *tmp;
+            tmp = rays->rayOriginX;
+            rays->rayOriginX = rays->intersectionX;
+            rays->intersectionX = tmp;
+            tmp = rays->rayOriginY;
+            rays->rayOriginY = rays->intersectionY;
+            rays->intersectionY = tmp;
+            tmp = rays->rayOriginZ;
+            rays->rayOriginZ = rays->intersectionZ;
+            rays->intersectionZ = tmp;
+
+            tmp = rays->rayDirX;
+            rays->rayDirX = reflectX;
+            reflectX = tmp;
+            tmp = rays->rayDirY;
+            rays->rayDirY = reflectY;
+            reflectY = tmp;
+            tmp = rays->rayDirZ;
+            rays->rayDirZ = reflectZ;
+            reflectZ = tmp;
+
+        }//ray depth
+    }//path samples
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer)),
+                                             eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer)),
+                                             AveFunctor(numSamples)),
+                                             "add");
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*greenIndexer)),
+                                             eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*greenIndexer)),
+                                             AveFunctor(numSamples)),
+                                             "add");
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*blueIndexer)),
+                                             eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*blueIndexer)),
+                                             AveFunctor(numSamples)),
+                                             "add");
 }
 
-eavlFloatArray* eavlRayTracer::getDepthBuffer(float proj22, float proj23, float proj32)
+eavlFloatArray* eavlPathTracer::getDepthBuffer(float proj22, float proj23, float proj32)
 { 
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->distance), eavlOpArgs(depthBuffer), ScreenDepthFunctor(proj22, proj23, proj32)),"convertDepth");
     eavlExecutor::Go();
     return depthBuffer;
 }
 
-eavlByteArray* eavlRayTracer::getFrameBuffer() { return rgbaPixels; }
+eavlByteArray* eavlPathTracer::getFrameBuffer() { return rgbaPixels; }
 
-void eavlRayTracer::setDefaultMaterial(const float &ka,const float &kd, const float &ks)
+void eavlPathTracer::setDefaultMaterial(const float &ka,const float &kd, const float &ks)
 {
 	
       float old_a=scene->getDefaultMaterial().ka.x;
@@ -524,7 +591,7 @@ void eavlRayTracer::setDefaultMaterial(const float &ka,const float &kd, const fl
                                            eavlVector3(ks,ks,ks), 10.f,1));
 }
 
-void eavlRayTracer::setBackgroundColor(float r, float g, float b)
+void eavlPathTracer::setBackgroundColor(float r, float g, float b)
 {
 	float mn = min(r, min(g,b));
 	float mx = max(r, max(g,b));

@@ -6,6 +6,7 @@
 #include "eavlRayCamera.h"
 #include "eavlRayTriangleGeometry.h"
 #include "eavlRayTracer.h"
+#include "eavlPathTracer.h"
 #include "objloader.h"
 #include <string.h>
 #include <sys/time.h>
@@ -73,7 +74,7 @@ int main(int argc, char *argv[])
         bool isTest=false;
         int warmups=1;
         int tests=1;
-        eavlRayTracer *tracer = new eavlRayTracer();
+        eavlPathTracer *tracer = new eavlPathTracer();
         if(argc<2)
         {
             cerr<<"Must specify a file to load."<<endl;
@@ -211,9 +212,9 @@ int main(int argc, char *argv[])
                     cerr<<"Invalid AO value "<<argv[i]<<endl;
                     printUsage();
                  }
-                tracer->setOcclusionDistance(z);
-                tracer->setOcclusionSamples(y);
-                tracer->setOcclusionOn(true);
+                //tracer->setOcclusionDistance(z);
+                //tracer->setOcclusionSamples(y);
+                //tracer->setOcclusionOn(true);
                 
             }
             else if(strcmp (argv[i],"-test")==0)

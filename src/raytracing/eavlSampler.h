@@ -113,13 +113,13 @@ class eavlSampler
 
         if(stype == HALTON)
         {
-            eavlSampler::template halton2D<3>(sampleNum, xy);
+            eavlSampler::template halton2D<3>(sampleNum +seed, xy);
         }
         else if(stype == HAMMERSLY)
         {
-            eavlSampler::template hammersly2D<3>(sampleNum, xy);
+            eavlSampler::template hammersly2D<3>(sampleNum+seed, xy);
         }
-        
+        //cout<<xy[0]<<" "<<xy[1]<<endl;
 
         float angle2 = 2.0f * PI * xy[1];
         float r = sqrtf(xy[0]);

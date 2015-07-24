@@ -1,5 +1,5 @@
-#ifndef EAVL_RAY_TRACER_H
-#define EAVL_RAY_TRACER_H
+#ifndef EAVL_PATH_TRACER_H
+#define EAVL_PATH_TRACER_H
 
 #include <eavlRayTriangleIntersector.h>
 #include <eavlRayTriangleGeometry.h>
@@ -10,7 +10,7 @@
 
 
 
-class eavlRayTracer
+class eavlPathTracer
 {
 protected:
 	int 						numColors;
@@ -41,12 +41,19 @@ protected:
     eavlFloatArray 				*shadowX;
     eavlFloatArray 				*shadowY;
     eavlFloatArray 				*shadowZ;
+    eavlFloatArray 				*reflectX;
+    eavlFloatArray 				*reflectY;
+    eavlFloatArray 				*reflectZ;
     eavlFloatArray 				*ambientPct;
     eavlArrayIndexer      		*indexer;
 
     eavlFloatArray  *rSurface;                  
     eavlFloatArray  *gSurface;
     eavlFloatArray  *bSurface;
+
+    eavlFloatArray  *rCurrent;                  
+    eavlFloatArray  *gCurrent;
+    eavlFloatArray  *bCurrent;
 
     eavlFloatArray  *lred;                  
     eavlFloatArray  *lgreen;
@@ -56,8 +63,8 @@ public:
 	eavlRTScene					*scene;
 	eavlRayCamera 				*camera;
 	eavlVector3					lightPosition;
-	eavlRayTracer();
-	~eavlRayTracer();
+	eavlPathTracer();
+	~eavlPathTracer();
 	void setColorMap3f(float *, const int &);
 	void setBackgroundColor(float, float, float);
 	void setOcclusionSamples(int);
