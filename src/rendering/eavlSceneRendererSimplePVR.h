@@ -10,6 +10,7 @@
 #include "eavlTimer.h"
 #include "eavlSimpleVRMutator.h"
 #include "eavlRTUtil.h"
+#include "eavlTransferFunction.h"
 
 // ****************************************************************************
 // Class:  eavlSceneRendererSimplePVR
@@ -26,9 +27,12 @@
 class eavlSceneRendererSimplePVR : public eavlSceneRenderer
 {
     eavlSimpleVRMutator* vr;
+    eavlTransferFunction tf;
+    float                tfVals[4*1024];
     bool doOnce;
     int numSamples;
     string ctName;
+    bool customColorTable;
   public:
     eavlSceneRendererSimplePVR()
     {
@@ -38,11 +42,13 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
         vr->setNumSamples(numSamples);
         doOnce = true;
         ctName = "";
+        customColorTable = false;
         
     }
     virtual ~eavlSceneRendererSimplePVR()
     {
         delete vr;
+        delete[] tfVals;
     }
 
     virtual void StartScene()
@@ -62,14 +68,40 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
     {
 
         eavlSceneRenderer::SetActiveColorTable(ct);
-        if(ct.GetName()!=ctName)
+        if(ct.GetName()!=ctName && !customColorTable)
         {
-            ctName=ct.GetName();
-            vr->setColorMap3f(colors,ncolors);
-            //cout<<"Setting Active Color Table"<<endl;
+            //
+            // Eavl creates a "uniqiue" name by adding 
+            // two numbers to the front of the name
+            //
+            ctName=ct.GetName().substr(2);      
+            cout<<"Name "<<ct.GetName()<<endl;
+            tf.Clear();
+            tf.SetByColorTableName(ctName); 
+            tf.CreateDefaultAlpha();
+            tf.GetTransferFunction(ncolors, tfVals);
+            vr->setColorMap4f(tfVals,ncolors);
         }
         
     }
+    
+    eavlTransferFunction * GetTransferFunction()
+    {
+        return &tf;
+    }
+    
+    void SampleTransferFunction()
+    {
+        customColorTable = true; //keep the custom table from be overwritten
+        tf.GetTransferFunction(ncolors, tfVals);
+        vr->setColorMap4f(tfVals,ncolors);
+    }
+    
+    void SetTransparentBG(bool on)
+    {
+        vr->setTransparentBG(on);
+    }
+    
 
     // ------------------------------------------------------------------------
 
@@ -141,14 +173,14 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
 
     virtual unsigned char *GetRGBAPixels()
     {
-    	cout<<"Getting pixels"<<endl;
-    	unsigned char * pixels = (unsigned char *) vr->getFrameBuffer()->GetHostArray();
-    	//writeFrameBufferBMP(500, 500, vr->getFrameBuffer(), "output.bmp");
-    	for(int i = 0; i <1000; i++)
-    	{
-    		//cout<<(int)pixels[i*4 + 0]<<","<<(int)pixels[i*4 + 2]<<","<<(int)pixels[i*4 + 2]<<","<<(int)pixels[i*4 + 3]<<" ";
-    		
-    	}
+        cout<<"Getting pixels"<<endl;
+        unsigned char * pixels = (unsigned char *) vr->getFrameBuffer()->GetHostArray();
+        //writeFrameBufferBMP(500, 500, vr->getFrameBuffer(), "output.bmp");
+        for(int i = 0; i <1000; i++)
+        {
+            //cout<<(int)pixels[i*4 + 0]<<","<<(int)pixels[i*4 + 2]<<","<<(int)pixels[i*4 + 2]<<","<<(int)pixels[i*4 + 3]<<" ";
+            
+        }
         return pixels;
     }
 
@@ -157,13 +189,13 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
         float proj22=view.P(2,2);
         float proj23=view.P(2,3);
         float proj32=view.P(3,2);
-		float *zBuffer = (float *) vr->getDepthBuffer(proj22,proj23,proj32)->GetHostArray();
-		for(int i = 0; i <view.h*view.w; i++)
-    	{
-    		//cout<<zBuffer[i]<<" ";
-    		//zBuffer[i] = .90001f;
-    		
-    	}
+        float *zBuffer = (float *) vr->getDepthBuffer(proj22,proj23,proj32)->GetHostArray();
+        for(int i = 0; i <view.h*view.w; i++)
+        {
+            //cout<<zBuffer[i]<<" ";
+            //zBuffer[i] = .90001f;
+            
+        }
         return zBuffer;
     }
 

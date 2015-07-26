@@ -142,7 +142,7 @@ class eavlSceneRendererSimpleGL : public eavlSceneRenderer
         glDisable(GL_TEXTURE_1D);
     }
 
-//#define CONVERT_TETS_TO_TRIANGLES
+#define CONVERT_TETS_TO_TRIANGLES
 #ifdef CONVERT_TETS_TO_TRIANGLES 
     virtual void StartTetrahedra()
     {
