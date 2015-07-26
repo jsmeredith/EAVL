@@ -272,13 +272,15 @@ int main(int argc, char *argv[])
         //load model data from a file
         ObjReader *objreader= new ObjReader(filename);
         float *v;   //verts 
-        float *n;   //norms
+        float *n = NULL;   //norms
         int *mIdx;
         int numTris=objreader->totalTriangles;
         float *mats;
         int matCount;
         objreader->getRawData(v,n,mats,mIdx,matCount);
         eavlFloatArray *verts = new eavlFloatArray("",1,0);
+        bool hasNormals = false;
+        if(n != NULL) hasNormals = true;
         for (int i = 0; i < numTris; ++i)
         {
            
@@ -295,7 +297,23 @@ int main(int argc, char *argv[])
            c.x = v[i*9+6];
            c.y = v[i*9+7];
            c.z = v[i*9+8];
-           tracer->scene->addTriangle(a,b,c);
+           if(hasNormals)
+           {
+                eavlVector3 an;
+                eavlVector3 bn;
+                eavlVector3 cn;
+                an.x = n[i*9+0];
+                an.y = n[i*9+1];
+                an.z = n[i*9+2];
+                bn.x = n[i*9+3];
+                bn.y = n[i*9+4];
+                bn.z = n[i*9+5];
+                cn.x = n[i*9+6];
+                cn.y = n[i*9+7];
+                cn.z = n[i*9+8];
+                tracer->scene->addTriangle(a,b,c,an,bn,cn,0,0,0);
+           }
+           else tracer->scene->addTriangle(a,b,c);
         }
 
         //eavlRayTriangleGeometry geometry;
@@ -321,7 +339,6 @@ int main(int argc, char *argv[])
         {
             cout<<"Rendering to Framebuffer\n";
             tracer->render();
-            cout<<"Filename "<<outFilename<<endl;
             if(outFilename != NULL) writeFrameBufferBMP(tracer->camera->getWidth(),
                                                         tracer->camera->getHeight(),
                                                         tracer->getFrameBuffer(),

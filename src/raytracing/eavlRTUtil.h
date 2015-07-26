@@ -231,7 +231,11 @@ struct CopyFrameBuffer
     CopyFrameBuffer(){}
 
     EAVL_FUNCTOR tuple<byte,byte,byte,byte> operator()(tuple<float,float,float,float> input){
-        return tuple<byte,byte,byte,byte>(get<0>(input)*255.,get<1>(input)*255.,get<2>(input)*255.,255);
+        float r = max(min(get<0>(input),1.0f),0.f);
+        float g = max(min(get<1>(input),1.0f),0.f);
+        float b = max(min(get<2>(input),1.0f),0.f);
+        float a = max(min(get<3>(input),1.0f),0.f);
+        return tuple<byte,byte,byte,byte>(r*255.,g*255.,b*255.,255);
     }
 
    
@@ -277,7 +281,7 @@ struct AccFunctor3to3
         eavlVector3 color1(get<0>(input),get<1>(input),get<2>(input));
         eavlVector3 color2(get<3>(input),get<4>(input),get<5>(input));
         color1=color1+color2;
-        return tuple<float,float,float>(min(color1.x,1.0f),min(color1.y,1.0f),min(color1.z,1.0f));
+        return tuple<float,float,float>(color1.x,color1.y,color1.z);
     }
 
 };

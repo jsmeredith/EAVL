@@ -3,7 +3,7 @@
 #include "eavlCountingIterator.h"
 #include "eavlRadixSortOp.h"
 #include "eavlMapOp.h"
-
+#include "eavlSampler.h"
 
 EAVL_HOSTONLY eavlRayCamera::eavlRayCamera()
 {
@@ -117,6 +117,155 @@ struct PerspectiveRayGenFunctor
 
 };
 
+struct PerspectiveJitterRayGenFunctor
+{
+    float w;
+    float h; 
+    eavlVector3 nlook;// normalized look
+    eavlVector3 delta_x;
+    eavlVector3 delta_y;
+    int sampleNum;
+
+    PerspectiveJitterRayGenFunctor(int width,
+                 int height, 
+                 float half_fovX, 
+                 float half_fovY, 
+                 eavlVector3 look, 
+                 eavlVector3 up, 
+                 float _zoom,
+                 int _sampleNum)
+        : w(width), h(height)
+    {
+        float thx = tan(half_fovX*PI/180);
+        float thy = tan(half_fovY*PI/180);
+
+
+        eavlVector3 ru = up%look;
+        ru.normalize();
+
+        eavlVector3 rv = ru%look;
+        rv.normalize();
+
+        delta_x = ru*(2*thx/(float)w);
+        delta_y = rv*(2*thy/(float)h);
+        cout<<"delta "<<delta_y<<delta_y<<endl;
+        if(_zoom > 0)
+        {
+            delta_x /= _zoom;
+            delta_y /= _zoom;    
+        }
+        
+
+        nlook.x = look.x;
+        nlook.y = look.y;
+        nlook.z = look.z;
+        nlook.normalize();
+        sampleNum = _sampleNum;
+    }
+
+    EAVL_FUNCTOR tuple<float,float, float> operator()(tuple<int,int>input){
+        int idx = get<0>(input);
+        int seed = get<1>(input);
+        float i=idx%int(w);
+        float j=idx/int(w);
+        float xy[2];
+        eavlSampler::template halton2D<3>(sampleNum+seed, xy);
+        xy[0]-=.5f;
+        xy[1]-=.5f;
+        i+=xy[0];
+        j+=xy[1];  
+        eavlVector3 ray_dir=nlook+delta_x* ((2.0f*i-w)/2.0f)+delta_y*((2.0f*j-h)/2.0f);
+        ray_dir.normalize();
+
+        return tuple<float,float,float>(ray_dir.x,ray_dir.y,ray_dir.z);
+
+    }
+
+};
+
+struct PerspectiveDOFRayGenFunctor
+{
+    float w;
+    float h; 
+    eavlVector3 nlook;// normalized look
+    eavlVector3 delta_x;
+    eavlVector3 delta_y;
+    eavlVector3 lookat;
+    eavlVector3 apertureXRadius;
+    eavlVector3 apertureYRadius;
+    int sampleNum;
+    float focalDistance;
+    eavlVector3 position;
+    PerspectiveDOFRayGenFunctor(int width,
+                 int height, 
+                 float half_fovX, 
+                 float half_fovY, 
+                 eavlVector3 look, 
+                 eavlVector3 up, 
+                 float _zoom,
+                 int _sampleNum,
+                 eavlVector3 _lookAt,
+                 eavlVector3 _position,
+                 float apertureRadius)
+        : w(width), h(height)
+    {
+        lookat = _lookAt;
+        position = _position;
+        eavlVector3 dist = _lookAt - position;
+        focalDistance = sqrt(dist * dist);
+        float thx = tan(half_fovX*PI/180) * focalDistance;
+        float thy = tan(half_fovY*PI/180) * focalDistance;
+        
+        eavlVector3 ru = up%look;
+        ru.normalize();
+        eavlVector3 rv = ru%look;
+        rv.normalize();
+
+        apertureXRadius = ru *apertureRadius;
+        apertureYRadius = rv *apertureRadius;
+
+        delta_x = ru*(2*thx/(float)w);
+        delta_y = rv*(2*thy/(float)h);
+        
+        if(_zoom > 0)
+        {
+            delta_x /= _zoom;
+            delta_y /= _zoom;    
+        }
+        
+
+        nlook.x = look.x;
+        nlook.y = look.y;
+        nlook.z = look.z;
+        nlook.normalize();
+        sampleNum = _sampleNum;
+    }
+
+    EAVL_FUNCTOR tuple<float,float, float> operator()(tuple<int,int>input){
+        int idx = get<0>(input);
+        int seed = get<1>(input);
+        float i=idx%int(w);
+        float j=idx/int(w);
+        float xy[2];
+        eavlSampler::template halton2D<3>(sampleNum+seed, xy);
+      
+        xy[0]= xy[0]*2.f - 1.f;
+        xy[1]= xy[1]*2.f - 1.f;
+
+        eavlVector3 randomLensPoint = position + apertureXRadius * xy[0] + apertureYRadius * xy[1];
+
+        eavlVector3 imagePoint = lookat + delta_x* ((2.0f*i-w)/2.0f)+delta_y*((2.0f*j-h)/2.0f);
+
+        eavlVector3 ray_dir =  imagePoint - randomLensPoint;
+
+        ray_dir.normalize();
+
+        return tuple<float,float,float>(ray_dir.x,ray_dir.y,ray_dir.z);
+
+    }
+
+};
+
 EAVL_HOSTONLY void eavlRayCamera::generatePixelIndexes()
 {
 	eavlCountingIterator::generateIterator(pixelIndexes);
@@ -184,7 +333,109 @@ EAVL_HOSTONLY void eavlRayCamera::createRays(eavlRay* rays)
 
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx), //dummy arg
                                              eavlOpArgs(rays->hitIdx),
-                                             IntMemsetFunctor(-1)),
+                                             IntMemsetFunctor(0)),
+                                             "init");
+    eavlExecutor::Go();
+}  
+
+
+EAVL_HOSTONLY void eavlRayCamera::createJitterRays(eavlRay* rays, eavlIntArray * seeds, int sampleNum)
+{
+    if( !isResDirty && !isViewDirty && rays->numRays == size) 
+    { 
+      cerr<<"No rays to create\n"; 
+      eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx), //dummy arg
+                                              eavlOpArgs(rays->hitIdx),
+                                              IntMemsetFunctor(-1)),
+                                              "init");
+      eavlExecutor::Go();
+      return;
+    }
+
+    if(isResDirty || rays->numRays != size)
+    {
+      if(isResDirty)
+      {
+        delete pixelIndexes;
+        pixelIndexes =  new eavlIntArray("",1,size);
+      }
+
+      if(rays->numRays != size) rays->resize(size);
+      generatePixelIndexes();
+    }
+    isResDirty = false;
+
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(pixelIndexes), //dummy arg
+                                             eavlOpArgs(rays->rayOriginX,rays->rayOriginY,rays->rayOriginZ),
+                                             FloatMemsetFunctor3to3(position.x,position.y,position.z)),
+                                             "init");
+    eavlExecutor::Go();
+    if(lookAtSet)
+    {
+      look = lookat - position;
+      look.normalize();  
+    }
+    
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(pixelIndexes,seeds),
+                                             eavlOpArgs(rays->rayDirX ,rays->rayDirY, rays->rayDirZ),
+                                             PerspectiveJitterRayGenFunctor(width, height, fovx, fovy, look, up, zoom, sampleNum)),
+                                             "ray gen");
+    eavlExecutor::Go();
+
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx), //dummy arg
+                                             eavlOpArgs(rays->hitIdx),
+                                             IntMemsetFunctor(0)),
+                                             "init");
+    eavlExecutor::Go();
+}  
+
+
+EAVL_HOSTONLY void eavlRayCamera::createDOFRays(eavlRay* rays, eavlIntArray * seeds, int sampleNum, float apertureSize)
+{
+    if( !isResDirty && !isViewDirty && rays->numRays == size) 
+    { 
+      cerr<<"No rays to create\n"; 
+      eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx), //dummy arg
+                                              eavlOpArgs(rays->hitIdx),
+                                              IntMemsetFunctor(-1)),
+                                              "init");
+      eavlExecutor::Go();
+      return;
+    }
+
+    if(isResDirty || rays->numRays != size)
+    {
+      if(isResDirty)
+      {
+        delete pixelIndexes;
+        pixelIndexes =  new eavlIntArray("",1,size);
+      }
+
+      if(rays->numRays != size) rays->resize(size);
+      generatePixelIndexes();
+    }
+    isResDirty = false;
+
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(pixelIndexes), //dummy arg
+                                             eavlOpArgs(rays->rayOriginX,rays->rayOriginY,rays->rayOriginZ),
+                                             FloatMemsetFunctor3to3(position.x,position.y,position.z)),
+                                             "init");
+    eavlExecutor::Go();
+    if(lookAtSet)
+    {
+      look = lookat - position;
+      look.normalize();  
+    }
+    
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(pixelIndexes,seeds),
+                                             eavlOpArgs(rays->rayDirX ,rays->rayDirY, rays->rayDirZ),
+                                             PerspectiveDOFRayGenFunctor(width, height, fovx, fovy, look, up, zoom, sampleNum, lookat, position, apertureSize)),
+                                             "ray gen");
+    eavlExecutor::Go();
+
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx), //dummy arg
+                                             eavlOpArgs(rays->hitIdx),
+                                             IntMemsetFunctor(0)),
                                              "init");
     eavlExecutor::Go();
 }  

@@ -2,6 +2,13 @@
 #define EAVL_SAMPLER_H
 #include "eavlVector3.h"
 #include "eavlMatrix4x4.h"
+/*
+
+    Sampling class of quasi-random sequences.
+    Important note: sample numbers should be sequential
+    or the resulting samples will be a good distribution.
+
+*/
 class eavlSampler
 {
   public:
@@ -56,6 +63,7 @@ class eavlSampler
         float  y = 0.0f;
         float  yadd = 1.0f;
         unsigned int b2 = 1 + sampleNum;
+        float totSamples = sampleNum + 1000.f;
         while (b2 != 0)
         {
             yadd *= 0.5f;
@@ -64,7 +72,7 @@ class eavlSampler
             b2 >>= 1;
         }
 
-        float x  = (float)sampleNum / 8.0f; // TODO: need a way to get the number of samples for this to work
+        float x  = (float)sampleNum / totSamples; // TODO: need a way to get the number of samples for this to work
 
         coord[0] = x;
         coord[1] = y;
@@ -201,7 +209,6 @@ class eavlSampler
         dir.x = cos(phi) * sintheta;
         dir.y = sin(phi) * sintheta;
         dir.z = costheta;
-        
         // dir.x = 0;
         // dir.y = 0;
         // dir.z = 1;
@@ -221,10 +228,10 @@ class eavlSampler
 
         float pdf = (shine + 1) / (2.0 * M_PI);
         pdf *=  pow(costheta, shine);
-        if(costheta < 0 ) printf("No cos < 0\n");
+        if(costheta < 0 ) printf("No cos < 0 seed %d\n",seed);
         weight = 1.0 / pdf;
-        if(weight < 0) printf("Can't have a negative weight\n");
-        //printf("Weight %f Angle %f\n",weight, theta);
+        if(weight < 0) printf("Can't have a negative weight seed %d\n",seed);
+        //printf("Weight %f Angle %f shine %f\n",weight, theta,shine);
         
         return dir;
 

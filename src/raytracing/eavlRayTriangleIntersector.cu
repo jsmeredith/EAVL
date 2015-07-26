@@ -323,8 +323,10 @@ struct UnitMultipleDistancesTriangleDepthFunctor{
          innerNodes(*_innerNodes),
          leafNodes(*_leafNodes)
     {}                                                 
-    EAVL_HOSTDEVICE tuple<int,float, float, float> operator()( tuple<float,float,float,float,float,float,float> rayTuple){
+    EAVL_HOSTDEVICE tuple<int,float, float, float> operator()( tuple<float,float,float,float,float,float,float,int> rayTuple){
        
+        int hitIdx = get<7>(rayTuple);
+        if(hitIdx < 0) return tuple<int,float, float, float>(hitIdx, INFINITE, 0.0f, 0.0f);
         float distance;
         float maxDistance = get<6>(rayTuple);
         eavlVector3 rayOrigin(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
@@ -365,8 +367,10 @@ struct UnitSingleDistanceTriangleDepthFunctor{
 
  
     {}                                                 
-    EAVL_HOSTDEVICE tuple<int,float,float,float> operator()( tuple<float,float,float,float,float,float> rayTuple){
+    EAVL_HOSTDEVICE tuple<int,float,float,float> operator()( tuple<float,float,float,float,float,float,int> rayTuple){
        
+        int hitIdx = get<6>(rayTuple);
+        if(hitIdx < 0) return tuple<int,float,float,float>(hitIdx,INFINITE,0.0f,0.0f);
         float distance;
         eavlVector3 rayOrigin(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
         eavlVector3       ray(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
@@ -406,9 +410,10 @@ struct UnitShadowFunctor{
 
  
     {}                                                 
-    EAVL_HOSTDEVICE tuple<int> operator()( tuple<float,float,float> rayTuple){
+    EAVL_HOSTDEVICE tuple<int> operator()( tuple<float,float,float,int> rayTuple){
        
- 
+        int hitIdx = get<3>(rayTuple);
+        if(hitIdx < 0) return tuple<int>(0);
         eavlVector3 rayOrigin(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
         eavlVector3 rayDir = lightPosition - rayOrigin;
         float maxDistance = sqrt(rayDir*rayDir);
@@ -439,9 +444,10 @@ struct UnitOcclusionFunctor{
          maxDistance(_maxDistance)
  
     {}                                                 
-    EAVL_HOSTDEVICE tuple<int> operator()( tuple<float,float,float,float,float,float> rayTuple){
+    EAVL_HOSTDEVICE tuple<int> operator()( tuple<float,float,float,float,float,float,int> rayTuple){
        
- 
+        int hitIdx = get<6>(rayTuple);
+        if(hitIdx < 0) return tuple<int>(0);
         eavlVector3 rayOrigin(get<0>(rayTuple),get<1>(rayTuple),get<2>(rayTuple));
         eavlVector3 rayDir(get<3>(rayTuple),get<4>(rayTuple),get<5>(rayTuple));
         int minHit = getIntersectionOcculsion(rayDir,
@@ -493,7 +499,8 @@ EAVL_HOSTONLY void eavlRayTriangleIntersector::intersectionDepth(const eavlRay *
 														rays->rayOriginZ,
 														rays->rayDirX,
 														rays->rayDirY,
-														rays->rayDirZ),
+														rays->rayDirZ,
+                                                        rays->hitIdx),
                                              eavlOpArgs(rays->hitIdx,
                                              			rays->distance,
                                                         rays->alpha,
@@ -517,7 +524,8 @@ EAVL_HOSTONLY void eavlRayTriangleIntersector::intersectionDepth(const eavlRay *
 														rays->rayDirX,
 														rays->rayDirY,
 														rays->rayDirZ,
-														maxDistances),
+														maxDistances,
+                                                        rays->hitIdx),
                                              eavlOpArgs(rays->hitIdx,
                                              			rays->distance,
                                                         rays->alpha,
@@ -537,7 +545,8 @@ EAVL_HOSTONLY void eavlRayTriangleIntersector::intersectionShadow(const eavlFull
 
 	eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->intersectionX,
 														rays->intersectionY,
-														rays->intersectionZ),
+														rays->intersectionZ,
+                                                        rays->hitIdx),
                                              eavlOpArgs(hits),
                                              UnitShadowFunctor(geometry->vertices,
                                              				   geometry->bvhInnerNodes,
@@ -561,7 +570,8 @@ EAVL_HOSTONLY void eavlRayTriangleIntersector::intersectionOcclusion(const eavlF
                                                         eavlIndexable<eavlFloatArray>(rays->intersectionZ, *occIndexer),
                                                         eavlIndexable<eavlFloatArray>(occX),
                                                         eavlIndexable<eavlFloatArray>(occY),
-                                                        eavlIndexable<eavlFloatArray>(occZ)),
+                                                        eavlIndexable<eavlFloatArray>(occZ),
+                                                        eavlIndexable<eavlIntArray>(rays->hitIdx, *occIndexer)),
                                              eavlOpArgs(hits),
                                              UnitOcclusionFunctor(geometry->vertices,
                                                                   geometry->bvhInnerNodes,
@@ -589,7 +599,13 @@ EAVL_HOSTONLY void eavlRayTriangleIntersector::testIntersections(const eavlRay *
                                                             dummyFloat),
                                                 testfunctor(geometry->vertices),1),
                                                 "TestFunc");
-        eavlExecutor::Go();
+    eavlExecutor::Go();
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx), //dummy arg
+                                    eavlOpArgs(rays->hitIdx),
+                                    IntMemsetFunctor(0.f)), 
+                                    "resetHits");
+    eavlExecutor::Go();
+
 
     cout<<"Warming up "<<warmUpRounds<<" rounds."<<endl;
     int warm = eavlTimer::Start(); 
@@ -601,7 +617,8 @@ EAVL_HOSTONLY void eavlRayTriangleIntersector::testIntersections(const eavlRay *
 															rays->rayOriginZ,
 															rays->rayDirX,
 															rays->rayDirY,
-															rays->rayDirZ),
+															rays->rayDirZ,
+                                                            rays->hitIdx),
                                             	 eavlOpArgs(dummy,
                                              				dummyFloat,
                                                             rays->alpha,
@@ -626,7 +643,8 @@ EAVL_HOSTONLY void eavlRayTriangleIntersector::testIntersections(const eavlRay *
 															rays->rayOriginZ,
 															rays->rayDirX,
 															rays->rayDirY,
-															rays->rayDirZ),
+															rays->rayDirZ,
+                                                            rays->hitIdx),
                                             	 eavlOpArgs(dummy,
                                              				dummyFloat,
                                                             rays->alpha,
@@ -647,7 +665,8 @@ EAVL_HOSTONLY void eavlRayTriangleIntersector::testIntersections(const eavlRay *
 														rays->rayOriginZ,
 														rays->rayDirX,
 														rays->rayDirY,
-														rays->rayDirZ),
+														rays->rayDirZ,
+                                                        rays->hitIdx),
                                              eavlOpArgs(rays->hitIdx,
                                              			rays->distance,
                                                         rays->alpha,

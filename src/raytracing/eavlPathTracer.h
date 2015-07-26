@@ -44,7 +44,7 @@ protected:
     eavlFloatArray 				*reflectX;
     eavlFloatArray 				*reflectY;
     eavlFloatArray 				*reflectZ;
-    eavlFloatArray 				*ambientPct;
+    eavlIntArray 				*seeds;
     eavlArrayIndexer      		*indexer;
 
     eavlFloatArray  *rSurface;                  
@@ -77,6 +77,7 @@ public:
 	eavlByteArray* getFrameBuffer();
 	eavlFloatArray *getDepthBuffer(float proj22, float proj23, float proj32);
 private:
-	void init();
+	void init(int);
+	void addColor();
 };
 #endif

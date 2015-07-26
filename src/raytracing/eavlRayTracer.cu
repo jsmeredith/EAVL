@@ -386,6 +386,7 @@ void eavlRayTracer::render()
                                                  "setAmbient");
         eavlExecutor::Go();    
     }
+
 	
 	//intersector->testIntersections(rays, INFINITE, triGeometry,1,1,camera);
 
