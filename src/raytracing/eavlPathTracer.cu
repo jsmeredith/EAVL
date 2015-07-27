@@ -220,27 +220,23 @@ struct NormalFunctor{
         color.y = colorMap.getValue(colorIdx * 3 + 1); 
         color.z = colorMap.getValue(colorIdx * 3 + 2); 
         shine = 80;
-        // if(shine > 1)
-        // {
-        //     bool diffuse = (seed % 2 == 0);
-        //     if(shine == 1.f) diffuse = true;
+        if(shine > 1)
+        {
+            bool diffuse = (seed % 2 == 0);
+            if(shine == 1.f) diffuse = true;
             
-        //     if(diffuse)
-        //     {
-        //         reflection = normal;
-        //         shine = 1.f;
-                
-        //     }
-           
-        //     //cout<<"Before "<<reflection<<" After ";
+            if(diffuse)
+            {
+                reflection = normal;
+                shine = 1.f;        
+            }
+        } 
 
-        // } 
         color.x *= albedo;
         color.y *= albedo;
         color.z *= albedo;
-
-        shine = 1000.f;
         reflection = eavlSampler::importanceSampleHemi<eavlSampler::HALTON>(seed ,reflection,shine, weight, seed + int(reflection.y*100));
+        reflection.normalize();
         intersect = intersect+(-rayDir * .0001);
 
 
@@ -327,18 +323,17 @@ struct MissFunctor2
     {
 
         float c = (0.2f * t ) * 10E-18;
-        return 0.434 * c * PI * pow((2 * PI) / waveLength, 2.f) * k;
+        return 0.434 * c * PI * pow((2.f * PI) / waveLength, 2.f) * k;
     }
 
     MissFunctor2(eavlVector3 _sunDir)
     {
         sunDir = _sunDir;
-        sunIntensity =   max(0.f, 1.f - exp(-((PI/2.f - acos(sunDir*eavlVector3(0,1,0)))/.5f)));
+        sunIntensity =  1000.f* max(0.f, 1.f - exp(-((PI/2.f - acos(sunDir*eavlVector3(0,1,0)))/.5f)));
         //Earth scattering coeffs, all these can vary
-        cout<<"Sun intensity "<<sunIntensity<<endl;
-        float reileigh = 0.5f; 
-        float mie = 0.553f;
-        mieG = .75f;     
+        float reileigh = 1.f; 
+        float mie = 0.0553f;
+        mieG = .575f;     
         betaR.x = tRayleigh(680E-9) * reileigh; //3 different wavelengths in meters
         betaR.y = tRayleigh(550E-9) * reileigh;
         betaR.z = tRayleigh(450E-9) * reileigh;
@@ -346,8 +341,6 @@ struct MissFunctor2
         betaM.y = tMie(550E-9, 0.678f, 10.f) * mie;
         betaM.z = tMie(450E-9, 0.666f, 10.f) * mie;
         sunAngularCos =0.99995667694644844f;// cos(0.5f);
-        cout<<"Sun Cos "<<sunAngularCos<<endl;
-        cout<<"Betas "<<betaR<<betaM<<endl;
     }
 
     EAVL_FUNCTOR tuple<float,float,float,int> operator()(tuple<int, float,float,float>input){
@@ -355,8 +348,8 @@ struct MissFunctor2
         if(hitIdx != -1) return tuple<float,float,float,int>(0.f,0.f,0.f, hitIdx); 
         eavlVector3 rayDir(get<1>(input),get<2>(input),get<3>(input));
         float skyAngle = acos(max(0.f,rayDir * eavlVector3(0.f,1.f,0.f))); //this could be the camera up
-        float sR =  8.4E3 / (cos(skyAngle) + 0.15 * pow(93.885 - ((skyAngle * 180.0f) / PI), -1.253));
-        float sM = 1.25E3 / (cos(skyAngle) + 0.15 * pow(93.885 - ((skyAngle * 180.0f) / PI), -1.253));
+        float sR =  8.4E3 / (cos(skyAngle) + 0.15f * pow(93.885f - ((skyAngle * 180.0f) / PI), -1.253f));
+        float sM = 1.25E3 / (cos(skyAngle) + 0.15f * pow(93.885f - ((skyAngle * 180.0f) / PI), -1.253f));
         //cout<<"skyeAngle "<<skyAngle<<" "<<sR<<" "<<sM<<endl;
         eavlVector3 fex;
         fex.x = exp(-(betaR.x * sR + betaM.x * sM));
@@ -364,9 +357,9 @@ struct MissFunctor2
         fex.z = exp(-(betaR.z * sR + betaM.z * sM));
         
         float cosTheta = rayDir * sunDir;
-        float rPhase = (3.0f / 4.0f) * (1.0f + pow(cosTheta, 2));
+        float rPhase = (3.0f / 4.0f) * (1.0f + pow(cosTheta, 2.f));
         eavlVector3 angleBetaR = betaR * rPhase; 
-        float mPhase = (1.0f / (4.0f*PI)) * ((1.0f - pow(mieG, 2)) / pow(1.0f - 2.0f*mieG*cosTheta + pow(mieG, 2), 1.5));
+        float mPhase = (1.0f / (4.0f*PI)) * ((1.0f - pow(mieG, 2.f)) / pow(1.0f - 2.0f*mieG*cosTheta + pow(mieG, 2.f), 1.5f));
         eavlVector3 angleBetaM = betaM * mPhase; 
         eavlVector3 lIn;
         lIn.x = sunIntensity * ((angleBetaR.x + angleBetaM.x) / (betaR.x + betaM.x)) * (1.0f - fex.x);
@@ -375,14 +368,8 @@ struct MissFunctor2
         
         eavlVector3 color = fex;
         if (cosTheta > sunAngularCos) color += sunIntensity * fex;
-        //color += lIn;
-        //cout<<"Sun intensity "<<sunIntensity<<endl;
-        //cout<<"Betas "<<betaR<<betaM<<" angleBeta "<<angleBetaR<<angleBetaM<<endl;
-        //cout<<"Lin "<<lIn<<endl;
-        //cout<<"Fex"<<fex<<endl;
-        //cout<<"Color"<<color<<endl;
-        float theLog = log(color.x * 0.2126f + color.y * 0.7152f + color.z * 0.0722f);
-        //cout<<"Log "<<theLog<<endl;
+        color += lIn;
+        color*= .01f;
         return tuple<float,float,float,int>(color.x,color.y,color.z, -2);
     }
 };
@@ -545,7 +532,7 @@ void eavlPathTracer::render()
 
 	camera->printSummary();
 
-    int numSamples = 1;
+    int numSamples = 1000;
     int rayDepth = 4;
     init(0); //Create camera rays
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(frameBuffer), //dummy arg
@@ -565,8 +552,9 @@ void eavlPathTracer::render()
     {
         int currentSample = p;// * rayDepth +i;
         float progress = (float) p / (float) numSamples;
-        //cout<<"\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b";
-        cout<<"Progress "<<progress * 100.f<<"%\n";
+        //
+        cout<<"Progress "<<progress * 100.f<<"%";
+        if(p != 0) cout<<"\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b";
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rCurrent), //dummy arg
                                         eavlOpArgs(rCurrent,gCurrent,bCurrent), 
                                         FloatMemsetFunctor3to3(1.f, 1.f, 1.f)), //this was 1.f
@@ -592,7 +580,7 @@ void eavlPathTracer::render()
                                         "init");
             eavlExecutor::Go();
             */
-            eavlVector3 sunDir(0,1.f,0.f);
+            eavlVector3 sunDir(0,0.1f,1.f); 
             sunDir.normalize();
             eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx, 
                                                                 rays->rayDirX,
