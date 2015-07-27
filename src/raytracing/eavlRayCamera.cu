@@ -148,7 +148,6 @@ struct PerspectiveJitterRayGenFunctor
 
         delta_x = ru*(2*thx/(float)w);
         delta_y = rv*(2*thy/(float)h);
-        cout<<"delta "<<delta_y<<delta_y<<endl;
         if(_zoom > 0)
         {
             delta_x /= _zoom;
