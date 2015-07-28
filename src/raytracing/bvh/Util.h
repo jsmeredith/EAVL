@@ -283,8 +283,8 @@ struct BuildParams
 };
 
 
-template <class A, class B> EAVL_HOSTDEVICE A lerp(const A& a, const A& b, const B& t) { return (A)(a * ((B)1 - t) + b * t); }
-template <class T> EAVL_HOSTDEVICE T clamp(T v, T lo, T hi) { return min(max(v, lo), hi); }
+
+
 
 
 typedef bool    (*SortCompareFunc) (void* data, int idxA, int idxB);    // Returns true if A should come before B.

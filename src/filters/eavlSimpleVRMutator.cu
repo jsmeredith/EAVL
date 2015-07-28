@@ -1305,7 +1305,7 @@ void  eavlSimpleVRMutator::freeTextures()
 void  eavlSimpleVRMutator::freeRaw()
 {
 }
-template <class A, class B> EAVL_HOSTDEVICE A lerp(const A& a, const A& b, const B& t) { return (A)(a * ((B)1 - t) + b * t); }
+
 void eavlSimpleVRMutator::readTransferFunction(string filename)
 {
 

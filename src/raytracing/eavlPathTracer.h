@@ -59,6 +59,9 @@ protected:
     eavlFloatArray  *lgreen;
     eavlFloatArray  *lblue;
 
+    int numSamples;
+    int rayDepth;
+
 public:
 	eavlRTScene					*scene;
 	eavlRayCamera 				*camera;
@@ -70,6 +73,8 @@ public:
 	void setOcclusionSamples(int);
 	void setOcclusionDistance(float);
 	void setOcclusionOn(bool);
+	void setNumberOfSamples(int);
+	void setRayDepth(int);
 
 	void render();
 	void startScene();

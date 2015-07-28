@@ -692,55 +692,6 @@ template <class T, typename S> void ArrayBase<T,S>::reallocRound(S size)
     realloc(rounded);
 }
 
-//------------------------------------------------------------------------
-/*
-inline void ArrayBase<S8,int>::copy(S8* dst, const S8* src, int size)           { memcpy(dst, src, size * sizeof(S8)); }
-inline void ArrayBase<U8,int>::copy(U8* dst, const U8* src, int size)           { memcpy(dst, src, size * sizeof(U8)); }
-inline void ArrayBase<S16,int>::copy(S16* dst, const S16* src, int size)        { memcpy(dst, src, size * sizeof(S16)); }
-inline void ArrayBase<U16,int>::copy(U16* dst, const U16* src, int size)        { memcpy(dst, src, size * sizeof(U16)); }
-inline void ArrayBase<int,int>::copy(int* dst, const int* src, int size)        { memcpy(dst, src, size * sizeof(int)); }
-inline void ArrayBase<U32,int>::copy(U32* dst, const U32* src, int size)        { memcpy(dst, src, size * sizeof(U32)); }
-inline void ArrayBase<F32,int>::copy(F32* dst, const F32* src, int size)        { memcpy(dst, src, size * sizeof(F32)); }
-inline void ArrayBase<long int,int>::copy(long int* dst, const long int* src, int size)        { memcpy(dst, src, size * sizeof(long int)); }
-inline void ArrayBase<U64,int>::copy(U64* dst, const U64* src, int size)        { memcpy(dst, src, size * sizeof(U64)); }
-inline void ArrayBase<F64,int>::copy(F64* dst, const F64* src, int size)        { memcpy(dst, src, size * sizeof(F64)); }
-
-inline void ArrayBase<Vec2i,int>::copy(Vec2i* dst, const Vec2i* src, int size)  { memcpy(dst, src, size * sizeof(Vec2i)); }
-inline void ArrayBase<Vec2f,int>::copy(Vec2f* dst, const Vec2f* src, int size)  { memcpy(dst, src, size * sizeof(Vec2f)); }
-inline void ArrayBase<Vec3i,int>::copy(Vec3i* dst, const Vec3i* src, int size)  { memcpy(dst, src, size * sizeof(Vec3i)); }
-inline void ArrayBase<Vec3f,int>::copy(Vec3f* dst, const Vec3f* src, int size)  { memcpy(dst, src, size * sizeof(Vec3f)); }
-inline void ArrayBase<Vec4i,int>::copy(Vec4i* dst, const Vec4i* src, int size)  { memcpy(dst, src, size * sizeof(Vec4i)); }
-inline void ArrayBase<Vec4f,int>::copy(Vec4f* dst, const Vec4f* src, int size)  { memcpy(dst, src, size * sizeof(Vec4f)); }
-
-inline void ArrayBase<Mat2f,int>::copy(Mat2f* dst, const Mat2f* src, int size)  { memcpy(dst, src, size * sizeof(Mat2f)); }
-inline void ArrayBase<Mat3f,int>::copy(Mat3f* dst, const Mat3f* src, int size)  { memcpy(dst, src, size * sizeof(Mat3f)); }
-inline void ArrayBase<Mat4f,int>::copy(Mat4f* dst, const Mat4f* src, int size)  { memcpy(dst, src, size * sizeof(Mat4f)); }
-
-//------------------------------------------------------------------------
-
-inline void ArrayBase<S8,long int>::copy(S8* dst, const S8* src, long int size)           { memcpy(dst, src, (size_t)size * sizeof(S8)); }
-inline void ArrayBase<U8,long int>::copy(U8* dst, const U8* src, long int size)           { memcpy(dst, src, (size_t)size * sizeof(U8)); }
-inline void ArrayBase<S16,long int>::copy(S16* dst, const S16* src, long int size)        { memcpy(dst, src, (size_t)size * sizeof(S16)); }
-inline void ArrayBase<U16,long int>::copy(U16* dst, const U16* src, long int size)        { memcpy(dst, src, (size_t)size * sizeof(U16)); }
-inline void ArrayBase<int,long int>::copy(int* dst, const int* src, long int size)        { memcpy(dst, src, (size_t)size * sizeof(int)); }
-inline void ArrayBase<U32,long int>::copy(U32* dst, const U32* src, long int size)        { memcpy(dst, src, (size_t)size * sizeof(U32)); }
-inline void ArrayBase<F32,long int>::copy(F32* dst, const F32* src, long int size)        { memcpy(dst, src, (size_t)size * sizeof(F32)); }
-inline void ArrayBase<long int,long int>::copy(long int* dst, const long int* src, long int size)        { memcpy(dst, src, (size_t)size * sizeof(long int)); }
-inline void ArrayBase<U64,long int>::copy(U64* dst, const U64* src, long int size)        { memcpy(dst, src, (size_t)size * sizeof(U64)); }
-inline void ArrayBase<F64,long int>::copy(F64* dst, const F64* src, long int size)        { memcpy(dst, src, (size_t)size * sizeof(F64)); }
-
-inline void ArrayBase<Vec2i,long int>::copy(Vec2i* dst, const Vec2i* src, long int size)  { memcpy(dst, src, (size_t)size * sizeof(Vec2i)); }
-inline void ArrayBase<Vec2f,long int>::copy(Vec2f* dst, const Vec2f* src, long int size)  { memcpy(dst, src, (size_t)size * sizeof(Vec2f)); }
-inline void ArrayBase<Vec3i,long int>::copy(Vec3i* dst, const Vec3i* src, long int size)  { memcpy(dst, src, (size_t)size * sizeof(Vec3i)); }
-inline void ArrayBase<Vec3f,long int>::copy(Vec3f* dst, const Vec3f* src, long int size)  { memcpy(dst, src, (size_t)size * sizeof(Vec3f)); }
-inline void ArrayBase<Vec4i,long int>::copy(Vec4i* dst, const Vec4i* src, long int size)  { memcpy(dst, src, (size_t)size * sizeof(Vec4i)); }
-inline void ArrayBase<Vec4f,long int>::copy(Vec4f* dst, const Vec4f* src, long int size)  { memcpy(dst, src, (size_t)size * sizeof(Vec4f)); }
-
-inline void ArrayBase<Mat2f,long int>::copy(Mat2f* dst, const Mat2f* src, long int size)  { memcpy(dst, src, (size_t)size * sizeof(Mat2f)); }
-inline void ArrayBase<Mat3f,long int>::copy(Mat3f* dst, const Mat3f* src, long int size)  { memcpy(dst, src, (size_t)size * sizeof(Mat3f)); }
-inline void ArrayBase<Mat4f,long int>::copy(Mat4f* dst, const Mat4f* src, long int size)  { memcpy(dst, src, (size_t)size * sizeof(Mat4f)); }
-*/
-//------------------------------------------------------------------------
 
 template<class T> class Array : public ArrayBase<T,int>
 {

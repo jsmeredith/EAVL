@@ -14,7 +14,8 @@ using namespace std;
 #define INFINITE    1000000
 #define END_FLAG    -1000000000
 
-
+template <class A, class B> EAVL_HOSTDEVICE A lerp(const A& a, const A& b, const B& t) { return (A)(a * ((B)1 - t) + b * t); }
+template <class T> EAVL_HOSTDEVICE T clamp(T v, T lo, T hi) { return min(max(v, lo), hi); }
 EAVL_HOSTDEVICE float rcp(float f){ return 1.0f/f;}
 EAVL_HOSTDEVICE float rcp_safe(float f) { return rcp((fabs(f) < 1e-8f) ? 1e-8f : f); }
 

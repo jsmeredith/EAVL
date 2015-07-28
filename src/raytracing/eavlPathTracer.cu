@@ -8,6 +8,9 @@
 eavlPathTracer::eavlPathTracer()
 {
 
+
+    numSamples = 50;
+    rayDepth = 4;
 	//
 	// Initialize
 	//
@@ -39,9 +42,9 @@ eavlPathTracer::eavlPathTracer()
     lred = new eavlFloatArray("",1,currentFrameSize);               
     lgreen = new eavlFloatArray("",1,currentFrameSize);
     lblue = new eavlFloatArray("",1,currentFrameSize);
-	bgColor.x = 1.f;
-	bgColor.y = 1.f;
-	bgColor.z = 1.f;
+	bgColor.x = 0.7f;
+	bgColor.y = 0.7f;
+	bgColor.z = 0.7f;
 	//
 	// Create default color map
 	//
@@ -219,7 +222,7 @@ struct NormalFunctor{
         color.x = colorMap.getValue(colorIdx * 3 + 0); 
         color.y = colorMap.getValue(colorIdx * 3 + 1); 
         color.z = colorMap.getValue(colorIdx * 3 + 2); 
-        shine = 80;
+        //shine = 80;
         if(shine > 1)
         {
             bool diffuse = (seed % 2 == 0);
@@ -300,7 +303,7 @@ struct MissFunctor
     }
 };
 
-struct MissFunctor2
+struct PreethanFunctor
 {   
     eavlVector3 sunDir;
     eavlVector3 betaR, betaM;
@@ -309,7 +312,7 @@ struct MissFunctor2
     float sunAngularCos;
     EAVL_HOSTDEVICE float tRayleigh(float waveLength)
     {
-        float ad =0.035f;   //air depolariztion ratio
+        float ad = 0.035f;   //air depolariztion ratio
         float N = 2.545E25; // air molecular density
         float n = 1.0003;   //refractive index of air
 
@@ -326,7 +329,7 @@ struct MissFunctor2
         return 0.434 * c * PI * pow((2.f * PI) / waveLength, 2.f) * k;
     }
 
-    MissFunctor2(eavlVector3 _sunDir)
+    PreethanFunctor(eavlVector3 _sunDir)
     {
         sunDir = _sunDir;
         sunIntensity =  1000.f* max(0.f, 1.f - exp(-((PI/2.f - acos(sunDir*eavlVector3(0,1,0)))/.5f)));
@@ -362,9 +365,14 @@ struct MissFunctor2
         float mPhase = (1.0f / (4.0f*PI)) * ((1.0f - pow(mieG, 2.f)) / pow(1.0f - 2.0f*mieG*cosTheta + pow(mieG, 2.f), 1.5f));
         eavlVector3 angleBetaM = betaM * mPhase; 
         eavlVector3 lIn;
-        lIn.x = sunIntensity * ((angleBetaR.x + angleBetaM.x) / (betaR.x + betaM.x)) * (1.0f - fex.x);
-        lIn.y = sunIntensity * ((angleBetaR.y + angleBetaM.y) / (betaR.y + betaM.y)) * (1.0f - fex.y);
-        lIn.z = sunIntensity * ((angleBetaR.z + angleBetaM.z) / (betaR.z + betaM.z)) * (1.0f - fex.z);
+        float t = abs(sunDir.y);
+        fex.x = lerp(fex.x, 1.f - fex.x, t);
+        fex.y = lerp(fex.y, 1.f - fex.y, t);
+        fex.z = lerp(fex.z, 1.f - fex.z, t);
+
+        lIn.x = sunIntensity * ((angleBetaR.x + angleBetaM.x) / (betaR.x + betaM.x)) * fex.x;
+        lIn.y = sunIntensity * ((angleBetaR.y + angleBetaM.y) / (betaR.y + betaM.y)) * fex.y;
+        lIn.z = sunIntensity * ((angleBetaR.z + angleBetaM.z) / (betaR.z + betaM.z)) * fex.z;
         
         eavlVector3 color = fex;
         if (cosTheta > sunAngularCos) color += sunIntensity * fex;
@@ -532,8 +540,6 @@ void eavlPathTracer::render()
 
 	camera->printSummary();
 
-    int numSamples = 1000;
-    int rayDepth = 4;
     init(0); //Create camera rays
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(frameBuffer), //dummy arg
                                     eavlOpArgs(frameBuffer),
@@ -580,14 +586,14 @@ void eavlPathTracer::render()
                                         "init");
             eavlExecutor::Go();
             */
-            eavlVector3 sunDir(0,0.1f,1.f); 
+            eavlVector3 sunDir(0,-0.1f,-1.f); 
             sunDir.normalize();
             eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx, 
                                                                 rays->rayDirX,
                                                                 rays->rayDirY,
                                                                 rays->rayDirZ), 
                                         eavlOpArgs(lred, lgreen, lblue, rays->hitIdx),
-                                        MissFunctor2(sunDir)), 
+                                        PreethanFunctor(sunDir)), 
                                         "init");
             eavlExecutor::Go();
             eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rCurrent,gCurrent,bCurrent,lred,lgreen,lblue),
@@ -803,6 +809,15 @@ void eavlPathTracer::setBackgroundColor(float r, float g, float b)
 	bgColor.z = b;
 }
 
+void eavlPathTracer::setNumberOfSamples(int nSamples)
+{
+    numSamples = nSamples;
+}
+
+void eavlPathTracer::setRayDepth(int depth)
+{
+    rayDepth = depth;
+}
 
 
 
