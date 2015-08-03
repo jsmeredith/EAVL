@@ -68,12 +68,6 @@ public:
 		float *alphaValues = new float[n*3];
 		rgb->Sample(n, rgbValues);
 		alpha->Sample(n, alphaValues);
-		cout<<"Alphas : "<<endl;
-		for(int i = 0; i < n; i++)
-		{
-			cout<<rgbValues[i*3+0]<< " "<<rgbValues[i*3+1]<<" "<<rgbValues[i*3+2]<<endl;
-		}
-		cout<<endl;
 		for(int i = 0; i < n; i++)
 		{
 			transferFunction[i*4+0] = rgbValues[i*3+0];
