@@ -100,6 +100,11 @@ class eavlColorTable
         uniquename(""), smooth(false)
     {
     }
+    eavlColorTable(bool smooth_) : 
+        uniquename("")
+    {
+      smooth = smooth_;
+    }
     eavlColorTable(const eavlColorTable &ct) : 
         uniquename(ct.uniquename), smooth(ct.smooth), pts(ct.pts.begin(), ct.pts.end())
     {

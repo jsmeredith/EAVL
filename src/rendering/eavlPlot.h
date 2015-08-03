@@ -252,6 +252,10 @@ class eavlPlot
         if (reverse)
             colortable.Reverse();
     }
+    void SetColorTable(eavlColorTable ctable)
+    {
+        colortable = eavlColorTable(ctable);
+    }
     eavlColorTable GetColorTable()
     {
         return colortable;

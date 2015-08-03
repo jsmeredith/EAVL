@@ -38,7 +38,7 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
     {
         numSamples = 200;
         vr = new eavlSimpleVRMutator();
-        vr->setVerbose(true);
+        vr->setVerbose(false);
         vr->setNumSamples(numSamples);
         doOnce = true;
         ctName = "";
@@ -48,6 +48,7 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
     virtual ~eavlSceneRendererSimplePVR()
     {
         delete vr;
+        delete[] tfVals;
     }
 
     virtual void StartScene()
@@ -90,8 +91,8 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
     }
     
     void SampleTransferFunction()
-    {
-        customColorTable = true; //keep the custom table from be overwritten
+    {   ncolors = 1024;
+        customColorTable = true; //keep the custom table from being overwritten
         tf.GetTransferFunction(ncolors, tfVals);
         vr->setColorMap4f(tfVals,ncolors);
     }
@@ -122,7 +123,6 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
     {
        if(doOnce)
        {
-        cout<<"tets being sent"<<endl;
         doOnce=false;
        }
        vr->scene->addTet(eavlVector3(x0,y0,z0), eavlVector3(x1,y1,z1), eavlVector3(x2,y2,z2), eavlVector3(x3,y3,z3),

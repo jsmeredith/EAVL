@@ -63,7 +63,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
     void SetBackGroundColor(float r, float g, float b)
     {
-        //tracer->setBackgroundColor(r,g,b);
+        tracer->setBackgroundColor(r,g,b);
     }
 
     virtual void SetActiveColor(eavlColor c)
@@ -199,7 +199,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setDefaultMaterial(Ka,Kd,Ks);
         camera->setWidth(view.w);
         camera->setHeight(view.h);
-        
+        tracer->setBackgroundColor(surface->bgColor.c[0],surface->bgColor.c[1],surface->bgColor.c[2]);
         float magnitude=tracer->scene->getSceneExtentMagnitude();
         tracer->setOcclusionSamples(4);
         tracer->setOcclusionDistance(magnitude*.2f);
