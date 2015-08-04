@@ -168,7 +168,7 @@ struct PerspectiveJitterRayGenFunctor
         float i=idx%int(w);
         float j=idx/int(w);
         float xy[2];
-        eavlSampler::template halton2D<3>(sampleNum+seed, xy);
+        eavlSampler::halton2D<3>(sampleNum+seed, xy);
         xy[0]-=.5f;
         xy[1]-=.5f;
         i+=xy[0];
@@ -246,7 +246,7 @@ struct PerspectiveDOFRayGenFunctor
         float i=idx%int(w);
         float j=idx/int(w);
         float xy[2];
-        eavlSampler::template halton2D<3>(sampleNum+seed, xy);
+        eavlSampler::halton2D<3>(sampleNum+seed, xy);
       
         xy[0]= xy[0]*2.f - 1.f;
         xy[1]= xy[1]*2.f - 1.f;
