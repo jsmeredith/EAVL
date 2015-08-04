@@ -48,7 +48,7 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
     virtual ~eavlSceneRendererSimplePVR()
     {
         delete vr;
-        delete[] tfVals;
+        delete tfVals;
     }
 
     virtual void StartScene()
