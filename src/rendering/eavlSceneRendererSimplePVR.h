@@ -75,7 +75,6 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
             // two numbers to the front of the name
             //
             ctName=ct.GetName().substr(2);      
-            cout<<"Name "<<ct.GetName()<<endl;
             tf.Clear();
             tf.SetByColorTableName(ctName); 
             tf.CreateDefaultAlpha();
