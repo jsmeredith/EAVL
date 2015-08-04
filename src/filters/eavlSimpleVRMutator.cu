@@ -113,10 +113,6 @@ eavlSimpleVRMutator::~eavlSimpleVRMutator()
     deleteClassPtr(reverseIndex);
     deleteClassPtr(screenIterator);
 
-    deleteClassPtr(tetSOA[0]);
-    deleteClassPtr(tetSOA[1]);
-    deleteClassPtr(tetSOA[2]);
-
     freeTextures();
     freeRaw();
 
@@ -445,17 +441,13 @@ struct SampleFunctor3
                     float w0 = 1.f - w1 - w2 - w3;
 
                     int index3d = (x + startindex);//;startindex + z;
-                    //if(tet == 2) printf("x %d y %d z %d index3d %d\n", x,y,z, index3d);
-                    //if(index3d > 1024 * 1024 *500) printf("too big");
                     float lerped = w0*s.x + w1*s.y + w2*s.z + w3*s.w;
                     float a = ffmin(w0,ffmin(w1,ffmin(w2,w3)));
                     float b = ffmax(w0,ffmax(w1,ffmax(w2,w3)));
-                    // bool valid  = (a >= 0 && b <= 1);
-                    // if(valid) lerped = w0*s.x + w1*s.y + w2*s.z + w3*s.w;
                     if((a >= 0.f && b <= 1.f)) 
                     {
                         samples[index3d] = lerped;
-                        if(lerped < 0 || lerped >1) printf("Bad lerp %f ",lerped);
+                        //if(lerped < 0 || lerped >1) printf("Bad lerp %f ",lerped);
                     }
 
                 }//z
@@ -683,7 +675,7 @@ void eavlSimpleVRMutator::calcMemoryRequirements()
     mem += numTets * 4 * sizeof(int);           //indexscan, mask, currentPassMembers
     mem += passCountEstimate * sizeof(int);     //reverse index
     double memd = (double) mem / (1024.0 * 1024.0);
-    printf("Memory needed %10.3f MB. Do you have enough?\n", memd);
+    if(verbose) printf("Memory needed %10.3f MB. Do you have enough?\n", memd);
     
     if(!cpu)
     {
@@ -1194,7 +1186,7 @@ void  eavlSimpleVRMutator::Execute()
             if(verbose) compositeTime += eavlTimer::Stop(tcomp,"tcomp");
         }
     }//for each pass
-    renderTime  = eavlTimer::Stop(ttot,"total render");
+    if(verbose) renderTime  = eavlTimer::Stop(ttot,"total render");
     if(verbose) cout<<"PassFilter  RUNTIME: "<<passFilterTime<<endl;
     cout<<"Clear Sample  RUNTIME: "<<clearTime<<endl;
     if(verbose) cout<<"PassSel     RUNTIME: "<<passSelectionTime<<" Pass AVE: "<<passSelectionTime / (float)numPasses<<endl;

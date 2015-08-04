@@ -45,7 +45,6 @@ class eavlSimpleVRMutator : public eavlMutator
             {
                 int stride = nSamples / n;
                 if((nSamples % n) != 0) stride++;
-                if( verbose ) cout<<"Single pass contains "<<stride*height*width<<" pixels."<<endl;
                 pixelsPerPass = height*width*stride;
                 passNumDirty = true;
                 passZStride = stride;
