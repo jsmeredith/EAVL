@@ -376,6 +376,36 @@ void eavlRayTracer::render()
 	{
 		//may be set the framebuffer and depthbuffer to background and infinite
 		cerr<<"No trianles to render"<<endl;
+		eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->distance), //dummy arg
+                                                 eavlOpArgs(rays->distance),
+                                                 FloatMemsetFunctor(INFINITE)),
+                                                 "setDepthBuffer");
+    eavlExecutor::Go();
+    unsigned char bgUint[4];
+		bgUint[0] = bgColor.x * 255.f;
+		bgUint[1] = bgColor.y * 255.f;
+		bgUint[2] = bgColor.z * 255.f;
+		bgUint[3] = 255;
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlByteArray>(rgbaPixels,*redIndexer)), //dummy arg
+                                                 eavlOpArgs(eavlIndexable<eavlByteArray>(rgbaPixels,*redIndexer)),
+                                                 ByteMemsetFunctor(bgUint[0])),
+                                                 "setDepthBuffer");
+    eavlExecutor::Go();
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlByteArray>(rgbaPixels,*greenIndexer)), //dummy arg
+                                                 eavlOpArgs(eavlIndexable<eavlByteArray>(rgbaPixels,*greenIndexer)),
+                                                 ByteMemsetFunctor(bgUint[1])),
+                                                 "setDepthBuffer");
+    eavlExecutor::Go();
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlByteArray>(rgbaPixels,*blueIndexer)), //dummy arg
+                                                 eavlOpArgs(eavlIndexable<eavlByteArray>(rgbaPixels,*blueIndexer)),
+                                                 ByteMemsetFunctor(bgUint[2])),
+                                                 "setDepthBuffer");
+    eavlExecutor::Go();
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlByteArray>(rgbaPixels,*alphaIndexer)), //dummy arg
+                                                 eavlOpArgs(eavlIndexable<eavlByteArray>(rgbaPixels,*alphaIndexer)),
+                                                 ByteMemsetFunctor(bgUint[3])),
+                                                 "setDepthBuffer");
+    eavlExecutor::Go();
 		return;
 	}
     if(!occlusionOn)

@@ -197,6 +197,19 @@ struct IntMemsetFunctor
 
 };
 
+struct ByteMemsetFunctor
+{
+    const byte value;
+    ByteMemsetFunctor(const byte v)
+        : value(v)
+    {}
+
+    EAVL_FUNCTOR tuple<byte> operator()(byte dummy){
+        return tuple<byte>(value);
+    }
+};
+
+
 //three values to three arrays
 struct FloatMemsetFunctor3to3
 {
@@ -271,7 +284,6 @@ struct IntMemcpyFunctor1to1
         return tuple<int>(get<0>(input));
     }
 };
-
 
 
 struct AccFunctor3to3
