@@ -4,6 +4,7 @@
 template<> const char *eavlConcreteArray<int>::GetBasicType() const { return "int"; }
 template<> const char *eavlConcreteArray<byte>::GetBasicType() const { return "byte"; }
 template<> const char *eavlConcreteArray<float>::GetBasicType() const { return "float"; }
+template<> const char *eavlConcreteArray<double>::GetBasicType() const { return "double"; }
 
 eavlArray *
 eavlArray::CreateObjFromName(const string &nm)
