@@ -537,5 +537,6 @@ class eavlConcreteArray : public eavlArray
 typedef eavlConcreteArray<int> eavlIntArray;
 typedef eavlConcreteArray<byte> eavlByteArray;
 typedef eavlConcreteArray<float> eavlFloatArray;
+typedef eavlConcreteArray<double> eavlDoubleArray;
 
 #endif

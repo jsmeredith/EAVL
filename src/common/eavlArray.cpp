@@ -14,6 +14,8 @@ eavlArray::CreateObjFromName(const string &nm)
 	return new eavlConcreteArray<byte>("");
     else if (nm == "eavlConcreteArray<int>")
 	return new eavlConcreteArray<int>("");
+	else if (nm == "eavlConcreteArray<double>")
+	return new eavlConcreteArray<double>("");
     else
 	throw;
 }
