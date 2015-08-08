@@ -105,6 +105,7 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
 
     virtual void StartTetrahedra()
     {
+        vr->clear();
     }
 
     virtual void EndTetrahedra()
