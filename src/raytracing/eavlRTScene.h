@@ -106,6 +106,7 @@ EAVL_HOSTONLY inline eavlRTScene::~eavlRTScene()
 	delete triScalars;
 	delete triNormals;
 	delete spheres;
+	delete cyls;
 }
 
 EAVL_HOSTONLY inline void eavlRTScene::setDefaultMaterial(const RTMaterial &_mat)

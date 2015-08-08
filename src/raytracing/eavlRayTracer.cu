@@ -74,6 +74,7 @@ eavlRayTracer::~eavlRayTracer()
     delete blueIndexer;
     delete alphaIndexer;
     delete ambientPct;
+    delete rays;
 
     if(occlusionOn)
     {
@@ -316,6 +317,7 @@ void eavlRayTracer::init()
 		delete rgbaPixels;
 		delete depthBuffer;
 		delete inShadow;
+        delete ambientPct;
 
 		frameBuffer = new eavlFloatArray("", 1, numRays * 4); //rgba
 		rgbaPixels  = new eavlByteArray("", 1, numRays * 4); //rgba

@@ -216,6 +216,7 @@ class ObjReader
 {
 public:
     ObjReader(const char *filename);
+    
     inline Vertex getInt3(const char*& token);
     inline int fix_v(int index)  { return(index > 0 ? index - 1 : (index == 0 ? 0 : (int)v .size() + index)); }
     inline int fix_vt(int index) { return(index > 0 ? index - 1 : (index == 0 ? 0 : (int)vt.size() + index)); }
@@ -234,6 +235,15 @@ public:
     bool hasNormals;
     int totalTriangles;
     inline void getRawData(float *&verts, float *&normals, float *&mats, int * &matIndex, int &matCount);
+    ~ObjReader()
+    {
+        for(int i = 0; i < model.size(); i++)
+        {
+            delete model[i]->mesh;
+            delete model[i]->material;
+            delete model[i];
+        }
+    }
 };
 
 

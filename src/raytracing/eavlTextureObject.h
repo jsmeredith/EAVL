@@ -227,6 +227,7 @@ class eavlTextureObject
         isResponsible = false;
         eavlArrayProvided = false;
         allocatedCuda = false;
+        cpu = other.cpu;
     }
    
 #ifdef __CUDA_ARCH__

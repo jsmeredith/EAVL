@@ -74,7 +74,8 @@ int main(int argc, char *argv[])
         bool isTest=false;
         int warmups=1;
         int tests=1;
-        eavlPathTracer *tracer = new eavlPathTracer();
+        //eavlPathTracer *tracer = new eavlPathTracer();
+        eavlRayTracer *tracer = new eavlRayTracer();
         if(argc<2)
         {
             cerr<<"Must specify a file to load."<<endl;
@@ -278,7 +279,7 @@ int main(int argc, char *argv[])
         float *mats;
         int matCount;
         objreader->getRawData(v,n,mats,mIdx,matCount);
-        eavlFloatArray *verts = new eavlFloatArray("",1,0);
+        
         bool hasNormals = false;
         if(n != NULL) hasNormals = true;
         for (int i = 0; i < numTris; ++i)
@@ -357,8 +358,12 @@ int main(int argc, char *argv[])
         }
 
         
-
+        delete [] v;
+        if(n) delete [] n;
+        delete [] mIdx;
+        delete [] mats;
         delete tracer;
+        delete objreader;
     }
     }
     catch (const eavlException &e)
