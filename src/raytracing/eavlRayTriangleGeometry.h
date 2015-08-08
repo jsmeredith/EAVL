@@ -34,6 +34,9 @@ class eavlRayTriangleGeometry : public eavlRayGeometry
 	  {
 	  	if(_size > 0) size = _size;
 	  	else THROW(eavlException,"Cannot set vertices with size 0");
+	  	if(vertices != NULL) delete vertices;
+	  	if(bvhInnerNodes != NULL) delete bvhInnerNodes;
+	  	if(bvhLeafNodes != NULL) delete bvhLeafNodes;
 	  	bool cacheExists  = false;
     	bool writeCache   = false;
 		int  innerSize    = 0;
@@ -95,16 +98,19 @@ class eavlRayTriangleGeometry : public eavlRayGeometry
 
 	  void setScalars(eavlFloatArray * _scalars, const int &size)
 	  {
+	  	if(scalars != NULL) delete scalars;
 	  	scalars = new eavlTextureObject<float>(size * 3, _scalars, false);
 	  }
 	  
 	  void setMaterialIds(eavlFloatArray *_matIds, const int &size)
 	  {
+	  	if(materialIds != NULL) delete materialIds;
 	  	materialIds = new eavlTextureObject<int>(size, _matIds, false);
 	  }
 
 	  void setNormals(eavlFloatArray * _normals, const int &size)
 	  {
+	  	if(normals != NULL) delete normals;
 	  	normals = new eavlTextureObject<float>(size * 9, _normals, false);
 	  }
 	  ~eavlRayTriangleGeometry()

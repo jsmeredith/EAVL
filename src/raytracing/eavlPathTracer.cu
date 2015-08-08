@@ -100,6 +100,7 @@ eavlPathTracer::~eavlPathTracer()
     delete lred;
     delete lgreen;
     delete lblue;
+    delete rays;
 
 }
 
@@ -464,6 +465,22 @@ void eavlPathTracer::init(int sampleNum)
 		delete rgbaPixels;
 		delete depthBuffer;
 		delete inShadow;
+        delete seeds;
+        delete shadowX;
+        delete shadowY;
+        delete shadowZ;
+        delete reflectX;
+        delete reflectY;
+        delete reflectZ;
+        delete rSurface;
+        delete gSurface;
+        delete bSurface;
+        delete rCurrent;
+        delete gCurrent;
+        delete bCurrent;
+        delete lred;
+        delete lgreen;
+        delete lblue;
 
 		frameBuffer = new eavlFloatArray("", 1, numRays * 4); //rgba
 		rgbaPixels  = new eavlByteArray("", 1, numRays * 4); //rgba
@@ -493,7 +510,7 @@ void eavlPathTracer::init(int sampleNum)
 	{
 		numTriangles = scene->getNumTriangles();
 		if(numTriangles > 0)
-		{
+		{   
 			triGeometry->setVertices(scene->getTrianglePtr(), numTriangles);
 			triGeometry->setScalars(scene->getTriangleScalarsPtr(), numTriangles);
 			triGeometry->setNormals(scene->getTriangleNormPtr(), numTriangles);

@@ -356,7 +356,7 @@ void eavlRayTracer::init()
 	{
 		numTriangles = scene->getNumTriangles();
 		if(numTriangles > 0)
-		{
+		{    
 			triGeometry->setVertices(scene->getTrianglePtr(), numTriangles);
 			triGeometry->setScalars(scene->getTriangleScalarsPtr(), numTriangles);
 			triGeometry->setNormals(scene->getTriangleNormPtr(), numTriangles);
