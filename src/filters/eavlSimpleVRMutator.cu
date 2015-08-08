@@ -67,7 +67,7 @@ eavlSimpleVRMutator::eavlSimpleVRMutator()
     sizeDirty = true;
 
     numTets = 0;
-    nSamples = 300;
+    nSamples = 250;
     passCount = new eavlIntArray("",1,1); 
     i1 = new eavlArrayIndexer(3,0);
     i2 = new eavlArrayIndexer(3,1);
@@ -109,7 +109,7 @@ eavlSimpleVRMutator::~eavlSimpleVRMutator()
     deleteClassPtr(indexScan);
     deleteClassPtr(mask);
     deleteClassPtr(dummy);
-    if(numPasses != 1) deleteClassPtr(currentPassMembers);
+    deleteClassPtr(currentPassMembers);
     deleteClassPtr(reverseIndex);
     deleteClassPtr(screenIterator);
 

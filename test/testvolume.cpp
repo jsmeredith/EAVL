@@ -316,7 +316,7 @@ int main(int argc, char *argv[])
         // outFilename = temp.c_str();
 
         vrenderer->setDataName(outFilename);
-        vrenderer->setTransferFunctionFile(tfFilename);
+        //vrenderer->setTransferFunctionFile(tfFilename);
         vrenderer->setOpacityFactor(opactiyFactor);
         openmpInfo();
         
@@ -490,6 +490,7 @@ int main(int argc, char *argv[])
 
         delete vrenderer;
         delete data;
+        delete importer;
     }
     catch (const eavlException &e)
     {
