@@ -74,8 +74,8 @@ int main(int argc, char *argv[])
         bool isTest=false;
         int warmups=1;
         int tests=1;
-        //eavlPathTracer *tracer = new eavlPathTracer();
-        eavlRayTracer *tracer = new eavlRayTracer();
+        eavlPathTracer *tracer = new eavlPathTracer();
+        //eavlRayTracer *tracer = new eavlRayTracer();
         if(argc<2)
         {
             cerr<<"Must specify a file to load."<<endl;

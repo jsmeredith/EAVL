@@ -16,6 +16,9 @@ class eavlRenderSurface
     eavlRenderSurface()
     {
     }
+    virtual ~eavlRenderSurface()
+    {
+    }
     virtual void Initialize() = 0;
     virtual void Resize(int w, int h) = 0;
     virtual void Activate() = 0;

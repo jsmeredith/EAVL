@@ -27,6 +27,14 @@ class eavlWorldAnnotatorGL : public eavlWorldAnnotator
     eavlWorldAnnotatorGL() : eavlWorldAnnotator()
     {
     }
+    ~eavlWorldAnnotatorGL()
+    {
+      std::map<std::string,eavlGLTexture*>::iterator it;
+      for(it= textures.begin(); it != textures.end(); it++) 
+      {
+         delete it->second;
+      }
+    }
     virtual void AddLine(float x0, float y0, float z0,
                          float x1, float y1, float z1,
                          float linewidth,
@@ -101,13 +109,15 @@ class eavlWorldAnnotatorGL : public eavlWorldAnnotator
                 img = pngimp->GetMesh("mesh",0);
                 img->AddField(pngimp->GetField("a","mesh",0));
                 fnt->userPointer = img;
+                delete pngimp;
             }
 
             tex = new eavlGLTexture;
             tex->CreateFromDataSet(img, false,false,false,true);
             SetTexture(fnt->name, tex);
+            
         }
-
+        
         // Kerning causes overlapping polygons.  Ideally only draw
         // pixels where alpha>0, though this causes problems for alpha
         // between 0 and 1 (unless can solve with different blend
