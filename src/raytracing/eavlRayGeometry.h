@@ -26,6 +26,7 @@ class eavlRayGeometry
 			materialIds 	= NULL;
 			bvhLeafNodes 	= NULL;
 			bvhInnerNodes 	= NULL;
+			scalars   		= NULL;
 			size = 0;
 		}
 		void setVertices(eavlFloatArray *_vertices,const int &_size);
