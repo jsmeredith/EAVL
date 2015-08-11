@@ -36,6 +36,7 @@ protected:
     eavlVector3					bgColor;
     //ambient occlusion
     bool 						occlusionOn;
+    bool            shadowsOn;
     int 						numOccSamples;
     float 						occDistance;
     eavlFloatArray 				*occX;
@@ -56,6 +57,7 @@ public:
 	void setOcclusionSamples(int);
 	void setOcclusionDistance(float);
 	void setOcclusionOn(bool);
+	void setShadowsOn(bool);
 
 	void render();
 	void startScene();

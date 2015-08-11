@@ -339,6 +339,14 @@ void eavlRayTracer::init()
             occDirty = false;
         }
         currentFrameSize = numRays;
+        if(!shadowsOn)
+        {
+           	eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(inShadow), //dummy arg
+                                                     eavlOpArgs(inShadow),
+                                                     IntMemsetFunctor(1)),
+                                                     "");
+            eavlExecutor::Go();
+        }
 	}
 	// ifthe framesize didn't change and occlusion is turned on
 	// allocate the arrays
@@ -466,7 +474,8 @@ void eavlRayTracer::render()
                                                             "gather");
         eavlExecutor::Go();
     }
-	intersector->intersectionShadow(rays, inShadow, lightPosition, triGeometry);	
+    
+	  if(shadowsOn) intersector->intersectionShadow(rays, inShadow, lightPosition, triGeometry);	
 	
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx,
 														inShadow,
@@ -548,6 +557,10 @@ void eavlRayTracer::setBackgroundColor(float r, float g, float b)
 	bgColor.z = b;
 }
 
+void eavlRayTracer::setShadowsOn(bool on)
+{
+  shadowsOn = on;
+}
 void eavlRayTracer::setOcclusionSamples(int numSamples)
 {
     if(numSamples < 1)

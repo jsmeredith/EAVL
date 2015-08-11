@@ -203,7 +203,8 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         float magnitude=tracer->scene->getSceneExtentMagnitude();
         tracer->setOcclusionSamples(4);
         tracer->setOcclusionDistance(magnitude*.2f);
-		tracer->setOcclusionOn(true);
+		    tracer->setOcclusionOn(false);
+		    tracer->setShadowsOn(false);
         /*Set up field of view: tracer takes the half FOV in degrees*/
         float fovx= 2.f*atan(tan(view.view3d.fov/2.f)*view.w/view.h);
         fovx*=180.f/M_PI;
