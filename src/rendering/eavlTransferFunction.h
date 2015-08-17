@@ -56,9 +56,9 @@ public:
 	void CreateDefaultAlpha()
 	{
 		alpha->AddControlPoint(0.0f, eavlColor(0.0f, 0.0f, 0.0f));
-		alpha->AddControlPoint(0.2f, eavlColor(0.2f, 0.2f, 0.2f));
-		alpha->AddControlPoint(0.4f, eavlColor(0.4f, 0.4f, 0.4f));
-		alpha->AddControlPoint(0.6f, eavlColor(0.6f, 0.6f, 0.6f));
+		alpha->AddControlPoint(0.2f, eavlColor(0.2f, 0.2f, 0.1f));
+		alpha->AddControlPoint(0.4f, eavlColor(0.4f, 0.4f, 0.2f));
+		alpha->AddControlPoint(0.6f, eavlColor(0.6f, 0.6f, 0.4f));
 		alpha->AddControlPoint(0.8f, eavlColor(0.8f, 0.8f, 0.8f));
 		alpha->AddControlPoint(1.0f, eavlColor(1.0f, 1.f, 1.f));
 	}

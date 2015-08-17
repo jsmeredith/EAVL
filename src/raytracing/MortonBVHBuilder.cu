@@ -388,6 +388,17 @@ struct TreeFunctor
 	 * @param  b - index of value two
 	 * @return count of the largest binary prefix 
 	 */
+	EAVL_HOSTDEVICE int cclz(unsigned int &x)
+	{
+	  unsigned int y;
+	  int n = 32;
+	  y = x >>16; if (y != 0) { n = n -16; x = y; }
+    y = x >> 8; if (y != 0) { n = n - 8; x = y; }
+    y = x >> 4; if (y != 0) { n = n - 4; x = y; }
+    y = x >> 2; if (y != 0) { n = n - 2; x = y; }
+    y = x >> 1; if (y != 0) return n - 2;
+    return n - x;
+	}
 	EAVL_HOSTDEVICE int delta(const int &a, const int &b)
 	{
 		bool tie = false;
@@ -398,7 +409,14 @@ struct TreeFunctor
 		unsigned int exOr = aCode ^ bCode; //use xor to find where they differ
 		tie = (exOr == 0);
 		exOr = tie ? a ^ bb : exOr; //break the tie, a and b will always differ 
-		int count = clz(exOr);
+#ifdef __CUDA_ARCH__
+    int count = clz(exOr);
+#else 
+    //
+    //  Aparently on Surface@llnl this doesn't work.
+    //
+    int count = cclz(exOr);
+#endif
 		if(tie) count += 32; 
 		count = (outOfRange) ? -1 : count;
 		return count;
@@ -911,7 +929,10 @@ void MortonBVHBuilder::build()
     if(verbose > 0) cout<<"PROP     RUNTIME: "<<eavlTimer::Stop(tprop,"rf")<<endl;
     
     delete mortonTexture;
-    
+    //int count = 0;
+    //validate(bvh, numPrimitives, 0, count);
+    //if(count != numPrimitives) cout<<"BBBBBBBAADD "<<count<<endl;
+    //cout<<bvh->xmin->GetValue(0)<<" "<<bvh->xmax->GetValue(0)<<endl;
 }
 
 void MortonBVHBuilder::flatten()

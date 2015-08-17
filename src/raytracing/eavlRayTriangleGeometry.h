@@ -66,7 +66,7 @@ class eavlRayTriangleGeometry : public eavlRayGeometry
 	  		if(fastBuild)
 			{   cout<<"Fast build\n";
 				MortonBVHBuilder *mortonBVH = new MortonBVHBuilder(_vertices, _size, TRIANGLE);
-				mortonBVH->setVerbose(3);
+				mortonBVH->setVerbose(0);
 				mortonBVH->build();
 				eavlFloatArray *inner = mortonBVH->getInnerNodes();
 				eavlIntArray *leafs = mortonBVH->getLeafNodes(); 

@@ -72,17 +72,17 @@ struct RTMaterial
 	float 		rs;			//percentage of refected specular light
 	EAVL_HOSTDEVICE RTMaterial()
 	{
-		ka.x = .7f;
-		ka.y = .7f;
-		ka.z = .7f;
+		ka.x = .8f;
+		ka.y = .8f;
+		ka.z = .8f;
 
-		kd.x = .7f;			// I just made these values up
-		kd.y = .7f;
-		kd.z = .7f;
+		kd.x = .8f;			// I just made these values up
+		kd.y = .8f;
+		kd.z = .8f;
 
-		ks.x = .7f;
-		ks.y = .7f;
-		ks.z = .7f;
+		ks.x = .8f;
+		ks.y = .8f;
+		ks.z = .8f;
 
 		shiny = 10.f;
 		rs = .2f;
