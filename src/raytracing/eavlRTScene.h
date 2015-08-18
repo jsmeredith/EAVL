@@ -66,6 +66,7 @@ class eavlRTScene
 		EAVL_HOSTONLY inline eavlFloatArray* getTriangleScalarsPtr();
 		EAVL_HOSTONLY inline eavlFloatArray* getTriMatIdxsPtr();
 		EAVL_HOSTONLY inline eavlFloatArray* getMatsPtr();
+		EAVL_HOSTONLY inline BBox*			 getBBox(){ return &sceneBbox; }
 
 };
 

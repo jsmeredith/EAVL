@@ -56,6 +56,7 @@ eavlRayTracer::eavlRayTracer()
     occHits = NULL;
     occDirty = false;
     occIndexer = NULL;
+    imageSubsetMode = false;
 }
 
 eavlRayTracer::~eavlRayTracer()
@@ -600,4 +601,45 @@ void eavlRayTracer::setOcclusionOn(bool on)
         delete occHits;
         delete occIndexer;
     }
+}
+
+void eavlRayTracer::enableImageSubset(eavlView &_view)
+{
+    view = _view;
+    imageSubsetMode = true;
+}
+
+void eavlRayTracer::findImageExtent()
+{
+
+    BBox *bbox = scene->getBBox(); 
+    double x[2], y[2], z[2];
+    x[0] = bbox->min.x;
+    y[0] = bbox->min.y;
+    z[0] = bbox->min.z;
+    x[1] = bbox->max.x;
+    y[1] = bbox->max.y;
+    z[1] = bbox->max.z;
+    float xmin, ymin, xmax, ymax;
+    xmin = std::numeric_limits<float>::max();
+    ymin = std::numeric_limits<float>::max();
+    xmax = std::numeric_limits<float>::min();
+    ymax = std::numeric_limits<float>::min();
+    eavlPoint3 extentPoint;
+    for(int i = 0; i < 2; i++)
+    for(int j = 0; j < 2; j++)
+    for(int k = 0; k < 2; k++)
+    {
+      extentPoint.x = x[i];
+      extentPoint.y = y[j];
+      extentPoint.z = z[k];
+      extentPoint = view.V * extentPoint;
+      xmin = fminf(xmin, extentPoint.x);
+      ymin = fminf(ymin, extentPoint.y);
+      xmax = fminf(xmax, extentPoint.x);
+      ymax = fminf(ymax, extentPoint.y);
+
+    }
+
+    printf("Pixel range = (%f,%f), (%f,%f)\n", xmin, ymin, xmax,ymax);
 }

@@ -6,6 +6,7 @@
 #include <eavlTextureObject.h>
 #include <eavlRayCamera.h>
 #include <eavlRTScene.h>
+#include <eavlView.h>
 #include <eavlRay.h>
 
 
@@ -46,6 +47,8 @@ protected:
     eavlFloatArray 				*ambientPct;
     eavlArrayIndexer      		*occIndexer;
     bool						occDirty;
+    eavlView 					view;
+    bool 						imageSubsetMode;
 public:
 	eavlRTScene					*scene;
 	eavlRayCamera 				*camera;
@@ -58,7 +61,7 @@ public:
 	void setOcclusionDistance(float);
 	void setOcclusionOn(bool);
 	void setShadowsOn(bool);
-
+	void enableImageSubset(eavlView &);
 	void render();
 	void startScene();
 	void setDefaultMaterial(const float&, const float&, const float&);
@@ -66,5 +69,6 @@ public:
 	eavlFloatArray *getDepthBuffer(float proj22, float proj23, float proj32);
 private:
 	void init();
+	void findImageExtent();
 };
 #endif
