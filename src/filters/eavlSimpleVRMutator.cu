@@ -182,7 +182,7 @@ void eavlSimpleVRMutator::getBBoxPixelExtent(eavlPoint3 &smins, eavlPoint3 &smax
     smaxs.x = xmax;
     smaxs.y = ymax;
     smaxs.z = zmax;
-    cout<<"BBOX "<<smins<<smaxs<<endl;
+    //cout<<"BBOX "<<smins<<smaxs<<endl;
 }
 
 //
@@ -366,7 +366,7 @@ struct SampleFunctor3
         passMinZPixel  = max(0, _passMinZPixel);
         zSize = numZperPass;
         fb = _fb;
-        printf("Min and max z pixel : %d %d \n", passMinZPixel, passMaxZPixel);
+        //printf("Min and max z pixel : %d %d \n", passMinZPixel, passMaxZPixel);
     }
 
     EAVL_FUNCTOR tuple<float> operator()(tuple<int,float,float,float,float,float,float,float,float,float,float,float,float> inputs )
