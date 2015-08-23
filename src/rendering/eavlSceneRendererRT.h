@@ -32,9 +32,11 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     string ctName;
     float pointRadius;
     float lineWidth;
+    bool imageSubsetEnabled;
   public:
     eavlSceneRendererRT()
     {
+        imageSubsetEnabled = false;
         tracer = new eavlRayTracer();
         //tracer->setDepth(1);
         // /tracer->setVerbose(true);
@@ -46,7 +48,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         tracer->setShadowsOn(false);
         setLight = true;
         ctName = "";
-        tracer->setDefaultMaterial(Ka,Kd,Ks);
+        //tracer->setDefaultMaterial(Ka,Kd,Ks);
         pointRadius = .1f;
         lineWidth = .05f;
 
@@ -147,7 +149,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {
         tracer->scene->addTriangle(eavlVector3(x0,y0,z0) , eavlVector3(x1,y1,z1), eavlVector3(x2,y2,z2),
                                    eavlVector3(u0,v0,w0) , eavlVector3(u1,v1,w1), eavlVector3(u2,v2,w2),
-                                   s0,s1,s2,  "default");
+                                   s0,s1,s2);
         //cout<<"Adding T "<<eavlVector3(x0,y0,z0) <<" "<<s0<<" "<< eavlVector3(x1,y1,z1)<<" "<<s1<<" "<< eavlVector3(x2,y2,z2)<<" "<<s2<<endl;
     }
 
@@ -189,15 +191,23 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         //cout<<"ADDING LINE"<<endl;
         //tracer->scene->addLine(lineWidth, eavlVector3(x0,y0,z0),s0, eavlVector3(x1,y1,z1),s1 );
     }
-
-
+    void enableImageSubset(bool on)
+    {
+      imageSubsetEnabled = on;
+    }
+    void getImageSubsetDims(int *dims)
+    {
+      if(imageSubsetEnabled) tracer->getImageSubsetDims(dims);
+    }
     // ------------------------------------------------------------------------
     virtual void Render()
     {        
+    
+        if(imageSubsetEnabled) tracer->enableImageSubset(view);
         int tframe = eavlTimer::Start();
         //cout<<"Triangles "<<tracer->scene->getNumTriangles()<<endl;
         eavlRayCamera * camera = tracer->camera;
-        tracer->setDefaultMaterial(Ka,Kd,Ks);
+        //tracer->setDefaultMaterial(Ka,Kd,Ks);
         camera->setWidth(view.w);
         camera->setHeight(view.h);
         tracer->setBackgroundColor(surface->bgColor.c[0],surface->bgColor.c[1],surface->bgColor.c[2]);

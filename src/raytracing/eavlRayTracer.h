@@ -49,6 +49,11 @@ protected:
     bool						occDirty;
     eavlView 					view;
     bool 						imageSubsetMode;
+    int             subsetMinx;
+    int             subsetMiny;
+    int             subsetDx;
+    int             subsetDy;
+
 public:
 	eavlRTScene					*scene;
 	eavlRayCamera 				*camera;
@@ -67,6 +72,7 @@ public:
 	void setDefaultMaterial(const float&, const float&, const float&);
 	eavlByteArray* getFrameBuffer();
 	eavlFloatArray *getDepthBuffer(float proj22, float proj23, float proj32);
+	void getImageSubsetDims(int *);
 private:
 	void init();
 	void findImageExtent();

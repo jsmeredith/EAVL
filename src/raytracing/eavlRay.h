@@ -91,7 +91,7 @@ class eavlRay
 class eavlFullRay : public eavlRay
 {
   public:
-  	eavlFloatArray*     weight;	      		//contribution
+  	//eavlFloatArray*     weight;	      		//contribution
   	eavlFloatArray*     normalX;	      	//intersection normal
   	eavlFloatArray*     normalY;	     
   	eavlFloatArray*     normalZ;
@@ -99,16 +99,16 @@ class eavlFullRay : public eavlRay
   	eavlFloatArray*     intersectionY;
   	eavlFloatArray*     intersectionZ;
   	eavlFloatArray*		scalar;	     
-  	eavlByteArray*      hitType;      		//type of geometry hit
+  	//eavlByteArray*      hitType;      		//type of geometry hit
   	eavlFullRay(const size_t &size) : eavlRay(size) 
   	{
-  		weight  = new eavlFloatArray("",1,numRays);
+  		
   		normalX = new eavlFloatArray("",1,numRays);
   		normalY = new eavlFloatArray("",1,numRays);
   		normalZ = new eavlFloatArray("",1,numRays);
   		scalar  = new eavlFloatArray("",1,numRays);
-  		hitType = new eavlByteArray("",1, numRays);
-  		
+  		//hitType = new eavlByteArray("",1, numRays);
+  		//weight  = new eavlFloatArray("",1,numRays);
   		intersectionX = new eavlFloatArray("",1,numRays);
   		intersectionY = new eavlFloatArray("",1,numRays);
   		intersectionZ = new eavlFloatArray("",1,numRays);
@@ -117,8 +117,8 @@ class eavlFullRay : public eavlRay
   	{
   		if(newSize == numRays) return;
 
-  		delete weight;
-  		delete hitType;
+  		//delete weight;
+  		//delete hitType;
   		delete normalX;
   		delete normalY;
   		delete normalZ; 
@@ -126,11 +126,12 @@ class eavlFullRay : public eavlRay
   		delete intersectionX;
   		delete intersectionY;
   		delete intersectionZ;
-  		weight  = new eavlFloatArray("",1,newSize);
+  		
   		normalX = new eavlFloatArray("",1,newSize);
   		normalY = new eavlFloatArray("",1,newSize);
   		normalZ = new eavlFloatArray("",1,newSize);
-  		hitType = new eavlByteArray("",1, newSize);
+  		//hitType = new eavlByteArray("",1, newSize);
+  		//weight  = new eavlFloatArray("",1,newSize);
   		scalar  = new eavlFloatArray("",1,newSize);
   		
   		intersectionX = new eavlFloatArray("",1,newSize);
@@ -140,8 +141,8 @@ class eavlFullRay : public eavlRay
   	}
   	~eavlFullRay()
   	{
-  		delete weight;
-  		delete hitType;
+  		//delete weight;
+  		//delete hitType;
   		delete normalX;
   		delete normalY;
   		delete normalZ; 

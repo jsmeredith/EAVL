@@ -43,9 +43,9 @@ class eavlSimpleVRMutator : public eavlMutator
         { 
             //if( n != numPasses) 
             {
-                int stride = nSamples / n;
-                if((nSamples % n) != 0) stride++;
-                pixelsPerPass = height*width*stride;
+                int stride = dz / n;
+                if((dz % n) != 0) stride++;
+                pixelsPerPass = dx*dy*stride;
                 passNumDirty = true;
                 passZStride = stride;
             }
@@ -87,6 +87,7 @@ class eavlSimpleVRMutator : public eavlMutator
     
     eavlByteArray*  getFrameBuffer();
     eavlFloatArray* getDepthBuffer(float, float, float);
+    void  getImageSubsetDims(int *);
     eavlVRScene*        scene;
   protected:
     string fieldname;
@@ -109,6 +110,16 @@ class eavlSimpleVRMutator : public eavlMutator
     bool 	isTransparentBG;
     float   opacityFactor;
 
+    //
+    //  Sample buffer information
+    //
+    int     xmin;
+    int     ymin;
+    int     zmin;
+    int     dx;
+    int     dy;
+    int     dz;    
+        
     double  sampleTime;
     double  compositeTime;
     double  passSelectionTime;

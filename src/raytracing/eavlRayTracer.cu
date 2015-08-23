@@ -1,8 +1,12 @@
 #include <eavlRayTracer.h>
 #include <eavl1toNScatterOp.h>
 #include <eavlNto1GatherOp.h>
+#include "eavlMapOpWithIndex.h"
 #include <eavlSampler.h>
 #include <eavlMapOp.h>
+
+eavlFunctorArray<byte> *pixelsOut;
+eavlFunctorArray<float> *depthOut;
 
 eavlRayTracer::eavlRayTracer()
 {
@@ -15,12 +19,14 @@ eavlRayTracer::eavlRayTracer()
 	camera->setMortonSorting(false);
 	rays = new eavlFullRay(camera->getWidth() * camera->getHeight());
 	intersector = new eavlRayTriangleIntersector();
-	scene = new eavlRTScene();
+	scene = new eavlRTScene(false);
 	geometryDirty = true;
 	currentFrameSize = camera->getWidth() * camera->getHeight();
 	frameBuffer = new eavlFloatArray("", 1, currentFrameSize * 4);
 	rgbaPixels = new eavlByteArray("", 1, currentFrameSize * 4);
+	
 	depthBuffer = new eavlFloatArray("", 1, currentFrameSize);
+	
 	inShadow = new eavlIntArray("", 1, currentFrameSize);
 	ambientPct = new eavlFloatArray("", 1, currentFrameSize);
 	bgColor.x = .1f;
@@ -41,7 +47,7 @@ eavlRayTracer::eavlRayTracer()
 	eavlMaterials = NULL;
 
 
-	redIndexer   = new eavlArrayIndexer(4,0);
+	  redIndexer   = new eavlArrayIndexer(4,0);
     greenIndexer = new eavlArrayIndexer(4,1);
     blueIndexer  = new eavlArrayIndexer(4,2);
     alphaIndexer = new eavlArrayIndexer(4,3);
@@ -57,6 +63,9 @@ eavlRayTracer::eavlRayTracer()
     occDirty = false;
     occIndexer = NULL;
     imageSubsetMode = false;
+    
+    depthOut = NULL; //new eavlFunctorArray<float>(depthBuffer);
+	  pixelsOut = NULL; //new eavlFunctorArray<byte>(rgbaPixels);
 }
 
 eavlRayTracer::~eavlRayTracer()
@@ -105,6 +114,81 @@ void eavlRayTracer::setColorMap3f(float* cmap, const int &nColors)
     colorMap = new eavlTextureObject<float>(nColors * 3, cmap, false);
     numColors = nColors;
 }
+
+struct SubsetToFullFunctor
+{
+    int width;
+    int height;
+    int subsetHeight;
+    int subsetWidth;
+    int xmin;
+    int ymin;
+    eavlFunctorArray<byte> out;
+    SubsetToFullFunctor(int _w, int _h, int _sw, int _sh, int _xmin, int _ymin, eavlFunctorArray<byte> *_out)
+        : width(_w), 
+          height(_h),
+          subsetWidth(_sw),
+          subsetHeight(_sh),
+          xmin(_xmin),
+          ymin(_ymin),
+          out(*_out)
+          
+    {}
+
+    EAVL_FUNCTOR tuple<float> operator()(tuple<float,float,float,float> input, int idx){
+      float r = get<0>(input);
+      float g = get<1>(input);
+      float b = get<2>(input);
+      float a = get<3>(input);
+      
+      int x = idx % subsetWidth;
+      int y = idx / subsetWidth;
+      
+      x += xmin;
+      y += ymin;
+      
+      int  outIdx = y * width + x;
+      //printf("%d (%d,%d) %d %d\n", idx,x,y, width, outIdx);
+      out[outIdx * 4 + 0] = r * 255.f;
+      out[outIdx * 4 + 1] = g * 255.f;
+      out[outIdx * 4 + 2] = b * 255.f;
+      out[outIdx * 4 + 3] = a * 255.f;
+      return tuple<float>(r);
+    }
+};
+
+struct ScreenDepthSubsetFunctor{
+
+    float proj22;
+    float proj23;
+    float proj32;
+    int width;
+    int subsetWidth;
+    int xmin;
+    int ymin;
+    eavlFunctorArray<float> out;
+    ScreenDepthSubsetFunctor(float _proj22, float _proj23, float _proj32,
+                             int _w, int _sw, int _xmin, int _ymin,eavlFunctorArray<float> *_out)
+        : proj22(_proj22), proj23(_proj23), proj32(_proj32),
+          width(_w), subsetWidth(_sw), xmin(_xmin), ymin(_ymin), out(*_out)
+           
+    {
+        
+    }                                                 
+    EAVL_FUNCTOR tuple<float> operator()(float depth, int idx){
+       
+        float projdepth = (proj22 + proj23 / (-depth)) / proj32;
+        
+        projdepth = .5 * projdepth + .5;
+        int x = idx % subsetWidth;
+        int y = idx / subsetWidth;
+        x += xmin;
+        y += ymin;
+        int  outIdx = y * width + x;
+        out[outIdx] = projdepth;
+        return tuple<float>(depth);
+    }
+};
 
 struct NormalFunctor{
 
@@ -192,20 +276,20 @@ struct PhongShaderFunctor
     eavlVector3     bgColor;
     float4          defaultColor;
 
-    eavlTextureObject<int>      matIds; 
-    eavlFunctorArray<float>     mats;
+    //eavlTextureObject<int>      matIds; 
+    //eavlFunctorArray<float>     mats;
     eavlTextureObject<float>    colorMap;
     
 
     PhongShaderFunctor(eavlVector3 theLight, 
     			  	   eavlVector3 eyePos, 
-    			  	   eavlTextureObject<int> *_matIds, 
-                  	   eavlFunctorArray<float> _mats, 
+    			  	   //eavlTextureObject<int> *_matIds, 
+                 // 	   eavlFunctorArray<float> _mats, 
                   	   eavlTextureObject<float> *_colorMap, 
                   	   int _colorMapSize, 
                   	   eavlVector3 *_bgColor)
-        : matIds(*_matIds),
-          mats(_mats),
+        : //matIds(*_matIds),
+          //mats(_mats),
           colorMap(*_colorMap), 
           bgColor(*_bgColor)
 
@@ -251,13 +335,13 @@ struct PhongShaderFunctor
         
         float ambPct= get<12>(input);
     
-        int id = 0;
-        id = matIds.getValue(hitIdx);
-        eavlVector3* matPtr = (eavlVector3*)(&mats[0]+id*12);
-        eavlVector3 ka = matPtr[0];     //these could be lerped if it is possible that a single tri could be made of several mats
-        eavlVector3 kd = matPtr[1];
-        eavlVector3 ks = matPtr[2];
-        float matShine = matPtr[3].x;
+        //int id = 0;
+        //id = matIds.getValue(hitIdx);
+        //eavlVector3* matPtr = (eavlVector3*)(&mats[0]+id*12);
+        eavlVector3 ka(.8,.8,.8);// = matPtr[0];     //these could be lerped if it is possible that a single tri could be made of several mats
+        eavlVector3 kd(.8,.8,.8);// = matPtr[1];
+        eavlVector3 ks(.8,.8,.8);// = matPtr[2];
+        float matShine = 20.f; // matPtr[3].x;
 
         float red   = 0.f;
         float green = 0.f;
@@ -311,18 +395,25 @@ void eavlRayTracer::init()
 	
 
 	int numRays = camera->getWidth() * camera->getHeight();
-	
+	if(imageSubsetMode)
+	{
+	  findImageExtent();
+	  numRays = subsetDx * subsetDy;
+	}
 	if(numRays != currentFrameSize)
 	{
 		delete frameBuffer;
 		delete rgbaPixels;
 		delete depthBuffer;
 		delete inShadow;
-        delete ambientPct;
-
+    delete ambientPct;
+    if(pixelsOut) delete pixelsOut;
+    if(depthOut) delete depthOut;
 		frameBuffer = new eavlFloatArray("", 1, numRays * 4); //rgba
-		rgbaPixels  = new eavlByteArray("", 1, numRays * 4); //rgba
-		depthBuffer = new eavlFloatArray("", 1, numRays);
+		rgbaPixels  = new eavlByteArray("", 1, camera->getWidth() * camera->getHeight() * 4); //rgba
+		pixelsOut = new eavlFunctorArray<byte>(rgbaPixels);
+		depthBuffer = new eavlFloatArray("", 1,camera->getWidth() * camera->getHeight());
+		depthOut = new eavlFunctorArray<float>(depthBuffer);
 		inShadow    = new eavlIntArray("", 1, numRays);
     ambientPct = new eavlFloatArray("",1,numRays);
     if(occlusionOn)
@@ -332,12 +423,12 @@ void eavlRayTracer::init()
     	delete occZ;
     	delete occHits;
     	delete occIndexer;
-        occX = new eavlFloatArray("",1,numRays * numOccSamples);
-        occY = new eavlFloatArray("",1,numRays * numOccSamples);
-        occZ = new eavlFloatArray("",1,numRays * numOccSamples);
-        occHits = new eavlIntArray("",1,numRays * numOccSamples);
-        occIndexer = new eavlArrayIndexer(numOccSamples,1e9, 1, 0);
-        occDirty = false;
+      occX = new eavlFloatArray("",1,numRays * numOccSamples);
+      occY = new eavlFloatArray("",1,numRays * numOccSamples);
+      occZ = new eavlFloatArray("",1,numRays * numOccSamples);
+      occHits = new eavlIntArray("",1,numRays * numOccSamples);
+      occIndexer = new eavlArrayIndexer(numOccSamples,1e9, 1, 0);
+      occDirty = false;
     }
     currentFrameSize = numRays;
    
@@ -347,11 +438,11 @@ void eavlRayTracer::init()
 	if(occlusionOn && occDirty)
 	{
 		occX = new eavlFloatArray("",1,numRays * numOccSamples);
-        occY = new eavlFloatArray("",1,numRays * numOccSamples);
-        occZ = new eavlFloatArray("",1,numRays * numOccSamples);
-        occHits = new eavlIntArray("",1,numRays * numOccSamples);
-        occIndexer = new eavlArrayIndexer(numOccSamples,1e9, 1, 0);
-        occDirty = false;
+    occY = new eavlFloatArray("",1,numRays * numOccSamples);
+    occZ = new eavlFloatArray("",1,numRays * numOccSamples);
+    occHits = new eavlIntArray("",1,numRays * numOccSamples);
+    occIndexer = new eavlArrayIndexer(numOccSamples,1e9, 1, 0);
+    occDirty = false;
 	}
 
 	if(geometryDirty)
@@ -362,9 +453,9 @@ void eavlRayTracer::init()
 			triGeometry->setVertices(scene->getTrianglePtr(), numTriangles);
 			triGeometry->setScalars(scene->getTriangleScalarsPtr(), numTriangles);
 			triGeometry->setNormals(scene->getTriangleNormPtr(), numTriangles);
-			triGeometry->setMaterialIds(scene->getTriMatIdxsPtr(), numTriangles);
-			int numMaterials = scene->getNumMaterials();
-			eavlMaterials = scene->getMatsPtr();
+			//triGeometry->setMaterialIds(scene->getTriMatIdxsPtr(), numTriangles);
+			//int numMaterials = scene->getNumMaterials();
+			//eavlMaterials = scene->getMatsPtr();
 		}
 		geometryDirty = false;
 	}
@@ -376,27 +467,29 @@ void eavlRayTracer::init()
                                                "");
       eavlExecutor::Go();
   }
-	camera->createRays(rays); //this call resets hitIndexes as well
+	if(imageSubsetMode) camera->createRaysSubset(rays, subsetMinx, subsetMiny,subsetDx, subsetDy);
+	else camera->createRays(rays); //this call resets hitIndexes as well
 
 }
 void eavlRayTracer::render()
 {   
 	//camera->printSummary();
 	init();
+	
 	if(numTriangles < 1) 
 	{
 		//may be set the framebuffer and depthbuffer to background and infinite
 		cerr<<"No trianles to render"<<endl;
-		eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->distance), //dummy arg
-                                                 eavlOpArgs(rays->distance),
+		eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(depthBuffer), //dummy arg
+                                                 eavlOpArgs(depthBuffer),
                                                  FloatMemsetFunctor(INFINITE)),
                                                  "setDepthBuffer");
     eavlExecutor::Go();
     unsigned char bgUint[4];
-		bgUint[0] = bgColor.x * 255.f;
-		bgUint[1] = bgColor.y * 255.f;
-		bgUint[2] = bgColor.z * 255.f;
-		bgUint[3] = 255;
+	  bgUint[0] = bgColor.x * 255.f;
+	  bgUint[1] = bgColor.y * 255.f;
+	  bgUint[2] = bgColor.z * 255.f;
+	  bgUint[3] = 255;
     eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlByteArray>(rgbaPixels,*redIndexer)), //dummy arg
                                                  eavlOpArgs(eavlIndexable<eavlByteArray>(rgbaPixels,*redIndexer)),
                                                  ByteMemsetFunctor(bgUint[0])),
@@ -417,6 +510,7 @@ void eavlRayTracer::render()
                                                  ByteMemsetFunctor(bgUint[3])),
                                                  "setDepthBuffer");
     eavlExecutor::Go();
+    
 		return;
 	}
     if(!occlusionOn)
@@ -433,7 +527,7 @@ void eavlRayTracer::render()
 
 	intersector->intersectionDepth(rays, INFINITE, triGeometry);
 
-	eavlFunctorArray<float> mats(eavlMaterials);
+	//eavlFunctorArray<float> mats(eavlMaterials);
 	eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->rayOriginX,
 														rays->rayOriginY,
 														rays->rayOriginZ,
@@ -499,41 +593,73 @@ void eavlRayTracer::render()
                                              					eavlVector3(camera->getCameraPositionX(),
                                              								camera->getCameraPositionY(),
                                              								camera->getCameraPositionZ()),
-                                             					triGeometry->materialIds,
-                                             					mats,
+                                             					//triGeometry->materialIds,
                                              					colorMap,
                                              					numColors,
                                              					&bgColor)),
                                              "Shader");
     eavlExecutor::Go();
-
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer),
-                                                        eavlIndexable<eavlFloatArray>(frameBuffer,*greenIndexer),
-                                                        eavlIndexable<eavlFloatArray>(frameBuffer,*blueIndexer),
-                                                        eavlIndexable<eavlFloatArray>(frameBuffer,*alphaIndexer)),
-                                                 eavlOpArgs(eavlIndexable<eavlByteArray>(rgbaPixels,*redIndexer),
-                                                            eavlIndexable<eavlByteArray>(rgbaPixels,*greenIndexer),
-                                                            eavlIndexable<eavlByteArray>(rgbaPixels,*blueIndexer),
-                                                            eavlIndexable<eavlByteArray>(rgbaPixels,*alphaIndexer)),
-                                                 CopyFrameBuffer()),
-                                                 "memcopy");
-    eavlExecutor::Go();
-
+    if(imageSubsetMode)
+    { 
+      //writeFrameBufferBMP(subsetDy, subsetDx, frameBuffer,"test.bmp");
+      eavlExecutor::AddOperation(new_eavlMapOpWithIndex(eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer),
+                                                          eavlIndexable<eavlFloatArray>(frameBuffer,*greenIndexer),
+                                                          eavlIndexable<eavlFloatArray>(frameBuffer,*blueIndexer),
+                                                          eavlIndexable<eavlFloatArray>(frameBuffer,*alphaIndexer)),
+                                                   eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer)),
+                                                   SubsetToFullFunctor(camera->getWidth(),
+                                                                       camera->getHeight(),
+                                                                       subsetDx,
+                                                                       subsetDy,
+                                                                       subsetMinx,
+                                                                       subsetMiny, 
+                                                                       pixelsOut), subsetDx * subsetDy),
+                                                   "memcopy");
+      eavlExecutor::Go();
+      //writeFrameBufferBMP(camera->getHeight(), camera->getWidth(), rgbaPixels,"test2.bmp");
+    }    
+    else 
+    {
+      eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(eavlIndexable<eavlFloatArray>(frameBuffer,*redIndexer),
+                                                          eavlIndexable<eavlFloatArray>(frameBuffer,*greenIndexer),
+                                                          eavlIndexable<eavlFloatArray>(frameBuffer,*blueIndexer),
+                                                          eavlIndexable<eavlFloatArray>(frameBuffer,*alphaIndexer)),
+                                                   eavlOpArgs(eavlIndexable<eavlByteArray>(rgbaPixels,*redIndexer),
+                                                              eavlIndexable<eavlByteArray>(rgbaPixels,*greenIndexer),
+                                                              eavlIndexable<eavlByteArray>(rgbaPixels,*blueIndexer),
+                                                              eavlIndexable<eavlByteArray>(rgbaPixels,*alphaIndexer)),
+                                                   CopyFrameBuffer()),
+                                                   "memcopy");
+      eavlExecutor::Go();
+    }
 
 }
 
 eavlFloatArray* eavlRayTracer::getDepthBuffer(float proj22, float proj23, float proj32)
 { 
-    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->distance), eavlOpArgs(depthBuffer), ScreenDepthFunctor(proj22, proj23, proj32)),"convertDepth");
-    eavlExecutor::Go();
+    if(imageSubsetMode)
+    {
+      eavlExecutor::AddOperation(new_eavlMapOpWithIndex(eavlOpArgs(rays->distance), 
+                                               eavlOpArgs(rays->distance), 
+                                               ScreenDepthSubsetFunctor(proj22, proj23, proj32, camera->getWidth(), subsetDx, subsetMinx, subsetMiny, depthOut),subsetDx * subsetDy),"convertDepth");
+      eavlExecutor::Go();
+    }
+    else
+    {
+      eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->distance), eavlOpArgs(depthBuffer), ScreenDepthFunctor(proj22, proj23, proj32)),"convertDepth");
+      eavlExecutor::Go();
+    }
     return depthBuffer;
 }
 
-eavlByteArray* eavlRayTracer::getFrameBuffer() { return rgbaPixels; }
+eavlByteArray* eavlRayTracer::getFrameBuffer() 
+{ 
+   return rgbaPixels;
+}
 
 void eavlRayTracer::setDefaultMaterial(const float &ka,const float &kd, const float &ks)
 {
-	
+
       float old_a=scene->getDefaultMaterial().ka.x;
       float old_s=scene->getDefaultMaterial().ka.x;
       float old_d=scene->getDefaultMaterial().ka.x;
@@ -612,7 +738,8 @@ void eavlRayTracer::enableImageSubset(eavlView &_view)
 void eavlRayTracer::findImageExtent()
 {
 
-    BBox *bbox = scene->getBBox(); 
+    BBox *bbox = scene->getBBox();
+    cout<<"Bounding box "<<bbox->min<<bbox->max<<endl;
     double x[2], y[2], z[2];
     x[0] = bbox->min.x;
     y[0] = bbox->min.y;
@@ -620,11 +747,16 @@ void eavlRayTracer::findImageExtent()
     x[1] = bbox->max.x;
     y[1] = bbox->max.y;
     z[1] = bbox->max.z;
-    float xmin, ymin, xmax, ymax;
+    float xmin, ymin, xmax, ymax, zmin, zmax;
     xmin = std::numeric_limits<float>::max();
     ymin = std::numeric_limits<float>::max();
+    zmin = std::numeric_limits<float>::max();
     xmax = std::numeric_limits<float>::min();
     ymax = std::numeric_limits<float>::min();
+    zmax = std::numeric_limits<float>::min();
+    //
+    // What happens if the 
+    //
     eavlPoint3 extentPoint;
     for(int i = 0; i < 2; i++)
     for(int j = 0; j < 2; j++)
@@ -633,13 +765,77 @@ void eavlRayTracer::findImageExtent()
       extentPoint.x = x[i];
       extentPoint.y = y[j];
       extentPoint.z = z[k];
-      extentPoint = view.V * extentPoint;
+      extentPoint = view.P * view.V * extentPoint;
+      extentPoint.x = (extentPoint.x*.5+.5)  * view.w;
+      extentPoint.y = (extentPoint.y*.5+.5)  * view.h;
+      extentPoint.z = (extentPoint.z*.5+.5);
+      //cout<<"Extentpoint"<<extentPoint<<endl;
       xmin = fminf(xmin, extentPoint.x);
       ymin = fminf(ymin, extentPoint.y);
-      xmax = fminf(xmax, extentPoint.x);
-      ymax = fminf(ymax, extentPoint.y);
+      zmin = fminf(zmin, extentPoint.z);
+      xmax = fmaxf(xmax, extentPoint.x);
+      ymax = fmaxf(ymax, extentPoint.y);
+      zmax = fmaxf(zmax, extentPoint.z);
+      
 
     }
+    //
+    // Clamp pixels to the screen
+    //
+    
+    xmin-=.001f;
+    xmax+=.001f;
+    ymin-=.001f;
+    ymax+=.001f;
+    xmin = floor(fminf(fmaxf(0.f, xmin),view.w));
+    xmax = ceil(fminf(fmaxf(0.f, xmax),view.w));
+    ymin = floor(fminf(fmaxf(0.f, ymin),view.h));
+    ymax = ceil(fminf(fmaxf(0.f, ymax),view.h));
+    printf("Pixel range = (%f,%f,%f), (%f,%f,%f)\n", xmin, ymin,zmin, xmax,ymax,zmax);
+    int dx = int(xmax) - int(xmin);
+    int dy = int(ymax) - int(ymin);
 
-    printf("Pixel range = (%f,%f), (%f,%f)\n", xmin, ymin, xmax,ymax);
+    //
+    //  scene is behind the camera
+    //
+    if(zmax < 0 || zmin > 1) 
+    {
+       dx = 0;
+       dy = 0;
+    }
+    
+    subsetDx = dx;
+    subsetDy = dy;
+    subsetMinx = int(xmin);
+    subsetMiny = int(ymin);
+    int numPixels = dx * dy;
+    printf("Dx %d dy %d\n", dx, dy);
+    printf("Subset of  %d out of %d at corner (%f,%f)\n", numPixels, int(view.h)*int(view.w), xmin, ymin);
+    
+    
 }
+
+void eavlRayTracer::getImageSubsetDims(int *dims)
+{
+   if(imageSubsetMode)
+   {
+      if(dims != NULL)
+      {
+        dims[0] = subsetMinx;
+        dims[1] = subsetMiny;
+        dims[2] = subsetDx;
+        dims[3] = subsetDy;
+      }
+      else
+      {
+        cerr<<"Cannot pass null pointer to getImageSubsetDims"<<endl;
+        exit(1);
+      }
+   }
+   else
+   {
+     cerr<<"Cannot call getImageSubsetDims when that mode is not enabled;"<<endl;
+     exit(1);
+   }
+}
+

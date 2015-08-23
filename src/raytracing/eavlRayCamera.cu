@@ -7,8 +7,8 @@
 
 EAVL_HOSTONLY eavlRayCamera::eavlRayCamera()
 {
-	height = 1024;
-	width = 1024;
+	height = 100;
+	width = 100;
 	fovx = 30.f;
 	fovy = 30.f;
 	zoom = 1.0f;
@@ -108,6 +108,76 @@ struct PerspectiveRayGenFunctor
         int i=idx%w;
         int j=idx/w;
 
+        eavlVector3 ray_dir=nlook+delta_x*((2*i-w)/2.0f)+delta_y*((2*j-h)/2.0f);
+        ray_dir.normalize();
+
+        return tuple<float,float,float>(ray_dir.x,ray_dir.y,ray_dir.z);
+
+    }
+
+};
+
+struct PerspectiveSubsetRayGenFunctor
+{
+    int w;
+    int h; 
+    int subsetHeight;
+    int subsetWidth;
+    int xmin;
+    int ymin;
+    eavlVector3 nlook;// normalized look
+    eavlVector3 delta_x;
+    eavlVector3 delta_y;
+
+    PerspectiveSubsetRayGenFunctor(int width,
+    				 		 int height, 
+    				 		 float half_fovX, 
+    				 		 float half_fovY, 
+    				 		 eavlVector3 look, 
+    				 		 eavlVector3 up, 
+    				 		 float _zoom,
+    				 		 int _subsetWidth,
+    				 		 int _subsetHeight,
+    				 		 int _xmin,
+    				 		 int _ymin
+    				 		 )
+        : w(width), h(height)
+    {
+        float thx = tan(half_fovX*PI/180);
+        float thy = tan(half_fovY*PI/180);
+        subsetHeight = _subsetHeight;
+        subsetWidth = _subsetWidth;
+        xmin = _xmin;
+        ymin = _ymin;
+        eavlVector3 ru = up%look;
+        ru.normalize();
+
+        eavlVector3 rv = ru%look;
+        rv.normalize();
+
+        delta_x = ru*(2*thx/(float)w);
+        delta_y = rv*(2*thy/(float)h);
+        
+        if(_zoom > 0)
+        {
+            delta_x /= _zoom;
+            delta_y /= _zoom;    
+        }
+        
+
+        nlook.x = look.x;
+        nlook.y = look.y;
+        nlook.z = look.z;
+        nlook.normalize();
+
+    }
+
+    EAVL_FUNCTOR tuple<float,float, float> operator()(int idx){
+        int i=idx%subsetWidth;
+        int j=idx/subsetWidth;
+        //add the pixel offset
+        i += xmin;
+        j += ymin;
         eavlVector3 ray_dir=nlook+delta_x*((2*i-w)/2.0f)+delta_y*((2*j-h)/2.0f);
         ray_dir.normalize();
 
@@ -285,6 +355,67 @@ EAVL_HOSTONLY void eavlRayCamera::generatePixelIndexes()
     delete mortonCodes;
 	}
 
+}
+
+EAVL_HOSTONLY void eavlRayCamera::createRaysSubset(eavlRay* rays, int &xmin, int &ymin, int &dx, int &dy)
+{
+  //this is a subset of the current size.
+  int subsetSize = dx * dy;
+ if( !isResDirty && !isViewDirty && rays->numRays == subsetSize) 
+    { 
+      cerr<<"No rays to create\n"; 
+      eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx), //dummy arg
+                                              eavlOpArgs(rays->hitIdx),
+                                              IntMemsetFunctor(-1)),
+                                              "init");
+      eavlExecutor::Go();
+      return;
+    }
+
+    if(isResDirty || rays->numRays != subsetSize)
+    {
+    	if(isResDirty)
+    	{
+    		delete pixelIndexes;
+    		pixelIndexes =  new eavlIntArray("",1,subsetSize);
+    	}
+
+    	if(rays->numRays != subsetSize) rays->resize(subsetSize);
+    	generatePixelIndexes();
+    }
+    isResDirty = false;
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(pixelIndexes), //dummy arg
+                                             eavlOpArgs(rays->rayOriginX,rays->rayOriginY,rays->rayOriginZ),
+                                             FloatMemsetFunctor3to3(position.x,position.y,position.z)),
+                                             "init");
+    eavlExecutor::Go();
+    if(lookAtSet)
+    {
+      look = lookat - position;
+      look.normalize();  
+    }
+    
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(pixelIndexes),
+                                             eavlOpArgs(rays->rayDirX ,rays->rayDirY, rays->rayDirZ),
+                                             PerspectiveSubsetRayGenFunctor(width, 
+                                                                            height, 
+                                                                            fovx, 
+                                                                            fovy, 
+                                                                            look, 
+                                                                            up, 
+                                                                            zoom,
+                                                                            dx,
+                                                                            dy,
+                                                                            xmin,
+                                                                            ymin)),
+                                             "ray gen");
+    eavlExecutor::Go();
+
+    eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(rays->hitIdx), //dummy arg
+                                             eavlOpArgs(rays->hitIdx),
+                                             IntMemsetFunctor(0)),
+                                             "init");
+    eavlExecutor::Go();
 }
 
 EAVL_HOSTONLY void eavlRayCamera::createRays(eavlRay* rays)

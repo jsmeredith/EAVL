@@ -25,15 +25,15 @@ texture<float4> cmap_tref;
 eavlConstTexArray<float4>* color_map_array;
 eavlConstTexArray<float4>* scalars_array;
 
-#define PASS_ESTIMATE_FACTOR  5.f
+#define PASS_ESTIMATE_FACTOR  1.5f
 eavlSimpleVRMutator::eavlSimpleVRMutator()
 {   
     cpu = eavlRayExecutionMode::isCPUOnly();
 
 
     opacityFactor = 1.f;
-    height = 500;
-    width  = 500;    
+    height = 100;
+    width  = 100;    
     setNumPasses(1); //default number of passes
     samples                = NULL;
     framebuffer            = NULL;
@@ -80,6 +80,16 @@ eavlSimpleVRMutator::eavlSimpleVRMutator()
 
     setDefaultColorMap(); 
     isTransparentBG = false;
+    
+    //
+    // Init sample buffer
+    // 
+    dx = width;
+    dy = height;
+    dz = nSamples;
+    xmin = 0;
+    ymin = 0;
+    zmin = 0;  
 }
 
 eavlSimpleVRMutator::~eavlSimpleVRMutator()
@@ -152,7 +162,19 @@ void eavlSimpleVRMutator::getBBoxPixelExtent(eavlPoint3 &smins, eavlPoint3 &smax
             }
         }
     }
-
+  
+  
+    xmin-=.001f;
+    xmax+=.001f;
+    ymin-=.001f;
+    ymax+=.001f;
+    zmin+=.001f;
+    xmin = floor(fminf(fmaxf(0.f, xmin),view.w));
+    xmax = ceil(fminf(fmaxf(0.f, xmax),view.w));
+    ymin = floor(fminf(fmaxf(0.f, ymin),view.h));
+    ymax = ceil(fminf(fmaxf(0.f, ymax),view.h));
+    zmin = floor(fminf(fmaxf(0.f, zmin),nSamples));
+    zmax = ceil(fminf(fmaxf(0.f, zmax),nSamples));
     smins.x = xmin;
     smins.y = ymin;
     smins.z = zmin;
@@ -160,9 +182,13 @@ void eavlSimpleVRMutator::getBBoxPixelExtent(eavlPoint3 &smins, eavlPoint3 &smax
     smaxs.x = xmax;
     smaxs.y = ymax;
     smaxs.z = zmax;
+    cout<<"BBOX "<<smins<<smaxs<<endl;
 }
 
-//When this is called, all tets passed in are in screen space
+//
+//  TODO: This is no longer technically screen space. All coordinates
+//        are offset into "sample space" which is a subset of screen space.
+//
 struct ScreenSpaceFunctor
 {   
     float4 *xverts;
@@ -170,8 +196,11 @@ struct ScreenSpaceFunctor
     float4 *zverts;
     eavlView         view;
     int              nSamples;
-    ScreenSpaceFunctor(float4 *_xverts, float4 *_yverts,float4 *_zverts, eavlView _view, int _nSamples)
-    : view(_view), xverts(_xverts),yverts(_yverts),zverts(_zverts), nSamples(_nSamples)
+    float            xmin;
+    float            ymin;
+    float            zmin;
+    ScreenSpaceFunctor(float4 *_xverts, float4 *_yverts,float4 *_zverts, eavlView _view, int _nSamples, int _xmin, int _ymin, int _zmin)
+    : view(_view), xverts(_xverts),yverts(_yverts),zverts(_zverts), nSamples(_nSamples), xmin(_xmin), ymin(_ymin), zmin(_zmin)
     {}
 
     EAVL_FUNCTOR tuple<float,float,float,float,float,float,float,float,float,float,float,float> operator()(tuple<int> iterator)
@@ -197,9 +226,9 @@ struct ScreenSpaceFunctor
             // if(t.x > 1 || t.x < -1) clipped = 1;
             // if(t.y > 1 || t.y < -1) clipped = 1;
             // if(t.z > 1 || t.z < -1) clipped = 1;
-            p[i].x = (t.x*.5+.5)  * view.w;
-            p[i].y = (t.y*.5+.5)  * view.h;
-            p[i].z = (t.z*.5+.5)  * (float) nSamples;
+            p[i].x = (t.x*.5+.5)  * view.w -xmin;
+            p[i].y = (t.y*.5+.5)  * view.h - ymin;
+            p[i].z = (t.z*.5+.5)  * (float) nSamples -zmin;
             //cout<<"After "<<p[i]<<endl;
         }
         
@@ -220,16 +249,18 @@ struct PassRange
     float4 *yverts;
     float4 *zverts;
     eavlView         view;
-    int              nSamples;
+    int              nSamples; // this is now the number of samples that the inside image space
     float            mindepth;
     float            maxdepth;
     int              numPasses;
     int              passStride;
-    PassRange(float4 *_xverts, float4 *_yverts,float4 *_zverts, eavlView _view, int _nSamples, int _numPasses)
-    : view(_view), xverts(_xverts),yverts(_yverts),zverts(_zverts), nSamples(_nSamples), numPasses(_numPasses)
+    float            zmin;// need this to transate into "sample space"
+    int              dz;
+    PassRange(float4 *_xverts, float4 *_yverts,float4 *_zverts, eavlView _view, int _nSamples, int _numPasses, int _zmin, int _dz)
+    : view(_view), xverts(_xverts),yverts(_yverts),zverts(_zverts), nSamples(_nSamples), numPasses(_numPasses), zmin(_zmin), dz(_dz)
     {
        
-        passStride = nSamples / numPasses;
+        passStride = dz / numPasses;
         //if it is not evenly divided add one pixel row so we cover all pixels
         if(((int)nSamples % numPasses) != 0) passStride++;
         
@@ -260,7 +291,7 @@ struct PassRange
             if(t.z > 1 || t.z < -1) clipped = 1;
             p[i].x = (t.x*.5+.5)  * view.w;
             p[i].y = (t.y*.5+.5)  * view.h;
-            p[i].z = (t.z*.5+.5)  * (float) nSamples;
+            p[i].z = (t.z*.5+.5)  * (float) nSamples - zmin; //into sample space
 
         }
         for(int i=0; i<4; i++)
@@ -278,7 +309,7 @@ struct PassRange
         if(clipped == 1) return tuple<byte,byte>(255,255); //not part of any pass
         int minPass = 0;
         int maxPass = 0;
-        
+        // now transate into sample space
         minPass = mine[2] / passStride; //min z coord
         maxPass = maxe[2] / passStride; //max z coord
     
@@ -309,6 +340,9 @@ float EAVL_HOSTDEVICE ffmax(const float &a, const float &b)
     
 }
 
+//
+// Incoming coordinate are in sample space
+//
 struct SampleFunctor3
 {   
     const eavlConstTexArray<float4> *scalars;
@@ -319,14 +353,20 @@ struct SampleFunctor3
     int              passMinZPixel;
     int              passMaxZPixel;
     int              zSize;
-    SampleFunctor3(const eavlConstTexArray<float4> *_scalars, eavlView _view, int _nSamples, float* _samples, int _passMinZPixel, int _passMaxZPixel,int numZperPass, float* _fb)
-    : view(_view), scalars(_scalars), nSamples(_nSamples), samples(_samples)
+    int              dx;
+    int              dy;
+    int              dz;
+    int              minx;
+    int              miny;
+    SampleFunctor3(const eavlConstTexArray<float4> *_scalars, eavlView _view, int _nSamples, float* _samples, int _passMinZPixel, int _passMaxZPixel,int numZperPass, float* _fb, int _dx, int _dy, int _dz, int _minx, int _miny)
+    : view(_view), scalars(_scalars), nSamples(_nSamples), samples(_samples), dx(_dx), dy(_dy), dz(_dz), minx(_minx), miny(_miny)
     {
         
-        passMaxZPixel  = min(int(nSamples-1), _passMaxZPixel);
+        passMaxZPixel  = min(int(dz-1), _passMaxZPixel);
         passMinZPixel  = max(0, _passMinZPixel);
         zSize = numZperPass;
         fb = _fb;
+        printf("Min and max z pixel : %d %d \n", passMinZPixel, passMaxZPixel);
     }
 
     EAVL_FUNCTOR tuple<float> operator()(tuple<int,float,float,float,float,float,float,float,float,float,float,float,float> inputs )
@@ -396,8 +436,8 @@ struct SampleFunctor3
 
         // for(int i = 0; i < 3; i++) mine[i] = max(mine[i],0.f);
         // /*clamp*/
-        maxe[0] = min(float(view.w-1), maxe[0]); //??  //these lines cost 14 registers
-        maxe[1] = min(float(view.h - 1.f), maxe[1]);
+        maxe[0] = min(float(dx-1.f), maxe[0]); //??  //these lines cost 14 registers
+        maxe[1] = min(float(dy - 1.f), maxe[1]);
         maxe[2] = min(float(passMaxZPixel), maxe[2]);
         mine[2] = max(float(passMinZPixel), mine[2]);
         //cout<<p[0]<<p[1]<<p[2]<<p[3]<<endl;
@@ -410,16 +450,16 @@ struct SampleFunctor3
 
         float4 s = scalars->getValue(scalars_tref, tet);
 
-        for(int z = zmin; z <= zmax; ++z)
+        for(int x = xmin; x <= xmax; ++x)
         {
             for(int y = ymin; y <= ymax; ++y)
             { 
-                //int pixel = ( y * view.w + x);
-                //if(fb[pixel * 4 + 3] >= 1) {continue;}
+                int pixel = ( (y+miny) * view.w + x + minx);
+                if(fb[pixel * 4 + 3] >= 1) {continue;} //TODO turn this on using sample space to screen space
                 
-                int startindex = view.w*(y + view.h*(z -passMinZPixel));
+                int startindex = (y * dx + x) * zSize;//dx*(y + dy*(z -passMinZPixel));
                 #pragma ivdep
-                for(int x=xmin; x<=xmax; ++x)
+                for(int z=zmin; z<=zmax; ++z)
                 {
 
                     float w1 = x - p[0].x; 
@@ -440,7 +480,7 @@ struct SampleFunctor3
 
                     float w0 = 1.f - w1 - w2 - w3;
 
-                    int index3d = (x + startindex);//;startindex + z;
+                    int index3d = startindex + z;
                     float lerped = w0*s.x + w1*s.y + w2*s.z + w3*s.w;
                     float a = ffmin(w0,ffmin(w1,ffmin(w2,w3)));
                     float b = ffmax(w0,ffmax(w1,ffmax(w2,w3)));
@@ -475,19 +515,22 @@ struct CompositeFunctorFB
     int              zOffest;
     bool             finalPass;
     int              maxSIndx;
-    int 			 minZPixel;
-    float4           bgColor;
-    CompositeFunctorFB( eavlView _view, int _nSamples, float* _samples, const eavlConstTexArray<float4> *_colorMap, int _ncolors, eavlPoint3 _minComposite, eavlPoint3 _maxComposite, int _zOffset, bool _finalPass, int _maxSIndx, int _minZPixel, eavlColor _bgColor)
-    : view(_view), nSamples(_nSamples), samples(_samples), colorMap(_colorMap), ncolors(_ncolors), minComposite(_minComposite), maxComposite(_maxComposite), finalPass(_finalPass), maxSIndx(_maxSIndx)
+    int 			       minZPixel;
+
+    int              dx;
+    int              dy;
+    //int              dz;
+    int              xmin;
+    int              ymin;
+
+    CompositeFunctorFB( eavlView _view, int _nSamples, float* _samples, const eavlConstTexArray<float4> *_colorMap, int _ncolors, eavlPoint3 _minComposite, eavlPoint3 _maxComposite, int _zOffset, bool _finalPass, int _maxSIndx, int _minZPixel, int _dx, int _dy, int _xmin, int _ymin)
+    : view(_view), nSamples(_nSamples), samples(_samples), colorMap(_colorMap), ncolors(_ncolors), minComposite(_minComposite), maxComposite(_maxComposite), finalPass(_finalPass), maxSIndx(_maxSIndx),
+      dx(_dx), dy(_dy), xmin(_xmin), ymin(_ymin)
     {
         w = view.w;
         h = view.h;
         zOffest = _zOffset;
         minZPixel = _minZPixel;
-        bgColor.x = _bgColor.c[0];
-        bgColor.y = _bgColor.c[1];
-        bgColor.z = _bgColor.c[2];
-        bgColor.w = _bgColor.c[3];
     }
  
     EAVL_FUNCTOR tuple<float,float,float,float,int> operator()(tuple<int, float, float, float, float, int> inputs )
@@ -499,19 +542,21 @@ struct CompositeFunctorFB
         //get the incoming color and return if the opacity is already 100%
         float4 color= {get<1>(inputs),get<2>(inputs),get<3>(inputs),get<4>(inputs)};
         if(color.w >= 1) return tuple<float,float,float,float,int>(color.x, color.y, color.z,color.w, minZsample);
-
+        
+        x-= xmin;
+        y-= ymin;
         //pixel outside the AABB of the data set
-        if((x < minComposite.x || x > maxComposite.x) ||( y < minComposite.y || y > maxComposite.y ))
+        if((x >= dx) || (x < 0) || ( y >= dy) || (y < 0))
         {
-            return tuple<float,float,float,float,int>(bgColor.x, bgColor.y, bgColor.z, bgColor.w, minZsample);
+            return tuple<float,float,float,float,int>(0.f,0.f,0.f,0.f, minZsample);
         }
         
         for(int z = 0 ; z < zOffest; z++)
         {
                 //(x + view.w*(y + zSize*z));
-            int index3d = (x + w*(y + h*(z))) ;//(y*w + x)*zOffest + z;
+            int index3d = (y*dx + x)*zOffest + z;//(x + dx*(y + dy*(z))) ;//
             
-            
+            //printf("Coord = (%f,%f,%f) %d ",x,y,z, index3d);
             float value =  samples[index3d];//tsamples->getValue(samples_tref, index3d);// samples[index3d];
             
             if (value <= 0.f || value > 1.f)
@@ -524,7 +569,7 @@ struct CompositeFunctorFB
             color.y = color.y  + c.y * c.w;
             color.z = color.z  + c.z * c.w;
             color.w = c.w + color.w;
-			minZsample = min(minZsample, minZPixel + z); //we need the closest sample to get depth buffer 
+			      minZsample = min(minZsample, minZPixel + z); //we need the closest sample to get depth buffer 
             if(color.w >=1 ) break;
 
         }
@@ -740,10 +785,11 @@ void eavlSimpleVRMutator::init()
     {   
         setNumPasses(numPasses);
         if(verbose) cout<<"Size Dirty"<<endl;
+       
         deleteClassPtr(samples);
         deleteClassPtr(framebuffer);
-        
         deleteClassPtr(zBuffer);
+        deleteClassPtr(minSample);
         
         samples         = new eavlFloatArray("",1,pixelsPerPass);
         framebuffer     = new eavlFloatArray("",1,height*width*4);
@@ -949,7 +995,26 @@ void  eavlSimpleVRMutator::Execute()
         numTets = tets;
     }
     if(verbose) cout<<"Num Tets = "<<numTets<<endl;
-
+    
+    // Pixels extents are used to skip empty space in compositing
+    // and for allocating sample buffer
+    eavlPoint3 mins(scene->getSceneBBox().min.x,scene->getSceneBBox().min.y,scene->getSceneBBox().min.z);
+    eavlPoint3 maxs(scene->getSceneBBox().max.x,scene->getSceneBBox().max.y,scene->getSceneBBox().max.z);
+    getBBoxPixelExtent(mins,maxs);
+    //
+    //  Set sample buffer information
+    //
+    xmin = mins.x;
+    ymin = mins.y;
+    zmin = mins.z;
+    int new_dx = maxs.x - mins.x;
+    int new_dy = maxs.y - mins.y;
+    int new_dz = maxs.z - mins.z;
+    if(new_dx != dx || new_dy != dy || new_dz != dz) sizeDirty = true;
+    dx = new_dx;
+    dy = new_dy;
+    dz = new_dz;
+    
     int tinit;
     if(verbose) tinit = eavlTimer::Start();
     init();
@@ -1019,12 +1084,6 @@ void  eavlSimpleVRMutator::Execute()
     }
     if(verbose) cout<<"Init        RUNTIME: "<<eavlTimer::Stop(tinit,"init")<<endl;
 
-
-    // Pixels extents are used to skip empty space in compositing.
-    eavlPoint3 mins(scene->getSceneBBox().min.x,scene->getSceneBBox().min.y,scene->getSceneBBox().min.z);
-    eavlPoint3 maxs(scene->getSceneBBox().max.x,scene->getSceneBBox().max.y,scene->getSceneBBox().max.z);
-    getBBoxPixelExtent(mins,maxs);
-
     int ttot;
     if(verbose) ttot = eavlTimer::Start();
 
@@ -1079,7 +1138,7 @@ void  eavlSimpleVRMutator::Execute()
         //find the min and max passes the tets belong to
         eavlExecutor::AddOperation(new_eavlMapOp(eavlOpArgs(iterator),
                                              eavlOpArgs(minPasses, maxPasses),
-                                             PassRange(xtet,ytet,ztet, view, nSamples, numPasses)),
+                                             PassRange(xtet,ytet,ztet, view, nSamples, numPasses, zmin,dz)),
                                              "PassFilter");
         eavlExecutor::Go(); 
     }
@@ -1088,9 +1147,10 @@ void  eavlSimpleVRMutator::Execute()
     if(verbose) passFilterTime =  eavlTimer::Stop(ttrans,"ttrans");
         
     
-    //cout<<"Pass Z stride "<<passZStride<<endl;
+    cout<<"Pass Z stride "<<passZStride<<endl;
     for(int i = 0; i < numPasses; i++)
     {
+        // ins sample space
         int pixelZMin = passZStride * i;
         int pixelZMax = passZStride * (i + 1) - 1;
       
@@ -1134,7 +1194,7 @@ void  eavlSimpleVRMutator::Execute()
                                                                 eavlIndexable<eavlFloatArray>(ssd,*i1),
                                                                 eavlIndexable<eavlFloatArray>(ssd,*i2),
                                                                 eavlIndexable<eavlFloatArray>(ssd,*i3)),
-                                                    ScreenSpaceFunctor(xtet,ytet,ztet,view, nSamples),passSize),
+                                                    ScreenSpaceFunctor(xtet,ytet,ztet,view, nSamples, xmin,ymin,zmin),passSize),
                                                     "Screen Space transform");
             eavlExecutor::Go();
     
@@ -1155,7 +1215,7 @@ void  eavlSimpleVRMutator::Execute()
                                                         eavlIndexable<eavlFloatArray>(ssd,*i2),
                                                         eavlIndexable<eavlFloatArray>(ssd,*i3)),
                                                         eavlOpArgs(eavlIndexable<eavlFloatArray>(dummy,*idummy)), 
-                                                     SampleFunctor3(scalars_array, view, nSamples, samplePtr, pixelZMin, pixelZMax, passZStride, alphaPtr),passSize),
+                                                     SampleFunctor3(scalars_array, view, nSamples, samplePtr, pixelZMin, pixelZMax, passZStride, alphaPtr, dx, dy,dz, xmin,ymin),passSize),
                                                      "Sampler");
             eavlExecutor::Go();
             
@@ -1180,7 +1240,7 @@ void  eavlSimpleVRMutator::Execute()
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ib),
                                                                  eavlIndexable<eavlFloatArray>(framebuffer,*ia),
                                                                  eavlIndexable<eavlIntArray>(minSample)),
-                                                     CompositeFunctorFB( view, nSamples, samplePtr, color_map_array, colormapSize, mins, maxs, passZStride, finalPass, pixelsPerPass,pixelZMin, bgColor), width*height),
+                                                     CompositeFunctorFB( view, nSamples, samplePtr, color_map_array, colormapSize, mins, maxs, passZStride, finalPass, pixelsPerPass,pixelZMin, dx,dy,xmin,ymin), width*height),
                                                      "Composite");
             eavlExecutor::Go();
             if(verbose) compositeTime += eavlTimer::Stop(tcomp,"tcomp");
@@ -1507,4 +1567,13 @@ eavlByteArray * eavlSimpleVRMutator::getFrameBuffer()
                                              "set");
     eavlExecutor::Go();
     return rgba;
+}
+
+void eavlSimpleVRMutator::getImageSubsetDims(int *dims)
+{
+  dims[0] = xmin;
+  dims[1] = ymin;
+  dims[2] = dx;
+  dims[3] = dy;
+
 }

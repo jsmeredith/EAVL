@@ -36,10 +36,11 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
   public:
     eavlSceneRendererSimplePVR()
     {
-        numSamples = 200;
+        numSamples = 500;
         vr = new eavlSimpleVRMutator();
-        vr->setVerbose(false);
+        vr->setVerbose(true);
         vr->setNumSamples(numSamples);
+        vr->setNumPasses(2);
         doOnce = true;
         ctName = "";
         customColorTable = false;
@@ -168,17 +169,15 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
         vr->Execute();
         cerr<<"\nTotal Frame Time   : "<<eavlTimer::Stop(tframe,"")<<endl;
     }
-
+    void getImageSubsetDims(int *dims)
+    {
+      vr->getImageSubsetDims(dims);
+    }
     virtual unsigned char *GetRGBAPixels()
     {
-        cout<<"Getting pixels"<<endl;
+        //cout<<"Getting pixels"<<endl;
         unsigned char * pixels = (unsigned char *) vr->getFrameBuffer()->GetHostArray();
         //writeFrameBufferBMP(500, 500, vr->getFrameBuffer(), "output.bmp");
-        for(int i = 0; i <1000; i++)
-        {
-            //cout<<(int)pixels[i*4 + 0]<<","<<(int)pixels[i*4 + 2]<<","<<(int)pixels[i*4 + 2]<<","<<(int)pixels[i*4 + 3]<<" ";
-            
-        }
         return pixels;
     }
 
@@ -188,12 +187,6 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
         float proj23=view.P(2,3);
         float proj32=view.P(3,2);
         float *zBuffer = (float *) vr->getDepthBuffer(proj22,proj23,proj32)->GetHostArray();
-        for(int i = 0; i <view.h*view.w; i++)
-        {
-            //cout<<zBuffer[i]<<" ";
-            //zBuffer[i] = .90001f;
-            
-        }
         return zBuffer;
     }
 

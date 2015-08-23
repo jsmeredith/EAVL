@@ -13,6 +13,7 @@ class eavlRayCamera
   	EAVL_HOSTONLY ~eavlRayCamera();
 	EAVL_HOSTONLY void  printSummary();
 	EAVL_HOSTONLY void  createRays(eavlRay* rays);
+	EAVL_HOSTONLY void  createRaysSubset(eavlRay* rays, int &xmin, int &ymin, int &dx, int &dy);
 	EAVL_HOSTONLY void  createJitterRays(eavlRay* rays, eavlIntArray *seeds, int sampleNum);
 	EAVL_HOSTONLY void  createDOFRays(eavlRay* rays, eavlIntArray *seeds, int sampleNum, float apertureSize);
 	EAVL_HOSTONLY void  setWidth(const int &_width);

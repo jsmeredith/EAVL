@@ -1,12 +1,17 @@
 #ifndef EAVL_RT_PRIMITIVE_H
 #define EAVL_RT_PRIMITIVE_H
-
+#include <limits>
 struct BBox {
 	eavlVector3 min, max, extent;
 	int count;
 	EAVL_HOSTDEVICE BBox() 
 	{
-		
+		min.x = 1e9;
+		min.y = 1e9;
+		min.z = 1e9;
+		max.x = -1e9;
+		max.y = -1e9;
+		max.z = -1e9;
 	 }
 	EAVL_HOSTDEVICE BBox(const eavlVector3& min, const eavlVector3& max): min(min), max(max)
 	{ 
@@ -30,12 +35,12 @@ struct BBox {
 
 	EAVL_HOSTDEVICE void clear()
 	{
-		min.x = 1000000;
-		min.y = 1000000;
-		min.z = 1000000;
-		max.x = -1000000;
-		max.y = -1000000;
-		max.z = -1000000; 
+	  min.x = 1e9;
+		min.y = 1e9;
+		min.z = 1e9;
+		max.x = -1e9;
+		max.y = -1e9;
+		max.z = -1e9;
 		extent.x = 0;
 		extent.y = 0;
 		extent.z = 0;

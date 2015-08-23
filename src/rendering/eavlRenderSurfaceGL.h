@@ -174,7 +174,7 @@ class eavlRenderSurfaceGL : public eavlRenderSurface
 
         glColor3fv(eavlColor::white.c);
 
-        float depth = 0.99;
+        float depth = 0.2;
         glBegin(GL_QUADS);
         glTexCoord1f(0);
         glVertex3f(x,y,depth);
