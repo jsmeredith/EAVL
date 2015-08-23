@@ -38,7 +38,7 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
     {
         numSamples = 500;
         vr = new eavlSimpleVRMutator();
-        vr->setVerbose(true);
+        vr->setVerbose(false);
         vr->setNumSamples(numSamples);
         vr->setNumPasses(2);
         doOnce = true;
@@ -165,9 +165,9 @@ class eavlSceneRendererSimplePVR : public eavlSceneRenderer
         vr->setBGColor(surface->bgColor);
         vr->setView(view);
         
-        int tframe = eavlTimer::Start();
+        //int tframe = eavlTimer::Start();
         vr->Execute();
-        cerr<<"\nTotal Frame Time   : "<<eavlTimer::Stop(tframe,"")<<endl;
+        //cerr<<"\nTotal Frame Time   : "<<eavlTimer::Stop(tframe,"")<<endl;
     }
     void getImageSubsetDims(int *dims)
     {

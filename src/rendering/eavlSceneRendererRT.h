@@ -204,7 +204,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
     {        
     
         if(imageSubsetEnabled) tracer->enableImageSubset(view);
-        int tframe = eavlTimer::Start();
+        //int tframe = eavlTimer::Start();
         //cout<<"Triangles "<<tracer->scene->getNumTriangles()<<endl;
         eavlRayCamera * camera = tracer->camera;
         //tracer->setDefaultMaterial(Ka,Kd,Ks);
@@ -252,7 +252,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
 
         tracer->render();
         
-        cerr<<"\nTotal Frame Time   : "<<eavlTimer::Stop(tframe,"")<<endl;
+        //cerr<<"\nTotal Frame Time   : "<<eavlTimer::Stop(tframe,"")<<endl;
     }
 
     virtual unsigned char *GetRGBAPixels()
