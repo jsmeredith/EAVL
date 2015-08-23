@@ -791,7 +791,7 @@ void eavlRayTracer::findImageExtent()
     xmax = ceil(fminf(fmaxf(0.f, xmax),view.w));
     ymin = floor(fminf(fmaxf(0.f, ymin),view.h));
     ymax = ceil(fminf(fmaxf(0.f, ymax),view.h));
-    printf("Pixel range = (%f,%f,%f), (%f,%f,%f)\n", xmin, ymin,zmin, xmax,ymax,zmax);
+    //printf("Pixel range = (%f,%f,%f), (%f,%f,%f)\n", xmin, ymin,zmin, xmax,ymax,zmax);
     int dx = int(xmax) - int(xmin);
     int dy = int(ymax) - int(ymin);
 
@@ -809,8 +809,8 @@ void eavlRayTracer::findImageExtent()
     subsetMinx = int(xmin);
     subsetMiny = int(ymin);
     int numPixels = dx * dy;
-    printf("Dx %d dy %d\n", dx, dy);
-    printf("Subset of  %d out of %d at corner (%f,%f)\n", numPixels, int(view.h)*int(view.w), xmin, ymin);
+    //printf("Dx %d dy %d\n", dx, dy);
+    //printf("Subset of  %d out of %d at corner (%f,%f)\n", numPixels, int(view.h)*int(view.w), xmin, ymin);
     
     
 }
