@@ -25,7 +25,7 @@ texture<float4> cmap_tref;
 eavlConstTexArray<float4>* color_map_array;
 eavlConstTexArray<float4>* scalars_array;
 
-#define PASS_ESTIMATE_FACTOR  1.5f
+#define PASS_ESTIMATE_FACTOR  2.5f
 eavlSimpleVRMutator::eavlSimpleVRMutator()
 {   
     cpu = eavlRayExecutionMode::isCPUOnly();
