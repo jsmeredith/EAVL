@@ -212,9 +212,9 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         camera->setHeight(view.h);
         tracer->setBackgroundColor(surface->bgColor.c[0],surface->bgColor.c[1],surface->bgColor.c[2]);
         float magnitude=tracer->scene->getSceneExtentMagnitude();
-        tracer->setOcclusionSamples(4);
-        tracer->setOcclusionDistance(magnitude*.2f);
-		    tracer->setOcclusionOn(false);
+        //tracer->setOcclusionSamples(4);
+        //tracer->setOcclusionDistance(magnitude*.2f);
+		//tracer->setOcclusionOn(false);
 		    
         /*Set up field of view: tracer takes the half FOV in degrees*/
         float fovx= 2.f*atan(tan(view.view3d.fov/2.f)*view.w/view.h);
@@ -231,7 +231,7 @@ class eavlSceneRendererRT : public eavlSceneRenderer
         camera->setCameraPosition(view.view3d.from.x,view.view3d.from.y,view.view3d.from.z);
         camera->lookAtPosition(view.view3d.at.x,view.view3d.at.y,view.view3d.at.z);
         camera->setCameraUp(up.x,up.y,up.z);
-		    eyeLight = true;
+		eyeLight = true;
         /*Otherwise the light will move with the camera*/
         if(eyeLight)//setLight)
         {

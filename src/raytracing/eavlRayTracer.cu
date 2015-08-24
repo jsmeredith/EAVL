@@ -739,7 +739,7 @@ void eavlRayTracer::findImageExtent()
 {
 
     BBox *bbox = scene->getBBox();
-    cout<<"Bounding box "<<bbox->min<<bbox->max<<endl;
+    //cout<<"Bounding box "<<bbox->min<<bbox->max<<endl;
     double x[2], y[2], z[2];
     x[0] = bbox->min.x;
     y[0] = bbox->min.y;
