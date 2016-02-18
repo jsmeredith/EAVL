@@ -323,20 +323,13 @@ struct PassRange
 
 float EAVL_HOSTDEVICE ffmin(const float &a, const float &b)
 {
-    #if __CUDA_ARCH__
-        return fmin(a,b);
-    #else
-        return (a > b) ? b : a;
-    #endif
+    return (a > b) ? b : a;
 }
 
 float EAVL_HOSTDEVICE ffmax(const float &a, const float &b)
 {
-     #if __CUDA_ARCH__
-        return fmax(a,b);
-    #else
-        return (a > b) ? a : b;
-    #endif
+
+    return (a > b) ? a : b;
     
 }
 
