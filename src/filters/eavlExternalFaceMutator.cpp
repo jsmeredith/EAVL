@@ -5,6 +5,9 @@
 #include "eavlCellComponents.h"
 #include "eavlCellSetAllFacesOfStructured.h"
 #include "eavlCellSetAllFacesOfExplicit.h"
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 eavlExternalFaceMutator::eavlExternalFaceMutator()
 {
@@ -24,6 +27,7 @@ eavlExternalFaceMutator::Execute()
     vector<int> faceCount(nf,0);
     vector<int> faceCell(nf,-1);
     int nc = inCells->GetNumCells();
+    #pragma omp parallel for
     for (int i=0; i<nc; i++)
     {
         eavlCell faces = inCells->GetCellFaces(i);
@@ -35,6 +39,7 @@ eavlExternalFaceMutator::Execute()
     }
 
     int n_ext = 0;
+    #pragma omp parallel for reduction(+:n_ext)
     for (int i=0; i<nf; i++)
     {
         if (faceCount[i] == 1)
@@ -76,19 +81,26 @@ eavlExternalFaceMutator::Execute()
         //THROW(eavlException, "Unsupported cell set type");
     }
 
+    if(outputCellSetName.empty())
+        outputCellSetName = string("extface_of_")+inCells->GetName();
     eavlCellSetExplicit *outCells =
-        new eavlCellSetExplicit(string("extface_of_")+inCells->GetName(), 2);
+        new eavlCellSetExplicit(outputCellSetName, 2);
     eavlExplicitConnectivity conn;
+    
+    #pragma omp parallel for
     for (int i=0; i<nf; i++)
     {
         if (faceCount[i] == 1)
         {
             eavlCell face = faceCellSet->GetCellNodes(i);
-            conn.shapetype.push_back(face.type);
-            conn.connectivity.push_back(face.numIndices);
-            for (int j=0; j<face.numIndices; j++)
+            #pragma omp critical
             {
+              conn.shapetype.push_back(face.type);
+              conn.connectivity.push_back(face.numIndices);
+              for (int j=0; j<face.numIndices; j++)
+              {
                 conn.connectivity.push_back(face.indices[j]);
+              }
             }
         }
     }
@@ -127,7 +139,7 @@ eavlExternalFaceMutator::Execute()
             }
             eavlField *outField = new eavlField(0, outArray,
                                                 eavlField::ASSOC_CELL_SET,
-                                                outCells->GetName());            
+                                                outCells->GetName());
             dataset->AddField(outField);
         }
     }

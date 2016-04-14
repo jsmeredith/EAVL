@@ -3,13 +3,16 @@
 #include "eavlCellSetExplicit.h"
 #include "eavlCellSetAllPoints.h"
 #include "eavlException.h"
-
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 eavlThresholdMutator::eavlThresholdMutator()
 {
     minval = -FLT_MAX;
     minval = +FLT_MAX;
     all_points_required = false;
+    outputCellSetName = "";
 }
 
 
@@ -31,21 +34,22 @@ eavlThresholdMutator::Execute()
 
     eavlArray *inArray = inField->GetArray();
 
-    vector<int> newcells;
     int in_ncells = inCells->GetNumCells();
+    vector<int> newcells(in_ncells, -1);
     if (fieldAssociation == eavlField::ASSOC_CELL_SET)
-    {
+    {        #pragma omp parallel for
         for (int i=0; i<in_ncells; i++)
         {
             if (inArray->GetComponentAsDouble(i,0) >= minval &&
                 inArray->GetComponentAsDouble(i,0) <= maxval)
             {
-                newcells.push_back(i);
-            }            
+                //newcells.push_back(i);
+                newcells[i] = i;
+            }
         }
     }
     else // (fieldAssociation == eavlField::ASSOC_POINTS)
-    {
+    {        #pragma omp parallel for
         for (int i=0; i<in_ncells; i++)
         {
             bool all_in = true;
@@ -63,25 +67,37 @@ eavlThresholdMutator::Execute()
             if (all_points_required)
             {
                 if (all_in)
-                    newcells.push_back(i);
+                {
+                    //newcells.push_back(i);
+                    newcells[i] = i;
+                }
             }
             else
             {
                 if (some_in)
-                    newcells.push_back(i);
+                {                     //newcells.push_back(i);
+                     newcells[i] = i;                }
             }
         }
+        
+        newcells.erase(
+          std::remove(newcells.begin(), newcells.end(), -1),
+          newcells.end());
     }
     unsigned int numnewcells = newcells.size();
 
     eavlExplicitConnectivity conn;
+    #pragma omp parallel for
     for (unsigned int i=0; i<numnewcells; ++i)
     {
         eavlCell cell = inCells->GetCellNodes(newcells[i]);
+        #pragma omp critical
         conn.AddElement(cell);
     }
 
-    eavlCellSetExplicit *subset = new eavlCellSetExplicit(string("threshold_of_")+inCells->GetName(),
+    if(outputCellSetName.empty())
+        outputCellSetName = string("threshold_of_")+inCells->GetName();
+    eavlCellSetExplicit *subset = new eavlCellSetExplicit(outputCellSetName,
                                                           inCells->GetDimensionality());
     subset->SetCellNodeConnectivity(conn);
 
@@ -96,7 +112,7 @@ eavlThresholdMutator::Execute()
         {
             int numcomp = f->GetArray()->GetNumberOfComponents();
             eavlFloatArray *a = new eavlFloatArray(
-                                 string("subset_of_")+f->GetArray()->GetName(),
+                                 string("threshold_of_")+f->GetArray()->GetName(),
                                  numcomp, numnewcells);
             for (unsigned int j=0; j < numnewcells; j++)
             {

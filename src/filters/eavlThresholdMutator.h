@@ -23,7 +23,7 @@ class eavlThresholdMutator : public eavlMutator
 {
   protected:
     double minval, maxval;
-    string fieldname, cellsetname;
+    string fieldname, cellsetname, outputCellSetName;
     bool all_points_required;
   public:
     eavlThresholdMutator();
@@ -43,6 +43,10 @@ class eavlThresholdMutator : public eavlMutator
     void SetNodalThresholdAllPointsRequired(bool apr)
     {
         all_points_required = apr;
+    }
+    void SetOutputCellSetName(const string &name)
+    {
+        outputCellSetName = name;
     }
     
     virtual void Execute();

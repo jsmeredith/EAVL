@@ -20,13 +20,17 @@
 class eavlExternalFaceMutator : public eavlMutator
 {
   protected:
-    string cellsetname;
+    string cellsetname, outputCellSetName;
   public:
     eavlExternalFaceMutator();
     virtual ~eavlExternalFaceMutator();
     void SetCellSet(const string &name)
     {
         cellsetname = name;
+    }
+    void SetOutputCellSetName(const string &name)
+    {
+        outputCellSetName = name;
     }
     
     virtual void Execute();
