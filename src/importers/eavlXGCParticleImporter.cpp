@@ -100,7 +100,6 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(   const string &filename,
     else
         readingRestartFile = 0;
 
-
     char    hostname[MPI_MAX_PROCESSOR_NAME];
     char    str [256];
     int     len = 0;
@@ -109,11 +108,14 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(   const string &filename,
     MPI_Comm_size(comm,&numMPITasks);
     MPI_Comm_rank(comm,&mpiRank);
     MPI_Get_processor_name(hostname, &len);
-
-    fp = adios_read_open(filename.c_str(), method, comm, mode, timeout_sec);
+    
+    if(method == ADIOS_READ_METHOD_BP) //do not open stream if not staging
+        fp = adios_read_open_file(filename.c_str(), method, comm);
+    else
+        fp = adios_read_open(filename.c_str(), method, comm, mode, timeout_sec);
 
     if (fp == NULL)
-    {
+    {        cerr << __LINE__ << endl;
         if(adios_errno == err_end_of_stream)
         {
             printf ("End of stream, no more steps expected. Quit. %s\n",
@@ -128,7 +130,6 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(   const string &filename,
             THROW(eavlException, "XGC variable file not found.");
         }
     }
-
     Initialize();
 }
 
@@ -153,31 +154,36 @@ eavlXGCParticleImporter::~eavlXGCParticleImporter()
     igid.clear();
 }
 
+//The schedule read needs to have the time step paramater changed if we are 
+//opening as an adios file or stream. With streams there is only "1" ts, so 
+//we have to pass in 0.
 #define AdiosGetValue(fp, varid, data) \
-                adios_schedule_read_byid (fp, 0, varid, fp->current_step, 1, &data); \
+                adios_schedule_read_byid (fp, 0, varid, 0, 1, &data); \
                 adios_perform_reads (fp, 1);
 
 
 void
 eavlXGCParticleImporter::Initialize()
-{
+{    
     ephase.clear();
     iphase.clear();
     egid.clear();
     igid.clear();
-
     last_available_timestep = fp->last_step;
 
+    if(readingRestartFile) //check for restart file format
+    {        if(fp->nvars <= 25)
+            readingRestartFile = 0;    }
+    
+    
     if(readingRestartFile)
-    {
-        nvars = fp->nvars/13;
-
+    {        int numVarsPerGroup = 25;
+        nvars = fp->nvars/numVarsPerGroup;
         if(nvars <= mpiRank)
         {
             printf("Warning! :: Thread[%i] is wasting cycles :: too many processors for data\n", mpiRank);
             return;
         }
-
         //----Set indexes for each reader if there is more than one
         int endIndex;
         int startIndex = (nvars / numMPITasks) * mpiRank;
@@ -191,14 +197,15 @@ eavlXGCParticleImporter::Initialize()
             startIndex += nvars % numMPITasks;
             endIndex = startIndex + (nvars / numMPITasks);
         }
-        startIndex *= 13;
-        endIndex *= 13;
+        startIndex *= numVarsPerGroup;
+        endIndex *= numVarsPerGroup;
         //--
-
         for(int i = startIndex; i < endIndex; i++)
         {
             ADIOS_VARINFO *avi = adios_inq_var_byid(fp, i);
-            string longvarNm(&fp->var_namelist[i][1]);
+            cerr << __LINE__ << endl;
+            string longvarNm(&fp->var_namelist[i][0]);   //!!This changed to not remove first char
+            cerr << __LINE__ << endl;
             string varNm = longvarNm.substr(longvarNm.find("/",1,1)+1,longvarNm.length());
 
             if(varNm == "ephase")
@@ -235,7 +242,7 @@ eavlXGCParticleImporter::Initialize()
                 //totalEParticles += (int)(*(int *)avi->value);
                 adios_free_varinfo(avi);
             }
-            else if(i < startIndex + 13)
+            else if(i < startIndex + numVarsPerGroup)
             {
                 if (varNm == "timestep")
                 {
@@ -280,13 +287,11 @@ eavlXGCParticleImporter::Initialize()
             }
         }
     }
-    else
+    else //reading particle file or aggregated restart file
     {
-
         for(int i = 0; i < fp->nvars; i++)
         {
             string varNm(&fp->var_namelist[i][0]);
-
             if(varNm == "ephase")
             {
                 ephaseAvail = 1;
@@ -316,6 +321,7 @@ eavlXGCParticleImporter::Initialize()
                 //----Set indexes for each reader for the IONS
                 ADIOS_VARINFO *avi = adios_inq_var(fp, "iphase");
                 nvars = avi->dims[0];
+
                 int endIndex;
                 int startIndex = (nvars / numMPITasks) * mpiRank;
                 if (nvars % numMPITasks > mpiRank)
@@ -967,9 +973,10 @@ eavlXGCParticleImporter::AdvanceToTimeStep(int step, int timeout_sec)
     while(currentTimestep < step)
     {
         int err = adios_advance_step(fp, 0, timeout_sec);
-
         if(err != 0)
+        {
             return err;
+        }
         currentTimestep++;
     }
 
