@@ -703,9 +703,9 @@ void eavlRayTracer::setOcclusionSamples(int numSamples)
 }
 void eavlRayTracer::setOcclusionDistance(float distance)
 {
-    if(distance < 1)
+    if(distance < 0.f)
     {
-        cerr<<"Cannot set occulsion samples to "<<distance<<endl;
+        cerr<<"Cannot set occulsion sample distance to "<<distance<<endl;
         return;
     }
     else
