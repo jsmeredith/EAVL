@@ -4481,6 +4481,10 @@ VTK_ALL_LIBS="
     vtkIOCore-6.1
     vtkCommonDataModel-6.1
     vtkCommonCore-6.1
+    vtkIOLegacy-6.3
+    vtkIOCore-6.3
+    vtkCommonDataModel-6.3
+    vtkCommonCore-6.3
     "
 
 VTK_CPPFLAGS=""
@@ -4508,6 +4512,10 @@ $as_echo "6.0" >&6; }
       VTK_CPPFLAGS="-I""$VTK""/include/vtk-6.1 -I""$VTK""/include"
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: 6.1" >&5
 $as_echo "6.1" >&6; }
+    elif test -d "$VTK""/include/vtk-6.3"; then
+      VTK_CPPFLAGS="-I""$VTK""/include/vtk-6.3"
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: 6.3" >&5
+$as_echo "6.3" >&6; }
    else
       VTK_CPPFLAGS="-I""$VTK""/include"
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: Unknown. This will probably fail to get a working VTK." >&5
@@ -4522,6 +4530,7 @@ $as_echo "Unknown. This will probably fail to get a working VTK." >&6; }
           fi
    VTK_LIBS=""
    for lib in $VTK_ALL_LIBS; do
+      echo $lib
       if test -f "$VTK/lib/lib$lib.so" -o \
               -f "$VTK/lib/lib$lib.a" -o \
               -f "$VTK/lib/lib$lib.dylib"; then
@@ -5106,6 +5115,7 @@ if test "$ADIOS" != "yes" -a "$ADIOS" != "no"; then
 
    if test "$MPI" != "no"; then
      ADIOS_LIBS="-ladiosread $MPI_LIBS"
+     #ADIOS_LIBS="`adios_config -lr` $MPI_LIBS"
    else
      ADIOS_LIBS="-ladiosread_nompi"
    fi
