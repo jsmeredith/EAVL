@@ -48,6 +48,7 @@ class eavlXGCParticleImporter : public eavlImporter
     int            GetEMaxGID();
     int            GetIMaxGID();
     int            GetLastTimeStep();
+    void           ReleaseTimeStep();
     int            GetNumChunks(const std::string &mesh) {return 1;}
     int            AdvanceTimeStep(int step, int timeout_sec);
     int            AdvanceToTimeStep(int step, int timeout_sec);

@@ -1064,3 +1064,9 @@ eavlXGCParticleImporter::SetActiveFields(bool r, bool z, bool phi, bool rho, boo
     getF0 = f0;
     getOriginNode = originNode;
 }
+
+void
+eavlXGCParticleImporter::ReleaseTimeStep()
+{
+    adios_release_step(fp);
+}
