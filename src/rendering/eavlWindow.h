@@ -31,6 +31,7 @@ class eavlWindow
     eavlSceneRenderer *renderer;
 
     std::vector<eavlAnnotation*> annotations;
+    bool disableAnnotations;
 
   public: /// todo: hack, should not be public
     eavlRenderSurface *surface;
@@ -41,7 +42,8 @@ class eavlWindow
     eavlWindow(eavlColor bgcolor, eavlRenderSurface *surf,
                eavlScene *s, eavlSceneRenderer *r,
                eavlWorldAnnotator *w)
-        : bg(bgcolor), scene(s), renderer(r), surface(surf), worldannotator(w)
+        : bg(bgcolor), scene(s), renderer(r), surface(surf), worldannotator(w),
+          disableAnnotations(false)
     {
         renderer->SetRenderSurface(surface);
     }
@@ -74,6 +76,11 @@ class eavlWindow
     /*
     virtual void ResetViewForCurrentExtents() { }
     */
+    
+    void DisableAnnotations(bool disable)
+    {
+        disableAnnotations = disable;
+    }
 
     void Initialize()
     {
@@ -105,12 +112,14 @@ class eavlWindow
         }
 
         // render the window type specific annotations
-        RenderAnnotations();
+        if(!disableAnnotations) 
+        {
+            RenderAnnotations();
 
-        // render any other annotations
-        for (unsigned int i=0; i<annotations.size(); ++i)
-            annotations[i]->Render(view);
-
+            // render any other annotations
+            for (unsigned int i=0; i<annotations.size(); ++i)
+                annotations[i]->Render(view);
+        }
         surface->Finish();
     }
 
