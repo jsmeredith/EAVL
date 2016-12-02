@@ -240,10 +240,10 @@ struct NormalFunctor{
         aNorm.z = norms.getValue(hitIndex * 9 + 8);
 
         eavlVector3 normal;
-        normal = aNorm*alpha + bNorm*beta + cNorm*gamma;
-        float lerpedScalar = scalars.getValue(hitIndex * 3 + 0) * alpha +
-        					 scalars.getValue(hitIndex * 3 + 1) * beta  + 
-        					 scalars.getValue(hitIndex * 3 + 2) * gamma;
+        normal = aNorm*gamma + bNorm*alpha + cNorm*beta;
+        float lerpedScalar = scalars.getValue(hitIndex * 3 + 0) * gamma +
+        					 scalars.getValue(hitIndex * 3 + 1) * alpha  + 
+        					 scalars.getValue(hitIndex * 3 + 2) * beta;
         //reflect the ray
         normal.normalize();
         if ((normal * rayDir) > 0.0f) normal = -normal; //flip the normal if we hit the back side
