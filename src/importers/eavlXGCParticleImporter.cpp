@@ -115,7 +115,8 @@ eavlXGCParticleImporter::eavlXGCParticleImporter(   const string &filename,
         fp = adios_read_open(filename.c_str(), method, comm, mode, timeout_sec);
 
     if (fp == NULL)
-    {        cerr << __LINE__ << endl;
+    {
+        cerr << __LINE__ << endl;
         if(adios_errno == err_end_of_stream)
         {
             printf ("End of stream, no more steps expected. Quit. %s\n",
@@ -172,12 +173,14 @@ eavlXGCParticleImporter::Initialize()
     last_available_timestep = fp->last_step;
 
     if(readingRestartFile) //check for restart file format
-    {        if(fp->nvars <= 25)
-            readingRestartFile = 0;    }
-    
+    {
+        if(fp->nvars <= 25)
+            readingRestartFile = 0;
+    }
     
     if(readingRestartFile)
-    {        int numVarsPerGroup = 25;
+    {
+        int numVarsPerGroup = 25;
         nvars = fp->nvars/numVarsPerGroup;
         if(nvars <= mpiRank)
         {
