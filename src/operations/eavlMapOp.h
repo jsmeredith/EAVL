@@ -19,7 +19,7 @@ struct eavlMapOp_CPU
     template <class F, class IN, class OUT>
     static void call(int nitems, int, const IN inputs, OUT outputs, F &functor)
     {
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
         for (int index = 0; index < nitems; ++index)
         {
             typename collecttype<IN>::const_type in(collect(index, inputs));
